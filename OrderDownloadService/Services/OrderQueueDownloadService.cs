@@ -7,6 +7,7 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace OrderDonwLoadService.Services
@@ -24,10 +25,10 @@ namespace OrderDonwLoadService.Services
         private readonly IEventQueue events;
         private readonly IAppLog log;
 
-        private bool wait = false;
         private System.Timers.Timer timerService = new System.Timers.Timer();
         private double timerPlayInterval = 0;
         private readonly InditexTokenCache tokenCache = new InditexTokenCache();
+        private readonly SemaphoreSlim executionLock = new SemaphoreSlim(1, 1);
         private string url = null;
         private bool onApiCaller = false;
         private string workDirectory = null;
@@ -65,8 +66,9 @@ namespace OrderDonwLoadService.Services
                 return onApiCaller = true;
 
             }
-            catch(Exception)
+            catch(Exception ex)
             {
+                log.LogException(ex);
                 return false;
             }
         }
@@ -80,8 +82,9 @@ namespace OrderDonwLoadService.Services
                 onApiCaller = false;
                 return true;
             }
-            catch(Exception)
+            catch(Exception ex)
             {
+                log.LogException(ex);
                 return false;
             }
         }
@@ -89,22 +92,27 @@ namespace OrderDonwLoadService.Services
         {
             this.Stop();
         }
-        private async void timer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        private void timer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
+            _ = ProcessTimerAsync();
+        }
 
+        private async Task ProcessTimerAsync()
+        {
+            if(!onApiCaller)
+                return;
 
-            if(!onApiCaller) return;
-            if(wait) return;
+            if(!await executionLock.WaitAsync(0))
+                return;
+
             try
             {
-                wait = true;
-                var maxTrys = appConfig.GetValue<int>("DownloadServices.MaxTrys", 2);
-                var timeToWait = TimeSpan.FromSeconds(appConfig.GetValue<double>("DownloadServices.SecondsToWait", 240));
                 foreach(var credential in OrderDownloadHelper.LoadInditexCreadentials(log))
                 {
                     log.LogMessage($"Beging of Timer  RequestsServices with this configuration for credential ({credential.Name}):");
 
-                    if(!onApiCaller) return;
+                    if(!onApiCaller)
+                        return;
 #if DEBUG
                     var token = "test";
 #else
@@ -121,7 +129,8 @@ namespace OrderDonwLoadService.Services
 #endif
                     do
                     {
-                        if(!onApiCaller) return;
+                        if(!onApiCaller)
+                            return;
 #if DEBUG
                         var rootDirectory = Directory.GetCurrentDirectory();
                         rootDirectory = rootDirectory.Replace("OrderDownloadWebApi", "OrderDownloadService");
@@ -189,7 +198,7 @@ namespace OrderDonwLoadService.Services
                             SeasonId = order.POInformation.campaign,
                         });
 
-                        Task.Delay(15000).Wait();
+                        await Task.Delay(15000);
 #if DEBUG
                         break;
 #endif
@@ -197,16 +206,17 @@ namespace OrderDonwLoadService.Services
                     } while(true);
 
                 }
-                wait = false;
             }
             catch(Exception ex)
             {
                 var message = "Finish whit mistake: \n\r Message: " + ex.Message + "; \n\r InnerException: " + ex.InnerException +
                    "; \n\r Source: " + ex.Source + "; \n\r StackTrace: " + ex.StackTrace + "; \n\r TargetSite:" + ex.TargetSite;
                 log.LogMessage(message);
-                wait = false;
             }
-
+            finally
+            {
+                executionLock.Release();
+            }
         }
 
         private void SaveOrderWithError(string message, InditexOrderData order)
