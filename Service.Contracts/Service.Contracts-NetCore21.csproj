@@ -1,0 +1,115 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup Label="Globals">
+    <SccProjectName></SccProjectName>
+    <SccProvider></SccProvider>
+    <SccAuxPath></SccAuxPath>
+    <SccLocalPath></SccLocalPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <RootNamespace>Service.Contracts</RootNamespace>
+    <AssemblyName>Service.Contracts</AssemblyName>
+    <Version>7.0.1</Version>
+  </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DefineConstants>TRACE;NETCOREAPP2_1</DefineConstants>
+    <OutputPath>bin\Debug\netcore\</OutputPath>
+    <IntermediateOutputPath>obj\Debug\netcore\</IntermediateOutputPath>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <OutputPath>bin\Release\netcore\</OutputPath>
+    <IntermediateOutputPath>obj\Release\netcore\</IntermediateOutputPath>
+    <DefineConstants>TRACE;NETCOREAPP2_1</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="bin\**" />
+    <Compile Remove="obj\**" />
+    <EmbeddedResource Remove="bin\**" />
+    <EmbeddedResource Remove="obj\**" />
+    <None Remove="bin\**" />
+    <None Remove="obj\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Database\DynamicDB.DataExport.cs" />
+    <Compile Remove="Infrastructure\ServiceFactory\FactoryExtensions.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="packages.config" />
+    <None Remove="Service.Contracts-NET461.csproj.vspscc" />
+    <None Remove="Service.Contracts-NetCore21.csproj.vspscc" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.App" Version="2.1.5" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.1.3" />
+    <PackageReference Include="MySql.Data" Version="8.0.13" />
+	<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+	<PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.11" />
+	<PackageReference Include="System.Data.SQLite" Version="1.0.119" />
+	<PackageReference Include="System.IO.FileSystem.AccessControl" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="ContractsNetFx">
+      <HintPath>..\..\Dependencies\ContractsNetFx.dll</HintPath>
+    </Reference>
+    <Reference Include="Rebex.Common">
+      <HintPath>..\..\Dependencies\Rebex.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="Rebex.FileServer">
+      <HintPath>..\..\Dependencies\Rebex.FileServer.dll</HintPath>
+    </Reference>
+    <Reference Include="Rebex.FileSystem">
+      <HintPath>..\..\Dependencies\Rebex.FileSystem.dll</HintPath>
+    </Reference>
+    <Reference Include="Rebex.FileTransfer">
+      <HintPath>..\..\Dependencies\Rebex.FileTransfer.dll</HintPath>
+    </Reference>
+    <Reference Include="Rebex.Ftp">
+      <HintPath>..\..\Dependencies\Rebex.Ftp.dll</HintPath>
+    </Reference>
+    <Reference Include="Rebex.Networking">
+      <HintPath>..\..\Dependencies\Rebex.Networking.dll</HintPath>
+    </Reference>
+    <Reference Include="Rebex.Sftp">
+      <HintPath>..\..\Dependencies\Rebex.Sftp.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="GS1Prefixes.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="copy &quot;$(TargetPath)&quot; &quot;$(ProjectDir)..\..\Dependencies\Print\NetCore2.1\$(TargetFileName)&quot; /y&#xD;&#xA;" />
+  </Target>
+
+</Project>

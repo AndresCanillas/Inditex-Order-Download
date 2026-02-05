@@ -1,0 +1,20 @@
+﻿@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+<viewrow style="width:30vw; min-width:400px;">
+    <viewcolumn>
+        <div style="display:flex">
+            <div style="flex:64px"><span class="fa fa-question" style="font-size:2rem; color:dodgerblue;"></span></div>
+            <div name="Message" style="flex:95%"></div>
+            <input model name="Result" type="hidden" value="true" />
+        </div>
+    </viewcolumn>
+</viewrow>
+<viewfooter>
+    <div style="float:right;">
+        <button type="button" class="btn btn-primary" action="Ok">@g["OK"]</button>
+        <button type="button" class="btn btn-secondary" action="Cancel">@g["Cancel"]</button>
+    </div>
+</viewfooter>

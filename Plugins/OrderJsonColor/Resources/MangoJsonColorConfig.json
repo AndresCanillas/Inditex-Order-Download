@@ -1,0 +1,36 @@
+{
+  "IsOnlyColor": false,
+  "LabelsWithPiggyback": "PVP00BXD,PVL00LSN,PVL00LCN,PVL00LHX,PVP01MXG,PVP01TEX,PVP00HXE,PVL00PXG,PVL00TXL,PVZ00WXG,PVZ00WXC,PVZ00WXH,PVPC0SXM,PVP00MXH,PVP00PLC,PVADHPX0,PVADHHXP,PVADHBXS,PVADHBXL,PVADHRXT,PVADHRXK,PVADHYXR,PVADHYXD,PVADHAXP,PVP002XG,PVP002EX,PVL00PX2,PVL00TX2,PVL00TXH,PVZ00W2G,PVZ00W2C,PVPC02XM",
+  //Regla para diferenciar si una etiqueta con piggy se tomara en cuenta según el tipo de pedido
+  "LabelsWithPiggybackTypeRules": [
+    {
+      "LabelId": "PVP002XG",
+      "TypePOs": "ZMFP" //solo si es de este tipo se colocan los piggys. 
+    },
+    {
+      "LabelId": "PVZ00W2G",
+      "TypePOs": "ZMFP" //solo si es de este tipo se colocan los piggys. 
+    },
+    {
+      "LabelId": "PVP01MXG",
+      "TypePOs": "ZMFP" //solo si es de este tipo se colocan los piggys. 
+    }
+
+  ],
+  "LabelsWithDiferentLayout": "PVP01MXG,PVP002XG", // las etiquetas en esta lista siempre se le agregara el sufijo el tipo de pedido ZMFP o ZDS0
+  "LabelsWithSizeDescriptionRule": [ //para cualquier label por defecto es el SizeId es 001
+    {
+      "LabelId": "PVP002EX",
+      "SizeId": "910"
+    },
+    {
+      "LabelId": "PVADHRXK",
+      "SizeId": "910"
+    },
+    {
+      "LabelId": "PVP01TEX",
+      "SizeId": "910"
+    }
+  ]
+
+} 

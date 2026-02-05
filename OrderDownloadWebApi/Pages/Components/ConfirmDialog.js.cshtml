@@ -1,0 +1,29 @@
+﻿@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages/Components/ConfirmDialog.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+var ConfirmDialog = function (text) {
+    FormView.Extend(this, "@g["Confirmation"]", "/Components/ConfirmDialog");
+    this.Text = text;
+};
+
+ConfirmDialog.prototype = {
+    constructor: ConfirmDialog,
+
+    OnLoad: function () {
+        this.elements.Message.html(this.Text);
+    },
+
+    SetMessage: function (text) {
+        this.Text = text;
+        this.elements.Message.html(text);
+    }
+};
+//</script>

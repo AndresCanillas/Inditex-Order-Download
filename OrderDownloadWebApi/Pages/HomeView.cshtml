@@ -1,0 +1,58 @@
+﻿@page
+@inject ILocalizationService g
+@inject IAppConfig cfg
+@{
+    Layout = null;
+    var showMaintenanceScreen = !User.IsInRole(Roles.SysAdmin) && cfg["DownloadServicesWeb:MaintenanceMode"] == "true";
+    bool isqa = cfg["DownloadServicesWeb.IsQA"] == "true";
+}
+@if (showMaintenanceScreen)
+{
+    <nav class="navbar navbar-expand-lg navbar-dark" style="top:0px; left:0px; width:100%; height:57px; background-color:#3F454A; color:#ffffff; border-bottom:solid 1px #000000;">
+        <div style="white-space:nowrap">
+            <img src="/images/SDS_LOGO2.png" width="140" height="12" />
+            @if (isqa)
+            {
+                <span style="-webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; font-family:Calibri; font-size:7pt; color:white">QA - </span>
+            }
+            <span style="font-family:Calibri; font-size:7pt; color:white">v2.0</span>
+        </div>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+        </div>
+    </nav>
+    <br />
+    <div class="container">
+        <div class="row">
+            <div class="col-sm">&nbsp;</div>
+            <div class="col-8">
+                <br />
+                <div class="jumbotron">
+                    <h1 class="display-4">@g["System under maintenance!"]</h1>
+                    <p class="lead">@g["We are currently updating the system and performing tests to ensure all is left in a working state."]</p>
+                    <hr class="my-4">
+                    <p>@g["The application should be back to normal in a few hours."]</p>
+                </div>
+            </div>
+            <div class="col-sm">&nbsp;</div>
+        </div>
+    </div>
+}
+else
+{
+    <div component="FormView" name="TopNavBar" controller="/Components/NavBar.js?_=@(DateTime.Now.ToString("yyyyMMddhhmmss"))"></div>
+    <div component="FormView" name="VMenu" controller="/Components/VMenuBar.js" class="menubar"></div>
+    <div name="mainContainer" class="main-panel2">
+
+    </div>
+    <footer class="main-panel-footer" style="">
+        <div class="container-fluid text-center">
+            <div class="footer-copyright text-center py-2">
+                © 2018  @g["Copyright"]:
+                <a href="https://www.smartdots.es/">www.smartdots.es</a>
+            </div>
+        </div>
+    </footer>
+}

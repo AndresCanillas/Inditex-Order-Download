@@ -1,0 +1,149 @@
+{
+  "Resources": [
+    {
+      "Key": "Operation could not be completed.",
+      "Value": "Operation could not be completed.",
+      "T": false
+    },
+    {
+      "Key": "DownloadServicesWeb.PrintCentralUrl",
+      "Value": "DownloadServicesWeb.PrintCentralUrl",
+      "T": false
+    },
+    {
+      "Key": "PrintEntryWeb.PrintCentralUrl",
+      "Value": "PrintEntryWeb.PrintCentralUrl",
+      "T": false
+    },
+    {
+      "Key": "DownloadServicesWeb:MaintenanceMode",
+      "Value": "DownloadServicesWeb:MaintenanceMode",
+      "T": false
+    },
+    {
+      "Key": "DownloadServicesWeb.IsQA",
+      "Value": "DownloadServicesWeb.IsQA",
+      "T": false
+    },
+    {
+      "Key": "System under maintenance!",
+      "Value": "System under maintenance!",
+      "T": false
+    },
+    {
+      "Key": "We are currently updating the system and performing tests to ensure all is left in a working state.",
+      "Value": "We are currently updating the system and performing tests to ensure all is left in a working state.",
+      "T": false
+    },
+    {
+      "Key": "The application should be back to normal in a few hours.",
+      "Value": "The application should be back to normal in a few hours.",
+      "T": false
+    },
+    {
+      "Key": "Copyright",
+      "Value": "Copyright",
+      "T": false
+    },
+    {
+      "Key": "PrintEntry Orders",
+      "Value": "PrintEntry Orders",
+      "T": false
+    },
+    {
+      "Key": "User Name",
+      "Value": "User Name",
+      "T": false
+    },
+    {
+      "Key": "Password",
+      "Value": "Password",
+      "T": false
+    },
+    {
+      "Key": "Processing...",
+      "Value": "Processing...",
+      "T": false
+    },
+    {
+      "Key": "OK",
+      "Value": "OK",
+      "T": false
+    },
+    {
+      "Key": "Cancel",
+      "Value": "Cancel",
+      "T": false
+    },
+    {
+      "Key": "Confirmation",
+      "Value": "Confirmation",
+      "T": false
+    },
+    {
+      "Key": "Language",
+      "Value": "Language",
+      "T": false
+    },
+    {
+      "Key": "English (United States)",
+      "Value": "English (United States)",
+      "T": false
+    },
+    {
+      "Key": "Spanish (Spain, International Sort)",
+      "Value": "Spanish (Spain, International Sort)",
+      "T": false
+    },
+    {
+      "Key": "French (France)",
+      "Value": "French (France)",
+      "T": false
+    },
+    {
+      "Key": "Portuguese (Brazil)",
+      "Value": "Portuguese (Brazil)",
+      "T": false
+    },
+    {
+      "Key": "Logout",
+      "Value": "Logout",
+      "T": false
+    },
+    {
+      "Key": "Logout from the application?",
+      "Value": "Logout from the application?",
+      "T": false
+    },
+    {
+      "Key": "Please introduce the order number",
+      "Value": "Please introduce the order number",
+      "T": false
+    },
+    {
+      "Key": "Please enter a valid order number (only numbers, 10 to 11 digits).",
+      "Value": "Please enter a valid order number (only numbers, 10 to 11 digits).",
+      "T": false
+    },
+    {
+      "Key": "Send Back To Queue",
+      "Value": "Send Back To Queue",
+      "T": false
+    },
+    {
+      "Key": "Back On The Queue",
+      "Value": "Back On The Queue",
+      "T": false
+    },
+    {
+      "Key": "Order",
+      "Value": "Order",
+      "T": false
+    },
+    {
+      "Key": "Result",
+      "Value": "Result",
+      "T": false
+    }
+  ]
+}

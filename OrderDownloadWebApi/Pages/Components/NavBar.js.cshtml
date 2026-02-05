@@ -1,0 +1,29 @@
+﻿@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages/Components/NavBar.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var NavBar = function (showToggleButton) {
+		if (showToggleButton)
+			FormView.Extend(this, "", "/Components/NavBar?t=1&_=@(DateTime.Now.ToString("yyyyMMddhhmmss"))");
+		else
+			FormView.Extend(this, "", "/Components/NavBar");
+	};
+
+	NavBar.prototype = {
+		constructor: NavBar,
+
+		OnLoad: function () {
+		},
+
+		ToggleMenu: function (e) {
+			window.ToggleMenu();
+		}
+	};
+//</script>

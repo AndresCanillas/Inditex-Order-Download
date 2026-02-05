@@ -1,0 +1,57 @@
+﻿@page
+@inject IAppConfig config
+@inject ILocalizationService  g
+@{
+    Layout = null;
+    var mark = config.Bind<string>("DownloadServicesWeb.PublishDate");
+
+    if (string.IsNullOrEmpty(mark))
+    {
+        mark = DateTime.Now.ToString("yyyyMMddhh");// refresh every hour
+
+        // Change to check if configuration is set to QA
+        //#if DEBUG
+        //		mark = DateTime.Now.ToString("yyyyMMddhhmmss");// refresh every second
+        //#endif
+    }
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Inditex Orders Download</title>
+    <link rel="stylesheet" href="/css/bootstrap.css?@mark" />
+    <link rel="stylesheet" href="/css/jquery-ui.min.css?@mark" />
+    <link rel="stylesheet" href="/css/font-awesome.min.css?@mark">
+    <link rel="stylesheet" href="/css/themify-icons.css?@mark">
+    <link rel="stylesheet" href="/styles/kendo.common.min.css?@mark" />
+    <link rel="stylesheet" href="/styles/kendo.default.min.css?@mark" />
+    <link rel="stylesheet" href="/css/AppContext.css?@mark" />
+    <link rel="stylesheet" href="/css/AppContext.GridView.css?@mark" />
+    <script src="/js/jquery-3.0.0.min.js?@mark"></script>
+    <script src="/js/bootstrap.min.js?@mark"></script>
+    <script src="/js/kendo.all.min.js?@mark"></script>
+    <script src="/js/AppContext.js?@mark"></script>
+    <script src="/js/AppContext.ViewManager.js?@mark"></script>
+    <script src="/js/AppContext.Events.js?@mark"></script>
+    <script src="/js/AppContext.Extensions.js?@mark"></script>
+    <script src="/js/AppContext.UI.js?@mark"></script>
+    <script src="/js/AppContext.GridView.js?@mark"></script>
+    <script src="/js/AppContext.OrderGrid.js?@mark"></script>
+</head>
+<body>
+    <script>
+
+        (async function () {
+            await AppContext.SetSettings({
+                enableCache: true,
+                timeMark: '@mark'.length > 0 ? '@mark' : null
+            });
+
+
+			var view = await AppContext.ViewManager.Load("/HomeView.js");
+			view.Show($("BODY"));
+		})();
+    </script>
+</body>
+</html>

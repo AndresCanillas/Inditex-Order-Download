@@ -1,0 +1,263 @@
+{
+    "POInformation": {
+        "productionOrderNumber": 15536,
+        "campaign": "I25",
+        "orderQty": 15000,
+        "brand": "ZARA",
+        "section": "NIÑO",
+        "productType": "ROPA",
+        "model": 9598,
+        "quality": 600,
+        "colors": [
+            {
+                "color": 711,
+                "sizes": [
+                    {
+                        "size": 18,
+                        "qty": 2040
+                    },
+                    {
+                        "size": 72,
+                        "qty": 2535
+                    },
+                    {
+                        "size": 24,
+                        "qty": 2310
+                    },
+                    {
+                        "size": 36,
+                        "qty": 2640
+                    },
+                    {
+                        "size": 48,
+                        "qty": 2760
+                    },
+                    {
+                        "size": 60,
+                        "qty": 2715
+                    }
+                ]
+            }
+        ]
+    },
+    "supplier": {
+        "supplierCode": "05987",
+        "name": "HONGKONG HUIGANG INTERNATIONAL HOLDINGS LIMITED",
+        "address": "UNIT 2 LG1 MIRROR TOWER, 61 MODY ROAD TSIM SHA TSUI, KL",
+        "phoneNumber": "15268353955",
+        "email": "sophia.zheng@newdesigntex.com"
+    },
+	"assets": [
+		{
+		  "name": "Icono RFID",
+		  "type": "url",
+		  "value": "https://static.inditex.com/assets/public/9856/f8f7/ac9b490facb5/66119bfa54f5/rfid_alarm.png?ts=1765532377981"
+		}
+	  ],
+    "componentValues": [
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "Model",
+            "type": "string",
+            "valueMap": {
+                "9598/600": "9598"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "SIZE_MEASURE_AGE_UNIT",
+            "type": "string",
+            "valueMap": {
+                "9598/600": "AÑOS/YEARS"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "SIZE_SERIES_AGE",
+            "type": "string",
+            "valueMap": {
+                "9598/600": "1½,2,3,4,5,6"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "PRICE_USA_VALUE",
+            "type": "string",
+            "valueMap": {
+                "9598/600": "35,90"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "PRICE_UK_VALUE",
+            "type": "string",
+            "valueMap": {
+                "9598/600": "19,99"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "Quality",
+            "type": "string",
+            "valueMap": {
+                "9598/600": "600"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "PRICE_UK_CURRENCY",
+            "type": "string",
+            "valueMap": {
+                "9598/600": "£"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "PRICE_USA_CURRENCY",
+            "type": "string",
+            "valueMap": {
+                "9598/600": "$"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "BuyerGroup_Icon",
+            "type": "string",
+            "valueMap": {
+                "9598/600": "https://static.inditex.com/assets/public/8157/5e6d/2b574c99b74b/bb0f0ad4eaae/BABY_GIRL.png?ts=1766392792634"
+            }
+        },
+        {
+            "groupKey": "COLOR",
+            "name": "Colour",
+            "type": "string",
+            "valueMap": {
+                "711": "711"
+            }
+        },
+        {
+            "groupKey": "SIZE",
+            "name": "SIZE_MEASURE_AGE",
+            "type": "string",
+            "valueMap": {
+                "24": "2",
+                "36": "3",
+                "48": "4",
+                "18": "1½",
+                "60": "5",
+                "72": "6"
+            }
+        },
+        {
+            "groupKey": "SIZE",
+            "name": "REFERENCE_BARCODE",
+            "type": "string",
+            "valueMap": {
+                "24": "09598600711248",
+                "36": "09598600711361",
+                "48": "09598600711484",
+                "18": "09598600711187",
+                "60": "09598600711606",
+                "72": "09598600711729"
+            }
+        },
+        {
+            "groupKey": "SIZE",
+            "name": "QR_product",
+            "type": "string",
+            "valueMap": {
+                "24": "https://dvcmrclstaweu1pre001.blob.core.windows.net/icbclbg/label-assets%2F33946%2Fqr_product_d8563efa-44c7-4049-9ed7-f560795635b4_33420.svg?sv=2025-07-05&spr=https&st=2026-02-03T17%3A48%3A56Z&se=2026-02-10T16%3A48%3A56Z&skoid=b0ecaaca-bd7a-43cc-b2e2-51d37215c168&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-03T17%3A48%3A56Z&ske=2026-02-10T16%3A48%3A56Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=%2BIU73Re5zB6Kz42sJYi7MfXiEvCbSN5ZBM%2Be%2FmNKZPo%3D",
+                "36": "https://dvcmrclstaweu1pre001.blob.core.windows.net/icbclbg/label-assets%2F33950%2Fqr_product_de6def7c-7d88-467c-87fd-1b1650af504b_33420.svg?sv=2025-07-05&spr=https&st=2026-02-03T17%3A48%3A57Z&se=2026-02-10T16%3A48%3A57Z&skoid=b0ecaaca-bd7a-43cc-b2e2-51d37215c168&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-03T17%3A48%3A57Z&ske=2026-02-10T16%3A48%3A57Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=SmOwigHnxS%2B3%2Bpgg%2Bd76DN4094goMPBBxNrAvnIUbhM%3D",
+                "48": "https://dvcmrclstaweu1pre001.blob.core.windows.net/icbclbg/label-assets%2F33954%2Fqr_product_de4f519b-a69c-48af-bb38-0fe878da7f51_33420.svg?sv=2025-07-05&spr=https&st=2026-02-03T17%3A48%3A57Z&se=2026-02-10T16%3A48%3A57Z&skoid=b0ecaaca-bd7a-43cc-b2e2-51d37215c168&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-03T17%3A48%3A57Z&ske=2026-02-10T16%3A48%3A57Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=FIoDFmZD7%2BF%2FHRH2Ix2vY4LxEldyOkzclAhF56e6Dw8%3D",
+                "18": "https://dvcmrclstaweu1pre001.blob.core.windows.net/icbclbg/label-assets%2F33938%2Fqr_product_2d41f500-b539-493b-811d-d864d4a68489_33420.svg?sv=2025-07-05&spr=https&st=2026-02-03T17%3A48%3A56Z&se=2026-02-10T16%3A48%3A56Z&skoid=b0ecaaca-bd7a-43cc-b2e2-51d37215c168&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-03T17%3A48%3A56Z&ske=2026-02-10T16%3A48%3A56Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=nBqdM63KCMW1MWokHNJQcf1yoW%2BZF20lqNHzGVNlZZ4%3D",
+                "60": "https://dvcmrclstaweu1pre001.blob.core.windows.net/icbclbg/label-assets%2F33958%2Fqr_product_95fbb5ae-3db4-4810-becc-4d4eff5665ba_33420.svg?sv=2025-07-05&spr=https&st=2026-02-03T17%3A48%3A57Z&se=2026-02-10T16%3A48%3A57Z&skoid=b0ecaaca-bd7a-43cc-b2e2-51d37215c168&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-03T17%3A48%3A57Z&ske=2026-02-10T16%3A48%3A57Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=YIDR6SmZ1C7OT0qGrgLb2KzLq%2BEbu3QXbCQd7K%2BeLPw%3D",
+                "72": "https://dvcmrclstaweu1pre001.blob.core.windows.net/icbclbg/label-assets%2F33942%2Fqr_product_6fe83fef-a0c8-4fb5-8de2-be54b36dfbd7_33420.svg?sv=2025-07-05&spr=https&st=2026-02-03T17%3A48%3A56Z&se=2026-02-10T16%3A48%3A56Z&skoid=b0ecaaca-bd7a-43cc-b2e2-51d37215c168&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-03T17%3A48%3A56Z&ske=2026-02-10T16%3A48%3A56Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=JTFfIrkMgTf6IDEBzzpnIbqzvrzYt4iTRu8NKzrfneA%3D"
+            }
+        },
+        {
+            "groupKey": "SIZE",
+            "name": "SIZE_MEASURE_HEIGHT_CM",
+            "type": "string",
+            "valueMap": {
+                "24": "92",
+                "36": "98",
+                "48": "104",
+                "18": "86",
+                "60": "110",
+                "72": "116"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "Blue label currency",
+            "type": "string",
+            "valueMap": {
+                "9598/600": "€"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "Blue label",
+            "type": "string",
+            "valueMap": {
+                "9598/600": "22,95"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "Red label currency",
+            "type": "string",
+            "valueMap": {
+                "9598/600": "€"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "Red label",
+            "type": "string",
+            "valueMap": {
+                "9598/600": "19,95"
+            }
+        }
+    ],
+    "labels": [
+        {
+            "reference": "HPZKALL003",
+			"assets": ["Icono RFID"],
+            "components": [
+                "BuyerGroup_Icon",
+                "Colour",
+                "Model",
+                "PRICE_UK_CURRENCY",
+                "PRICE_UK_VALUE",
+                "PRICE_USA_CURRENCY",
+                "PRICE_USA_VALUE",
+                "QR_product",
+                "Quality",
+                "REFERENCE_BARCODE",
+                "SIZE_MEASURE_AGE",
+                "SIZE_MEASURE_AGE_UNIT",
+                "SIZE_MEASURE_HEIGHT_CM",
+                "SIZE_SERIES_AGE"
+            ],
+            "childrenLabels": [
+                {
+                    "reference": "BLUE_LABEL",
+                    "components": [
+                        "Blue label",
+                        "Blue label currency"
+                    ],
+                    "childrenLabels": []
+                },
+                {
+                    "reference": "RED_LABEL",
+                    "components": [
+                        "Red label",
+                        "Red label currency"
+                    ],
+                    "childrenLabels": []
+                }
+            ]
+        }
+    ]
+}

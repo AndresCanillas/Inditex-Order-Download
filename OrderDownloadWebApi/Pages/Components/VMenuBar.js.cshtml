@@ -1,0 +1,58 @@
+﻿@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages/Components/VMenuBar.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+
+//<script>
+	var VMenuBar = function () {
+		FormView.Extend(this, "", "/Components/VMenuBar");
+		this.MenuOptionClicked = new AppEvent();
+	};
+
+	VMenuBar.prototype = {
+		constructor: VMenuBar,
+
+		OnLoad: function () {
+			var self = this;
+			//$("BODY").click(function () {
+			//	self.HideAll();
+			//});
+		},
+
+		HideAll: function () {
+			//this.elements.UploadOption.removeClass("active");
+		},
+
+		ShowOrders: function (e) {
+			e.preventDefault();
+			this.HideAll();
+			this.MenuOptionClicked.Raise({ option: "Orders" });
+		},
+
+		ShowDevices: function (e) {
+			e.preventDefault();
+			this.HideAll();
+			this.MenuOptionClicked.Raise({ option: "Devices" });
+		},
+
+		ShowAdmin: function (e) {
+			e.preventDefault();
+			this.HideAll();
+			this.MenuOptionClicked.Raise({ option: "Admin" });
+		},
+
+		Logout: async function (e) {
+			e.preventDefault();
+			var dlg = await AppContext.ViewManager.Load("/Components/ConfirmDialog.js");
+			dlg.SetMessage("@g["Logout from the application?"]");
+			var result = await dlg.ShowDialog();
+			if (result) document.location = "/Account/Logout";
+		}
+	};
+//</script>

@@ -1,0 +1,88 @@
+﻿@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+
+//# sourceURL=https://Pages/QueuingOrder/BackOnTheQueueDialog.js
+///<reference path="/js/jquery-3.0.0.min.js" />
+///<reference path="/js/Kendo.all.min.js" />
+///<reference path="/js/AppContext.js" />
+
+//<script>
+    var BackOnTheQueueDialog = function () {
+        FormView.Extend(this, "@g["Back On The Queue"]", "/QueuingOrder/BackOnTheQueueDialog");
+        this.elements = {
+            txtOrderNumber: null,
+            lblResult: null,
+            btnSubmit: null
+        };
+    };
+
+    BackOnTheQueueDialog.prototype = {
+        constructor: BackOnTheQueueDialog,
+
+        OnLoad: function () {
+              this.elements.orderNumber.keypress((e) => {
+                  if (e.which === 13) {
+                      this.elements.buttonSendBackToQueue.click();
+                      e.preventDefault();
+                  }
+              });
+          },
+
+        OnUnload: function () {
+            // Limpiar listeners si es necesario
+        },
+
+        SendBackToQueue: async function (selfOrEvent) {
+            const self = selfOrEvent.data || this;
+
+            const input = self.elements.orderNumber;
+            const errorLabel = this.elements.orderNumberError;
+            const output = self.elements.information2;
+            
+            const orderNumber = input.val().trim();
+            const minLength = 10;
+            const maxLength = 11;
+
+            if (!/^\d+$/.test(orderNumber) || orderNumber.length < minLength || orderNumber.length > maxLength) {
+                input.addClass("is-invalid");
+                errorLabel.removeClass("d-none");
+                output.removeClass("alert-success alert-danger").addClass("alert-warning").html(
+                    `@g["Please enter a valid order number (only numbers, 10 to 11 digits)."]`
+                );
+                return;
+            }
+
+            input.removeClass("is-invalid");
+            errorLabel.addClass("d-none");
+            output.removeClass("alert-success alert-danger d-none").addClass("alert-secondary").html(`@g["Processing..."]`);
+
+
+            try {
+                const response = await fetch(`/order/getbackonthequeue/${orderNumber}`);
+                const result = await response.json();
+
+                const css = result.Success ? "alert-success" : "alert-danger";
+                  const formatted = result.Message
+                      .split(/\r?\n|\r|<br\s*\/?>/g)
+                      .filter(x => x.trim().length)
+                      .map(x => `<li>${x.trim()}</li>`)
+                      .join("");
+
+                  const htmlResult = `
+                          <strong>@g["Order"]:</strong> ${orderNumber}<br />
+                          <strong>@g["Result"]:</strong>
+                          <ul class="mb-0">${formatted}</ul>
+                      `;
+
+                  output.removeClass("alert-secondary").addClass(css).html(htmlResult);
+
+            } catch (err) {
+                console.error(err);
+                output.removeClass("alert-success alert-secondary d-none").addClass("alert-danger").text("An error occurred while contacting the server.");
+            }
+        }
+    };
+//</script>

@@ -1,0 +1,305 @@
+{
+    "POInformation": {
+        "productionOrderNumber": 54709,
+        "campaign": "I25",
+        "orderQty": 21348,
+        "brand": "ZARA SUR",
+        "section": "SEÑORA",
+        "productType": "ROPA",
+        "model": 5039,
+        "quality": 378,
+        "colors": [
+            {
+                "color": 898,
+                "sizes": [
+                    {
+                        "size": 4,
+                        "qty": 1431
+                    },
+                    {
+                        "size": 2,
+                        "qty": 3409
+                    },
+                    {
+                        "size": 3,
+                        "qty": 2854
+                    }
+                ]
+            },
+            {
+                "color": 712,
+                "sizes": [
+                    {
+                        "size": 4,
+                        "qty": 1376
+                    },
+                    {
+                        "size": 3,
+                        "qty": 2745
+                    },
+                    {
+                        "size": 2,
+                        "qty": 3279
+                    }
+                ]
+            },
+            {
+                "color": 756,
+                "sizes": [
+                    {
+                        "size": 2,
+                        "qty": 2773
+                    },
+                    {
+                        "size": 3,
+                        "qty": 2319
+                    },
+                    {
+                        "size": 4,
+                        "qty": 1162
+                    }
+                ]
+            }
+        ]
+    },
+    "supplier": {
+        "supplierCode": "05039",
+        "name": "SUN TEKSTIL SAN. VE TIC. A.S.",
+        "address": "YEDI EYLUL MAH. CELAL UMU",
+        "phoneNumber": "+902328506000",
+        "email": "burcu.usgulen@suntekstil.com.tr"
+    },
+	"assets": [
+		{
+		  "name": "Icono RFID",
+		  "type": "url",
+		  "value": "https://static.inditex.com/assets/public/9856/f8f7/ac9b490facb5/66119bfa54f5/rfid_alarm.png?ts=1765532377981"
+		}
+	  ],
+    "componentValues": [
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "Icono RFID",
+            "type": "string",
+            "valueMap": {
+                "5039/378": "https://amanda-pre.inditex.com/assets/public/5129/f76f/7b8f4dbb8e70/726be70e4562/rfid_alarm.png?ts=1765532001975"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "PRICE_BR_CURRENCY",
+            "type": "string",
+            "valueMap": {
+                "5039/378": "R$"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "Quality",
+            "type": "string",
+            "valueMap": {
+                "5039/378": "378"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "Model",
+            "type": "string",
+            "valueMap": {
+                "5039/378": "5039"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "SIZE_SERIE",
+            "type": "string",
+            "valueMap": {
+                "5039/378": "S,M,L"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "PRICE_BR_VALUE",
+            "type": "string",
+            "valueMap": {
+                "5039/378": "169,00"
+            }
+        },
+        {
+            "groupKey": "COLOR_SIZE",
+            "name": "REFERENCE_BARCODE",
+            "type": "string",
+            "valueMap": {
+                "712/3": "05039378712036",
+                "756/4": "05039378756047",
+                "898/4": "05039378898044",
+                "712/4": "05039378712043",
+                "756/3": "05039378756030",
+                "898/3": "05039378898037",
+                "756/2": "05039378756023",
+                "712/2": "05039378712029",
+                "898/2": "05039378898020"
+            }
+        },
+        {
+            "groupKey": "COLOR_SIZE",
+            "name": "QR_product",
+            "type": "string",
+            "valueMap": {
+                "712/3": "https://dvcmrclstaweu1pre001.blob.core.windows.net/icbclbg/label-assets%2F33847%2Fqr_product_767c810f-68b9-415a-8df1-bd3c493c6899_33419.svg?sv=2025-07-05&spr=https&st=2026-02-03T17%3A30%3A19Z&se=2026-02-10T16%3A30%3A19Z&skoid=b0ecaaca-bd7a-43cc-b2e2-51d37215c168&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-03T17%3A30%3A19Z&ske=2026-02-10T16%3A30%3A19Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=1dFM3uS0IWkJw7pWv5QOVjkr0Ui1z8tMgRQLEyRwo7Y%3D",
+                "756/4": "https://dvcmrclstaweu1pre001.blob.core.windows.net/icbclbg/label-assets%2F33855%2Fqr_product_38513d21-cffd-459f-a84f-7912bf217b83_33419.svg?sv=2025-07-05&spr=https&st=2026-02-03T17%3A30%3A19Z&se=2026-02-10T16%3A30%3A19Z&skoid=b0ecaaca-bd7a-43cc-b2e2-51d37215c168&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-03T17%3A30%3A19Z&ske=2026-02-10T16%3A30%3A19Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=%2B3DrByQOG%2FOFmgBbhnqmJr3j3lHfLx7jIGQNLCprxnY%3D",
+                "898/4": "https://dvcmrclstaweu1pre001.blob.core.windows.net/icbclbg/label-assets%2F33831%2Fqr_product_d57aa11b-accd-4364-ad6d-d9cd18eb4681_33419.svg?sv=2025-07-05&spr=https&st=2026-02-03T17%3A30%3A20Z&se=2026-02-10T16%3A30%3A20Z&skoid=b0ecaaca-bd7a-43cc-b2e2-51d37215c168&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-03T17%3A30%3A20Z&ske=2026-02-10T16%3A30%3A20Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=Qn7DPc0zF%2F7Yb3m2lSIjL3vgbwOJyK7Wz6DmqJN4ebs%3D",
+                "712/4": "https://dvcmrclstaweu1pre001.blob.core.windows.net/icbclbg/label-assets%2F33835%2Fqr_product_b3887512-6b14-4933-975a-685d0bffbc83_33419.svg?sv=2025-07-05&spr=https&st=2026-02-03T17%3A30%3A20Z&se=2026-02-10T16%3A30%3A20Z&skoid=b0ecaaca-bd7a-43cc-b2e2-51d37215c168&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-03T17%3A30%3A20Z&ske=2026-02-10T16%3A30%3A20Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=S5D8n2l70Rh7FkYHmP%2Bta0YpbonrSy7zvFdNAc1eCYk%3D",
+                "756/3": "https://dvcmrclstaweu1pre001.blob.core.windows.net/icbclbg/label-assets%2F33843%2Fqr_product_12960df8-e5b2-475d-9e9d-888903c9ec94_33419.svg?sv=2025-07-05&spr=https&st=2026-02-03T17%3A30%3A22Z&se=2026-02-10T16%3A30%3A22Z&skoid=b0ecaaca-bd7a-43cc-b2e2-51d37215c168&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-03T17%3A30%3A22Z&ske=2026-02-10T16%3A30%3A22Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=mD73CZBM%2BPqgRSPBqXfmpa0EePlVyIu1ZDLElE1qwWo%3D",
+                "898/3": "https://dvcmrclstaweu1pre001.blob.core.windows.net/icbclbg/label-assets%2F33851%2Fqr_product_b8f89e18-f9b7-478c-be82-38a6e9b05773_33419.svg?sv=2025-07-05&spr=https&st=2026-02-03T17%3A30%3A20Z&se=2026-02-10T16%3A30%3A20Z&skoid=b0ecaaca-bd7a-43cc-b2e2-51d37215c168&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-03T17%3A30%3A20Z&ske=2026-02-10T16%3A30%3A20Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=SgcviXzuCeJRLIsPdPvSupwTNOmejkznaDYeMcFkKUA%3D",
+                "756/2": "https://dvcmrclstaweu1pre001.blob.core.windows.net/icbclbg/label-assets%2F33827%2Fqr_product_bc64caea-cac3-4227-bc91-7694faca7f05_33419.svg?sv=2025-07-05&spr=https&st=2026-02-03T17%3A30%3A20Z&se=2026-02-10T16%3A30%3A20Z&skoid=b0ecaaca-bd7a-43cc-b2e2-51d37215c168&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-03T17%3A30%3A20Z&ske=2026-02-10T16%3A30%3A20Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=37s45011gjUvX%2B9CefPkrLOnX0aXOWivss5z%2FfzI1KY%3D",
+                "712/2": "https://dvcmrclstaweu1pre001.blob.core.windows.net/icbclbg/label-assets%2F33859%2Fqr_product_ae45ea35-7da4-438a-9938-c43da72d99e9_33419.svg?sv=2025-07-05&spr=https&st=2026-02-03T17%3A30%3A19Z&se=2026-02-10T16%3A30%3A19Z&skoid=b0ecaaca-bd7a-43cc-b2e2-51d37215c168&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-03T17%3A30%3A19Z&ske=2026-02-10T16%3A30%3A19Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=t02zxsSazUOSfw7h9fYD%2FVFXNyhhMXYovJBdI3f1QJk%3D",
+                "898/2": "https://dvcmrclstaweu1pre001.blob.core.windows.net/icbclbg/label-assets%2F33839%2Fqr_product_dbb45c97-ad72-4da2-b1f8-36a5f301ac58_33419.svg?sv=2025-07-05&spr=https&st=2026-02-03T17%3A30%3A20Z&se=2026-02-10T16%3A30%3A20Z&skoid=b0ecaaca-bd7a-43cc-b2e2-51d37215c168&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-03T17%3A30%3A20Z&ske=2026-02-10T16%3A30%3A20Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=bkyWPzSlXTdVTxweRfu2OxZAN48gm7o3h7De8Ij%2BMlU%3D"
+            }
+        },
+        {
+            "groupKey": "COLOR",
+            "name": "Colour",
+            "type": "string",
+            "valueMap": {
+                "898": "898",
+                "712": "712",
+                "756": "756"
+            }
+        },
+        {
+            "groupKey": "SIZE",
+            "name": "SIZE_USA_VALUE",
+            "type": "string",
+            "valueMap": {
+                "2": "S",
+                "3": "M",
+                "4": "L"
+            }
+        },
+        {
+            "groupKey": "SIZE",
+            "name": "SIZE_MEX_VALUE",
+            "type": "string",
+            "valueMap": {
+                "2": "26",
+                "3": "28",
+                "4": "30"
+            }
+        },
+        {
+            "groupKey": "SIZE",
+            "name": "SIZE_IT_VALUE",
+            "type": "string",
+            "valueMap": {
+                "2": "S",
+                "3": "M",
+                "4": "L"
+            }
+        },
+        {
+            "groupKey": "SIZE",
+            "name": "SIZE_EUR_VALUE",
+            "type": "string",
+            "valueMap": {
+                "2": "S",
+                "3": "M",
+                "4": "L"
+            }
+        },
+        {
+            "groupKey": "SIZE",
+            "name": "SIZE_UK_VALUE",
+            "type": "string",
+            "valueMap": {
+                "2": "S",
+                "3": "M",
+                "4": "L"
+            }
+        },
+        {
+            "groupKey": "SIZE",
+            "name": "SIZE_BR_BRASIL_VALUE",
+            "type": "string",
+            "valueMap": {
+                "2": "P",
+                "3": "M",
+                "4": "G"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "Blue label currency",
+            "type": "string",
+            "valueMap": {
+                "5039/378": "CLP"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "Blue label",
+            "type": "string",
+            "valueMap": {
+                "5039/378": "21990,00"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "Red label",
+            "type": "string",
+            "valueMap": {
+                "5039/378": "39,95"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "Red label currency",
+            "type": "string",
+            "valueMap": {
+                "5039/378": "AUD$"
+            }
+        }
+    ],
+    "labels": [
+        {
+            "reference": "HPZCALL004",
+			"assets": ["Icono RFID"],
+            "components": [
+                "BuyerGroup_Icon",
+                "Colour",
+                "Icono RFID",
+                "Model",
+                "PRICE_BR_CURRENCY",
+                "PRICE_BR_VALUE",
+                "QR_product",
+                "Quality",
+                "REFERENCE_BARCODE",
+                "SIZE_BR_BRASIL_VALUE",
+                "SIZE_EUR_VALUE",
+                "SIZE_IT_VALUE",
+                "SIZE_MEX_VALUE",
+                "SIZE_SERIE",
+                "SIZE_UK_VALUE",
+                "SIZE_USA_VALUE"
+            ],
+            "childrenLabels": [
+                {
+                    "reference": "BLUE_LABEL",
+                    "components": [
+                        "Blue label",
+                        "Blue label currency"
+                    ],
+                    "childrenLabels": []
+                },
+                {
+                    "reference": "RED_LABEL",
+                    "components": [
+                        "Red label",
+                        "Red label currency"
+                    ],
+                    "childrenLabels": []
+                }
+            ]
+        }
+    ]
+}

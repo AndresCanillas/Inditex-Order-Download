@@ -1,0 +1,12 @@
+﻿@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+    var top = 6;
+}
+@{
+    top += 52;
+    <div class="submenubar-separator"></div>
+    <div name="LogoutOption" action="Logout" class="menubar-item"><span class="ti ti-power-off"></span></div>
+    <div class="submenubar-separator"></div>
+}

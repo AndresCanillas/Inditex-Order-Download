@@ -1,0 +1,563 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBUildProjectExtensionsPath>obj\Net461\</MSBUildProjectExtensionsPath>
+    <BaseIntermediateOutputPath>obj\</BaseIntermediateOutputPath>
+  </PropertyGroup>
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{B0C41671-F480-4E3F-90BD-237C7561F8F2}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Service.Contracts</RootNamespace>
+    <AssemblyName>Service.Contracts</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+    <SccProjectName>
+    </SccProjectName>
+    <SccLocalPath>
+    </SccLocalPath>
+    <SccAuxPath>
+    </SccAuxPath>
+    <SccProvider>
+    </SccProvider>
+    <TargetFrameworkProfile />
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\Net461\</OutputPath>
+    <IntermediateOutputPath>obj\Debug\Net461\</IntermediateOutputPath>
+    <DefineConstants>TRACE;DEBUG;NET461</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\Net461\</OutputPath>
+    <IntermediateOutputPath>obj\Release\Net461\</IntermediateOutputPath>
+    <DefineConstants>TRACE;NET461</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="Rebex.Common">
+      <HintPath>..\..\Dependencies\Rebex.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="Rebex.FileServer">
+      <HintPath>..\..\Dependencies\Rebex.FileServer.dll</HintPath>
+    </Reference>
+    <Reference Include="Rebex.FileSystem">
+      <HintPath>..\..\Dependencies\Rebex.FileSystem.dll</HintPath>
+    </Reference>
+    <Reference Include="Rebex.FileTransfer">
+      <HintPath>..\..\Dependencies\Rebex.FileTransfer.dll</HintPath>
+    </Reference>
+    <Reference Include="Rebex.Ftp">
+      <HintPath>..\..\Dependencies\Rebex.Ftp.dll</HintPath>
+    </Reference>
+    <Reference Include="Rebex.Networking">
+      <HintPath>..\..\Dependencies\Rebex.Networking.dll</HintPath>
+    </Reference>
+    <Reference Include="Rebex.Sftp">
+      <HintPath>..\..\Dependencies\Rebex.Sftp.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.ComponentModel" />
+    <Reference Include="System.ComponentModel.Composition" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Configuration.Install" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Drawing.Design" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="System.Management" />
+    <Reference Include="System.Net" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Net.Http.WebRequest" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.ServiceProcess" />
+    <Reference Include="System.Transactions" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Infrastructure\AssemblyResolver.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\AutomatedProcessManager.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\IAutomatedProcessManager.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\API\01_WorkflowDefinition.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\API\02_IWorkflow.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\API\03_IWorkflowTask.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\API\04_IWorkItem.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\API\05_ItemHistoryEntry.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\API\06_ItemLogEntry.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\API\07_IWorkflowQueries.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\API\ItemLogEntryApi.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\API\ItemHistoryEntryApi.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\API\WorkflowApi.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\API\WorkflowQueries.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\API\WorkflowTaskApi.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\API\WorkItemApi.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\DataModel\Entities.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\DataModel\ItemDataModel.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\DataModel\ItemPriorityQueue.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\DataModel\ItemStateQueryTranslator.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\DataModel\QueryTranslator.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\DataModel\ReadyItemQueue.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\DataModel\TaskDataModel.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\DataModel\WorkflowDataModel.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Definition\STM\04-BranchState.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Definition\STM\05-IfState.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Definition\STM\01-InitialState.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Definition\STM\03-RouteState.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Definition\STM\02-TaskBlockState.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Definition\STM\06-WhileState.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Definition\STM\07-TryState.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Definition\STM\TaskNode.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Definition\STM\00-WFState.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Definition\STM\TaskOptions.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Definition\STM\WFStateMachine.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Definition\STM\TaskDescriptor.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Definition\TaskInfoAttribute.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Definition\WorkflowDefinition.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Definition\TaskResult.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Definition\WorkflowTasks.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Definition\WorkItem.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Execution\00_BaseTaskRunner.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Execution\00_MultiTaskRunner.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Execution\00_SingleTaskRunner.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Execution\07_WhileTaskRunner.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Execution\08_TryTaskRunner.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Execution\09_MoveToBranchTaskRunner.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Execution\10_MoveToTaskRunner.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Execution\11_CancelItemTaskRunner.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Execution\16_RaiseEventTaskRunner.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Execution\15_ActionTaskRunner.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Execution\14_DelayItemTaskRunner.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Execution\13_RejectItemTaskRunner.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Execution\12_CompleteItemTaskRunner.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Execution\20_RootTaskRunner.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Execution\03_WaitTaskRunner.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Execution\02_ExecuteTaskRunner.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Execution\01_InsertTaskRunner.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Execution\05_RoutingTaskRunner.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Execution\06_ConditionalTaskRunner.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Execution\ITaskRunner.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Execution\WFManager.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Execution\WFRunner.cs" />
+    <Compile Include="Infrastructure\AutomatedProcessManager\WF\Execution\04_WorkflowTaskRunner.cs" />
+    <Compile Include="Infrastructure\Configuration\ComponentCollection.cs" />
+    <Compile Include="Infrastructure\Configuration\ConfigContext.cs" />
+    <Compile Include="Infrastructure\Configuration\ConfigJsonConverter.cs" />
+    <Compile Include="Infrastructure\Configuration\DTOs.cs" />
+    <Compile Include="Infrastructure\Configuration\DTOsExtensions.cs" />
+    <Compile Include="Infrastructure\Configuration\MetadataStore.cs" />
+    <Compile Include="Infrastructure\Configuration\_Contracts.cs" />
+    <Compile Include="Infrastructure\Database\BlobStreamReader.cs" />
+    <Compile Include="Infrastructure\Database\CatalogDefinitionExtensions.cs" />
+    <Compile Include="Infrastructure\Database\DataReaderExtensions.cs" />
+    <Compile Include="Infrastructure\Database\DBConfiguration.cs" />
+    <Compile Include="Infrastructure\Database\ConnectionManager.cs" />
+    <Compile Include="Infrastructure\Database\DBSortDirection.cs" />
+    <Compile Include="Infrastructure\Database\DBX.cs" />
+    <Compile Include="Infrastructure\Database\DynamicCodeGenerator.cs" />
+    <Compile Include="Infrastructure\Database\DynamicDB.CatalogValidations.cs" />
+    <Compile Include="Infrastructure\Database\DynamicDB.cs" />
+    <Compile Include="Infrastructure\Database\DynamicDB.DataExport.cs" />
+    <Compile Include="Infrastructure\Database\DynamicDB.DataImport.cs" />
+    <Compile Include="Infrastructure\Database\DynamicDB.DataRemediation.cs" />
+    <Compile Include="Infrastructure\Database\DynamicDB.DataValidations.cs" />
+    <Compile Include="Infrastructure\Database\DynamicDB.Operations.cs" />
+    <Compile Include="Infrastructure\Database\EntityMetadata.cs" />
+    <Compile Include="Infrastructure\Database\IDBConfiguration.cs" />
+    <Compile Include="Infrastructure\Database\IDBX.cs" />
+    <Compile Include="Infrastructure\Database\IEntity.cs" />
+    <Compile Include="Infrastructure\Database\ISqlStatementBuilder.cs" />
+    <Compile Include="Infrastructure\Database\WakingDBTasks.cs" />
+    <Compile Include="Infrastructure\Encoding\Algorithms\BarcodeProcessing.cs" />
+    <Compile Include="Infrastructure\Encoding\Algorithms\DecimalEncodingAlgorithm.cs" />
+    <Compile Include="Infrastructure\Encoding\Algorithms\EKOI\EKOIEncodingAlgorithm.cs" />
+    <Compile Include="Infrastructure\Encoding\Algorithms\Inditex\InditexEncodingAlgorithm.cs" />
+    <Compile Include="Infrastructure\Encoding\Algorithms\Inditex\InditexPerfumeryEncodingAlgorithm.cs" />
+    <Compile Include="Infrastructure\Encoding\Algorithms\Inditex\InditextPreEncodingAlgorithm.cs" />
+    <Compile Include="Infrastructure\Encoding\Algorithms\Inditex\InditexV2EncodingAlgorithm.cs" />
+    <Compile Include="Infrastructure\Encoding\Algorithms\Joma\JomaEncodingAlgorithm.cs" />
+    <Compile Include="Infrastructure\Encoding\Algorithms\MayoralEncodingAlgorithm.cs" />
+    <Compile Include="Infrastructure\Encoding\AllocateSerials.cs" />
+    <Compile Include="Infrastructure\Encoding\Barcodes\GS1Prefixes.cs" />
+    <Compile Include="Infrastructure\Encoding\Barcodes\TEMP\EAN13_P4.cs" />
+    <Compile Include="Infrastructure\Encoding\Barcodes\TEMP\EAN13_P6.cs" />
+    <Compile Include="Infrastructure\Encoding\FieldValueSource.cs" />
+    <Compile Include="Infrastructure\Encoding\Hercules\HerculesEntities.cs" />
+    <Compile Include="Infrastructure\Encoding\IPrintPackageDataProcessor.cs" />
+    <Compile Include="Infrastructure\Encoding\ITagEncodingProcess.cs" />
+    <Compile Include="Infrastructure\Encoding\SerialSequences\Exceptions\CannotAllocateSerialException.cs" />
+    <Compile Include="Infrastructure\Encoding\SerialSequences\Exceptions\MultiSerialSequenceException.cs" />
+    <Compile Include="Infrastructure\Encoding\SerialSequences\Exceptions\NoMoreSerialAvailableMSQException.cs" />
+    <Compile Include="Infrastructure\Encoding\SerialSequences\Exceptions\SingleSerialSerialSequenceException.cs" />
+    <Compile Include="Infrastructure\Encoding\SerialSequences\IJomaSerialSequence.cs" />
+    <Compile Include="Infrastructure\Encoding\SerialSequences\JomaSerialSequence.cs" />
+    <Compile Include="Infrastructure\Encoding\TagEncoding\DecimalTagEncoding.cs" />
+    <Compile Include="Infrastructure\Encoding\TagEncoding\Inditex128.cs" />
+    <Compile Include="Infrastructure\Encoding\TagEncoding\InditexV2Tag.cs" />
+    <Compile Include="Infrastructure\Encoding\TagEncoding\Mayoral96.cs" />
+    <Compile Include="Infrastructure\Encoding\TagEncoding\SimpleSerialTagEncoding.cs" />
+    <Compile Include="Infrastructure\Encoding\Tempe\AllocateEpcsTempe.cs" />
+    <Compile Include="Infrastructure\Encoding\Tempe\EpcBatchAllocator.cs" />
+    <Compile Include="Infrastructure\Encoding\Tempe\EpcRepositoryTempe.cs" />
+    <Compile Include="Infrastructure\Encoding\Tempe\EpcRepositoryTempe.Database.cs" />
+    <Compile Include="Infrastructure\Encoding\Tempe\EpcServiceTempe.cs" />
+    <Compile Include="Infrastructure\Encoding\Tempe\IEncodingApi.cs" />
+    <Compile Include="Infrastructure\Encoding\Tempe\IEpcRepositoryTempe.cs" />
+    <Compile Include="Infrastructure\Encoding\Tempe\IEpcServiceTempe.cs" />
+    <Compile Include="Infrastructure\Encoding\Tempe\PrintPackageProcessing.cs" />
+    <Compile Include="Infrastructure\Encoding\Tempe\TempeEpcServiceMtto.cs" />
+    <Compile Include="Infrastructure\FTPClient\RebexClient\FtpClient.cs" />
+    <Compile Include="Infrastructure\FTPClient\RebexClient\FtpFileInfo.cs" />
+    <Compile Include="Infrastructure\FTPClient\RebexClient\FtpFileType.cs" />
+    <Compile Include="Infrastructure\FTPClient\RebexClient\FTPImplementation.cs" />
+    <Compile Include="Infrastructure\FTPClient\RebexClient\FTPMode.cs" />
+    <Compile Include="Infrastructure\FTPClient\RebexClient\FTPSImplementation.cs" />
+    <Compile Include="Infrastructure\FTPClient\RebexClient\IFtpClient.cs" />
+    <Compile Include="Infrastructure\FTPClient\RebexClient\SFTPImplementation.cs" />
+    <Compile Include="Infrastructure\FTPClient\RebexClient\SFTPKeyAlgorithm.cs" />
+    <Compile Include="Infrastructure\Messaging\DataSync\WebSocketConnection.cs" />
+    <Compile Include="Infrastructure\Messaging\IPC\BinarySerialization\BufferManager.cs" />
+    <Compile Include="Infrastructure\Messaging\IPC\BinarySerialization\ProtocolBuffer.cs" />
+    <Compile Include="Infrastructure\Messaging\IPC\BinarySerialization\SerializationBuffer.cs" />
+    <Compile Include="Infrastructure\Messaging\IPC\Contracts.cs" />
+    <Compile Include="Infrastructure\Messaging\IPC\DynamicCodeGen\02-DynamicCodeGen.ClientProxy.cs" />
+    <Compile Include="Infrastructure\Messaging\IPC\DynamicCodeGen\01-DynamicCodeGen.cs" />
+    <Compile Include="Infrastructure\Messaging\IPC\IMsgStreamService.cs" />
+    <Compile Include="Infrastructure\Messaging\IPC\JenkinsHash.cs" />
+    <Compile Include="Infrastructure\Messaging\IPC\RemoteStream.cs" />
+    <Compile Include="Infrastructure\Messaging\IPC\RequestInfo.cs" />
+    <Compile Include="Infrastructure\Messaging\IPC\ServerProxy.cs" />
+    <Compile Include="Infrastructure\Messaging\IPC\MsgSession.cs" />
+    <Compile Include="Infrastructure\Messaging\IPC\MsgPeer.cs" />
+    <Compile Include="Infrastructure\Messaging\IPC\ClientProxy.cs" />
+    <Compile Include="Infrastructure\Messaging\IPC\Templates\ClientProxyExample.cs" />
+    <Compile Include="Infrastructure\Messaging\IPC\Templates\ISampleService.cs" />
+    <Compile Include="Infrastructure\Messaging\IPC\Templates\ServerProxyExample.cs" />
+    <Compile Include="Infrastructure\Misc\BaseServiceResponse.cs" />
+    <Compile Include="Infrastructure\Misc\BBaseServiceClient.cs" />
+    <Compile Include="Infrastructure\Misc\ByteArrayExtensions.cs" />
+    <Compile Include="Infrastructure\Misc\ClaimsPrincipalExtensions.cs" />
+    <Compile Include="Infrastructure\Misc\ConcurrentList.cs" />
+    <Compile Include="Infrastructure\Misc\DateTimeExtensions.cs" />
+    <Compile Include="Infrastructure\Misc\DelimitedColumnParser.cs" />
+    <Compile Include="Infrastructure\Misc\EnumerableExtensions.cs" />
+    <Compile Include="Infrastructure\Misc\MiscHelper.cs" />
+    <Compile Include="Infrastructure\Misc\Rfc180Writer.cs" />
+    <Compile Include="Infrastructure\Misc\StackTraceExtensions.cs" />
+    <Compile Include="Infrastructure\Misc\StreamExtension.cs" />
+    <Compile Include="Infrastructure\Misc\WaitHandleExtensions.cs" />
+    <Compile Include="Infrastructure\Misc\ZipArchiveExtensions.cs" />
+    <Compile Include="LogService\Contracts\ILogEntry.cs" />
+    <Compile Include="LogService\Contracts\ILogFile.cs" />
+    <Compile Include="LogService\Contracts\ILogSection.cs" />
+    <Compile Include="LogService\Contracts\ILogService.cs" />
+    <Compile Include="LogService\LogEntry.cs" />
+    <Compile Include="LogService\LogFile.cs" />
+    <Compile Include="LogService\LogSection.cs" />
+    <Compile Include="LogService\LogService.cs" />
+    <Compile Include="LogService\LogServiceLogEntry.cs" />
+    <Compile Include="LogService\LogServiceMetricEntry.cs" />
+    <Compile Include="LogService\MetricExtensions.cs" />
+    <Compile Include="LogService\Metrics\ActionExecutionTimeMetric.cs" />
+    <Compile Include="LogService\Metrics\AggregateMetric.cs" />
+    <Compile Include="LogService\Metrics\BaseMetric.cs" />
+    <Compile Include="LogService\Metrics\WebRequestTimingMetric.cs" />
+    <Compile Include="LogService\Models\Logs.cs" />
+    <Compile Include="LogService\Models\LogServiceEntries.cs" />
+    <Compile Include="LogService\Models\Metrics.cs" />
+    <Compile Include="LogService\ServiceClient\BaseServiceClient.cs" />
+    <Compile Include="LogService\ServiceClient\Exceptions\AuthorizationException.cs" />
+    <Compile Include="LogService\ServiceClient\Exceptions\ExpiredTokenException.cs" />
+    <Compile Include="LogService\ServiceClient\Exceptions\MustChangePasswordException.cs" />
+    <Compile Include="LogService\ServiceClient\FileResponse.cs" />
+    <Compile Include="LogService\SQDataFile.cs" />
+    <Compile Include="LogService\StreamRedirector.cs" />
+    <Compile Include="LogService\StringExtensions.cs" />
+    <Compile Include="LogService\ValidationHelper.cs" />
+    <Compile Include="PrintServices\Authentication\API\AuthenticationClient.cs" />
+    <Compile Include="PrintServices\Authentication\API\SystemIdentity.cs" />
+    <Compile Include="PrintServices\Authentication\Roles\Roles.cs" />
+    <Compile Include="PrintServices\CLSMiddleware\CLSClient.cs" />
+    <Compile Include="PrintServices\CLSMiddleware\Contracts.cs" />
+    <Compile Include="PrintServices\DocumentService\AccessExportClient.cs" />
+    <Compile Include="PrintServices\DocumentService\AccessExportClientContracts.cs" />
+    <Compile Include="PrintServices\DocumentService\DocumentImportCreateExcelResponse.cs" />
+    <Compile Include="PrintServices\DocumentService\DocumentImportPlugin.cs" />
+    <Compile Include="PrintServices\DocumentService\DynamicExportClient.cs" />
+    <Compile Include="PrintServices\DocumentService\DynamicExportClientContracts.cs" />
+    <Compile Include="PrintServices\DocumentService\DynamicImportClient.cs" />
+    <Compile Include="PrintServices\DocumentService\DocumentImportClient.cs" />
+    <Compile Include="PrintServices\DocumentService\DocumentImportContracts.cs" />
+    <Compile Include="PrintServices\DocumentService\ExcelConfigurationRequest.cs" />
+    <Compile Include="PrintServices\DocumentService\ImportedDataReader.cs" />
+    <Compile Include="PrintServices\DocumentService\PDFExportService.cs" />
+    <Compile Include="Infrastructure\Encoding\Algorithms\ATGCEncodingAlgorithm.cs" />
+    <Compile Include="Infrastructure\Encoding\Algorithms\StandardEncodingAlgorithm.cs" />
+    <Compile Include="Infrastructure\Encoding\Barcodes\Barcode1D.cs" />
+    <Compile Include="Infrastructure\Encoding\Barcodes\EAN13.cs" />
+    <Compile Include="Infrastructure\Encoding\Barcodes\GSIN.cs" />
+    <Compile Include="Infrastructure\Encoding\Barcodes\GTIN12.cs" />
+    <Compile Include="Infrastructure\Encoding\Barcodes\GTIN14.cs" />
+    <Compile Include="Infrastructure\Encoding\Barcodes\GTIN8.cs" />
+    <Compile Include="Infrastructure\Encoding\Barcodes\SSCC.cs" />
+    <Compile Include="Infrastructure\Encoding\Barcodes\UPCA.cs" />
+    <Compile Include="Infrastructure\Encoding\Barcodes\UPCE.cs" />
+    <Compile Include="Infrastructure\Encoding\Hercules\HerculesEncode.cs" />
+    <Compile Include="Infrastructure\Encoding\Hercules\IHerculesEncode.cs" />
+    <Compile Include="Infrastructure\Encoding\ITagEncodingAlgorithm.cs" />
+    <Compile Include="Infrastructure\Encoding\PasswordDerive\FixedPassword.cs" />
+    <Compile Include="Infrastructure\Encoding\PasswordDerive\HMACSHA256PasswordDerive.cs" />
+    <Compile Include="Infrastructure\Encoding\PasswordDerive\InditexMD5PasswordDerive.cs" />
+    <Compile Include="Infrastructure\Encoding\PasswordDerive\IPasswordDeriveMethod.cs" />
+    <Compile Include="Infrastructure\Encoding\RFIDConfigurationSystem.cs" />
+    <Compile Include="Infrastructure\Encoding\SerialSequences\ISerialRepository.cs" />
+    <Compile Include="Infrastructure\Encoding\SerialSequences\ISerialSequence.cs" />
+    <Compile Include="Infrastructure\Encoding\SerialSequences\MultiSerialSequence.cs" />
+    <Compile Include="Infrastructure\Encoding\SerialSequences\SingleSerialSequence.cs" />
+    <Compile Include="Infrastructure\Encoding\TagEncoding\BitFieldInfo.cs" />
+    <Compile Include="Infrastructure\Encoding\TagEncoding\DoD96.cs" />
+    <Compile Include="Infrastructure\Encoding\TagEncoding\EANUCC128Encoding.cs" />
+    <Compile Include="Infrastructure\Encoding\TagEncoding\Giai202.cs" />
+    <Compile Include="Infrastructure\Encoding\TagEncoding\Giai96.cs" />
+    <Compile Include="Infrastructure\Encoding\TagEncoding\Gid96.cs" />
+    <Compile Include="Infrastructure\Encoding\TagEncoding\Grai170.cs" />
+    <Compile Include="Infrastructure\Encoding\TagEncoding\Grai96.cs" />
+    <Compile Include="Infrastructure\Encoding\TagEncoding\Sgln195.cs" />
+    <Compile Include="Infrastructure\Encoding\TagEncoding\Sgln96.cs" />
+    <Compile Include="Infrastructure\Encoding\TagEncoding\Sgtin198.cs" />
+    <Compile Include="Infrastructure\Encoding\TagEncoding\Sgtin96.cs" />
+    <Compile Include="Infrastructure\Encoding\TagEncoding\Sscc96.cs" />
+    <Compile Include="Infrastructure\Encoding\TagEncoding\TagEncoding.cs" />
+    <Compile Include="Infrastructure\Encoding\TagEncoding\TagEncodingFactory.cs" />
+    <Compile Include="Infrastructure\Encoding\TagEncoding\Tempe128.cs" />
+    <Compile Include="Infrastructure\Encoding\TagEncoding\UnknownEncoding.cs" />
+    <Compile Include="Infrastructure\Encoding\TagEncoding\xtConvert.cs" />
+    <Compile Include="Infrastructure\Encoding\UserMemory\IUserMemoryMethod.cs" />
+    <Compile Include="Infrastructure\Encoding\UserMemory\UserMemoryFixed.cs" />
+    <Compile Include="Infrastructure\Encoding\UserMemory\UserMemorySerial.cs" />
+    <Compile Include="Infrastructure\Events\EventQueue.cs" />
+    <Compile Include="Infrastructure\Events\EventSyncClient.cs" />
+    <Compile Include="Infrastructure\Events\EventSyncStore.cs" />
+    <Compile Include="Infrastructure\Events\IEventQueue.cs" />
+    <Compile Include="Infrastructure\Events\IEventSyncClient.cs" />
+    <Compile Include="Infrastructure\Events\IEventSyncStore.cs" />
+    <Compile Include="Infrastructure\FileStore\AttachmentCollection.cs" />
+    <Compile Include="Infrastructure\FileStore\AttachmentData.cs" />
+    <Compile Include="Infrastructure\FileStore\FileData.cs" />
+    <Compile Include="Infrastructure\FileStore\LocalFileStore.cs" />
+    <Compile Include="Infrastructure\FileStore\FileStoreHelper.cs" />
+    <Compile Include="Infrastructure\FileStore\FileStoreMttoService.cs" />
+    <Compile Include="Infrastructure\FileStore\StreamEx.cs" />
+    <Compile Include="Infrastructure\FileStore\IFileStore.cs" />
+    <Compile Include="PrintServices\FileStoreService\Contracts.cs" />
+    <Compile Include="PrintServices\FileStoreService\FileStoreManager.cs" />
+    <Compile Include="PrintServices\FileStoreService\RemoteAttachmentCollection.cs" />
+    <Compile Include="PrintServices\FileStoreService\RemoteAttachment.cs" />
+    <Compile Include="PrintServices\FileStoreService\RemoteFile.cs" />
+    <Compile Include="PrintServices\FileStoreService\RemoteFileStore.cs" />
+    <Compile Include="PrintServices\FtpFileWatcher\FtpWatcherPlugin.cs" />
+    <Compile Include="PrintServices\LabelService\BLabelServiceClient.cs" />
+    <Compile Include="PrintServices\LabelService\Contracts.cs" />
+    <Compile Include="PrintServices\LabelService\LabelServiceClient.cs" />
+    <Compile Include="Infrastructure\Logging\IAppLog.cs" />
+    <Compile Include="Infrastructure\Logging\AppLog.cs" />
+    <Compile Include="Infrastructure\Logging\AppLogFile.cs" />
+    <Compile Include="Infrastructure\Logging\StreamRedirector.cs" />
+    <Compile Include="Infrastructure\Misc\Attributes.cs" />
+    <Compile Include="Infrastructure\Misc\BaseServiceClient.cs" />
+    <Compile Include="Infrastructure\Misc\CmdLineHelper.cs" />
+    <Compile Include="Infrastructure\Misc\EncryptionService.cs" />
+    <Compile Include="Infrastructure\Misc\ExceptionExtenisons.cs" />
+    <Compile Include="Infrastructure\Misc\GenericTree.cs" />
+    <Compile Include="Infrastructure\Misc\IAppConfig.cs" />
+    <Compile Include="Infrastructure\Misc\IAppInfo.cs" />
+    <Compile Include="Infrastructure\Misc\ILocalizationService.cs" />
+    <Compile Include="Infrastructure\Misc\IMailService.cs" />
+    <Compile Include="Infrastructure\Misc\IMemorySequence.cs" />
+    <Compile Include="Infrastructure\Misc\IServiceSink.cs" />
+    <Compile Include="Infrastructure\Misc\ITempFileService.cs" />
+    <Compile Include="Infrastructure\Misc\JObjectExtensions.cs" />
+    <Compile Include="Infrastructure\Misc\MimeTypes.cs" />
+    <Compile Include="Infrastructure\Misc\OrderCompareService.cs" />
+    <Compile Include="Infrastructure\Misc\ProcessExtensions.cs" />
+    <Compile Include="Infrastructure\Misc\Reflex.cs" />
+    <Compile Include="Infrastructure\Misc\ServiceHelper.cs" />
+    <Compile Include="Infrastructure\Misc\StringExtensions.cs" />
+    <Compile Include="Infrastructure\Misc\Synchronization.cs" />
+    <Compile Include="Infrastructure\Misc\TcpHelper.cs" />
+    <Compile Include="Infrastructure\Misc\TypeExtensions.cs" />
+    <Compile Include="PrintServices\PDFDocumentService\Contracts_OrderDetail.cs" />
+    <Compile Include="PrintServices\PDFDocumentService\Contracts_Preview.cs" />
+    <Compile Include="PrintServices\PDFDocumentService\Contracts_ProdSheet.cs" />
+    <Compile Include="PrintServices\PDFDocumentService\PDFDocumentServiceClient.cs" />
+    <Compile Include="PrintServices\PDFService\DocumentLayoutDTO.cs" />
+    <Compile Include="PrintServices\PDFService\IPDFService.cs" />
+    <Compile Include="PrintServices\PDFService\PDFDocumentWrapper.cs" />
+    <Compile Include="PrintServices\PDFService\PDFServiceClient.cs" />
+    <Compile Include="PrintServices\PDFService\ServiceAPI.cs" />
+    <Compile Include="PrintServices\PDFService\SheetDTO.cs" />
+    <Compile Include="PrintServices\Plugins\PluginCompoPreviewData.cs" />
+    <Compile Include="PrintServices\Plugins\PluginCompoPreviewInputData.cs" />
+    <Compile Include="PrintServices\Plugins\PluginCompositionTextPreviewData.cs" />
+    <Compile Include="PrintServices\Plugins\PluginManager.cs" />
+    <Compile Include="PrintServices\PrintCentral\API\AbstractPrintCentralAPIService.cs" />
+    <Compile Include="PrintServices\PrintCentral\API\CustomersOrderRecievedMailNotification.cs" />
+    <Compile Include="PrintServices\PrintCentral\API\DataSyncClient.cs" />
+    <Compile Include="PrintServices\PrintCentral\API\IPrintCentralAPIService.cs" />
+    <Compile Include="PrintServices\PrintCentral\API\IPrintCentralClient.cs" />
+    <Compile Include="PrintServices\PrintCentral\API\OperationResult.cs" />
+    <Compile Include="PrintServices\PrintCentral\API\OrderAttachDocumentRequest.cs" />
+    <Compile Include="PrintServices\PrintCentral\API\OrderPool.cs" />
+    <Compile Include="PrintServices\PrintCentral\API\PagedOperationResult.cs" />
+    <Compile Include="PrintServices\PrintCentral\API\PrintCentralApi.cs" />
+    <Compile Include="PrintServices\PrintCentral\API\SerialNumberClient.cs" />
+    <Compile Include="PrintServices\PrintCentral\API\SupplierErrors.cs" />
+    <Compile Include="PrintServices\PrintCentral\API\SupplierName.cs" />
+    <Compile Include="PrintServices\PrintCentral\API\SupplierUserChecks.cs" />
+    <Compile Include="PrintServices\PrintCentral\API\VariableData.cs" />
+    <Compile Include="PrintServices\PrintCentral\Events\BaseOrderEvent.cs" />
+    <Compile Include="PrintServices\PrintCentral\Events\OrderChangeStatusEvent.cs" />
+    <Compile Include="PrintServices\PrintCentral\Events\OrderCompletedEvent.cs" />
+    <Compile Include="PrintServices\PrintCentral\Events\OrderDuplicatedEPCEvent.cs" />
+    <Compile Include="PrintServices\PrintCentral\Events\OrderMovedEvent.cs" />
+    <Compile Include="PrintServices\PrintCentral\Events\OrderRejectedEvent.cs" />
+    <Compile Include="PrintServices\PrintCentral\Events\OrderResumedEvent.cs" />
+    <Compile Include="PrintServices\PrintCentral\Events\OrderStoppedEvent.cs" />
+    <Compile Include="PrintServices\PrintCentral\Events\OrderUpdateStatusEvent.cs" />
+    <Compile Include="PrintServices\PrintCentral\Events\PrintCentralEvents.cs" />
+    <Compile Include="PrintServices\PrintCentral\Events\SageFileDropEvent.cs" />
+    <Compile Include="PrintServices\PrintCentral\OrderPlugins\IOrderProcessingPlugin.cs" />
+    <Compile Include="PrintServices\PrintCentral\OrderPlugins\IOrderSetValidatorPlugin.cs" />
+    <Compile Include="PrintServices\PrintCentral\OrderPlugins\IWizardCompositionPlugin.cs" />
+    <Compile Include="PrintServices\PrintCentral\OrderPlugins\IWizardCompositionPreviewPlugin.cs" />
+    <Compile Include="PrintServices\PrintCentral\OrderPlugins\PackArtilesPlugins\IPackArticlesPlugin.cs" />
+    <Compile Include="PrintServices\PrintLocal\Events\NotifyOrdersSyncEvent.cs" />
+    <Compile Include="PrintServices\PrintLocal\Events\PrintLocalEvents.cs" />
+    <Compile Include="PrintServices\Tools\TableDataExtensions.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Infrastructure\ServiceFactory\IFactory.cs" />
+    <Compile Include="Infrastructure\ServiceFactory\IScope.cs" />
+    <Compile Include="Infrastructure\ServiceFactory\ServiceFactory.cs" />
+    <Compile Include="Infrastructure\ServiceFactory\ServiceFactory.Setup.cs" />
+    <Compile Include="PrintServices\Tools\IExportTool.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\WorkflowDataModelScript.sql" />
+    <None Include="..\..\.editorconfig">
+      <Link>.editorconfig</Link>
+    </None>
+    <None Include="app.config" />
+    <Compile Include="Infrastructure\Messaging\IPC\DynamicCodeGen\03-DynamicCodeGen.ServerProxy.cs" />
+    <Content Include="GS1Prefixes.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <None Include="Resources\rijndael.dat" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <Compile Remove="bin\**" />
+    <Compile Remove="obj\**" />
+    <EmbeddedResource Remove="bin\**" />
+    <EmbeddedResource Remove="obj\**" />
+    <None Remove="bin\**" />
+    <None Remove="obj\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="BouncyCastle">
+      <Version>1.8.5</Version>
+    </PackageReference>
+    <PackageReference Include="Google.Protobuf">
+      <Version>3.14.0</Version>
+    </PackageReference>
+    <PackageReference Include="K4os.Compression.LZ4.Streams">
+      <Version>1.1.11</Version>
+    </PackageReference>
+    <PackageReference Include="Microsoft.AspNet.WebApi.Core">
+      <Version>5.2.7</Version>
+    </PackageReference>
+    <PackageReference Include="MySql.Data">
+      <Version>8.0.13</Version>
+    </PackageReference>
+    <PackageReference Include="Newtonsoft.Json">
+      <Version>13.0.3</Version>
+    </PackageReference>
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3">
+      <Version>2.1.11</Version>
+    </PackageReference>
+    <PackageReference Include="SQLitePCLRaw.core">
+      <Version>2.1.11</Version>
+    </PackageReference>
+    <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3">
+      <Version>2.1.11</Version>
+    </PackageReference>
+    <PackageReference Include="SQLitePCLRaw.provider.dynamic_cdecl">
+      <Version>2.1.11</Version>
+    </PackageReference>
+    <PackageReference Include="Stub.System.Data.SQLite.Core.NetFramework">
+      <Version>1.0.119</Version>
+    </PackageReference>
+    <PackageReference Include="System.Buffers">
+      <Version>4.5.1</Version>
+    </PackageReference>
+    <PackageReference Include="System.Data.SQLite">
+      <Version>1.0.119</Version>
+    </PackageReference>
+    <PackageReference Include="System.Data.SQLite.Core">
+      <Version>1.0.119</Version>
+    </PackageReference>
+    <PackageReference Include="System.Data.SQLite.EF6">
+      <Version>1.0.119</Version>
+    </PackageReference>
+    <PackageReference Include="System.Data.SQLite.Linq">
+      <Version>1.0.119</Version>
+    </PackageReference>
+    <PackageReference Include="System.Security.Cryptography.X509Certificates">
+      <Version>4.3.0</Version>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="PrintServices\PrintCentral\Items\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="PrintServices\TextFile1.txt" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>copy "$(TargetPath)" "$(ProjectDir)..\Dependencies\Print\Net4.6\$(TargetFileName)" /y</PostBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PreBuildEvent>
+    </PreBuildEvent>
+  </PropertyGroup>
+</Project>

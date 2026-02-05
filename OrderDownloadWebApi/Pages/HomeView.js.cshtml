@@ -1,0 +1,37 @@
+﻿@page
+@inject ILocalizationService g
+@inject IAppConfig cfg
+@{
+    Layout = null;
+    var showMaintenanceScreen = !User.IsInRole(Roles.SysAdmin) && cfg["DownloadServicesWeb:MaintenanceMode"] == "true";
+}
+/// # sourceURL=https://Pages/HomeView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var HomeView = function () {
+		FormView.Extend(this, "@g["PrintEntry Orders"]", "/HomeView");
+	};
+
+
+	HomeView.prototype = {
+		constructor: HomeView,
+
+		OnLoad: async function () {
+			@if (!showMaintenanceScreen)
+			{
+				@:this.elements.VMenu.MenuOptionClicked.Subscribe(this, this.HandleVMenuEvent);
+			}
+
+				  view = await AppContext.ViewManager.Load("/QueuingOrder/BackOnTheQueueDialog.js");
+
+			view.Show(this.elements.mainContainer);
+		},
+
+		OnUnload: function () {
+			console.log("HomeView Unload");
+		}
+	};
+//</script>

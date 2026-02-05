@@ -1,0 +1,10 @@
+{
+  "Factories": [
+    {
+      "Name": "Example Factory",
+      "VendorId": "1041652",
+      "SendTo": "factory@example.com",
+      "CopyTo": "manager@example.com"
+    }
+  ]
+}

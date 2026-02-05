@@ -1,0 +1,68 @@
+﻿@page
+@inject RequestLocalizationOptions langOptions
+@inject ILocalizationService g
+@inject IAppConfig config
+@{
+    Layout = null;
+    var showToggleButton = Request.Query["t"] == "1";
+    var s = User.Identity.Name;
+    var usrName = s.Length < 15 ? s : s.Substring(0, 15);
+    bool isqa = config["DownloadServicesWeb.IsQA"] == "true";
+
+    var lang = CultureInfo.CurrentUICulture.Name;
+
+}
+
+
+<nav class="navbar navbar-expand-lg navbar-dark" style="position:fixed; top:0px; left:0px; z-index:1001; width:100%; background-color:#1d3e90; color:#ffffff;">
+    <input name="LangUser" type="hidden" value="@lang" />
+
+    @if (showToggleButton)
+    {
+        <img action="ToggleMenu" src="/images/tree2_30.png" style="position: relative; top:2px; margin-right:15px; padding:7px 15px 7px 15px; cursor:pointer; border:1px solid #53585C; border-radius:4px;" />
+    }
+    <a href="/">
+        <div style="white-space:nowrap">
+            <img src="/images/SDS_LOGO2.png" width="140" height="12" />
+            @if (isqa)
+            {
+                <span style="-webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; font-family:Calibri; font-size:7pt; color:white">QA - </span>
+            }
+            <span style="font-family:Calibri; font-size:7pt; color:white">2.0</span>
+        </div>
+    </a>
+    <p class="brand-project-link">&nbsp;</p>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+        <ul class="navbar-nav ml-auto">
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" style="width:120px; text-align:left; padding-left:10px; cursor:pointer;" id="navbarDropdown2" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    &nbsp;@g["Language"]
+                </a>
+                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown2">
+                    <!--
+                    NOTE: The following declarations trick the ResourceGen tool to generate resources for supported languages:
+                    g["English (United States)"]
+                    g["Spanish (Spain, International Sort)"]
+                    g["French (France)"]
+                    g["Portuguese (Brazil)"]
+                    -->
+                    @foreach (var culture in langOptions.SupportedUICultures)
+                    {
+                        <a class="dropdown-item" href="/account/language/@culture.Name"><span class="fa fa-flag"></span>&nbsp;@g[culture.DisplayName]</a>
+                    }
+                </div>
+            </li>
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" style="padding-left:10px; cursor:pointer; max-width:280px;" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <span class="fa fa-user"></span>&nbsp;@usrName
+                </a>
+                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
+                    <a class="dropdown-item" href="/Account/Logout"><span class="fa fa-power-off"></span>&nbsp;@g["Logout"]</a>
+                </div>
+            </li>
+        </ul>
+    </div>
+</nav>

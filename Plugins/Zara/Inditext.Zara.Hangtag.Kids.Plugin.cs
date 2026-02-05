@@ -1,0 +1,120 @@
+﻿using JsonColor;
+using Newtonsoft.Json;
+using Service.Contracts;
+using Service.Contracts.Database;
+using Service.Contracts.Documents;
+using Services.Core;
+using StructureInditexOrderFile;
+using System;
+using System.IO;
+using System.Text;
+
+namespace Inditex.OrderPlugin
+{
+    [FriendlyName("Inditex - Zara.Hangtag.Kids.Plugin"), Description("InditexZaraHangtagKidsPlugin.Json.DocumentService")]
+    public class InditexZaraHangtagKidsPlugin : IDocumentImportPlugin
+    {
+        private IConnectionManager connMng;
+        private IFileStoreManager storeManager;
+        private ILogService log;
+        private IRemoteFileStore tempStore;
+        private IFSFile tempFile;
+        private Encoding encoding;
+
+        public InditexZaraHangtagKidsPlugin(
+            IConnectionManager connMng,
+            IFileStoreManager storeManager,
+            ILogService log)
+        {
+            this.connMng = connMng;
+            this.storeManager = storeManager;
+            this.log = log;
+            tempStore = storeManager.OpenStore("TempStore");
+        }
+
+        public InditexZaraHangtagKidsPlugin()
+        {
+
+        }
+
+        public void PrepareFile(DocumentImportConfiguration configuration, ImportedData data)
+        {
+            try
+            {
+                log.LogMessage($"Inditex.ZaraHangtag.Kids.Plugin.OnPrepareFile, Start OnPrepareFile.");
+                try
+                {
+                    if(configuration.Input.Encoding.ToLower() == "default") encoding = Encoding.Default;
+                    encoding = Encoding.GetEncoding(configuration.Input.Encoding);
+                }
+                catch
+                {
+                    encoding = Encoding.Default;
+                }
+                var file = storeManager.GetFile(configuration.FileGUID);
+
+                var fileContent = file.GetContentAsStream().ReadAllText(encoding);
+
+                var fname = Path.GetFileNameWithoutExtension(configuration.FileName);
+
+                tempFile = tempStore.CreateFile($"{fname}_{DateTime.Now.ToString("yyyyMMddHHmmss")}.zarahangtagkids");
+
+
+                log.LogMessage($"Inditex.ZaraHangtag.Kids.Plugin.OnPrepareFile, loaded file with {fileContent.Length} characters.");
+                if(ProcessingFile(encoding, configuration, fileContent))
+                {
+                    configuration.FileGUID = tempFile.FileGUID;
+                    configuration.FileName = tempFile.FileName;// change filename to avoid use .json extension
+                }
+                log.LogMessage($"Inditex.ZaraHangtag.Kids.Plugin.OnPrepareFile, Finish OnPrepareFile.");
+            }
+            catch(Exception ex)
+            {
+                log.LogMessage($"Inditex.ZaraHangtag.Kids.Plugin.OnPrepareFile, Error: {ex.Message}.\r\n Tracer: {ex.StackTrace}. " +
+                    $"\r\n Inner:{ex.InnerException.Message} ");
+            }
+        }
+
+
+
+        private bool ProcessingFile(Encoding encoding, DocumentImportConfiguration configuration, string fileContent)
+        {
+            try
+            {
+                bool resp = false;
+                string strEncoding = configuration.Input.Encoding;
+                var orderData = JsonConvert.DeserializeObject<InditexOrderData>(fileContent);
+                using(var db = connMng.OpenDB("PrintDB"))
+                {
+                    ProviderVerifier.ValidateProviderData(
+                        configuration.CompanyID, orderData.supplier,
+                        orderData.POInformation.productionOrderNumber, configuration.ProjectID.ToString(),
+                        db, log, configuration.FileName);
+                }
+                string output = JsonToTextConverter.LoadData(orderData, log, connMng, configuration.ProjectID);
+
+                var content = encoding.GetBytes(output);
+                tempFile.SetContent(content);
+                resp = true;
+
+                return resp;
+            }
+            catch(Exception ex)
+            {
+                log.LogException($"Inditex.ZaraHangtag.Kids.Plugin.OnPrepareFile, Error: {ex.Message}.", ex);
+                return false;
+                throw;
+            }
+        }
+
+        public void Dispose()
+        {
+
+        }
+
+        public void Execute(DocumentImportConfiguration configuration, ImportedData data)
+        {
+            //throw new NotImplementedException();
+        }
+    }
+}
