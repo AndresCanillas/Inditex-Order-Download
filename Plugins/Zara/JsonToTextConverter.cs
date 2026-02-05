@@ -38,7 +38,10 @@ namespace JsonColor
             orderData, ref bool hasHead, ref string dataLabel,
             ref string line, ref string head,ILogService log, IConnectionManager connMng)
         {
-            //Codex: debemos usar como contexto el proyecto Mango.JsonColor.csproj para generar archivos planos csv con los Json ubicados en la carpeta OrderFiles ejemplo 15536_05987_I25_NNO_ZARANORTE.json
+            //Codex: debemos usar como contexto el proyecto Mango.JsonColor.csproj
+            //para generar archivos planos csv con los Json ubicados
+            //en la carpeta OrderFiles ejemplo 15536_05987_I25_NNO_ZARANORTE.json
+            //Utilizar como reglas de negocio el pdf documentacionparaconvertirJsonatextoplano.pdf para conocer el formato de los archivos planos a generar
 
 
             return dataLabel;
