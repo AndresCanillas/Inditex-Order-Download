@@ -29,6 +29,7 @@ namespace OrderDonwLoadService.Services
         private double timerPlayInterval = 0;
         private readonly InditexTokenCache tokenCache = new InditexTokenCache();
         private readonly SemaphoreSlim executionLock = new SemaphoreSlim(1, 1);
+        private CancellationTokenSource timerCancellation;
         private string url = null;
         private bool onApiCaller = false;
         private string workDirectory = null;
@@ -59,6 +60,7 @@ namespace OrderDonwLoadService.Services
                 if(onApiCaller)
                     return true;
                 url = appConfig.GetValue<string>("DownloadServices.ApiUrl", "https://api2.Inditex.com/");
+                timerCancellation = new CancellationTokenSource();
                 timerService.Enabled = true;
                 timerService.Elapsed += new System.Timers.ElapsedEventHandler(this.timer_Elapsed);
                 timerService.Interval = timerPlayInterval;
@@ -78,6 +80,9 @@ namespace OrderDonwLoadService.Services
             {
                 timerService.Enabled = false;
                 timerService.Elapsed -= new System.Timers.ElapsedEventHandler(this.timer_Elapsed);
+                timerCancellation?.Cancel();
+                timerCancellation?.Dispose();
+                timerCancellation = null;
                 log.LogMessage("Service stopped");
                 onApiCaller = false;
                 return true;
@@ -94,12 +99,12 @@ namespace OrderDonwLoadService.Services
         }
         private void timer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            _ = ProcessTimerAsync();
+            _ = ProcessTimerAsync(timerCancellation?.Token ?? CancellationToken.None);
         }
 
-        private async Task ProcessTimerAsync()
+        private async Task ProcessTimerAsync(CancellationToken cancellationToken)
         {
-            if(!onApiCaller)
+            if(!onApiCaller || cancellationToken.IsCancellationRequested)
                 return;
 
             if(!await executionLock.WaitAsync(0))
@@ -111,7 +116,7 @@ namespace OrderDonwLoadService.Services
                 {
                     log.LogMessage($"Beging of Timer  RequestsServices with this configuration for credential ({credential.Name}):");
 
-                    if(!onApiCaller)
+                    if(!onApiCaller || cancellationToken.IsCancellationRequested)
                         return;
 #if DEBUG
                     var token = "test";
@@ -129,7 +134,7 @@ namespace OrderDonwLoadService.Services
 #endif
                     do
                     {
-                        if(!onApiCaller)
+                        if(!onApiCaller || cancellationToken.IsCancellationRequested)
                             return;
 #if DEBUG
                         var rootDirectory = Directory.GetCurrentDirectory();
@@ -198,7 +203,7 @@ namespace OrderDonwLoadService.Services
                             SeasonId = order.POInformation.campaign,
                         });
 
-                        await Task.Delay(15000);
+                        await Task.Delay(15000, cancellationToken);
 #if DEBUG
                         break;
 #endif
@@ -212,6 +217,7 @@ namespace OrderDonwLoadService.Services
                 var message = "Finish whit mistake: \n\r Message: " + ex.Message + "; \n\r InnerException: " + ex.InnerException +
                    "; \n\r Source: " + ex.Source + "; \n\r StackTrace: " + ex.StackTrace + "; \n\r TargetSite:" + ex.TargetSite;
                 log.LogMessage(message);
+                log.LogException(ex);
             }
             finally
             {
