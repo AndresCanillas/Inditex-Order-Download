@@ -4,7 +4,6 @@ using Polly;
 using Service.Contracts;
 using StructureInditexOrderFile;
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -28,17 +27,11 @@ namespace OrderDonwLoadService.Services
         private bool wait = false;
         private System.Timers.Timer timerService = new System.Timers.Timer();
         private double timerPlayInterval = 0;
-        private Dictionary<string, TokenInfo> tokens = new Dictionary<string, TokenInfo>();
-        private int deviceID = 0;
+        private readonly InditexTokenCache tokenCache = new InditexTokenCache();
         private string url = null;
         private bool onApiCaller = false;
         private string workDirectory = null;
         private string historyDirectory = null;
-        private class TokenInfo
-        {
-            public string Token { get; set; }
-            public DateTime ExpiresAt { get; set; }
-        }
         public OrderQueueDownloadService(IApiCallerService apiCaller,
             IAppConfig appConfig,
             IAppLog log,
@@ -241,17 +234,12 @@ namespace OrderDonwLoadService.Services
 
         private async Task<string> GetInditexToken(Credential credencial)
         {
-            if(!tokens.TryGetValue(credencial.Vendorid, out TokenInfo info))
+            if(tokenCache.TryGetValidToken(credencial.Vendorid, DateTime.Now, out var cachedToken))
             {
-                if(info.ExpiresAt > DateTime.Now)
-                    return await Task.FromResult(info.Token);
+                return await Task.FromResult(cachedToken);
+            }
 
-                log.LogMessage($" token expired.");
-            }
-            else
-            {
-                log.LogMessage($" token is null.");
-            }
+            log.LogMessage("Token missing or expired.");
             return await GetToken();
 
             async Task<string> GetToken()
@@ -264,7 +252,7 @@ namespace OrderDonwLoadService.Services
 
                 if(string.IsNullOrWhiteSpace(tokeResult.access_token))
                 {
-                    tokens.Remove(credencial.Vendorid);
+                    tokenCache.RemoveToken(credencial.Vendorid);
                     throw new NullReferenceException($" token not found of Url ({controllerToken})");
                 }
 
@@ -274,11 +262,7 @@ namespace OrderDonwLoadService.Services
 
                 log.LogMessage($" token expries date ({expiresAt})");
 
-                tokens[credencial.Vendorid] = new TokenInfo
-                {
-                    Token = tokeResult.access_token,
-                    ExpiresAt = expiresAt
-                };
+                tokenCache.StoreToken(credencial.Vendorid, tokeResult.access_token, expiresAt);
 
                 return await Task.FromResult(tokeResult.access_token);
             }

@@ -14,9 +14,10 @@ namespace Inditex.OrderPlugin
     [FriendlyName("Inditex - Zara.Hangtag.Kids.Plugin"), Description("InditexZaraHangtagKidsPlugin.Json.DocumentService")]
     public class InditexZaraHangtagKidsPlugin : IDocumentImportPlugin
     {
-        private IConnectionManager connMng;
-        private IFileStoreManager storeManager;
-        private ILogService log;
+        private readonly IConnectionManager connMng;
+        private readonly IFileStoreManager storeManager;
+        private readonly ILogService log;
+        private readonly IProviderVerifier providerVerifier;
         private IRemoteFileStore tempStore;
         private IFSFile tempFile;
         private Encoding encoding;
@@ -25,10 +26,20 @@ namespace Inditex.OrderPlugin
             IConnectionManager connMng,
             IFileStoreManager storeManager,
             ILogService log)
+            : this(connMng, storeManager, log, new ProviderVerifier(new ProviderRepository(), new NotificationWriter()))
+        {
+        }
+
+        public InditexZaraHangtagKidsPlugin(
+            IConnectionManager connMng,
+            IFileStoreManager storeManager,
+            ILogService log,
+            IProviderVerifier providerVerifier)
         {
             this.connMng = connMng;
             this.storeManager = storeManager;
             this.log = log;
+            this.providerVerifier = providerVerifier;
             tempStore = storeManager.OpenStore("TempStore");
         }
 
@@ -41,7 +52,7 @@ namespace Inditex.OrderPlugin
         {
             try
             {
-                log.LogMessage($"Inditex.ZaraHangtag.Kids.Plugin.OnPrepareFile, Start OnPrepareFile.");
+                log.LogMessage("Inditex.ZaraHangtag.Kids.Plugin.OnPrepareFile, Start OnPrepareFile.");
                 try
                 {
                     if(configuration.Input.Encoding.ToLower() == "default") encoding = Encoding.Default;
@@ -66,12 +77,12 @@ namespace Inditex.OrderPlugin
                     configuration.FileGUID = tempFile.FileGUID;
                     configuration.FileName = tempFile.FileName;// change filename to avoid use .json extension
                 }
-                log.LogMessage($"Inditex.ZaraHangtag.Kids.Plugin.OnPrepareFile, Finish OnPrepareFile.");
+                log.LogMessage("Inditex.ZaraHangtag.Kids.Plugin.OnPrepareFile, Finish OnPrepareFile.");
             }
             catch(Exception ex)
             {
                 log.LogMessage($"Inditex.ZaraHangtag.Kids.Plugin.OnPrepareFile, Error: {ex.Message}.\r\n Tracer: {ex.StackTrace}. " +
-                    $"\r\n Inner:{ex.InnerException.Message} ");
+                    $"\r\n Inner:{ex.InnerException?.Message} ");
             }
         }
 
@@ -82,14 +93,17 @@ namespace Inditex.OrderPlugin
             try
             {
                 bool resp = false;
-                string strEncoding = configuration.Input.Encoding;
                 var orderData = JsonConvert.DeserializeObject<InditexOrderData>(fileContent);
                 using(var db = connMng.OpenDB("PrintDB"))
                 {
-                    ProviderVerifier.ValidateProviderData(
-                        configuration.CompanyID, orderData.supplier,
-                        orderData.POInformation.productionOrderNumber, configuration.ProjectID.ToString(),
-                        db, log, configuration.FileName);
+                    providerVerifier.ValidateProviderData(
+                        configuration.CompanyID,
+                        orderData.supplier,
+                        orderData.POInformation.productionOrderNumber,
+                        configuration.ProjectID.ToString(),
+                        db,
+                        log,
+                        configuration.FileName);
                 }
                 string output = JsonToTextConverter.LoadData(orderData, log, connMng, configuration.ProjectID);
 
@@ -103,7 +117,6 @@ namespace Inditex.OrderPlugin
             {
                 log.LogException($"Inditex.ZaraHangtag.Kids.Plugin.OnPrepareFile, Error: {ex.Message}.", ex);
                 return false;
-                throw;
             }
         }
 
