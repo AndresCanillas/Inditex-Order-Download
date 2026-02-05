@@ -4,10 +4,10 @@ using Polly;
 using Service.Contracts;
 using StructureInditexOrderFile;
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace OrderDonwLoadService.Services
@@ -25,20 +25,15 @@ namespace OrderDonwLoadService.Services
         private readonly IEventQueue events;
         private readonly IAppLog log;
 
-        private bool wait = false;
         private System.Timers.Timer timerService = new System.Timers.Timer();
         private double timerPlayInterval = 0;
-        private Dictionary<string, TokenInfo> tokens = new Dictionary<string, TokenInfo>();
-        private int deviceID = 0;
+        private readonly InditexTokenCache tokenCache = new InditexTokenCache();
+        private readonly SemaphoreSlim executionLock = new SemaphoreSlim(1, 1);
+        private CancellationTokenSource timerCancellation;
         private string url = null;
         private bool onApiCaller = false;
         private string workDirectory = null;
         private string historyDirectory = null;
-        private class TokenInfo
-        {
-            public string Token { get; set; }
-            public DateTime ExpiresAt { get; set; }
-        }
         public OrderQueueDownloadService(IApiCallerService apiCaller,
             IAppConfig appConfig,
             IAppLog log,
@@ -65,6 +60,7 @@ namespace OrderDonwLoadService.Services
                 if(onApiCaller)
                     return true;
                 url = appConfig.GetValue<string>("DownloadServices.ApiUrl", "https://api2.Inditex.com/");
+                timerCancellation = new CancellationTokenSource();
                 timerService.Enabled = true;
                 timerService.Elapsed += new System.Timers.ElapsedEventHandler(this.timer_Elapsed);
                 timerService.Interval = timerPlayInterval;
@@ -72,8 +68,9 @@ namespace OrderDonwLoadService.Services
                 return onApiCaller = true;
 
             }
-            catch(Exception)
+            catch(Exception ex)
             {
+                log.LogException(ex);
                 return false;
             }
         }
@@ -83,12 +80,16 @@ namespace OrderDonwLoadService.Services
             {
                 timerService.Enabled = false;
                 timerService.Elapsed -= new System.Timers.ElapsedEventHandler(this.timer_Elapsed);
+                timerCancellation?.Cancel();
+                timerCancellation?.Dispose();
+                timerCancellation = null;
                 log.LogMessage("Service stopped");
                 onApiCaller = false;
                 return true;
             }
-            catch(Exception)
+            catch(Exception ex)
             {
+                log.LogException(ex);
                 return false;
             }
         }
@@ -96,22 +97,27 @@ namespace OrderDonwLoadService.Services
         {
             this.Stop();
         }
-        private async void timer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        private void timer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
+            _ = ProcessTimerAsync(timerCancellation?.Token ?? CancellationToken.None);
+        }
 
+        private async Task ProcessTimerAsync(CancellationToken cancellationToken)
+        {
+            if(!onApiCaller || cancellationToken.IsCancellationRequested)
+                return;
 
-            if(!onApiCaller) return;
-            if(wait) return;
+            if(!await executionLock.WaitAsync(0))
+                return;
+
             try
             {
-                wait = true;
-                var maxTrys = appConfig.GetValue<int>("DownloadServices.MaxTrys", 2);
-                var timeToWait = TimeSpan.FromSeconds(appConfig.GetValue<double>("DownloadServices.SecondsToWait", 240));
                 foreach(var credential in OrderDownloadHelper.LoadInditexCreadentials(log))
                 {
                     log.LogMessage($"Beging of Timer  RequestsServices with this configuration for credential ({credential.Name}):");
 
-                    if(!onApiCaller) return;
+                    if(!onApiCaller || cancellationToken.IsCancellationRequested)
+                        return;
 #if DEBUG
                     var token = "test";
 #else
@@ -128,7 +134,8 @@ namespace OrderDonwLoadService.Services
 #endif
                     do
                     {
-                        if(!onApiCaller) return;
+                        if(!onApiCaller || cancellationToken.IsCancellationRequested)
+                            return;
 #if DEBUG
                         var rootDirectory = Directory.GetCurrentDirectory();
                         rootDirectory = rootDirectory.Replace("OrderDownloadWebApi", "OrderDownloadService");
@@ -196,7 +203,7 @@ namespace OrderDonwLoadService.Services
                             SeasonId = order.POInformation.campaign,
                         });
 
-                        Task.Delay(15000).Wait();
+                        await Task.Delay(15000, cancellationToken);
 #if DEBUG
                         break;
 #endif
@@ -204,16 +211,18 @@ namespace OrderDonwLoadService.Services
                     } while(true);
 
                 }
-                wait = false;
             }
             catch(Exception ex)
             {
                 var message = "Finish whit mistake: \n\r Message: " + ex.Message + "; \n\r InnerException: " + ex.InnerException +
                    "; \n\r Source: " + ex.Source + "; \n\r StackTrace: " + ex.StackTrace + "; \n\r TargetSite:" + ex.TargetSite;
                 log.LogMessage(message);
-                wait = false;
+                log.LogException(ex);
             }
-
+            finally
+            {
+                executionLock.Release();
+            }
         }
 
         private void SaveOrderWithError(string message, InditexOrderData order)
@@ -241,17 +250,12 @@ namespace OrderDonwLoadService.Services
 
         private async Task<string> GetInditexToken(Credential credencial)
         {
-            if(!tokens.TryGetValue(credencial.Vendorid, out TokenInfo info))
+            if(tokenCache.TryGetValidToken(credencial.Vendorid, DateTime.Now, out var cachedToken))
             {
-                if(info.ExpiresAt > DateTime.Now)
-                    return await Task.FromResult(info.Token);
+                return await Task.FromResult(cachedToken);
+            }
 
-                log.LogMessage($" token expired.");
-            }
-            else
-            {
-                log.LogMessage($" token is null.");
-            }
+            log.LogMessage("Token missing or expired.");
             return await GetToken();
 
             async Task<string> GetToken()
@@ -264,7 +268,7 @@ namespace OrderDonwLoadService.Services
 
                 if(string.IsNullOrWhiteSpace(tokeResult.access_token))
                 {
-                    tokens.Remove(credencial.Vendorid);
+                    tokenCache.RemoveToken(credencial.Vendorid);
                     throw new NullReferenceException($" token not found of Url ({controllerToken})");
                 }
 
@@ -274,11 +278,7 @@ namespace OrderDonwLoadService.Services
 
                 log.LogMessage($" token expries date ({expiresAt})");
 
-                tokens[credencial.Vendorid] = new TokenInfo
-                {
-                    Token = tokeResult.access_token,
-                    ExpiresAt = expiresAt
-                };
+                tokenCache.StoreToken(credencial.Vendorid, tokeResult.access_token, expiresAt);
 
                 return await Task.FromResult(tokeResult.access_token);
             }

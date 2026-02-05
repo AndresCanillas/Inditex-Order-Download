@@ -1,56 +1,86 @@
-﻿using Service.Contracts;
+﻿using Newtonsoft.Json;
+using Service.Contracts;
 using Service.Contracts.Database;
-using Services.Core;
 using StructureInditexOrderFile;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace JsonColor
 {
-    public static class ProviderVerifier
+    public interface IProviderVerifier
     {
-        public static void ValidateProviderData(int companyID,
-            Supplier supplierData, 
-            string orderNumber, 
-            string projectID, 
+        void ValidateProviderData(int companyID,
+            Supplier supplierData,
+            string orderNumber,
+            string projectID,
             IDBX db,
             ILogService log,
-            string FileName)
-        {
+            string fileName);
+    }
 
+    public interface IProviderRepository
+    {
+        bool ProviderExists(IDBX db, string reference, int companyID);
+        CompanyInfo GetCompanyInfo(IDBX db, int companyID);
+    }
+
+    public interface INotificationWriter
+    {
+        void CreateNotification(
+            IDBX db,
+            int companyID,
+            string title,
+            string message,
+            int locationId,
+            int projectID,
+            string nkey,
+            string jsonData = null);
+    }
+
+    public class ProviderVerifier : IProviderVerifier
+    {
+        private readonly IProviderRepository repository;
+        private readonly INotificationWriter notificationWriter;
+
+        public ProviderVerifier(IProviderRepository repository, INotificationWriter notificationWriter)
+        {
+            this.repository = repository;
+            this.notificationWriter = notificationWriter;
+        }
+
+        public void ValidateProviderData(int companyID,
+            Supplier supplierData,
+            string orderNumber,
+            string projectID,
+            IDBX db,
+            ILogService log,
+            string fileName)
+        {
             var clientReference = supplierData.supplierCode;
 
             if(int.TryParse(clientReference, out int referenceInt))
             {
                 clientReference = referenceInt.ToString();
             }
-            // database names defined in DocumentService
-           
-                // looking the ref inner print central
-                if(!IsProviderExist(db, clientReference, companyID))
-                {
-                    log.LogMessage($"Inditex.ZaraHangtag.Kids.Plugin.OnPrepareFile, no se ha encontrado el proveedor {clientReference}");
-                    // notify Customer
-                    var companyInfo = GetCompanyInfo(db, companyID);
 
-                    var title = $"The client reference ({clientReference}) not found for Order Number {orderNumber}, CompanyID= {companyID} with ProjectID= {projectID}.";
-                    var message = $"Error while procesing file {FileName}.\r\nThe order refers to a supplier code that is not registered in the system: {companyInfo.CompanyCode}";
-                    var nkey = message.GetHashCode().ToString();
-                    CreateNotification(db, title, message, 1, 0, nkey, Newtonsoft.Json.JsonConvert.SerializeObject(supplierData));
+            if(!repository.ProviderExists(db, clientReference, companyID))
+            {
+                log.LogMessage($"Inditex.ZaraHangtag.Kids.Plugin.OnPrepareFile, no se ha encontrado el proveedor {clientReference}");
+                var companyInfo = repository.GetCompanyInfo(db, companyID);
 
-                    // TODO: pending to send Email
-                }
+                var title = $"The client reference ({clientReference}) not found for Order Number {orderNumber}, CompanyID= {companyID} with ProjectID= {projectID}.";
+                var message = $"Error while procesing file {fileName}.\r\nThe order refers to a supplier code that is not registered in the system: {companyInfo.CompanyCode}";
+                var nkey = message.GetHashCode().ToString();
+                notificationWriter.CreateNotification(db, companyID, title, message, 1, 0, nkey, JsonConvert.SerializeObject(supplierData));
 
-
-            
+                // TODO: pending to send Email
+            }
         }
-        private static bool IsProviderExist(IDBX db, string reference, int companyID)
-        {
-            var exist = true;
+    }
 
+    public class ProviderRepository : IProviderRepository
+    {
+        public bool ProviderExists(IDBX db, string reference, int companyID)
+        {
             var sql = @"
                 SELECT ID, CompanyID, ProviderCompanyID, DefaultProductionLocation, ClientReference
                 FROM CompanyProviders pv 
@@ -59,34 +89,36 @@ namespace JsonColor
 
             var providerInfo = db.SelectOne<ProviderInfo>(sql, companyID, reference);
 
-            if(providerInfo == null)
-                exist = false;
-
-            return exist;
+            return providerInfo != null;
         }
 
-        private static CompanyInfo GetCompanyInfo(IDBX db, int companyID)
+        public CompanyInfo GetCompanyInfo(IDBX db, int companyID)
         {
             var sql = @"
                 SELECT ID, Name, CompanyCode
                 FROM Companies c 
                 WHERE ID = @companyID";
 
-            var companyInfo = db.SelectOne<CompanyInfo>(sql, companyID);
-
-            return companyInfo;
+            return db.SelectOne<CompanyInfo>(sql, companyID);
         }
+    }
 
-        // TODO: require check if notification key already registered
-        // TODO: esta funcion sse debe montar en el servicecontract
-
-        private static void CreateNotification(IDBX db, string title, string message, int locationId, int projectID, string nkey, string jsonData = null)
+    public class NotificationWriter : INotificationWriter
+    {
+        public void CreateNotification(
+            IDBX db,
+            int companyID,
+            string title,
+            string message,
+            int locationId,
+            int projectID,
+            string nkey,
+            string jsonData = null)
         {
-            var NotificationTypeFTPFileWhatcher = 3;
-            var data = jsonData != null ? jsonData : "{}";
-            var msg = message;
+            var notificationTypeFTPFileWatcher = 3;
+            var data = jsonData ?? "{}";
 
-            var sql = $@"INSERT INTO [dbo].[Notifications]
+            var sql = @"INSERT INTO [dbo].[Notifications]
            ([CompanyID]
            ,[Type]
            ,[IntendedRole]
@@ -106,30 +138,46 @@ namespace JsonColor
            ,[UpdatedBy]
            ,[UpdatedDate])
      VALUES
-           (1
-           ,{NotificationTypeFTPFileWhatcher}
-           ,'{Service.Contracts.Authentication.Roles.IDTCostumerService}'
-           ,''
-           ,'InditexZaraHangtagKids.Plugin.DocumentImport/{nkey}'
-           ,'InditexZaraHangtagKids.Plugin.DocumentImport'
+           (@companyID
+           ,@type
+           ,@role
+           ,@intendedUser
+           ,@nkey
+           ,@source
            ,@title
            ,@msg
            ,@data
-           ,0
-           ,1
-           ,null
-           ,{locationId}
-           ,{projectID}
-           ,'SysAdmin'
+           ,@autoDismiss
+           ,@count
+           ,@action
+           ,@locationId
+           ,@projectID
+           ,@createdBy
            ,GETDATE()
-           ,'System'
+           ,@updatedBy
            ,GETDATE())";
 
-            db.ExecuteNonQuery(sql, title, msg, data);
-
-
+            db.ExecuteNonQuery(
+                sql,
+                companyID,
+                notificationTypeFTPFileWatcher,
+                Service.Contracts.Authentication.Roles.IDTCostumerService,
+                string.Empty,
+                $"InditexZaraHangtagKids.Plugin.DocumentImport/{nkey}",
+                "InditexZaraHangtagKids.Plugin.DocumentImport",
+                title,
+                message,
+                data,
+                0,
+                1,
+                null,
+                locationId,
+                projectID,
+                "SysAdmin",
+                "System");
         }
     }
+
     public class ProviderInfo
     {
         public int ID { get; set; }

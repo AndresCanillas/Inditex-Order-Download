@@ -17,6 +17,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Service.Contracts-NET461", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StructureInditexOrderFile", "StructureInditexOrderFile\StructureInditexOrderFile.csproj", "{9E2DE4DC-7619-47AF-8B7B-8C91E7FA6325}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Inditex.ZaraHangtagKids.Tests", "Tests\Inditex.ZaraHangtagKids.Tests\Inditex.ZaraHangtagKids.Tests.csproj", "{2D53CA46-5555-4A0E-9662-74F98791500F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrderDownloadService.Tests", "Tests\OrderDownloadService.Tests\OrderDownloadService.Tests.csproj", "{DC7919F0-B5EF-4D72-8B50-3E1B7050E600}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,6 +55,14 @@ Global
 		{9E2DE4DC-7619-47AF-8B7B-8C91E7FA6325}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9E2DE4DC-7619-47AF-8B7B-8C91E7FA6325}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9E2DE4DC-7619-47AF-8B7B-8C91E7FA6325}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2D53CA46-5555-4A0E-9662-74F98791500F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D53CA46-5555-4A0E-9662-74F98791500F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D53CA46-5555-4A0E-9662-74F98791500F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D53CA46-5555-4A0E-9662-74F98791500F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DC7919F0-B5EF-4D72-8B50-3E1B7050E600}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DC7919F0-B5EF-4D72-8B50-3E1B7050E600}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DC7919F0-B5EF-4D72-8B50-3E1B7050E600}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DC7919F0-B5EF-4D72-8B50-3E1B7050E600}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

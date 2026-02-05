@@ -21,6 +21,10 @@ namespace OrderDonwLoadService.Services
     public class ApiCallerService : IApiCallerService
     {
         private HttpClient httpClient;
+        private readonly HttpClient tokenClient = new HttpClient
+        {
+            Timeout = new TimeSpan(0, 20, 0)
+        };
 
 
 
@@ -75,9 +79,6 @@ namespace OrderDonwLoadService.Services
         }
         public async Task<AutenticationResult> GetToken(string url, string user, string password)
         {
-
-            var client = new HttpClient();
-
             var request = new HttpRequestMessage(HttpMethod.Post, url)
             {
                 Content = new FormUrlEncodedContent(new List<KeyValuePair<string, string>>
@@ -89,7 +90,7 @@ namespace OrderDonwLoadService.Services
                 })
             };
 
-            var response = await client.SendAsync(request);
+            var response = await tokenClient.SendAsync(request);
 
 
             response.EnsureSuccessStatusCode();
