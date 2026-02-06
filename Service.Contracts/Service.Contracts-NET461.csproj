@@ -52,26 +52,33 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="Rebex.Common">
-      <HintPath>..\..\Dependencies\Rebex.Common.dll</HintPath>
+    <Reference Include="Rebex.Common, Version=5.0.7450.0, Culture=neutral, PublicKeyToken=1c4638788972655d, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Dependencies\Rebex.Common.dll</HintPath>
     </Reference>
-    <Reference Include="Rebex.FileServer">
-      <HintPath>..\..\Dependencies\Rebex.FileServer.dll</HintPath>
+    <Reference Include="Rebex.FileServer, Version=5.0.7450.0, Culture=neutral, PublicKeyToken=1c4638788972655d, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Dependencies\Rebex.FileServer.dll</HintPath>
     </Reference>
-    <Reference Include="Rebex.FileSystem">
-      <HintPath>..\..\Dependencies\Rebex.FileSystem.dll</HintPath>
+    <Reference Include="Rebex.FileSystem, Version=5.0.7450.0, Culture=neutral, PublicKeyToken=1c4638788972655d, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Dependencies\Rebex.FileSystem.dll</HintPath>
     </Reference>
-    <Reference Include="Rebex.FileTransfer">
-      <HintPath>..\..\Dependencies\Rebex.FileTransfer.dll</HintPath>
+    <Reference Include="Rebex.FileTransfer, Version=5.0.7450.0, Culture=neutral, PublicKeyToken=1c4638788972655d, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Dependencies\Rebex.FileTransfer.dll</HintPath>
     </Reference>
-    <Reference Include="Rebex.Ftp">
-      <HintPath>..\..\Dependencies\Rebex.Ftp.dll</HintPath>
+    <Reference Include="Rebex.Ftp, Version=5.0.7450.0, Culture=neutral, PublicKeyToken=1c4638788972655d, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Dependencies\Rebex.Ftp.dll</HintPath>
     </Reference>
-    <Reference Include="Rebex.Networking">
-      <HintPath>..\..\Dependencies\Rebex.Networking.dll</HintPath>
+    <Reference Include="Rebex.Networking, Version=5.0.7450.0, Culture=neutral, PublicKeyToken=1c4638788972655d, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Dependencies\Rebex.Networking.dll</HintPath>
     </Reference>
-    <Reference Include="Rebex.Sftp">
-      <HintPath>..\..\Dependencies\Rebex.Sftp.dll</HintPath>
+    <Reference Include="Rebex.Sftp, Version=5.0.7450.0, Culture=neutral, PublicKeyToken=1c4638788972655d, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Dependencies\Rebex.Sftp.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel" />

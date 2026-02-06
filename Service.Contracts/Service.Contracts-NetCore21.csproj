@@ -65,25 +65,25 @@
       <HintPath>..\..\Dependencies\ContractsNetFx.dll</HintPath>
     </Reference>
     <Reference Include="Rebex.Common">
-      <HintPath>..\..\Dependencies\Rebex.Common.dll</HintPath>
+      <HintPath>..\Dependencies\Rebex.Common.dll</HintPath>
     </Reference>
     <Reference Include="Rebex.FileServer">
-      <HintPath>..\..\Dependencies\Rebex.FileServer.dll</HintPath>
+      <HintPath>..\Dependencies\Rebex.FileServer.dll</HintPath>
     </Reference>
     <Reference Include="Rebex.FileSystem">
-      <HintPath>..\..\Dependencies\Rebex.FileSystem.dll</HintPath>
+      <HintPath>..\Dependencies\Rebex.FileSystem.dll</HintPath>
     </Reference>
     <Reference Include="Rebex.FileTransfer">
-      <HintPath>..\..\Dependencies\Rebex.FileTransfer.dll</HintPath>
+      <HintPath>..\Dependencies\Rebex.FileTransfer.dll</HintPath>
     </Reference>
     <Reference Include="Rebex.Ftp">
-      <HintPath>..\..\Dependencies\Rebex.Ftp.dll</HintPath>
+      <HintPath>..\Dependencies\Rebex.Ftp.dll</HintPath>
     </Reference>
     <Reference Include="Rebex.Networking">
-      <HintPath>..\..\Dependencies\Rebex.Networking.dll</HintPath>
+      <HintPath>..\Dependencies\Rebex.Networking.dll</HintPath>
     </Reference>
     <Reference Include="Rebex.Sftp">
-      <HintPath>..\..\Dependencies\Rebex.Sftp.dll</HintPath>
+      <HintPath>..\Dependencies\Rebex.Sftp.dll</HintPath>
     </Reference>
   </ItemGroup>
 
