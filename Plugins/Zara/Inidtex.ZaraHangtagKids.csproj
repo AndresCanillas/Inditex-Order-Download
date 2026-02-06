@@ -71,16 +71,6 @@
     <None Include="OrderFiles\documentacionparaconvertirJsonatextoplano.pdf" />
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\Service.Contracts\Service.Contracts-NET461.csproj">
-      <Project>{b0c41671-f480-4e3f-90bd-237c7561f8f2}</Project>
-      <Name>Service.Contracts-NET461</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\StructureInditexOrderFile\StructureInditexOrderFile.NetFramework.csproj">
-      <Project>{9e2de4dc-7619-47af-8b7b-8c91e7fa6325}</Project>
-      <Name>StructureInditexOrderFile.NetFramework</Name>
-    </ProjectReference>
-  </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
