@@ -13,12 +13,12 @@ namespace Service.Contracts
         public static void CreateStream(DataTable sourceTable, StreamWriter writer, bool includeHeaders)
         {
 
-            CultureInfo culture = CultureInfo.InstalledUICulture; 
+            CultureInfo culture = CultureInfo.InstalledUICulture;
 
             // Obtener el separador de listas
             string listSeparator = culture.TextInfo.ListSeparator;
 
-            if(includeHeaders)
+            if (includeHeaders)
             {
                 IEnumerable<String> headerValues = sourceTable.Columns
                     .OfType<DataColumn>()
@@ -28,7 +28,7 @@ namespace Service.Contracts
 
             IEnumerable<String> items = null;
 
-            foreach(DataRow row in sourceTable.Rows)
+            foreach (DataRow row in sourceTable.Rows)
             {
                 items = row.ItemArray.Select(o => QuoteValue(o.ToString()));
                 writer.WriteLine(String.Join(listSeparator, items));
@@ -40,26 +40,33 @@ namespace Service.Contracts
         // TODO: use regional separator https://www.codeproject.com/Articles/80083/Detecting-User-Regional-Settings-In-The-Web-Browse
         public static string QuoteValue(string str)
         {
-            //return String.Concat("\"",
-            //str.Replace("\"", "\"\""), "\"");
-            //return str;
-
             CultureInfo culture = CultureInfo.InstalledUICulture; //CultureInfo.CurrentUICulture;
 
             // Obtener el separador de listas
             string listSeparator = culture.TextInfo.ListSeparator;
 
-            str = string.IsNullOrEmpty(str) ? string.Empty : str;
+            return QuoteValue(str, listSeparator);
+        }
 
-            bool mustQuote = ( str.Contains(listSeparator) || str.Contains("\"") || str.Contains("\r") || str.Contains("\n"));
-            if(mustQuote)
+        public static string QuoteValue(string str, char listSeparator)
+        {
+            return QuoteValue(str, listSeparator.ToString());
+        }
+
+        public static string QuoteValue(string str, string listSeparator)
+        {
+            str = string.IsNullOrEmpty(str) ? string.Empty : str;
+            listSeparator = string.IsNullOrEmpty(listSeparator) ? string.Empty : listSeparator;
+
+            bool mustQuote = (str.Contains(listSeparator) || str.Contains("\"") || str.Contains("\r") || str.Contains("\n"));
+            if (mustQuote)
             {
                 StringBuilder sb = new StringBuilder();
                 sb.Append("\"");
-                foreach(char nextChar in str)
+                foreach (char nextChar in str)
                 {
                     sb.Append(nextChar);
-                    if(nextChar == '"')
+                    if (nextChar == '"')
                         sb.Append("\"");
                 }
                 sb.Append("\"");
@@ -68,5 +75,6 @@ namespace Service.Contracts
 
             return str;
         }
+
     }
 }

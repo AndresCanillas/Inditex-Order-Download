@@ -1,4 +1,5 @@
-﻿using Services.Core;
+﻿using Service.Contracts;
+using Services.Core;
 using StructureInditexOrderFile;
 using System;
 using System.Collections.Generic;
@@ -143,14 +144,7 @@ namespace Inidtex.ZaraExterlLables
 
         private static string EscapeCsvValue(string value)
         {
-            if (value == null)
-                return string.Empty;
-
-            var mustQuote = value.Contains(Delimeter.ToString()) || value.Contains("\"") || value.Contains("\n") || value.Contains("\r");
-            if (!mustQuote)
-                return value;
-
-            return $"\"{value.Replace("\"", "\"\"")}\"";
+            return Rfc4180Writer.QuoteValue(value, Delimeter);
         }
 
 

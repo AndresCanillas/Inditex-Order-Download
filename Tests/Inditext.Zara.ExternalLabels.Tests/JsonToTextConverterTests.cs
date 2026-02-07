@@ -140,6 +140,34 @@ namespace Inditex.ZaraHangtagKids.Tests
             Assert.Equal("RFID-CHILD", row[assetIndex]);
         }
 
+        [Fact]
+        public void LoadData_QuoteaValoresConDelimitador()
+        {
+            var orderData = BuildOrderWithDelimitedComponentValue();
+
+            var output = JsonToTextConverter.LoadData(orderData, labelType: LabelSchemaRegistry.ExternalPluginType);
+            var lines = SplitLines(output);
+
+            Assert.True(lines.Length > 1, "Se esperaba un header y al menos una fila de datos.");
+
+            var dataLine = lines[1];
+            Assert.Contains("\"Value;With;Semicolon\"", dataLine);
+        }
+
+        [Fact]
+        public void LoadData_QuoteaValoresConComillas()
+        {
+            var orderData = BuildOrderWithQuotedComponentValue();
+
+            var output = JsonToTextConverter.LoadData(orderData, labelType: LabelSchemaRegistry.ExternalPluginType);
+            var lines = SplitLines(output);
+
+            Assert.True(lines.Length > 1, "Se esperaba un header y al menos una fila de datos.");
+
+            var dataLine = lines[1];
+            Assert.Contains("\"Value \"\"Quoted\"\"\"", dataLine);
+        }
+
         private static InditexOrderData LoadSampleOrder()
         {
             var path = ResolvePath("Plugins", "Zara", "OrderFiles", "15536_05987_I25_NNO_ZARANORTE.json");
@@ -407,6 +435,105 @@ namespace Inditex.ZaraHangtagKids.Tests
                                 childrenLabels = Array.Empty<object>()
                             }
                         }
+                    }
+                }
+            };
+        }
+        private static InditexOrderData BuildOrderWithDelimitedComponentValue()
+        {
+            return new InditexOrderData
+            {
+                POInformation = new Poinformation
+                {
+                    productionOrderNumber = "PO-DELIM",
+                    campaign = "C1",
+                    brand = "Z",
+                    section = "SEC",
+                    productType = "TYPE",
+                    model = 100,
+                    quality = 200,
+                    colors = new[]
+                    {
+                        new Color
+                        {
+                            color = 711,
+                            sizes = new[]
+                            {
+                                new Size { size = 18, qty = 1 }
+                            }
+                        }
+                    }
+                },
+                assets = Array.Empty<Asset>(),
+                componentValues = new[]
+                {
+                    new Componentvalue
+                    {
+                        groupKey = "COLOR",
+                        name = "Colour",
+                        valueMap = new Dictionary<string, string>
+                        {
+                            { "711", "Value;With;Semicolon" }
+                        }
+                    }
+                },
+                labels = new[]
+                {
+                    new Label
+                    {
+                        reference = "HPZKALL0032",
+                        components = new[] { "Colour" },
+                        assets = Array.Empty<string>()
+                    }
+                }
+            };
+        }
+
+        private static InditexOrderData BuildOrderWithQuotedComponentValue()
+        {
+            return new InditexOrderData
+            {
+                POInformation = new Poinformation
+                {
+                    productionOrderNumber = "PO-QUOTES",
+                    campaign = "C1",
+                    brand = "Z",
+                    section = "SEC",
+                    productType = "TYPE",
+                    model = 100,
+                    quality = 200,
+                    colors = new[]
+                    {
+                        new Color
+                        {
+                            color = 711,
+                            sizes = new[]
+                            {
+                                new Size { size = 18, qty = 1 }
+                            }
+                        }
+                    }
+                },
+                assets = Array.Empty<Asset>(),
+                componentValues = new[]
+                {
+                    new Componentvalue
+                    {
+                        groupKey = "COLOR",
+                        name = "Colour",
+                        valueMap = new Dictionary<string, string>
+                        {
+                            { "711", "Value \"Quoted\"" }
+                        }
+                    }
+                },
+                labels = new[]
+                {
+                    new Label
+                    {
+                        reference = "HPZKALL0032",
+                        components = new[] { "Colour" },
+                        assets = Array.Empty<string>()
                     }
                 }
             };
