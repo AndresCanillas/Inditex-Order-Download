@@ -3,7 +3,7 @@ using Service.Contracts.Database;
 using Services.Core;
 using StructureInditexOrderFile;
 
-namespace JsonColor
+namespace InidtexApi
 {
     public interface IProviderVerifier
     {

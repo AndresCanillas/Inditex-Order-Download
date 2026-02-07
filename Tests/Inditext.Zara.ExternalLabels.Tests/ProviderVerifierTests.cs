@@ -1,4 +1,4 @@
-using JsonColor;
+using InidtexApi;
 using Moq;
 using Service.Contracts.Database;
 using Services.Core;

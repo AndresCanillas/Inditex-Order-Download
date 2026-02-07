@@ -1,4 +1,4 @@
-﻿namespace JsonColor
+﻿namespace InidtexApi
 {
 
     public static class ClientDefinitions
