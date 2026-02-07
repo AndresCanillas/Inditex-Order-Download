@@ -99,26 +99,14 @@ namespace OrderDonwLoadService.Synchronization
 
                 if (string.IsNullOrEmpty(order.POInformation.section))
                     throw new Exception("Section property is null or empty.");
-                var Gender = order.POInformation.section;
-                switch (Gender)
-                {
-                    case "Niño":
-                    case "Niña":
-                    case "Bebé":
-                        Gender = "Kids";
-                        break;
-                    case "Caballero":
-                    case "Dama":
-                        Gender = "Adult";
-                        break;
-                }
+                
                 
                 foreach (var label in order.labels)
                 {
                     if (string.IsNullOrEmpty(label.reference))
                         throw new Exception("Label reference property is null or empty.");
                     
-                    var pluginType = String.Join(label.reference, "_", Gender);
+                    var pluginType = label.reference.Substring(0,3);
                     events.Send(new FileReceivedEvent
                     {
                         FilePath = filePath,

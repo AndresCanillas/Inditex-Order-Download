@@ -219,17 +219,6 @@ namespace OrderDonwLoadService.Services
 
             return true;
         }
-        public static List<FactoryContact> LoadFactoryContacts(IAppLog log)
-        {
-            var baseDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase).Replace("file:\\", "");
-            var path = Path.Combine(baseDir, "FactoryContacts.json");
-            if (!File.Exists(path))
-            {
-                log.LogMessage($"Error not found File FactoryContacts.json in path {path} ");
-                return null;
-            }
-            var json = File.ReadAllText(path);
-            return JsonConvert.DeserializeObject<FactoryContacts>(json).Factories;
-        }
+       
     }
 }
