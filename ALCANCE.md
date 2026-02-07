@@ -1,11 +1,12 @@
 # Alcance del proyecto (Inditex Order Download)
 
-## Iteración 1 (actual)
-**Objetivo:** Definir y aplicar el contrato fijo de columnas por tipo de plugin en el conversor de Zara, y asegurar que los `childrenLabels` se traten como etiquetas completas (incluyendo assets).
+## Iteración 2 (actual)
+**Objetivo:** Ajustar el conversor de Zara para piggybacks (BLUE/RED), normalización de URLs en componentes/assets, excepción de QR_product y eliminación de duplicados en header.
 
 ### En curso
-- Contrato de columnas fijo por tipo de plugin (EXTERNAL) basado en estructura compartida, con base fields resueltos por reflexión.
-- Soporte de `assets` en `childrenLabels` y pruebas asociadas.
+- Piggybacks: no crear filas propias, concatenar sufijo en referencia HPZ (1 o 2), y copiar componentes/assets a la línea base.
+- Normalización de valores con URL a nombre de archivo (sin extensión), excepto QR_product (valor fijo "Por resolver").
+- Eliminar duplicado de "Icono RFID" en el header (solo en assets).
 
 ### Fuera de alcance (referencia)
 - Cambios en `OrderJsonColor` (solo contexto).
