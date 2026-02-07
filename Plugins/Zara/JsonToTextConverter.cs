@@ -20,8 +20,8 @@ namespace Inidtex.ZaraExterlLables
                 throw new ArgumentException("POInformation no puede ser nulo.", nameof(orderData));
 
             var labels = FlattenLabels(orderData.labels).ToList();
-            var headerDefinition = BuildHeaderDefinition(labels);
-            var headerLine = BuildHeaderLine(headerDefinition, labelType);
+            var headerDefinition = BuildHeaderDefinition(labels, labelType, log);
+            var headerLine = BuildHeaderLine(headerDefinition);
 
             var sb = new StringBuilder();
             sb.AppendLine(headerLine);
@@ -54,20 +54,12 @@ namespace Inidtex.ZaraExterlLables
             IReadOnlyDictionary<string, Componentvalue> componentLookup,
             IReadOnlyDictionary<string, string> assetLookup)
         {
-            var fields = new List<string>
+            var fields = new List<string>();
+
+            foreach (var baseField in headerDefinition.BaseFields)
             {
-                orderData.POInformation.productionOrderNumber,
-                orderData.POInformation.campaign,
-                orderData.POInformation.brand,
-                orderData.POInformation.section,
-                orderData.POInformation.productType,
-                orderData.POInformation.model.ToString(CultureInfo.InvariantCulture),
-                orderData.POInformation.quality.ToString(CultureInfo.InvariantCulture),
-                color.ToString(CultureInfo.InvariantCulture),
-                size.size.ToString(CultureInfo.InvariantCulture),
-                size.qty.ToString(CultureInfo.InvariantCulture),
-                label.Reference
-            };
+                fields.Add(ResolveBaseFieldValue(baseField, orderData, color, size, label));
+            }
 
             foreach (var componentName in headerDefinition.Components)
             {
@@ -195,14 +187,27 @@ namespace Inidtex.ZaraExterlLables
             return map;
         }
 
-        private static HeaderDefinition BuildHeaderDefinition(IEnumerable<LabelDefinition> labels)
+        private static HeaderDefinition BuildHeaderDefinition(IEnumerable<LabelDefinition> labels, string labelType, ILogService log)
         {
+            var labelList = labels?.ToList() ?? new List<LabelDefinition>();
+            if(LabelSchemaRegistry.TryResolveSchema(
+                labelType,
+                labelList.Select(label => label.Reference),
+                out var schema,
+                out var resolvedBy))
+            {
+                log?.LogMessage($"JsonToTextConverter: schema resuelto por {resolvedBy} para tipo '{labelType ?? "N/A"}'.");
+                return new HeaderDefinition(schema.BaseFields, schema.Components, schema.Assets);
+            }
+
+            log?.LogMessage("JsonToTextConverter: no se pudo resolver esquema fijo, usando componentes/assets del pedido.");
+
             var components = new List<string>();
             var assets = new List<string>();
             var componentSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var assetSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var label in labels)
+            foreach (var label in labelList)
             {
                 foreach (var component in label.Components)
                 {
@@ -217,10 +222,10 @@ namespace Inidtex.ZaraExterlLables
                 }
             }
 
-            return new HeaderDefinition(components, assets);
+            return new HeaderDefinition(LabelSchemaRegistry.ExternalSchema.BaseFields, components, assets);
         }
 
-        private static string BuildHeaderLine(HeaderDefinition header, string labelType)
+        private static string BuildHeaderLine(HeaderDefinition header)
         {
             //Codex: dependiendo el tipo de etieta tendremos unos componte base que debe aparacer siempre en el mismo ordern, los agruparemos por etiquetas externas e internas con lo cual tedremos un plugin para cada grupo, agrupoados por:
             // -External:
@@ -240,20 +245,7 @@ namespace Inidtex.ZaraExterlLables
             //crear una estructura compartida entre los plugins donde se definan los componentes base para cada tipo de etiqueta. Esta estructura podría ser una clase estática con propiedades o campos que representen cada componente, o un archivo de configuración que se cargue en tiempo de ejecución. Lo importante es que esta estructura sea compartida entre los plugins para garantizar la consistencia y facilitar el mantenimiento a futuro.  
 
 
-            var fields = new List<string>
-            {
-                "ProductionOrderNumber",
-                "Campaign",
-                "Brand",
-                "Section",
-                "ProductType",
-                "Model",
-                "Quality",
-                "Color",
-                "Size",
-                "Quantity",
-                "LabelReference"
-            };
+            var fields = header.BaseFields.Select(field => field.Header).ToList();
 
             //Codex:Los atributos fijos en el json (como los listado en fields) debemos recuperarlos siempre pos reflexion usando las extructuras compartidas
             //entre los plugins (StructureInditexOrderFile.NetFramework, parecido en el contexto del MangoInidtex.ZaraExterlLables),
@@ -302,7 +294,7 @@ namespace Inidtex.ZaraExterlLables
                 yield return new LabelDefinition(
                     child.reference,
                     child.components ?? Array.Empty<string>(),
-                    Array.Empty<string>());
+                    child.assets ?? Array.Empty<string>());
 
                 if (child.childrenLabels == null)
                     continue;
@@ -336,6 +328,55 @@ namespace Inidtex.ZaraExterlLables
             return $"\"{value.Replace("\"", "\"\"")}\"";
         }
 
+        private static string ResolveBaseFieldValue(
+            FieldDefinition field,
+            InditexOrderData orderData,
+            int color,
+            Size size,
+            LabelDefinition label)
+        {
+            if(field == null)
+                return string.Empty;
+
+            if(string.Equals(field.Path, "Color.color", StringComparison.OrdinalIgnoreCase))
+                return color.ToString(CultureInfo.InvariantCulture);
+
+            if(string.Equals(field.Path, "Size.size", StringComparison.OrdinalIgnoreCase))
+                return size.size.ToString(CultureInfo.InvariantCulture);
+
+            if(string.Equals(field.Path, "Size.qty", StringComparison.OrdinalIgnoreCase))
+                return size.qty.ToString(CultureInfo.InvariantCulture);
+
+            if(string.Equals(field.Path, "Label.reference", StringComparison.OrdinalIgnoreCase))
+                return label.Reference;
+
+            return ResolveByReflection(orderData, field.Path);
+        }
+
+        private static string ResolveByReflection(object instance, string path)
+        {
+            if(instance == null || string.IsNullOrWhiteSpace(path))
+                return string.Empty;
+
+            var segments = path.Split('.');
+            object current = instance;
+
+            foreach(var segment in segments)
+            {
+                if(current == null)
+                    return string.Empty;
+
+                var type = current.GetType();
+                var property = type.GetProperty(segment, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.IgnoreCase);
+                if(property == null)
+                    return string.Empty;
+
+                current = property.GetValue(current);
+            }
+
+            return Convert.ToString(current, CultureInfo.InvariantCulture) ?? string.Empty;
+        }
+
         private sealed class LabelDefinition
         {
             public LabelDefinition(string reference, IEnumerable<string> components, IEnumerable<string> assets)
@@ -362,12 +403,14 @@ namespace Inidtex.ZaraExterlLables
 
         private sealed class HeaderDefinition
         {
-            public HeaderDefinition(IReadOnlyList<string> components, IReadOnlyList<string> assets)
+            public HeaderDefinition(IReadOnlyList<FieldDefinition> baseFields, IReadOnlyList<string> components, IReadOnlyList<string> assets)
             {
+                BaseFields = baseFields ?? Array.Empty<FieldDefinition>();
                 Components = components ?? Array.Empty<string>();
                 Assets = assets ?? Array.Empty<string>();
             }
 
+            public IReadOnlyList<FieldDefinition> BaseFields { get; }
             public IReadOnlyList<string> Components { get; }
             public IReadOnlyList<string> Assets { get; }
         }

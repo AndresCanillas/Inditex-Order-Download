@@ -16,16 +16,14 @@ namespace Inditex.ZaraHangtagKids.Tests
         {
             var orderData = LoadSampleOrder();
 
-            var output = JsonToTextConverter.LoadData(orderData);
+            var output = JsonToTextConverter.LoadData(orderData, labelType: LabelSchemaRegistry.ExternalPluginType);
             var lines = SplitLines(output);
 
             Assert.True(lines.Length > 1, "Se esperaba un header y al menos una fila de datos.");
 
             var header = SplitCsvLine(lines[0]);
-            Assert.Contains("ProductionOrderNumber", header);
-            Assert.Contains("LabelReference", header);
-            Assert.Contains("Component:QR_product", header);
-            Assert.Contains("Asset:Icono RFID", header);
+            var expectedHeader = BuildExpectedHeader(LabelSchemaRegistry.ExternalSchema);
+            Assert.Equal(expectedHeader, header);
 
             var expectedLabels = CountLabels(orderData.labels);
             var expectedSizes = orderData.POInformation.colors.Sum(c => c.sizes.Length);
@@ -38,7 +36,7 @@ namespace Inditex.ZaraHangtagKids.Tests
         public void LoadData_ResuelveComponentesYAssetsPorItem()
         {
             var orderData = LoadSampleOrder();
-            var output = JsonToTextConverter.LoadData(orderData);
+            var output = JsonToTextConverter.LoadData(orderData, labelType: LabelSchemaRegistry.ExternalPluginType);
             var lines = SplitLines(output);
             var header = SplitCsvLine(lines[0]);
 
@@ -48,9 +46,9 @@ namespace Inditex.ZaraHangtagKids.Tests
 
             var row = FindRow(rows, header, labelReference: "HPZKALL003", size: "18", color: "711");
 
-            var qrIndex = Array.IndexOf(header, "Component:QR_product");
-            var colorIndex = Array.IndexOf(header, "Component:Colour");
-            var assetIndex = Array.IndexOf(header, "Asset:Icono RFID");
+            var qrIndex = Array.IndexOf(header, "QR_product");
+            var colorIndex = Array.IndexOf(header, "Colour");
+            var assetIndex = Array.LastIndexOf(header, "Icono RFID");
 
             Assert.True(qrIndex >= 0);
             Assert.True(colorIndex >= 0);
@@ -63,6 +61,25 @@ namespace Inditex.ZaraHangtagKids.Tests
             Assert.Equal(expectedQr, row[qrIndex]);
             Assert.Equal(expectedColor, row[colorIndex]);
             Assert.Equal(expectedAsset, row[assetIndex]);
+        }
+
+        [Fact]
+        public void LoadData_IncluyeAssetsDeChildrenLabels()
+        {
+            var orderData = BuildOrderWithChildAsset();
+
+            var output = JsonToTextConverter.LoadData(orderData, labelType: LabelSchemaRegistry.ExternalPluginType);
+            var lines = SplitLines(output);
+            var header = SplitCsvLine(lines[0]);
+            var rows = lines.Skip(1)
+                .Select(line => SplitCsvLine(line))
+                .ToList();
+
+            var row = FindRow(rows, header, labelReference: "HPZCHILD001", size: "40", color: "123");
+            var assetIndex = Array.LastIndexOf(header, "Icono RFID");
+
+            Assert.True(assetIndex >= 0);
+            Assert.Equal("RFID-CHILD", row[assetIndex]);
         }
 
         private static InditexOrderData LoadSampleOrder()
@@ -132,6 +149,67 @@ namespace Inditex.ZaraHangtagKids.Tests
 
             var mapObj = (Newtonsoft.Json.Linq.JObject)component.valueMap;
             return mapObj[key]?.ToString();
+        }
+
+        private static string[] BuildExpectedHeader(LabelSchemaDefinition schema)
+        {
+            var fields = schema.BaseFields.Select(field => field.Header).ToList();
+            fields.AddRange(schema.Components);
+            fields.AddRange(schema.Assets);
+
+            return fields.ToArray();
+        }
+
+        private static InditexOrderData BuildOrderWithChildAsset()
+        {
+            return new InditexOrderData
+            {
+                POInformation = new Poinformation
+                {
+                    productionOrderNumber = "PO-CHILD",
+                    campaign = "C1",
+                    brand = "Z",
+                    section = "SEC",
+                    productType = "TYPE",
+                    model = 100,
+                    quality = 200,
+                    colors = new[]
+                    {
+                        new Color
+                        {
+                            color = 123,
+                            sizes = new[]
+                            {
+                                new Size { size = 40, qty = 1 }
+                            }
+                        }
+                    }
+                },
+                assets = new[]
+                {
+                    new Asset { name = "Icono RFID", value = "RFID-CHILD" }
+                },
+                componentValues = Array.Empty<Componentvalue>(),
+                labels = new[]
+                {
+                    new Label
+                    {
+                        reference = "HPZPARENT001",
+                        components = Array.Empty<string>(),
+                        assets = Array.Empty<string>(),
+                        childrenLabels = new[]
+                        {
+                            new Childrenlabel
+                            {
+                                reference = "HPZCHILD001",
+                                components = Array.Empty<string>(),
+                                assets = new[] { "Icono RFID" },
+                                childrenLabels = null
+                            }
+                        }
+                    }
+                }
+            };
         }
     }
 }

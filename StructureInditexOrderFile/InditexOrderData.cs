@@ -72,6 +72,7 @@ namespace StructureInditexOrderFile
     public class Childrenlabel
     {
         public string reference { get; set; }
+        public string[] assets { get; set; }
         public string[] components { get; set; }
         public object[] childrenLabels { get; set; }
     }
