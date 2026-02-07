@@ -1,4 +1,4 @@
-﻿using InidtexApi;
+﻿using Inidtex.ZaraExterlLables;
 using Newtonsoft.Json;
 using Service.Contracts;
 using Service.Contracts.Database;

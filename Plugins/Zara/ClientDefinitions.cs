@@ -1,4 +1,4 @@
-﻿namespace InidtexApi
+﻿namespace Inidtex.ZaraExterlLables
 {
 
     public static class ClientDefinitions

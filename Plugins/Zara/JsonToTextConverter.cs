@@ -8,7 +8,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 
-namespace InidtexApi
+namespace Inidtex.ZaraExterlLables
 {
     public static class JsonToTextConverter
     {
@@ -256,7 +256,7 @@ namespace InidtexApi
             };
 
             //Codex:Los atributos fijos en el json (como los listado en fields) debemos recuperarlos siempre pos reflexion usando las extructuras compartidas
-            //entre los plugins (StructureInditexOrderFile.NetFramework, parecido en el contexto del MangoInidtexApi),
+            //entre los plugins (StructureInditexOrderFile.NetFramework, parecido en el contexto del MangoInidtex.ZaraExterlLables),
             //de esta forma si en el futuro se añaden nuevos atributos al json,
             //si no son relevantes para el plugin no haría falta ni tocar el código, y si son relevantes pero no están en la estructura base,
             //se podrían recuperar por reflexión sin necesidad de modificar la estructura base ni el código de los plugins.

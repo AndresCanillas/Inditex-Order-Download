@@ -1,4 +1,4 @@
-using InidtexApi;
+using Inidtex.ZaraExterlLables;
 using Moq;
 using Service.Contracts.Database;
 using Services.Core;

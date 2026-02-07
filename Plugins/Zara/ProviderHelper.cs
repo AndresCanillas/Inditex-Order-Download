@@ -3,7 +3,7 @@ using Service.Contracts.Database;
 using Services.Core;
 using StructureInditexOrderFile;
 
-namespace InidtexApi
+namespace Inidtex.ZaraExterlLables
 {
     public interface IProviderVerifier
     {
