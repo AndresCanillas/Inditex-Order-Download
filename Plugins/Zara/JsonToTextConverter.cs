@@ -12,6 +12,10 @@ namespace Inidtex.ZaraExterlLables
 {
     public static class JsonToTextConverter
     {
+        private const string BluePiggybackReference = "BLUE_LABEL";
+        private const string RedPiggybackReference = "RED_LABEL";
+        private const string QrProductComponentName = "QR_product";
+
         public static string LoadData(InditexOrderData orderData, ILogService log = null, IConnectionManager connMng = null, int projectID = 0, string labelType = null)
         {
             if (orderData == null)
@@ -19,7 +23,7 @@ namespace Inidtex.ZaraExterlLables
             if (orderData.POInformation == null)
                 throw new ArgumentException("POInformation no puede ser nulo.", nameof(orderData));
 
-            var labels = FlattenLabels(orderData.labels).ToList();
+            var labels = LabelDefinitionBuilder.Build(orderData.labels, log).ToList();
             var headerDefinition = BuildHeaderDefinition(labels, labelType, log);
             var headerLine = BuildHeaderLine(headerDefinition);
 
@@ -66,7 +70,8 @@ namespace Inidtex.ZaraExterlLables
                 if (label.HasComponent(componentName))
                 {
                     componentLookup.TryGetValue(componentName, out var componentValue);
-                    fields.Add(ResolveComponentValue(componentValue, orderData, color, size.size));
+                    var value = ResolveComponentValue(componentValue, orderData, color, size.size);
+                    fields.Add(NormalizeComponentOrAssetValue(componentName, value));
                 }
                 else
                 {
@@ -79,7 +84,7 @@ namespace Inidtex.ZaraExterlLables
                 if (label.HasAsset(assetName))
                 {
                     assetLookup.TryGetValue(assetName, out var assetValue);
-                    fields.Add(assetValue ?? string.Empty);
+                    fields.Add(NormalizeComponentOrAssetValue(assetName, assetValue ?? string.Empty));
                 }
                 else
                 {
@@ -259,63 +264,6 @@ namespace Inidtex.ZaraExterlLables
             return string.Join(ClientDefinitions.delimeter.ToString(), fields.Select(EscapeCsvValue));
         }
 
-        private static IEnumerable<LabelDefinition> FlattenLabels(IEnumerable<Label> labels)
-        {
-            if (labels == null)
-                yield break;
-
-            foreach (var label in labels)
-            {
-                if (label == null)
-                    continue;
-
-                yield return new LabelDefinition(
-                    label.reference,
-                    label.components ?? Array.Empty<string>(),
-                    label.assets ?? Array.Empty<string>());
-
-                foreach (var child in FlattenChildren(label.childrenLabels))
-                {
-                    yield return child;
-                }
-            }
-        }
-
-        private static IEnumerable<LabelDefinition> FlattenChildren(IEnumerable<Childrenlabel> children)
-        {
-            if (children == null)
-                yield break;
-
-            foreach (var child in children)
-            {
-                if (child == null)
-                    continue;
-
-                yield return new LabelDefinition(
-                    child.reference,
-                    child.components ?? Array.Empty<string>(),
-                    child.assets ?? Array.Empty<string>());
-
-                if (child.childrenLabels == null)
-                    continue;
-
-                foreach (var nested in child.childrenLabels)
-                {
-                    if (nested is Childrenlabel nestedChild)
-                    {
-                        foreach (var nestedLabel in FlattenChildren(new[] { nestedChild }))
-                            yield return nestedLabel;
-                    }
-                    else if (nested is JObject nestedObject)
-                    {
-                        var nestedLabel = nestedObject.ToObject<Childrenlabel>();
-                        foreach (var nestedLabelDefinition in FlattenChildren(new[] { nestedLabel }))
-                            yield return nestedLabelDefinition;
-                    }
-                }
-            }
-        }
-
         private static string EscapeCsvValue(string value)
         {
             if (value == null)
@@ -377,6 +325,46 @@ namespace Inidtex.ZaraExterlLables
             return Convert.ToString(current, CultureInfo.InvariantCulture) ?? string.Empty;
         }
 
+        private static string NormalizeComponentOrAssetValue(string name, string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return string.Empty;
+
+            if (string.Equals(name, QrProductComponentName, StringComparison.OrdinalIgnoreCase))
+                return "Por resolver";
+
+            if (UriHelper.IsUrl(value))
+                return UriHelper.ExtractFileNameWithoutExtension(value);
+
+            return value;
+        }
+
+        private static class UriHelper
+        {
+            public static bool IsUrl(string value)
+            {
+                if (string.IsNullOrWhiteSpace(value))
+                    return false;
+
+                return Uri.TryCreate(value, UriKind.Absolute, out _);
+            }
+
+            public static string ExtractFileNameWithoutExtension(string value)
+            {
+                if (string.IsNullOrWhiteSpace(value))
+                    return string.Empty;
+
+                var path = value;
+                if (Uri.TryCreate(value, UriKind.Absolute, out var uri))
+                    path = uri.AbsolutePath;
+                else
+                    path = value.Split('?')[0].Split('#')[0];
+
+                var fileName = System.IO.Path.GetFileName(path);
+                return System.IO.Path.GetFileNameWithoutExtension(fileName);
+            }
+        }
+
         private sealed class LabelDefinition
         {
             public LabelDefinition(string reference, IEnumerable<string> components, IEnumerable<string> assets)
@@ -413,6 +401,173 @@ namespace Inidtex.ZaraExterlLables
             public IReadOnlyList<FieldDefinition> BaseFields { get; }
             public IReadOnlyList<string> Components { get; }
             public IReadOnlyList<string> Assets { get; }
+        }
+
+        private static class LabelDefinitionBuilder
+        {
+            public static IEnumerable<LabelDefinition> Build(IEnumerable<Label> labels, ILogService log)
+            {
+                if (labels == null)
+                    yield break;
+
+                foreach (var label in labels)
+                {
+                    if (label == null || IsPiggyback(label.reference))
+                        continue;
+
+                    foreach (var definition in BuildFromLabel(label.reference, label.components, label.assets, label.childrenLabels, log))
+                        yield return definition;
+                }
+            }
+
+            private static IEnumerable<LabelDefinition> BuildFromLabel(
+                string reference,
+                IEnumerable<string> components,
+                IEnumerable<string> assets,
+                IEnumerable<Childrenlabel> children,
+                ILogService log)
+            {
+                var childLabels = NormalizeChildren(children);
+                var piggybackInfo = PiggybackInfo.FromChildren(reference, childLabels, log);
+
+                var mergedComponents = MergeDistinct(components, piggybackInfo.Components);
+                var mergedAssets = MergeDistinct(assets, piggybackInfo.Assets);
+                var resolvedReference = piggybackInfo.HasBlue
+                    ? $"{reference}{(piggybackInfo.HasRed ? 2 : 1)}"
+                    : reference ?? string.Empty;
+
+                yield return new LabelDefinition(resolvedReference, mergedComponents, mergedAssets);
+
+                foreach (var child in childLabels.Where(child => !IsPiggyback(child.reference)))
+                {
+                    foreach (var childDefinition in BuildFromChild(child, log))
+                        yield return childDefinition;
+                }
+            }
+
+            private static IEnumerable<LabelDefinition> BuildFromChild(Childrenlabel child, ILogService log)
+            {
+                if (child == null || IsPiggyback(child.reference))
+                    yield break;
+
+                foreach (var definition in BuildFromChildData(child.reference, child.components, child.assets, child.childrenLabels, log))
+                    yield return definition;
+            }
+
+            private static IEnumerable<LabelDefinition> BuildFromChildData(
+                string reference,
+                IEnumerable<string> components,
+                IEnumerable<string> assets,
+                IEnumerable<object> children,
+                ILogService log)
+            {
+                var childLabels = NormalizeChildren(children);
+                var piggybackInfo = PiggybackInfo.FromChildren(reference, childLabels, log);
+
+                var mergedComponents = MergeDistinct(components, piggybackInfo.Components);
+                var mergedAssets = MergeDistinct(assets, piggybackInfo.Assets);
+                var resolvedReference = piggybackInfo.HasBlue
+                    ? $"{reference}{(piggybackInfo.HasRed ? 2 : 1)}"
+                    : reference ?? string.Empty;
+
+                yield return new LabelDefinition(resolvedReference, mergedComponents, mergedAssets);
+
+                foreach (var child in childLabels.Where(child => !IsPiggyback(child.reference)))
+                {
+                    foreach (var childDefinition in BuildFromChild(child, log))
+                        yield return childDefinition;
+                }
+            }
+
+            private static IReadOnlyList<Childrenlabel> NormalizeChildren(IEnumerable<Childrenlabel> children)
+            {
+                return children?.Where(child => child != null).ToList()
+                    ?? new List<Childrenlabel>();
+            }
+
+            private static IReadOnlyList<Childrenlabel> NormalizeChildren(IEnumerable<object> children)
+            {
+                if (children == null)
+                    return new List<Childrenlabel>();
+
+                var normalized = new List<Childrenlabel>();
+                foreach (var child in children)
+                {
+                    if (child is Childrenlabel childLabel)
+                        normalized.Add(childLabel);
+                    else if (child is JObject childObject)
+                        normalized.Add(childObject.ToObject<Childrenlabel>());
+                }
+
+                return normalized;
+            }
+
+            private static IReadOnlyList<string> MergeDistinct(IEnumerable<string> first, IEnumerable<string> second)
+            {
+                var items = new List<string>();
+                var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                AddRange(first, items, seen);
+                AddRange(second, items, seen);
+
+                return items;
+            }
+
+            private static void AddRange(IEnumerable<string> values, ICollection<string> output, ISet<string> seen)
+            {
+                if (values == null)
+                    return;
+
+                foreach (var value in values.Where(v => !string.IsNullOrWhiteSpace(v)))
+                {
+                    if (seen.Add(value))
+                        output.Add(value);
+                }
+            }
+
+            private static bool IsPiggyback(string reference)
+            {
+                return string.Equals(reference, BluePiggybackReference, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(reference, RedPiggybackReference, StringComparison.OrdinalIgnoreCase);
+            }
+
+            private sealed class PiggybackInfo
+            {
+                private PiggybackInfo(bool hasBlue, bool hasRed, IReadOnlyList<string> components, IReadOnlyList<string> assets)
+                {
+                    HasBlue = hasBlue;
+                    HasRed = hasRed;
+                    Components = components ?? Array.Empty<string>();
+                    Assets = assets ?? Array.Empty<string>();
+                }
+
+                public bool HasBlue { get; }
+                public bool HasRed { get; }
+                public IReadOnlyList<string> Components { get; }
+                public IReadOnlyList<string> Assets { get; }
+
+                public static PiggybackInfo FromChildren(string parentReference, IEnumerable<Childrenlabel> children, ILogService log)
+                {
+                    if (children == null)
+                        return new PiggybackInfo(false, false, Array.Empty<string>(), Array.Empty<string>());
+
+                    var piggybacks = children
+                        .Where(child => child != null)
+                        .Where(child => IsPiggyback(child.reference))
+                        .ToList();
+
+                    var hasBlue = piggybacks.Any(child => string.Equals(child.reference, BluePiggybackReference, StringComparison.OrdinalIgnoreCase));
+                    var hasRed = piggybacks.Any(child => string.Equals(child.reference, RedPiggybackReference, StringComparison.OrdinalIgnoreCase));
+
+                    if (hasRed && !hasBlue)
+                        log?.LogWarning($"Se recibió {RedPiggybackReference} sin {BluePiggybackReference} para la referencia {parentReference}.");
+
+                    var components = piggybacks.SelectMany(child => child.components ?? Array.Empty<string>()).ToList();
+                    var assets = piggybacks.SelectMany(child => child.assets ?? Array.Empty<string>()).ToList();
+
+                    return new PiggybackInfo(hasBlue, hasRed, components, assets);
+                }
+            }
         }
     }
 }

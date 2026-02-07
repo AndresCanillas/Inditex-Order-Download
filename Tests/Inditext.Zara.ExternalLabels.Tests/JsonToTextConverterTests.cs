@@ -1,4 +1,5 @@
 using Inidtex.ZaraExterlLables;
+using Moq;
 using Newtonsoft.Json;
 using StructureInditexOrderFile;
 using System;
@@ -25,7 +26,7 @@ namespace Inditex.ZaraHangtagKids.Tests
             var expectedHeader = BuildExpectedHeader(LabelSchemaRegistry.ExternalSchema);
             Assert.Equal(expectedHeader, header);
 
-            var expectedLabels = CountLabels(orderData.labels);
+            var expectedLabels = CountLabelsExcludingPiggybacks(orderData.labels);
             var expectedSizes = orderData.POInformation.colors.Sum(c => c.sizes.Length);
             var expectedRows = expectedLabels * expectedSizes;
 
@@ -44,23 +45,80 @@ namespace Inditex.ZaraHangtagKids.Tests
                 .Select(line => SplitCsvLine(line))
                 .ToList();
 
-            var row = FindRow(rows, header, labelReference: "HPZKALL003", size: "18", color: "711");
+            var row = FindRow(rows, header, labelReference: "HPZKALL0032", size: "18", color: "711");
 
             var qrIndex = Array.IndexOf(header, "QR_product");
             var colorIndex = Array.IndexOf(header, "Colour");
             var assetIndex = Array.LastIndexOf(header, "Icono RFID");
+            var buyerGroupIndex = Array.IndexOf(header, "BuyerGroup_Icon");
 
             Assert.True(qrIndex >= 0);
             Assert.True(colorIndex >= 0);
             Assert.True(assetIndex >= 0);
+            Assert.True(buyerGroupIndex >= 0);
 
-            var expectedQr = GetComponentValue(orderData, "QR_product", "18");
+            var expectedQr = "Por resolver";
             var expectedColor = GetComponentValue(orderData, "Colour", "711");
-            var expectedAsset = orderData.assets.First(a => a.name == "Icono RFID").value;
+            var expectedAsset = "rfid_alarm";
+            var expectedBuyerGroup = "BABY_GIRL";
 
             Assert.Equal(expectedQr, row[qrIndex]);
             Assert.Equal(expectedColor, row[colorIndex]);
             Assert.Equal(expectedAsset, row[assetIndex]);
+            Assert.Equal(expectedBuyerGroup, row[buyerGroupIndex]);
+        }
+
+        [Fact]
+        public void LoadData_ConcatenaReferenciaYPiggybacksEnLineaHPZ()
+        {
+            var orderData = LoadSampleOrder();
+            var output = JsonToTextConverter.LoadData(orderData, labelType: LabelSchemaRegistry.ExternalPluginType);
+            var lines = SplitLines(output);
+            var header = SplitCsvLine(lines[0]);
+            var rows = lines.Skip(1)
+                .Select(line => SplitCsvLine(line))
+                .ToList();
+
+            var labelIndex = Array.IndexOf(header, "LabelReference");
+            Assert.True(labelIndex >= 0);
+
+            Assert.DoesNotContain(rows, row => row[labelIndex] == "BLUE_LABEL");
+            Assert.DoesNotContain(rows, row => row[labelIndex] == "RED_LABEL");
+            Assert.Contains(rows, row => row[labelIndex] == "HPZKALL0032");
+        }
+
+        [Fact]
+        public void LoadData_CuandoSoloBluePiggyback_ConcatenaUnoYCopiaDatos()
+        {
+            var orderData = BuildOrderWithBluePiggyback();
+            var output = JsonToTextConverter.LoadData(orderData, labelType: LabelSchemaRegistry.ExternalPluginType);
+            var lines = SplitLines(output);
+            var header = SplitCsvLine(lines[0]);
+            var rows = lines.Skip(1)
+                .Select(line => SplitCsvLine(line))
+                .ToList();
+
+            var row = FindRow(rows, header, labelReference: "HPZBLUE0011", size: "40", color: "123");
+            var blueIndex = Array.IndexOf(header, "Blue label");
+            var assetIndex = Array.LastIndexOf(header, "Icono RFID");
+
+            Assert.True(blueIndex >= 0);
+            Assert.True(assetIndex >= 0);
+            Assert.Equal("22,95", row[blueIndex]);
+            Assert.Equal("rfid_alarm", row[assetIndex]);
+        }
+
+        [Fact]
+        public void LoadData_CuandoSoloRedPiggyback_RegistraError()
+        {
+            var orderData = BuildOrderWithRedPiggybackOnly();
+            var log = new Mock<Services.Core.ILogService>();
+
+            JsonToTextConverter.LoadData(orderData, log.Object, labelType: LabelSchemaRegistry.ExternalPluginType);
+
+            log.Verify(
+                logger => logger.LogWarning(It.Is<string>(message => message.Contains("RED_LABEL"))),
+                Times.Once);
         }
 
         [Fact]
@@ -106,19 +164,52 @@ namespace Inditex.ZaraHangtagKids.Tests
             return line.Split(ClientDefinitions.delimeter);
         }
 
-        private static int CountLabels(IEnumerable<Label> labels)
+        private static int CountLabelsExcludingPiggybacks(IEnumerable<Label> labels)
         {
             var total = 0;
             foreach(var label in labels ?? Array.Empty<Label>())
             {
+                if (IsPiggyback(label?.reference))
+                    continue;
+
                 total++;
-                if(label?.childrenLabels != null)
+                total += CountChildLabels(label?.childrenLabels);
+            }
+
+            return total;
+        }
+
+        private static int CountChildLabels(IEnumerable<Childrenlabel> children)
+        {
+            if (children == null)
+                return 0;
+
+            var total = 0;
+            foreach (var child in children)
+            {
+                if (child == null || IsPiggyback(child.reference))
+                    continue;
+
+                total++;
+                if (child.childrenLabels == null)
+                    continue;
+
+                foreach (var nested in child.childrenLabels)
                 {
-                    total += label.childrenLabels.Length;
+                    if (nested is Childrenlabel nestedChild)
+                        total += CountChildLabels(new[] { nestedChild });
+                    else if (nested is Newtonsoft.Json.Linq.JObject nestedObject)
+                        total += CountChildLabels(new[] { nestedObject.ToObject<Childrenlabel>() });
                 }
             }
 
             return total;
+        }
+
+        private static bool IsPiggyback(string reference)
+        {
+            return string.Equals(reference, "BLUE_LABEL", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(reference, "RED_LABEL", StringComparison.OrdinalIgnoreCase);
         }
 
         private static string[] FindRow(
@@ -205,6 +296,115 @@ namespace Inditex.ZaraHangtagKids.Tests
                                 components = Array.Empty<string>(),
                                 assets = new[] { "Icono RFID" },
                                 childrenLabels = null
+                            }
+                        }
+                    }
+                }
+            };
+        }
+
+        private static InditexOrderData BuildOrderWithBluePiggyback()
+        {
+            return new InditexOrderData
+            {
+                POInformation = new Poinformation
+                {
+                    productionOrderNumber = "PO-BLUE",
+                    campaign = "C1",
+                    brand = "Z",
+                    section = "SEC",
+                    productType = "TYPE",
+                    model = 100,
+                    quality = 200,
+                    colors = new[]
+                    {
+                        new Color
+                        {
+                            color = 123,
+                            sizes = new[]
+                            {
+                                new Size { size = 40, qty = 1 }
+                            }
+                        }
+                    }
+                },
+                assets = new[]
+                {
+                    new Asset { name = "Icono RFID", value = "https://static.inditex.com/rfid_alarm.png?ts=1" }
+                },
+                componentValues = new[]
+                {
+                    new Componentvalue
+                    {
+                        groupKey = "MODEL_QUALITY",
+                        name = "Blue label",
+                        valueMap = new Dictionary<string, string> { ["100/200"] = "22,95" }
+                    }
+                },
+                labels = new[]
+                {
+                    new Label
+                    {
+                        reference = "HPZBLUE001",
+                        components = Array.Empty<string>(),
+                        assets = Array.Empty<string>(),
+                        childrenLabels = new[]
+                        {
+                            new Childrenlabel
+                            {
+                                reference = "BLUE_LABEL",
+                                components = new[] { "Blue label" },
+                                assets = new[] { "Icono RFID" },
+                                childrenLabels = Array.Empty<object>()
+                            }
+                        }
+                    }
+                }
+            };
+        }
+
+        private static InditexOrderData BuildOrderWithRedPiggybackOnly()
+        {
+            return new InditexOrderData
+            {
+                POInformation = new Poinformation
+                {
+                    productionOrderNumber = "PO-RED",
+                    campaign = "C1",
+                    brand = "Z",
+                    section = "SEC",
+                    productType = "TYPE",
+                    model = 100,
+                    quality = 200,
+                    colors = new[]
+                    {
+                        new Color
+                        {
+                            color = 123,
+                            sizes = new[]
+                            {
+                                new Size { size = 40, qty = 1 }
+                            }
+                        }
+                    }
+                },
+                assets = Array.Empty<Asset>(),
+                componentValues = Array.Empty<Componentvalue>(),
+                labels = new[]
+                {
+                    new Label
+                    {
+                        reference = "HPZRED001",
+                        components = Array.Empty<string>(),
+                        assets = Array.Empty<string>(),
+                        childrenLabels = new[]
+                        {
+                            new Childrenlabel
+                            {
+                                reference = "RED_LABEL",
+                                components = new[] { "Red label" },
+                                assets = Array.Empty<string>(),
+                                childrenLabels = Array.Empty<object>()
                             }
                         }
                     }

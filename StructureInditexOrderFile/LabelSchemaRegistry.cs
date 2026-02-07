@@ -75,7 +75,6 @@ namespace StructureInditexOrderFile
                 "Blue label currency",
                 "Red label",
                 "Red label currency",
-                "Icono RFID",
                 "SIZE_BR_BRASIL_VALUE",
                 "SIZE_EUR_VALUE",
                 "SIZE_IT_VALUE",
