@@ -4,9 +4,9 @@ using System.Linq;
 
 namespace StructureInditexOrderFile
 {
-    public sealed class FieldDefinition
+    public sealed class InditexFieldDefinition
     {
-        public FieldDefinition(string header, string path)
+        public InditexFieldDefinition(string header, string path)
         {
             Header = header ?? string.Empty;
             Path = path ?? string.Empty;
@@ -18,14 +18,14 @@ namespace StructureInditexOrderFile
 
     public sealed class LabelSchemaDefinition
     {
-        public LabelSchemaDefinition(IEnumerable<FieldDefinition> baseFields, IEnumerable<string> components, IEnumerable<string> assets)
+        public LabelSchemaDefinition(IEnumerable<InditexFieldDefinition> baseFields, IEnumerable<string> components, IEnumerable<string> assets)
         {
-            BaseFields = (baseFields ?? Array.Empty<FieldDefinition>()).ToList().AsReadOnly();
+            BaseFields = (baseFields ?? Array.Empty<InditexFieldDefinition>()).ToList().AsReadOnly();
             Components = (components ?? Array.Empty<string>()).ToList().AsReadOnly();
             Assets = (assets ?? Array.Empty<string>()).ToList().AsReadOnly();
         }
 
-        public IReadOnlyList<FieldDefinition> BaseFields { get; }
+        public IReadOnlyList<InditexFieldDefinition> BaseFields { get; }
         public IReadOnlyList<string> Components { get; }
         public IReadOnlyList<string> Assets { get; }
     }
@@ -38,19 +38,19 @@ namespace StructureInditexOrderFile
         private static readonly string[] ExternalLabelPrefixes = { "HPZ", "WTZ", "ADZ", "RED", "BLU" };
         private static readonly string[] InternalLabelPrefixes = { "WLZ", "WPZ", "PLZ", "OTZ" };
 
-        private static readonly IReadOnlyList<FieldDefinition> DefaultBaseFields = new[]
+        private static readonly IReadOnlyList<InditexFieldDefinition> DefaultBaseFields = new[]
         {
-            new FieldDefinition("ProductionOrderNumber", "POInformation.productionOrderNumber"),
-            new FieldDefinition("Campaign", "POInformation.campaign"),
-            new FieldDefinition("Brand", "POInformation.brand"),
-            new FieldDefinition("Section", "POInformation.section"),
-            new FieldDefinition("ProductType", "POInformation.productType"),
-            new FieldDefinition("Model", "POInformation.model"),
-            new FieldDefinition("Quality", "POInformation.quality"),
-            new FieldDefinition("Color", "Color.color"),
-            new FieldDefinition("Size", "Size.size"),
-            new FieldDefinition("Quantity", "Size.qty"),
-            new FieldDefinition("LabelReference", "Label.reference")
+            new InditexFieldDefinition("ProductionOrderNumber", "POInformation.productionOrderNumber"),
+            new InditexFieldDefinition("Campaign", "POInformation.campaign"),
+            new InditexFieldDefinition("Brand", "POInformation.brand"),
+            new InditexFieldDefinition("Section", "POInformation.section"),
+            new InditexFieldDefinition("ProductType", "POInformation.productType"),
+            new InditexFieldDefinition("Model", "POInformation.model"),
+            new InditexFieldDefinition("Quality", "POInformation.quality"),
+            new InditexFieldDefinition("Color", "Color.color"),
+            new InditexFieldDefinition("Size", "Size.size"),
+            new InditexFieldDefinition("Quantity", "Size.qty"),
+            new InditexFieldDefinition("LabelReference", "Label.reference")
         };
 
         private static readonly LabelSchemaDefinition ExternalSchemaDefinition = new LabelSchemaDefinition(

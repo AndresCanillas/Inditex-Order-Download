@@ -277,7 +277,7 @@ namespace Inidtex.ZaraExterlLables
         }
 
         private static string ResolveBaseFieldValue(
-            FieldDefinition field,
+            InditexFieldDefinition field,
             InditexOrderData orderData,
             int color,
             Size size,
@@ -391,14 +391,14 @@ namespace Inidtex.ZaraExterlLables
 
         private sealed class HeaderDefinition
         {
-            public HeaderDefinition(IReadOnlyList<FieldDefinition> baseFields, IReadOnlyList<string> components, IReadOnlyList<string> assets)
+            public HeaderDefinition(IReadOnlyList<InditexFieldDefinition> baseFields, IReadOnlyList<string> components, IReadOnlyList<string> assets)
             {
-                BaseFields = baseFields ?? Array.Empty<FieldDefinition>();
+                BaseFields = baseFields ?? Array.Empty<InditexFieldDefinition>();
                 Components = components ?? Array.Empty<string>();
                 Assets = assets ?? Array.Empty<string>();
             }
 
-            public IReadOnlyList<FieldDefinition> BaseFields { get; }
+            public IReadOnlyList<InditexFieldDefinition> BaseFields { get; }
             public IReadOnlyList<string> Components { get; }
             public IReadOnlyList<string> Assets { get; }
         }
