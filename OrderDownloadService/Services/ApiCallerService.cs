@@ -16,7 +16,6 @@ namespace OrderDonwLoadService.Services
         void Start(string url);
         Task<InditexOrderData> GetLabelOrders(string controller, string token, string vendorId);
         Task<AutenticationResult> GetToken(string url, string user, string password);
-        Task<InditexOrderXmlResponse> GetPurchaseOrder(string relativeUrl, string bearerToken);
     }
     public class ApiCallerService : IApiCallerService
     {
@@ -100,28 +99,7 @@ namespace OrderDonwLoadService.Services
 
 
         }
-        public async Task<InditexOrderXmlResponse> GetPurchaseOrder(string fullUrl, string bearerToken)
-        {
-            if(string.IsNullOrWhiteSpace(fullUrl))
-                throw new ArgumentException("URL cannot be null or empty.", nameof(fullUrl));
-
-            httpClient.DefaultRequestHeaders.Clear();
-            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
-
-            using(var response = await httpClient.GetAsync(fullUrl))
-            {
-                response.EnsureSuccessStatusCode();
-                var xmlContent = await response.Content.ReadAsStringAsync();
-
-                var serializer = new XmlSerializer(typeof(InditexOrderXmlResponse));
-                using(var reader = new System.IO.StringReader(xmlContent))
-                {
-                    var result = (InditexOrderXmlResponse)serializer.Deserialize(reader);
-                    return result;
-                }
-            }
-        }
-
+       
     }
 
 

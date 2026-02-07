@@ -1,8 +1,7 @@
 ﻿using Newtonsoft.Json;
-using Service.Contracts;
 using Service.Contracts.Database;
+using Services.Core;
 using StructureInditexOrderFile;
-using System;
 
 namespace JsonColor
 {

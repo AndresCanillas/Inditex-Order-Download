@@ -252,18 +252,24 @@ namespace Service.Contracts.WF
                 stateFields = sb.ToString();
             }
 
-            var query = $@"
-				select *
-				from
-				(
-					select WorkflowID, TaskID, ItemID, ItemName, ItemStatus, CreatedDate, ProjectID
-					    {stateFields}
-					from ItemData item WITH (NOLOCK)
-					{limiters}
-				) as T1
-				outer apply GetLastItemError(T1.ItemID) as T2
-				order by ItemID
-				{pagination}";
+            var query= $@"
+                with t as (select *
+	            from
+	            (
+		            select  ItemID
+		            from ItemData item WITH (NOLOCK)
+		            {limiters}
+	            ) as T1
+	            order by ItemID
+	            {pagination} )
+	            select  
+		            WorkflowID, TaskID, ItemID, ItemName, ItemStatus, CreatedDate, ProjectID
+		            {stateFields}
+		            , t2.*
+	            from itemdata d
+	            outer apply GetLastItemError(d.ItemID) as T2
+	            where d.ItemID in (select ItemID from t)
+            ";
 
             var result = new List<WorkItemError>();
             using(var reader = await conn.ExecuteReaderAsync(query, limiters.Arguments))

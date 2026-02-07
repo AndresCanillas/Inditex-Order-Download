@@ -21,21 +21,20 @@ namespace OrderDownloadWebApi.Controllers
             this.orderServices = orderServices;
         }
 
-
-        [HttpGet, Route("/order/getbackonthequeue/{number}")]
-        public OperationResult GetBackOnTheQueue(string number)
+        [HttpPost, Route("/order/get/")]
+        public OperationResult MergePdf([FromBody] GetOderDto  OrderDto)
         {
             try
             {
-                var message = orderServices.GetBackOnTheQueue(number).Result;
-                if(message.Contains("Error"))
+                var message = orderServices.GetOrder(OrderDto.OrderNumber,OrderDto.CampaignCode,OrderDto.VendorId).Result;
+                if (message.Contains("Error"))
                 {
                     return new OperationResult(false, g[message]);
                 }
 
                 return new OperationResult(true, g[message], null);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 log.LogException(ex);
                 return new OperationResult(false, g["Operation could not be completed."]);
@@ -43,4 +42,12 @@ namespace OrderDownloadWebApi.Controllers
         }
 
     }
+    public class GetOderDto
+    {
+        public string OrderNumber { get; set; }
+        public string CampaignCode { get; set; }
+        public string VendorId { get; set; }
+
+    }
+
 }

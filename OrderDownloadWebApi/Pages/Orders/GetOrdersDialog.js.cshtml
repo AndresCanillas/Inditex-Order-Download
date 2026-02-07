@@ -4,14 +4,14 @@
     Layout = null;
 }
 
-//# sourceURL=https://Pages/QueuingOrder/BackOnTheQueueDialog.js
+//# sourceURL=https://Pages/Orders/GetOrdersDialog.js
 ///<reference path="/js/jquery-3.0.0.min.js" />
 ///<reference path="/js/Kendo.all.min.js" />
 ///<reference path="/js/AppContext.js" />
 
 //<script>
-    var BackOnTheQueueDialog = function () {
-        FormView.Extend(this, "@g["Back On The Queue"]", "/QueuingOrder/BackOnTheQueueDialog");
+    var GetOrdersDialog = function () {
+        FormView.Extend(this, "@g["Get Orders by Inditex API"]", "/Orders/GetOrdersDialog");
         this.elements = {
             txtOrderNumber: null,
             lblResult: null,
@@ -19,8 +19,8 @@
         };
     };
 
-    BackOnTheQueueDialog.prototype = {
-        constructor: BackOnTheQueueDialog,
+    GetOrdersDialog.prototype = {
+        constructor: GetOrdersDialog,
 
         OnLoad: function () {
               this.elements.orderNumber.keypress((e) => {
@@ -35,7 +35,7 @@
             // Limpiar listeners si es necesario
         },
 
-        SendBackToQueue: async function (selfOrEvent) {
+        GetOrder: async function (selfOrEvent) {
             const self = selfOrEvent.data || this;
 
             const input = self.elements.orderNumber;
@@ -43,6 +43,8 @@
             const output = self.elements.information2;
             
             const orderNumber = input.val().trim();
+            const campaignCode = self.elements.campaignCode.val().trim();
+            const vendorId = self.elements.vendorId.val().trim();
             const minLength = 10;
             const maxLength = 11;
 
@@ -54,6 +56,26 @@
                 );
                 return;
             }
+            
+            // const input = self.elements.campaignCode;
+            //  if (!/^\d+$/.test(campaignCode) || orderNumber.length < minLength || orderNumber.length > maxLength) {
+            //     input.addClass("is-invalid");
+            //     errorLabel.removeClass("d-none");
+            //     output.removeClass("alert-success alert-danger").addClass("alert-warning").html(
+            //         `@g["Please enter a valid order number (only numbers, 10 to 11 digits)."]`
+            //     );
+            //     return;
+            // }
+
+            //  const input = self.elements.vendorId;
+            //  if (!/^\d+$/.test(vendorId) || orderNumber.length < minLength || orderNumber.length > maxLength) {
+            //     input.addClass("is-invalid");
+            //     errorLabel.removeClass("d-none");
+            //     output.removeClass("alert-success alert-danger").addClass("alert-warning").html(
+            //         `@g["Please enter a valid order number (only numbers, 10 to 11 digits)."]`
+            //     );
+            //     return;
+            // }
 
             input.removeClass("is-invalid");
             errorLabel.addClass("d-none");
@@ -61,7 +83,11 @@
 
 
             try {
-                const response = await fetch(`/order/getbackonthequeue/${orderNumber}`);
+                const response = await AppContext.HttpPost("/order/get", {
+			        OrderNumber: orderNumber,
+                    CampaignCode:campaignCode,
+                    VendorId:vendorId
+			    });
                 const result = await response.json();
 
                 const css = result.Success ? "alert-success" : "alert-danger";

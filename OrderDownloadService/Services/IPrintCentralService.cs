@@ -20,7 +20,7 @@ namespace OrderDonwLoadService.Services
         Task<List<Project>> GetByBrandID(int brandId);
         Task<List<Catalog>> GetCatalogsByProjectID(int projectId);
         Task<List<CatalogData>> GetCatalogDataByID(int catalogid);
-        Task<Output> FtpServiceUpload<Input, Output>(string controller, Input input, string filePath);
+        Task<Output> FtpServiceUpload<Input, Output>(string controller, Input input, string filePath, string fileName);
         Task<List<CompanyOrderDTO>> GetOrder(int companyId, int projectId, string orderNumber);
         Task<bool> CreateFile(string storeName, int fileid, string filename);
         Task<int> CreateAttachment(string storeName, int fileid, string category, string filename);

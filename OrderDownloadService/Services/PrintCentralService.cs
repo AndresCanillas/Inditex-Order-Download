@@ -103,7 +103,7 @@ namespace OrderDonwLoadService.Services
             return new List<CatalogData>();
         }
 
-        public async Task<Output> FtpServiceUpload<Input, Output>(string controller, Input input, string filePath)
+        public async Task<Output> FtpServiceUpload<Input, Output>(string controller, Input input, string filePath, string fileName)
         {
             if(controller == null)
                 throw new Exception("controller argument cannot be null");
@@ -117,7 +117,7 @@ namespace OrderDonwLoadService.Services
             var streamContent = new StreamContent(fileStream);
             streamContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data");
             streamContent.Headers.ContentDisposition.Name = $"\"file\"";
-            streamContent.Headers.ContentDisposition.FileName = "\"" + Path.GetFileName(filePath) + "\"";
+            streamContent.Headers.ContentDisposition.FileName = "\"" + fileName + "\"";
             streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
             string boundary = Guid.NewGuid().ToString();
             var content = new MultipartFormDataContent(boundary);

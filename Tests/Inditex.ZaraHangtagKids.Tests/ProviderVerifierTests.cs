@@ -1,8 +1,7 @@
-using System;
 using JsonColor;
 using Moq;
-using Service.Contracts;
 using Service.Contracts.Database;
+using Services.Core;
 using StructureInditexOrderFile;
 using Xunit;
 

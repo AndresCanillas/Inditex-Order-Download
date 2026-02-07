@@ -12,7 +12,7 @@ namespace JsonColor
 {
     public static class JsonToTextConverter
     {
-        public static string LoadData(InditexOrderData orderData, ILogService log = null, IConnectionManager connMng = null, int projectID = 0)
+        public static string LoadData(InditexOrderData orderData, ILogService log = null, IConnectionManager connMng = null, int projectID = 0, string pluginType = null)
         {
             if(orderData == null)
                 throw new ArgumentNullException(nameof(orderData));
@@ -44,7 +44,8 @@ namespace JsonColor
             return sb.ToString();
         }
 
-        private static string BuildDataLine(
+        private static string 
+            BuildDataLine(
             InditexOrderData orderData,
             int color,
             Size size,
@@ -236,8 +237,8 @@ namespace JsonColor
                 "LabelReference"
             };
 
-            fields.AddRange(header.Components.Select(component => $"Component:{component}"));
-            fields.AddRange(header.Assets.Select(asset => $"Asset:{asset}"));
+            fields.AddRange(header.Components.Select(component => component));
+            fields.AddRange(header.Assets.Select(asset => asset));
 
             return string.Join(ClientDefinitions.delimeter.ToString(), fields.Select(EscapeCsvValue));
         }

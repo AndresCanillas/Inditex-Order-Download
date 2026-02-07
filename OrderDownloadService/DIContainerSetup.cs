@@ -10,7 +10,6 @@ namespace OrderDonwLoadService
         {
 
             factory.RegisterSingleton<IPrintCentralService, PrintCentralService>();
-            factory.RegisterSingleton<IOrderQueueDownloadService, OrderQueueDownloadService>();
             factory.RegisterSingleton<IOrderServices, OrderServices>();
             factory.RegisterTransient<IApiCallerService, ApiCallerService>();
         }

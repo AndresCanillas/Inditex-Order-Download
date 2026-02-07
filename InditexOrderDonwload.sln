@@ -15,7 +15,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ResourceGen", "ResourceGen\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Service.Contracts-NET461", "Service.Contracts\Service.Contracts-NET461.csproj", "{B0C41671-F480-4E3F-90BD-237C7561F8F2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StructureInditexOrderFile", "StructureInditexOrderFile\StructureInditexOrderFile.csproj", "{9E2DE4DC-7619-47AF-8B7B-8C91E7FA6325}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StructureInditexOrderFile", "StructureInditexOrderFile\StructureInditexOrderFile.csproj", "{52FF9C6E-0A2D-4F37-8660-34A50CFC2708}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrderDownloadService.Tests", "Tests\OrderDownloadService.Tests\OrderDownloadService.Tests.csproj", "{DC7919F0-B5EF-4D72-8B50-3E1B7050E600}"
 EndProject
@@ -49,10 +49,10 @@ Global
 		{B0C41671-F480-4E3F-90BD-237C7561F8F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B0C41671-F480-4E3F-90BD-237C7561F8F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B0C41671-F480-4E3F-90BD-237C7561F8F2}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9E2DE4DC-7619-47AF-8B7B-8C91E7FA6325}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9E2DE4DC-7619-47AF-8B7B-8C91E7FA6325}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9E2DE4DC-7619-47AF-8B7B-8C91E7FA6325}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9E2DE4DC-7619-47AF-8B7B-8C91E7FA6325}.Release|Any CPU.Build.0 = Release|Any CPU
+		{52FF9C6E-0A2D-4F37-8660-34A50CFC2708}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{52FF9C6E-0A2D-4F37-8660-34A50CFC2708}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{52FF9C6E-0A2D-4F37-8660-34A50CFC2708}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{52FF9C6E-0A2D-4F37-8660-34A50CFC2708}.Release|Any CPU.Build.0 = Release|Any CPU
 		{DC7919F0-B5EF-4D72-8B50-3E1B7050E600}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{DC7919F0-B5EF-4D72-8B50-3E1B7050E600}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DC7919F0-B5EF-4D72-8B50-3E1B7050E600}.Release|Any CPU.ActiveCfg = Release|Any CPU

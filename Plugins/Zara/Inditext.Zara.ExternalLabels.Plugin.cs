@@ -68,11 +68,14 @@ namespace Inditex.OrderPlugin
 
                 var fname = Path.GetFileNameWithoutExtension(configuration.FileName);
 
-                tempFile = tempStore.CreateFile($"{fname}_{DateTime.Now.ToString("yyyyMMddHHmmss")}.zarahangtagkids");
+
+                var pluginType = fname.Split('_')[1];
+
+                tempFile = tempStore.CreateFile($"{fname}_{DateTime.Now.ToString("yyyyMMddHHmmss")}.{pluginType}");
 
 
                 log.LogMessage($"Inditex.ZaraHangtag.Kids.Plugin.OnPrepareFile, loaded file with {fileContent.Length} characters.");
-                if(ProcessingFile(encoding, configuration, fileContent))
+                if(ProcessingFile(encoding, configuration, fileContent, pluginType))
                 {
                     configuration.FileGUID = tempFile.FileGUID;
                     configuration.FileName = tempFile.FileName;// change filename to avoid use .json extension
@@ -88,7 +91,7 @@ namespace Inditex.OrderPlugin
 
 
 
-        private bool ProcessingFile(Encoding encoding, DocumentImportConfiguration configuration, string fileContent)
+        private bool ProcessingFile(Encoding encoding, DocumentImportConfiguration configuration, string fileContent, string pluginType)
         {
             try
             {
@@ -105,8 +108,7 @@ namespace Inditex.OrderPlugin
                         log,
                         configuration.FileName);
                 }
-                string output = JsonToTextConverter.LoadData(orderData, log, connMng, configuration.ProjectID);
-
+                string output = JsonToTextConverter.LoadData(orderData, log, connMng, configuration.ProjectID, pluginType);
                 var content = encoding.GetBytes(output);
                 tempFile.SetContent(content);
                 resp = true;

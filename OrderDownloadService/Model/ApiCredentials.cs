@@ -16,3 +16,4 @@ namespace OrderDonwLoadService.Model
         public string Vendorid { get; set; }
     }
 }
+

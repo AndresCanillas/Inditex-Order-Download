@@ -109,7 +109,7 @@
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="copy &quot;$(TargetPath)&quot; &quot;$(ProjectDir)..\..\Dependencies\Print\NetCore2.1\$(TargetFileName)&quot; /y&#xD;&#xA;" />
+    <Exec Command="copy &quot;$(TargetPath)&quot; &quot;$(ProjectDir)..\Dependencies\Print\NetCore2.1\$(TargetFileName)&quot; /y&#xD;&#xA;" />
   </Target>
 
 </Project>

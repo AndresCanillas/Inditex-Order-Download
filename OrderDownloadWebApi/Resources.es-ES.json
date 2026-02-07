@@ -126,16 +126,6 @@
       "T": false
     },
     {
-      "Key": "Send Back To Queue",
-      "Value": "Send Back To Queue",
-      "T": false
-    },
-    {
-      "Key": "Back On The Queue",
-      "Value": "Back On The Queue",
-      "T": false
-    },
-    {
       "Key": "Order",
       "Value": "Order",
       "T": false
@@ -143,6 +133,36 @@
     {
       "Key": "Result",
       "Value": "Result",
+      "T": false
+    },
+    {
+      "Key": "Please introduce the campaign code",
+      "Value": "Please introduce the campaign code",
+      "T": false
+    },
+    {
+      "Key": "Please introduce the vendor id",
+      "Value": "Please introduce the vendor id",
+      "T": false
+    },
+    {
+      "Key": "Please enter a valid campaign (I or V + 2 last digts of year, example: I25).",
+      "Value": "Please enter a valid campaign (I or V + 2 last digts of year, example: I25).",
+      "T": false
+    },
+    {
+      "Key": "Please enter a valid vendor id (only numbers, 10 to 11 digits).",
+      "Value": "Please enter a valid vendor id (only numbers, 10 to 11 digits).",
+      "T": false
+    },
+    {
+      "Key": "Get Order",
+      "Value": "Get Order",
+      "T": false
+    },
+    {
+      "Key": "Get Orders by Inditex API",
+      "Value": "Get Orders by Inditex API",
       "T": false
     }
   ]

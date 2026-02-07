@@ -30,7 +30,36 @@ namespace OrderDonwLoadService
             this.events = events;
         }
 
-        private async Task<bool> SendOrderToPrintCentral(string filePath, string seasonId, string fileName)
+        
+        public override EQEventHandlerResult HandleEvent(FileReceivedEvent e)
+        {
+
+            var isClearProcessedFiles = this.appConfig.GetValue<bool>("DownloadServices.IsClearProcessedFiles", false);
+            if(SendOrderToPrintCentral(e.FilePath, e.ProyectId,string.Join( Path.GetFileName(e.FilePath),"_",e.PluginType)).Result)
+            {
+                log.LogMessage($"Order {e.OrderNumber} was Sended to PrintCentral.");
+
+                if(isClearProcessedFiles)
+                {
+                    if(OrderDownloadHelper.ClenerFiles(e.FilePath, appConfig))
+                    {
+                        log.LogMessage($"Order {e.OrderNumber} was move into history directory.");
+                    }
+                    else
+                    {
+                        log.LogMessage($"Error when to tried move {e.OrderNumber}  into history directory the order.");
+                    }
+                }
+                return EQEventHandlerResult.OK;
+            }
+            else
+            {
+                log.LogMessage($"Error: When to tried order move {e.OrderNumber}  into history directory.");
+            }
+            return EQEventHandlerResult.Delay5;
+        }
+
+        private async Task<bool> SendOrderToPrintCentral(string filePath, string proyectId, string fileName)
         {
 
             var companyID = this.appConfig.GetValue<int?>("DownloadServices.ProjectInfoApiPrinCentral.CompanyID", null) ??
@@ -43,10 +72,10 @@ namespace OrderDonwLoadService
             var passwordPrintCentral = this.appConfig.GetValue<string>("DownloadServices.PrintCentralCredentials.Password", null) ??
                 throw new System.Exception("Password is not configured in app settings.");
 
-            if(string.IsNullOrWhiteSpace(seasonId) || string.IsNullOrWhiteSpace(filePath) || string.IsNullOrWhiteSpace(fileName))
+            if(string.IsNullOrWhiteSpace(proyectId) || string.IsNullOrWhiteSpace(filePath) || string.IsNullOrWhiteSpace(fileName))
             {
                 log.LogMessage($"Error: Invalid parameters for sending order to PrintCentral. " +
-                                       $"SeasonId: {seasonId}, FilePath: {filePath}, FileName: {fileName}");
+                                       $"ProyectId: {proyectId}, FilePath: {filePath}, FileName: {fileName}");
                 return false;
             }
             if(!File.Exists(filePath))
@@ -74,15 +103,15 @@ namespace OrderDonwLoadService
 
 
 
-                project = conn.SelectOne<ProjectInfo>(sql, seasonId, brandID, companyID);
+                project = conn.SelectOne<ProjectInfo>(sql, proyectId, brandID, companyID);
 
                 if(project == null)
                 {
 
-                    var title = $"The seasion missing ({seasonId})";
+                    var title = $"The seasion missing ({proyectId})";
 
                     var message = $"Error while procesing file {fileName}, " +
-                        $"not found the project ({seasonId}) for CompanyID= {companyID} and CompanyID= {brandID} " +
+                        $"not found the project ({proyectId}) for CompanyID= {companyID} and CompanyID= {brandID} " +
                         $"to process the order number ({filePath.Substring(0, filePath.Length - 4)}).";
 
                     events.Send(new NotificationReceivedEvent
@@ -111,7 +140,7 @@ namespace OrderDonwLoadService
                 };
 
 
-                var result = await central.FtpServiceUpload<OrderData, OrderUploadResponse>($"api/intake/ftp", orderData, filePath);
+                var result = await central.FtpServiceUpload<OrderData, OrderUploadResponse>($"api/intake/ftp", orderData, filePath,filePath);
 
                 if(!result.Success)
                 {
@@ -126,33 +155,6 @@ namespace OrderDonwLoadService
             central.Logout();
             return true;
 
-        }
-        public override EQEventHandlerResult HandleEvent(FileReceivedEvent e)
-        {
-
-            var isClearProcessedFiles = this.appConfig.GetValue<bool>("DownloadServices.IsClearProcessedFiles", false);
-            if(SendOrderToPrintCentral(e.FilePath, e.SeasonId, Path.GetFileName(e.FilePath)).Result)
-            {
-                log.LogMessage($"Order {e.OrderNumber} was Sended to PrintCentral.");
-
-                if(isClearProcessedFiles)
-                {
-                    if(OrderDownloadHelper.ClenerFiles(e.FilePath, appConfig))
-                    {
-                        log.LogMessage($"Order {e.OrderNumber} was move into history directory.");
-                    }
-                    else
-                    {
-                        log.LogMessage($"Error when to tried move {e.OrderNumber}  into history directory the order.");
-                    }
-                }
-                return EQEventHandlerResult.OK;
-            }
-            else
-            {
-                log.LogMessage($"Error: When to tried order move {e.OrderNumber}  into history directory.");
-            }
-            return EQEventHandlerResult.Delay5;
         }
 
 

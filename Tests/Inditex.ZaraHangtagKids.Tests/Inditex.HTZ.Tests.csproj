@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../Plugins/Zara/Inidtex.ZaraHangtagKids.csproj" />
+    <ProjectReference Include="..\..\Plugins\Zara\Inidtex.ZaraExterlLables.csproj" />
     <ProjectReference Include="../../StructureInditexOrderFile/StructureInditexOrderFile.NetFramework.csproj" />
   </ItemGroup>
 </Project>

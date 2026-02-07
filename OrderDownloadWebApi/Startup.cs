@@ -10,7 +10,6 @@ using Microsoft.Extensions.Logging.Console;
 using Middleware;
 using Newtonsoft.Json.Serialization;
 using OrderDonwLoadService;
-using OrderDonwLoadService.Services;
 using OrderDownloadWebApi.Models;
 using OrderDownloadWebApi.Models.Repositories;
 using OrderDownloadWebApi.Processing;
@@ -206,23 +205,7 @@ namespace OrderDownloadWebApi
             var apm = factory.GetInstance<IAutomatedProcessManager>();
             apm.Setup<ApmSetup>();
             apm.Start();
-
-            var OrderDownload = factory.GetInstance<IOrderQueueDownloadService>();
-            if(OrderDownload == null)
-            {
-                log.LogMessage("Order download service is not registered in the DI container.");
-                return;
-            }
-            log.LogMessage("Starting Order download service");
-            OrderDownload.Start();
-
-            appLifeTime.ApplicationStopping.Register(() =>
-            {
-                apm.Stop();
-                log.LogMessage("Stopping Order download service");
-                OrderDownload.Stop();
-            });
-
+            
         }
 
 
