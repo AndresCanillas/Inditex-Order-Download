@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using Service.Contracts;
 using Service.Contracts.Database;
 using Services.Core;
 using StructureInditexOrderFile;
@@ -266,14 +267,7 @@ namespace Inidtex.ZaraExterlLables
 
         private static string EscapeCsvValue(string value)
         {
-            if (value == null)
-                return string.Empty;
-
-            var mustQuote = value.Contains(ClientDefinitions.delimeter.ToString()) || value.Contains("\"") || value.Contains("\n") || value.Contains("\r");
-            if (!mustQuote)
-                return value;
-
-            return $"\"{value.Replace("\"", "\"\"")}\"";
+            return Rfc4180Writer.QuoteValue(value, ClientDefinitions.delimeter);
         }
 
         private static string ResolveBaseFieldValue(

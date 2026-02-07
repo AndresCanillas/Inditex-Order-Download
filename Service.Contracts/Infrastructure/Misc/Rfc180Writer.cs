@@ -40,26 +40,33 @@ namespace Service.Contracts
         // TODO: use regional separator https://www.codeproject.com/Articles/80083/Detecting-User-Regional-Settings-In-The-Web-Browse
         public static string QuoteValue(string str)
         {
-            //return String.Concat("\"",
-            //str.Replace("\"", "\"\""), "\"");
-            //return str;
-
             CultureInfo culture = CultureInfo.InstalledUICulture; //CultureInfo.CurrentUICulture;
 
             // Obtener el separador de listas
             string listSeparator = culture.TextInfo.ListSeparator;
 
-            str = string.IsNullOrEmpty(str) ? string.Empty : str;
+            return QuoteValue(str, listSeparator);
+        }
 
-            bool mustQuote = ( str.Contains(listSeparator) || str.Contains("\"") || str.Contains("\r") || str.Contains("\n"));
-            if(mustQuote)
+        public static string QuoteValue(string str, char listSeparator)
+        {
+            return QuoteValue(str, listSeparator.ToString());
+        }
+
+        public static string QuoteValue(string str, string listSeparator)
+        {
+            str = string.IsNullOrEmpty(str) ? string.Empty : str;
+            listSeparator = string.IsNullOrEmpty(listSeparator) ? string.Empty : listSeparator;
+
+            bool mustQuote = (str.Contains(listSeparator) || str.Contains("\"") || str.Contains("\r") || str.Contains("\n"));
+            if (mustQuote)
             {
                 StringBuilder sb = new StringBuilder();
                 sb.Append("\"");
-                foreach(char nextChar in str)
+                foreach (char nextChar in str)
                 {
                     sb.Append(nextChar);
-                    if(nextChar == '"')
+                    if (nextChar == '"')
                         sb.Append("\"");
                 }
                 sb.Append("\"");
