@@ -1,0 +1,20 @@
+﻿@page
+@using Service.Contracts.WF;
+@{
+	Layout = null;
+}
+<div style="margin:5px; font-size:10pt;">
+	<div class="form-row">
+		<div class="col-25">
+			<label>Reason:</label>
+		</div>
+	</div>
+	<div class="form-row">
+		<textarea model name="Reason" validation="required" class="form-control" style="min-height:60px; min-width:100%; overflow:scroll; background:white;"></textarea>
+	</div>
+	<div style="float:right; margin-top:20px;">
+		<a name="OKButton" href="#" action="Ok" class="btn btn-primary" style="margin-right:0px;">Operation</a>
+		<a href="#" action="Cancel" class="btn btn-outline-danger" style="margin-right:0px;">Cancel</a>
+	</div>
+</div>
+

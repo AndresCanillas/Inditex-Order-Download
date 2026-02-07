@@ -1,0 +1,122 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/CompanyPreviewSageData.js
+//<script>
+    var CompanyPreviewSageData = function (companyid, reference) {
+		FormView.Extend(this, "@g["Sage Customer"]", `/Admin/CompanyPreviewSageData`);
+		this.CompanyID = companyid;
+        this.Reference = reference;
+        this.Data = null;
+	};
+
+
+    CompanyPreviewSageData.prototype = {
+        constructor: CompanyPreviewSageData,
+
+		OnLoad: function () {
+            var self = this;
+
+			AppContext.Sage.GetCompany(self.CompanyID, self.Reference)
+                .fail((a, b, c) => {
+                    console.log(a, b, c)
+                })
+                .done((response) => {
+                    if (response.Success == false) {
+                        return;
+                    }
+
+                    self.LoadData(response.Data);
+
+                    self.LoadAddresses(response.Data);
+
+
+                });
+        },
+
+        SyncFn: function () {
+            var self = this;
+
+            AppContext.Sage.SyncCompany(self.CompanyID, self.Reference)
+                .done((response) => {
+
+                    if (response.Success != true) {
+                        return;
+                    }
+
+                    self.Data = response.Data;
+
+                    self.Close();
+
+                });
+        },
+
+        LoadAddresses: function (data) {
+
+            var self = this;
+
+            self.elements.AddressListContainer.text('');
+
+            if (!Array.isArray(data.ConfiguredAddresses)) {
+                return;
+            }
+
+            for (var i = 0; i < data.ConfiguredAddresses.length; i++) {
+
+                var add = data.ConfiguredAddresses[i]
+
+                var card = self.CardTemplate(i, add);
+
+                self.elements.AddressListContainer.append(card);
+
+                if (add.Type == 1) {
+                    self.LoadContactInfo(add)
+                }
+            }
+
+        },
+
+        CardTemplate: function (idx, add) {
+
+            var l1 = add.Line1 ? add.Line1 : ''
+            //var l2 = add.Line2 ? add.Line2 : ''
+            var textIsFiscal = '@g["Fiscal Address"]';
+            var textDefaultShipping = '@g["Default Shipping Address"]';
+
+            var isFiscal = add.Type == 1;
+            var badgeCls = 'secondary';
+
+            if (isFiscal) {
+                badgeCls = 'warning'
+            }
+            
+            var tpl = 
+                `<div class="item-card address-card" data-entityid="${idx}">
+					<span class="fa fa-map-marker"></span></span>
+					<div style="width: 99%;white-space: nowrap;text-overflow: ellipsis;overflow-x: hidden;">${add.Reference}</div>
+					<div>${l1}</div>
+                    
+					<div>${add.Country} </div>
+					<div>${add.ZipCode}</div>
+					<span class="badge badge-${badgeCls}">${textIsFiscal}</span>
+                    <span class="badge badge-${badgeCls}">${textDefaultShipping}</span>
+				</div>`;
+
+            return tpl;
+
+        },
+
+        LoadContactInfo: function (add) {
+           
+            var self = this;
+
+            self.model.Email1 = add.Email1 ? add.Email1 : '';
+            self.model.Email2 = add.Email2 ? add.Email2 : '';
+
+        }
+
+	};
+//</script>

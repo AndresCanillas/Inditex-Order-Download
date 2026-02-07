@@ -1,0 +1,92 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@inject IAppConfig config
+@using WebLink.Contracts.Models
+@{
+    Layout = null;
+
+    var lang = CultureInfo.CurrentUICulture.Name;
+    var languageConfig = config.Bind<LanguageConfig>("Languages");
+    var allLangs = languageConfig.Languages.ToList();
+    allLangs.Add(languageConfig.Default);
+}
+
+//# sourceURL=https://Pages/Validation/Deeply/DefineCompositionView.js
+/// <script>
+
+var DefineCompositionView = function (options, projectData) {
+    // set default settings here
+
+    var maxFibers = 8;
+    var maxSections = 8;
+
+    var options = $.extend({
+        Title: options.Label.ShoeComposition ? '@g["Footwear Composition"]' : '@g["Garment Composition"]',
+        //ViewUrl: '@Url.Content("~/Validation/Deeply/DefineCompositionView")',
+
+        UserLang: '@lang',
+        //Languages: @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(allLangs)),
+        Languages: [{ "Culture": "en-US", "Lang": "English", "APICode": "en" }, { "Culture": "fr-FR", "Lang": "French" }, { "Culture": "fr-FR", "Lang": "Spanish" }],
+
+        ConfirmCloseWindowText: '@g["You will lose any unsaved changes, are you sure to close ?"]',
+        ConfirmButtonText: '@g["Confirm"]',
+        WarningRemoveSectionText: '@g["Section will removed, this action can't undo.Please confirm this action"]',
+        LeatherText: '@g["Leather"]',
+        TextileText: '@g["Textile"]',
+        SyntheticText: '@Html.Raw(g["Synthetic"])', // Html.Raw(g["Synthetic"])
+        DefaultOptionText: '@Html.Raw(g["Select an Option"])', // @Html.Raw(g["Select an Option"])
+        Shoes3SectionsOptionsText: '@Html.Raw(g["Shoes 3 Sections"])',
+        Shoes2SectionsOptionsText: '@Html.Raw(g["Shoes 2 Sections"])',
+        GenericOptionText: '@g["Generic"]',
+        CompoForMexicoOptionText: '@g["Composition Mexico"]',
+        SectionLabelText: '@g["Section"]',
+        FiberTypesPlaceHolderText: '@g["Fiber Type"]',
+        CountryOfOriginLabelText: '@g["Origin"]',
+        FiberLabelText: '@g["Fiber"]',
+        AddFiberActionText: '@g["Add Fiber"]',
+        ErrorToLoadCareInstructionsText: '@g["Fail to get care instructions data"]',
+        ErrorToLoadTemplatesData: '@g["Error trying get Templates data."]',
+        UserErrorSectionsRepeat: '@g["Sections cannot be repeated"]',
+        UserErrorFibersMinWeigth: '@g["All fibers must have more than 0 percent"]',
+        UserErrorFiberRepeat: '@g["Cannot repeat a fiber within a section"]',
+        UserErrorFibersMaxWeigth: '@g["All fibers on a section together must add up to 100 percent"]',
+        UserErrorCountryOfOriginRequired: '@g["Country is required for Leather Fiber Type"]',
+        UserErrorFiberTypeRequired: '@g["Fiber Type is Required"]',
+        UserErrorFibersAndSectionsAreNotCompleted: '@g["Please complete the sections and fibers"]',
+        UserErrorCareInstructionsRequired: '@g["Please select all Care Instrucctions"]',
+
+        // proyect configuration dependency
+        MaxFibers: maxFibers,
+        MaxSections: maxSections,
+        WrSymbolCssClass: 'scalpers-wr-symbol',
+        SectionCatalogName: '@Catalog.BRAND_SECTIONS_CATALOG',
+        FibersCatalogName: '@Catalog.BRAND_FIBERS_CATALOG',
+        WashingRulesCatalogName: '@Catalog.BRAND_CAREINSTRUCTIONS_CATALOG',
+        TemplateCatalogs: '@Catalog.BRAND_CAREINSTRUCTIONS_TEMPLATES_CATALOG',
+        ProjectData: projectData,
+        ForceToSelectWrOption: true,
+        EnableRepeatSections: true,
+        ShoesSectionConfig: [{
+            Code: '1', // TODO: peding to configure for deeply
+            Sort: 0
+        }, {
+            Code: '2', // TODO: peding to configure for deeply
+            Sort: 1
+        }, {
+            Code: '3', // TODO: peding to configure for deeply
+            Sort: 2
+        }]
+
+
+    }, options);
+
+    ADefineCompositionView.Extend(this, options)
+    ExtendObj(this, DefineCompositionView.prototype);// override base class methods - uggly version, but simple
+}
+
+
+DefineCompositionView.prototype = {
+    constructor: DefineCompositionView
+}
+///</script>

@@ -1,0 +1,30 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+	<viewcard>
+		<viewrow>
+			<viewcolumn>
+				<viewform>
+					<div model name="CreatedDate" label="@g["Date"]:" data-type="Date"></div>
+					<div model name="Title" label="@g["Title"]:"></div>
+					<div model name="Message" label="@g["Message"]:"></div>
+					<div model name="CompanyName" label="@g["Company"]:"></div>
+					<div model name="BillTo" label="@g["Bill to"]:"></div>
+					<div model name="SendTo" label="@g["Send to"]:"></div>
+				</viewform>
+				<br />
+				<div class="alert alert-success">
+					<a href="#" title="@g["Download Order Preview"]" action="DownloadPreview"><span class="fa fa-file-pdf-o"></span> Download Order Preview</a>
+					<hr />
+					<p>@g["Note: The order preview can also be downloaded from the Uploaded Orders report."]</p>
+				</div>
+			</viewcolumn>
+		</viewrow>
+		<viewrow>
+			<viewcolumn>
+				<a href="#" class="btn btn-primary" action="DismissNotification">@g["Accept"]</a>
+			</viewcolumn>
+		</viewrow>
+	</viewcard>

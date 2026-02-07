@@ -1,0 +1,54 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Print.SmartDots</title>
+	<meta name="viewport" content="width=device-width" />
+	<link rel="stylesheet" href="/css/bootstrap.css" />
+	<link rel="stylesheet" href="/css/jquery-ui.min.css" />
+	<link rel="stylesheet" href="/css/font-awesome.min.css">
+	<link rel="stylesheet" href="/css/themify-icons.css">
+	<link rel="stylesheet" href="/css/AppContext.GridView.css" />
+	<link rel="stylesheet" href="/css/AppContext.css" />
+	<link rel="stylesheet" href="/styles/kendo.common.min.css" />
+	<link rel="stylesheet" href="/styles/kendo.default.min.css" />
+	<link rel="stylesheet" href="/styles/kendo.default.mobile.min.css" />
+	<link rel="stylesheet" href="/css/views.css" />
+	<script src="/js/popper.min.js"></script>
+	<script src="/js/jquery-3.0.0.min.js"></script>
+	<script src="/js/jquery.validate.min.js"></script>
+	<script src="/js/jquery.validate.unobtrusive.min.js"></script>
+	<script src="/js/bootstrap.min.js"></script>
+	<script src="/js/kendo.all.min.js"></script>
+	<script src="/js/jquery-ui.js"></script>
+	<script src="/js/lodash.min.js"></script>
+	<script src="/js/AppContext.js"></script>
+	<script src="/js/AppContext.Events.js"></script>
+	<script src="/js/AppContext.Extensions.js"></script>
+	<script src="/js/AppContext.UI.js"></script>
+	<script src="/js/AppContext.TableView.js"></script>
+	<script src="/js/AppContext.GridView.js"></script>
+	<script src="/js/AppContext.CatalogForm.js"></script>
+	<script src="/js/AppContext.ConfigSystem.js"></script>
+	<script src="/js/AppContext.AppDomain.js"></script>
+	<script src="/common/ConfirmDialog.js"></script>
+</head>
+<body>
+	<script>
+		$(document).ready(function () {
+			AppContext.LoadJS("/Common/Components/CompA.js", "/Common/Components/CompB.js", "/Common/Components/CompC.js")
+				.then(() => {
+					console.log("Expected output is: CompC OnLoad, followed by CompB OnLoad, followed by CompA OnLoad.");
+					var compA = new CompA();
+					compA.Show($("BODY"));
+				});
+		});
+	</script>
+</body>
+</html>
+
+

@@ -1,0 +1,148 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+	var uilang = CultureInfo.CurrentUICulture.Name;
+}
+//# sourceURL=https://Pages/Production/JobSortDialog.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+
+//<script>
+	var JobSortDialog = function (jobid) {
+        FormView.Extend(this, "@g["Sort Printer Queue"]", "/Production/JobSortDialog");
+        this.PrinterJobID = jobid;
+        this.ProductData = null;
+        this.Companies = [];
+        this.SelectedCompanyId = null;
+        this.CurrentCompanySections = [];
+        this.CurrentCompanyFooter = [];
+        this.SortData = false;
+	};
+
+	JobSortDialog.prototype = {
+		constructor: JobSortDialog,
+
+		OnLoad: function () {
+			var self = this;
+			self.elements.Grid.Headers.SortingChanged.Subscribe(this, this.SortingChanged)
+			AppContext.PrinterJobs.GetByID(this.PrinterJobID, (job) => {
+				if (job != null) {
+					self.CompanyID = job.CompanyID;
+					self.ProjectID = job.ProjectID;
+					AppContext.Companies.GetProvidersList(self.CompanyID, (companies) => {
+						if (companies != null) {
+							self.Companies = companies;
+							AppContext.PrinterJobs.GetJobDetails(self.PrinterJobID, false, (details) => {
+								if (details != null) {
+									self.ProductData = self.CreateProductDataFromJobDetails(details);
+									AppContext.Catalogs.GetByName(self.ProjectID, "VariableData", (result) => {
+										if (result.Success) {
+											var def = JSON.parse(result.Data.Definition);
+											self.elements.Grid.Headers.SetupFromCatalogDef(def, true, "@uilang");
+											self.elements.Grid.Rows.LoadData(self.ProductData);
+											@if (userData.CanSeeCompanyFilter)
+											{
+											@:AppContext.LoadComboBox(self.elements.CompanyID, companies, "ID", "Name");
+											}
+											else
+											{
+											@:self.CompanyChanged();
+											}
+										}
+									});
+								}
+							});
+						}
+					});
+				}
+			});
+		},
+
+		CreateProductDataFromJobDetails: function (details) {
+			var data = [];
+			for (var r of details) data.push(JSON.parse(r.ProductData));
+			return data;
+		},
+
+		CompanyChanged: function (e) {
+			this.SaveSelectedCompany();
+			this.SelectedCompany = this.Companies.first((p) => p.ID == this.CompanyID);
+			if (this.SelectedCompany.OrderSort != null) {
+				var sorting = this.CreateGridSorting(this.SelectedCompany.OrderSort);
+				this.elements.Grid.Headers.SetSorting(sorting);
+			}
+			else this.elements.Grid.Headers.ClearSorting();
+		},
+
+		SaveSelectedCompany: function () {
+			if (this.SelectedCompany != null) {
+				this.SelectedCompany.OrderSort = this.CreateOrderSorting();
+				this.SelectedCompany.StopFields = this.GetFieldNames(this.elements.StopFields);
+				this.SelectedCompany.HeaderFields = this.GetFieldNames(this.elements.HeaderFields);
+			}
+		},
+
+		SortingChanged: function (e) {
+			var sorting = e.target.GetSorting();
+			this.elements.HeaderFields.empty();
+			this.elements.StopFields.empty();
+			var checked;
+			var stopFields = [];
+			var headerFields = [];
+			if (this.SelectedCompany.StopFields != null)
+				stopFields = this.SelectedCompany.StopFields.split(",");
+			if (this.SelectedCompany.HeaderFields != null)
+				headerFields = this.SelectedCompany.HeaderFields.split(",");
+
+			for (var field in sorting) {
+				checked = stopFields.first((p) => p == field) != null ? "checked='checked'" : "";
+				var chk = $(`<label style="margin-right:15px;"><input type="checkbox" name="${field}" ${checked} /> ${field}</label>`);
+				this.elements.StopFields.append(chk);
+
+				checked = headerFields.first((p) => p == field) != null ? "checked='checked'" : "";
+				var chk = $(`<label style="margin-right:15px;"><input type="checkbox" name="${field}" ${checked} /> ${field}</label>`);
+				this.elements.HeaderFields.append(chk);
+			}
+		},
+
+		CreateOrderSorting: function () {
+			var sorting = this.elements.Grid.Headers.GetSorting();
+			var ordersort = [];
+			for (var f in sorting) ordersort.push({ field: f, dir: sorting[f] });
+			return JSON.stringify(ordersort);
+		},
+
+		CreateGridSorting: function (sorting) {
+			var savedSorting = JSON.parse(sorting);
+			var gridSorting = {};
+			for (var f of savedSorting) gridSorting[f.field] = f.dir;
+			return gridSorting;
+		},
+
+		GetFieldNames: function (parentElement) {
+			var fieldNames = [];
+			var checkedFields = parentElement.find("[type='checkbox']");
+			for (var i = 0; i < checkedFields.length; i++) {
+				var input = checkedFields[i];
+				if (input.checked) fieldNames.push(input.name);
+			}
+			return fieldNames.join(",");
+		},
+
+		SortReset: function () {
+			this.elements.Grid.Headers.ClearSorting();
+		},
+
+		Save: function (e) {
+			var self = this;
+			this.SaveSelectedCompany();
+			AppContext.Companies.UpdateOrderSorting(this.Companies, (result) => {
+				if (result.Success) self.Close();
+			});
+		}
+	};
+//</script>

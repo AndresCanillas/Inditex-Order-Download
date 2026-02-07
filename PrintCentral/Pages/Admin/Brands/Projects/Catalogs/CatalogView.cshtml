@@ -1,0 +1,80 @@
+﻿@page
+@using Service.Contracts.Database
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+	var readOnly = userData.Admin_Catalogs_CanEdit ? "" : "readonly";
+
+	// TODO: create Enum
+    var catalogTypes = new List<Object>() {
+        new { value=0, desc=g["In line"] },
+        new { value=1, desc=g["Lookup"] }
+    };
+
+}
+	<viewcard>
+		<viewrow>
+			<viewcolumn>
+				<viewform>
+					<div model name="ID" label="ID:" data-type="Int"></div>
+					<input model name="ProjectID" type="hidden" data-type="Int" />
+					<input model name="IsSystem" type="hidden" data-type="Bool" />
+					<input model name="TableName" type="hidden" />
+					<input model name="Captions" type="hidden" />
+					<input model name="Definition" type="hidden" />
+					<input model name="RequiredRoles" type="hidden" />
+					@if (userData.Admin_Catalogs_CanRename)
+					{
+						<input model name="Name" label="@g["Name"]:*" validation="required;maxlen(35)" type="text" />
+					}
+					else
+					{
+						<div model name="Name" label="@g["Name"]:*"></div>
+					}
+					<input model name="SortOrder" label="@g["Sort Order"]:" type="Number" data-type="Int" @readOnly />
+					<viewtitle>@g["Fields"]</viewtitle>
+					@if (userData.Admin_Catalogs_CanEdit)
+					{
+						<div class="toolbar-body" style="width:100%">
+							<span class="toolbar-grip"></span>
+							<a href="#" title="@g["Add field"]" action="AddField"><span class="fa fa-plus"></span></a>
+							<a href="#" title="@g["Edit Captions"]" action="EditCaptions"><span class="fa fa-contao"></span></a>
+							<span class="toolbar-separator"></span>
+							<a href="#" title="@g["Remove field"]" action="RemoveField" name="removeFieldOption"><span class="fa fa-trash"></span></a>
+						</div>
+					}
+					<div name="FieldsTable" component="TableView" style="max-height:290px;">
+						<template>
+							<column width="120" field="Name">@g["Name"]</column>
+							<column width="100" field="Type" map='@(Map.FromEnum<ColumnType>())'>@g["Type"]</column>
+							<column width="120" field="CanBeEmpty">@g["Can Be Empty"]</column>
+							<column width="120" field="IsLock">@g["Lock"]</column>
+						</template>
+					</div>
+
+					<inlineform>
+						<input model name="IsHidden" label="@g["Is Hidden?"]" type="checkbox" data-type="Bool" @readOnly />
+						<input model name="IsReadonly" label="@g["Is Readonly?"]" type="checkbox" data-type="Bool" @readOnly />
+					</inlineform>
+
+					<br />
+
+
+					<select model name="CatalogType" label="@g["Catalog Type"] :" options="@(OptionList.FromEnumerable(catalogTypes, "value", "desc"))" />
+
+
+				</viewform>
+			</viewcolumn>
+			<viewcolumn>
+				<div name="FieldProps" component="FormView" controller="/Admin/Brands/Projects/Catalogs/FieldPropertiesView.js" style="display:none"></div>
+			</viewcolumn>
+		</viewrow>
+		@if (userData.Admin_Catalogs_CanEdit)
+		{
+			<viewfooter>
+				<a href="#" class="btn btn-primary" action="Save">@g["Save"]</a>
+				<button type="button" class="btn btn-secondary sort-reset" action="AssignRoles">Assign Roles</button>
+			</viewfooter>
+		}
+	</viewcard>

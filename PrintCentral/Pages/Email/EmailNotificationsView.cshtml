@@ -1,0 +1,192 @@
+﻿@page
+@inject ILocalizationService g
+@inject IOrderEmailService emailService
+@inject IUserManager userManager
+@{
+    string tokenCode = "";
+    IEnumerable<OrderEmailDetail> orders = new List<OrderEmailDetail>();
+    IEmailServiceSettings settings = new EmailServiceSettings();
+    IEmailToken token = new EmailToken();
+    string title = "";
+    string subtitle = "";
+    int rowIndex = 0;
+    int userCompanyID = -1;
+    if (Request.QueryString.HasValue)
+    {
+        tokenCode = this.Request.QueryString.Value.Substring(1);
+        token = emailService.GetTokenFromCode(tokenCode);
+        if (token != null)
+        {
+            if (token.Type != EmailType.OrderPoolUpdated)
+            {
+                orders = emailService.GetTokenOrders(token, true, false);
+            }else
+            {
+                orders = emailService.GetPoolOrders(token, true, false);
+            }
+            settings = emailService.GetEmailServiceSettings(token);
+            AppUser user = await userManager.FindByIdAsync(token.UserId);
+            userCompanyID = user.CompanyID.HasValue ? user.CompanyID.Value : -1;
+            if (user != null && !String.IsNullOrWhiteSpace(user.Language))
+            {
+                Response.Cookies.Append("language", user.Language);
+                CultureInfo.CurrentUICulture = new CultureInfo(user.Language);
+            }
+            switch (token.Type)
+            {
+                case EmailType.OrderReceived:
+                    title = g["Summary of received orders"];
+                    subtitle = g["The following orders have been received by the system, soon they should be ready to be validated."];
+                    break;
+                case EmailType.OrderPendingValidation:
+                    title = g["Summary of orders pending validation"];
+                    subtitle = g["The following orders are waiting to be validated, please remember that orders will not be produced until validated."];
+                    break;
+                case EmailType.OrderValidated:
+                    title = g["Summary of validated orders"];
+                    subtitle = g["The following orders have been validated, production of these orders should start soon. In the table below, you can click on the link to download each order preview."];
+                    break;
+                case EmailType.OrderConflict:
+                    title = g["Summary of conflicting orders"];
+                    subtitle = g["The following orders have been marked as <b>InConflict</b>, this is due to having received the same order múltiple times with different information."];
+                    break;
+                case EmailType.OrderReadyForProduction:
+                    title = g["Summary of orders ready for production"];
+                    subtitle = g["The following orders have been processed and are ready for production."];
+                    break;
+                case EmailType.OrderCompleted:
+                    title = g["Summary of completed orders"];
+					subtitle = g["The following orders have been completed and should be delivered to the designated address soon."];
+                    break;
+                case EmailType.OrderPoolUpdated:
+                    title = g["Summary of orders received"];
+                    subtitle = g["The following orders have been received and are awaiting supplier assignment."];
+                    break;
+            }
+		}
+		else
+		{
+			token = new EmailToken();
+		}
+		Layout = null;
+	}
+}
+	<viewform>
+		<div class="mainContainer">
+			<div class="bluestrip">
+            <img src="/images/LOGO_IDT_BY_INDET_GROUP.png" style="width:180px; height:auto;" />
+				<div class="title">
+					@title
+				</div>
+				<div class="subtitle">
+					@subtitle
+				</div>
+				<div style="margin:auto; padding-top:20px; width:30%; text-align:center;">
+					<a href="/Account/Login" class="button">@g["System Login"]</a>
+				</div>
+			</div>
+			<div class="whitestrip">
+				<a name="selectButton" href="#" action="selectClick">@g["Unselect all"]</a>
+				<div style="max-height:40vh; overflow:auto;">
+					<table>
+						<thead>
+							<tr>
+                            @if(token.Type != EmailType.OrderPoolUpdated)
+                            {
+
+								<td style="width:16px;">&nbsp;</td>
+								<td>@g["Order N°"]</td>
+								<td>@g["Client > Brand > Project"]</td>
+								<td>@g["Article"]</td>
+								<td>@g["Quatity"]</td>
+								<td>@g["Order Date"]</td>
+								<td>@g["Status"]</td>
+								@if (token.Type == EmailType.OrderValidated)
+								{
+									<td>&nbsp;</td>
+                                }
+
+                            }else
+                            {
+                                <td>@g["Order N°"]</td>
+                                <td>@g["Article"]</td>
+                                <td>@g["Order Date"]</td>
+                            }
+                        </tr>
+						</thead>
+						<tbody>
+                        @if(token.Type != EmailType.OrderPoolUpdated)
+                        {
+                            @foreach(var o in orders)
+                            {
+                                <tr>
+                                    <td><input name="row_@rowIndex" type="checkbox" checked value="@o.OrderID" /></td>
+                                    <td>@o.OrderNumber</td>
+                                    <td>@o.CBP</td>
+                                    <td>@o.Article</td>
+                                    <td>@o.Quantity</td>
+                                    <td>@o.OrderDate.ToShortDateString()</td>
+                                    <td>@o.Status</td>
+                                    @if(token.Type == EmailType.OrderValidated)
+                                    {
+                                        <td>
+                                            <a href="/orderemail/preview/@(tokenCode)/@(o.OrderID)" action="downloadPreview" download target="_blank">Preview</a>
+                                        </td>
+                                    }
+                                </tr>
+                                rowIndex++;
+                            }
+                        }else
+                        {
+                            @foreach(var o in orders)
+                            {
+                                <tr>
+                                    <td><input name="row_@rowIndex" type="checkbox" checked value="@o.OrderID" /></td>
+                                    <td>@o.OrderNumber</td>
+                                    <td>@o.Article</td>
+                                    <td>@o.OrderDate.ToShortDateString()</td>
+                                </tr>
+                                rowIndex++;
+                            }
+                        }
+                    </tbody>
+					</table>
+				</div>
+				<div>
+					<div style="text-align:right; padding-top:20px; padding-bottom:20px;">
+						<div name="settingsButton" class="btn btn-outline-primary" action="settingsClick">Edit email notification settings</div>
+					</div>
+					<div name="settings" style="display:none; margin:auto; width:50%; min-width:500px; padding:10px; border:solid 1px #D0D0D0; border-radius:4px;">
+						<input model name="UserId" type="hidden" value="@token.UserId" />
+						<input model name="TokenCode" type="hidden" value="@tokenCode" />
+						<input model name="NotifyOrderReceived" type="checkbox" @(settings.NotifyOrderReceived ? "checked" : "") label="@g["Notify when orders are received?"]" data-type="bool" />
+						<input model name="NotifyOrderPendingValidation" type="checkbox" @(settings.NotifyOrderPendingValidation ? "checked" : "") label="@g["Notify about orders pending validation?"]" data-type="bool" />
+						<input model name="NotifyOrderValidated" type="checkbox" @(settings.NotifyOrderValidated ? "checked" : "") label="@g["Notify when orders get validated?"]" data-type="bool" />
+						<input model name="NotifyOrderConflict" type="checkbox" @(settings.NotifyOrderConflict ? "checked" : "") label="@g["Notify when orders are marked as In Conflict?"]" data-type="bool" />
+						<input model name="NotifyOrderReadyForProduction" type="checkbox" @(settings.NotifyOrderReadyForProduction ? "checked" : "") label="@g["Notify about orders ready for production?"]" data-type="bool" />
+						<input model name="NotifyOrderCompleted" type="checkbox" @(settings.NotifyOrderCompleted ? "checked" : "") label="@g["Notify about completed orders?"]" data-type="bool" />
+                        <input model name="NotifyOrderPoolUpdate" type="checkbox" @(settings.NotifyOrderPoolUpdate ? "checked" : "") label="@g["Notify when pool received orders?"]" data-type="bool" />
+						<input model name="NotificationPeriodInDays" type="text" style="width:40px;" value="@settings.NotificationPeriodInDays" label="@g["Period (days min 0, max:30 )"]:" data-type="int" validation="required;range(0,7);maxlen(1)" />
+
+						<input model name="NotifyOrderProcesingErrors" type="hidden" value="@(userCompanyID == 1 && settings.NotifyOrderCompleted ? "1" : "0")" data-type="bool" />
+						<div style="text-align:right; padding-top:20px; padding-bottom:10px;">
+							<div class="btn btn-outline-primary" action="saveSettings">@g["Save"]</div>
+						</div>
+					</div>
+				</div>
+				<div class="comment">
+					<div style="margin-top:10px;">
+						<div name="markButton" class="btn btn-primary" action="markClick">@g["Mark as seen"]</div>
+					</div>
+					<div style="width:350px; padding-top:20px; margin:auto;">
+						@g["NOTE: The selected notifications will be marked as seen, you will not be notified again about these records."]
+					</div>
+				</div>
+			</div>
+			<div class="footer">
+				<div class="comment">
+					<a href="https://www.smartdots.es/">www.smartdots.es</a>
+				</div>
+			</div>
+		</div>
+	</viewform>

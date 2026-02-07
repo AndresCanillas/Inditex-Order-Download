@@ -1,0 +1,661 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+
+//# sourceURL=https://Pages/Validation/Tempe/Accessories/Components/ItemAssignmentGridView.js
+/// <script>
+        /**
+         * Seletion = {
+         * Details:[],
+         * OrderGroupID:int,
+         * Orders:[],
+         * ProjectID: int
+         * }
+         * }
+         * @@param selection
+         */
+        var ItemAssignmentGridView = function () {
+
+            this.ArticleList = [];
+            this.SelectedArticles = [];
+            //this.SelectedFeatures = [];
+            this.ArticlesSizes = [];
+            this.Sections = [];
+            this.Selection = {};
+            this.Index = -1;
+            this.RequestToRefreshEvent = new AppEvent();
+
+            FormView.Extend(this, "@g["Assign Items"]", `@Url.Content("~/Validation/Tempe/Accessories/Components/ItemAssignmentGridView")`);
+
+            this.OnLoaded.Subscribe(() => { console.log('Gridview Loaded') })
+        }
+
+        ItemAssignmentGridView.prototype = {
+
+            constructor: ItemAssignmentGridView,
+
+            OnLoad: function () {
+                var self = this;
+            },
+
+            LoadDataComponent: function (selection) {
+
+                var self = this;
+                var lstSelection = [];
+                lstSelection.push(selection);
+
+                AppContext.Wizard.GetGroupItemsAssigned({
+                    selection: [selection], productfields: ["USERIMAGE","Units","Description"]
+                }).done((result) => {
+                    if (result.Data.length > 0) {
+
+                        result.Data.forEach((sel, idx, arr) => {
+
+                            let uniqueObjArray = [...new Map(sel.Details.map((item) => [item["ArticleCode"], item])).values()];
+
+                            self.ArticlesSizes = sel.Details.filter((item) => item.Article.includes("REMOVABLE"));
+                            var result = uniqueObjArray.filter(f => f.ArticleCode != '@Article.EMPTY_ARTICLE_CODE');
+
+                            if (result) {
+
+                                result.forEach((art, idx, arr) => {
+
+                                    var found = self.Labels.find(f => f.ID == art.ArticleID);
+
+                                    var item = {
+                                        ArticleID: found.ID,
+                                        ArticleName: found.Description,
+                                        ArticleCode: found.ArticleCode,
+                                        ArticleType: found.LabelType,
+                                        RFID: found.EncodeRFID,
+                                        LabelID: found.LabelID
+                                    }
+
+                                    self.elements.Articles.Rows.Add(item);
+
+                                    self.SelectedArticles.push(item);
+
+                                    //self.CreateImagesCards();
+                                });
+
+                                let item = result.find(x => x.IsItem == false);
+                                self.ArticlesSizes = self.ArticlesSizes.map((item) => item["ProductData"]);
+                                self.LoadSizeUnits(self.ArticlesSizes);
+
+                                if (item?.ProductData !== undefined) {
+                                    self.SetProductFields(item?.ProductData);
+                                }
+
+                                let image = self.elements.IMAGENNAME.val();
+
+                                if (image.length > 0) {
+                                    this.elements.Images.LoadItems({ ProjectID: this.ProjectID, ShowFilters: false, AddOption: true, OpenOption: true, DeleteOption: false, NewOptionOpen: true, MustOverloapItem: true, FileName: image }, true, image);
+                                } else {
+                                    this.elements.Images.LoadItems({ ProjectID: this.ProjectID, ShowFilters: false, AddOption: true, OpenOption: true, DeleteOption: false, NewOptionOpen: true, MustOverloapItem: true, FileName: "NoImage.jpg" }, true);
+                                }
+                                this.elements.Images.ItemSelected.Subscribe(this, this.OpenItem);
+                                this.elements.Images.UploadSuccessEvent.Subscribe(this, this.UploadSuccessEvent);
+                                window.scrollTo(0, 0);
+                                //this.ChangeAddArticleEvent();
+                            }
+                        });
+
+                        //self.SetOrderNumber(result?.Data[0]?.OrderNumber);
+                    }
+                });
+
+            },
+
+            ChangeAddArticleEvent: function () {
+                let self = this;
+
+                self.elements.ArticleFinder.on('changed.bs.select', function (e, clickedIndex, isSelected, previousValue) {
+                    var selectedOption = $(this).find('option:selected');
+                    var optionText = selectedOption.text();
+                    if (optionText && optionText.includes("REMOVABLE")) {
+                        console.log("La opción seleccionada contiene 'REMOVIBLE'.");
+                        self.LoadSizeUnits(self.ArticlesSizes);
+                    }
+                });
+            },
+
+            UploadSuccessEvent: function (e) {
+                let self = this;
+                self.elements.IMAGENNAME.val(e.Data.FileName);
+
+                this.elements.Images.LoadItems({ ProjectID: this.ProjectID, ShowFilters: false, AddOption: false, OpenOption: true, DeleteOption: false, NewOptionOpen: true, MustOverloapItem: true, FileName: e.Data.FileName }, true, e.Data.FileName);
+                // this.elements.Images.ItemSelected.Subscribe(this, this.OpenItem);
+                // this.elements.Images.UploadSuccessEvent.Subscribe(this, this.UploadSuccessEvent);
+
+            },
+
+            ResetImage: function (e) {
+                let self = this;
+                self.elements.IMAGENNAME.val("");
+                this.elements.Images.LoadItems({ ProjectID: this.ProjectID, ShowFilters: false, AddOption: false, OpenOption: true, DeleteOption: false, NewOptionOpen: true, MustOverloapItem: true }, true, "");
+            },
+
+            OpenItem: function (e) {
+                let self = this
+                self.elements.IMAGENNAME.val(e.item.FileName);
+                this.elements.Images.LoadItems({ ProjectID: this.ProjectID, ShowFilters: false, AddOption: false, OpenOption: true, DeleteOption: false, NewOptionOpen: true, MustOverloapItem: true, FileName: e.item.FileName }, true, e.item.FileName);
+            },
+            LoadSizeUnits: function (articles) {
+
+                var self = this;
+                if (articles.length > 0) {
+                    let allSizes = [];
+                    articles.sort();
+                    articles.forEach((size, idx, arr) => {
+                        self._AddRows(size, idx);
+                    });
+                } else {
+                    self.elements.UnitsAndImageContainer.hide();
+                }
+            },
+            _AddRows: function (article, idx) {
+                var self = this;
+                var $tbody = self.elements.UnitsContainer.find('tbody');
+                let units = self.GetUnits(article?.Units);
+
+                let tr = `      <tr>
+                                        <td>${article.Size}</td>
+                                        <td>${article.Color}</td>
+                                        <td>
+                                                    <input model name="CustomDetails[${idx}].Barcode" value="${article.Barcode}" type="hidden" />
+                                            <input model name="CustomDetails[${idx}].Name" value="Units" type="hidden" />
+                                                    <input model name="CustomDetails[${idx}].Value" value="${units}" type="number" validation="required" />
+                                       </td>
+                                </tr>`;
+
+                $tbody.append(tr);
+            },
+            GetUnits: function (units){
+
+                if(units == null)
+                    return 1;
+                else
+                    return units;
+            },
+            SetOrderNumber: function (orderNumber) {
+                let self = this;
+                self.elements.OrderNumber.val(orderNumber);
+            },
+
+            SetProductFields: function (productData) {
+
+                let self = this;
+                self.elements.Description.val(productData?.Description);
+                self.elements.IMAGENNAME.val(productData?.USERIMAGE);
+            },
+
+            SetFilename: function (filename){
+                var filenameDiv = document.querySelector('small[name="filenameXML"]');
+                filenameDiv.textContent = filename;
+            },
+
+            SetFeatures: function (productData) {
+
+                let self = this;
+
+                for (let prop in productData) {
+                    if (productData.hasOwnProperty(prop) && prop.includes("FEATURES_") && productData[prop] !== "") {
+                        console.log(prop + ": " + productData[prop]);
+
+                        var found = self.Features.find(f => f.ID == productData[prop]);
+
+                        var item = {
+                            ID: found.ID,
+                            SeasonID: found.ID_SEASON,
+                            BrandID: found.ID_BRAND,
+                            LabelID: found.ID_LABEL,
+                            DescLabel: found.DESC_LABEL,
+                            DescName: found.DESC_NAME,
+                            Brand: found.BRAND,
+                            SectionID: found.ID_SECTION,
+                            ElementType: found.TIPO_ELEMENTO,
+                            CodiMD: found.CODI_MD,
+                            CodiMDMarchamo: found.CODI_MD_MARCHAMO,
+                            EsAsos: found.ES_ASOS
+                        }
+
+                        self.elements.Features.Rows.Add(item);
+
+                        self.SelectedFeatures.push(item);
+                    }
+                }
+
+
+
+            },
+
+            Initialize: function (selection, labels, items, sections,index) {
+                // fill ArticleFinder compo
+                // load previously selected articles
+
+                let self = this;
+
+                self.Selection = selection;
+                self.Labels = labels;
+                self.Items = items;
+                self.Sections = sections;
+                self.LoadDataComponent(selection);
+                //self.FillCombo();
+                self.Index = index;
+                //self.PrepareFinder();
+                self.OrderGroupID = selection.OrderGroupID;
+                self.ProjectID = selection.ProjectID;
+            },
+
+            PrepareFinder: function () {
+                let self = this;
+                self.elements.ArticleFinder.selectpicker({
+                    liveSearch: true,
+                    liveSearchStyle: 'contains',
+                    liveSearchNormalize: true,
+                    style: 'btn-sm btn-light'
+                });
+
+                /*self.elements.FeatureFinder.selectpicker({
+                    liveSearch: true,
+                    liveSearchStyle: 'contains',
+                    liveSearchNormalize: true,
+                    style: 'btn-sm btn-light'
+                });*/
+            },
+
+
+
+            FillCombo: function () {
+                let self = this;
+
+                let allOptions = [];
+
+                let labelsGroup = $('<optgroup>', { label: '@g["Labels"]' })
+                let itemsGroup = $('<optgroup>', { label: '@g["Articles"]' })
+                let labelsTokens = 'data-tokens="label labels etiqueta etiquetas"';
+                let itemsTokens = 'data-tokens="item items"'
+
+                self.Labels.filter(f => f.EnableAddItems).forEach((art, idx, allLabels) => {
+                    let isRfid = '';
+
+                    if (art.EncodeRFID)
+                        isRfid = `<span class='badge badge-warning'>RFID</span>`;
+
+                    let htmlOption = `<i class='fa fa-fw fa-tag'></i> ${art.Name} ${isRfid}`;
+
+                    let opt = `<option value="${art.ID}" data-content="${htmlOption}" ${labelsTokens} >${art.Name}</option>`;
+                    allOptions.push(opt)
+                });
+
+                labelsGroup.html(allOptions.join(''));
+
+                allOptions = [];
+
+                self.Items.forEach((art, idx, allItems) => {
+                    let htmlOption = `<i class='fa fa-fw fa-shopping-cart'></i> ${art.Name}`;
+
+                    let opt = `<option ${itemsTokens} data-content="${htmlOption}" value="${art.ID}">${art.Name}</option>`;
+                    allOptions.push(opt)
+                });
+
+                itemsGroup.html(allOptions.join(''));
+
+                self.elements.ArticleFinder.html('');
+                self.elements.ArticleFinder.append(labelsGroup);
+                self.elements.ArticleFinder.append(itemsGroup);
+                self.elements.ArticleFinder.selectpicker('refresh')
+            },
+
+            FillComboFeatures: function () {
+                let self = this;
+
+                let allOptions = [];
+
+                self.Features.forEach((feat, idx, allFeatures) => {
+                    let opt = `<option value="${feat.ID}">${feat.DESC_LABEL} - ${feat.ID_SECTION}</option>`;
+                    allOptions.push(opt)
+                });
+
+                self.elements.FeatureFinder.html('');
+                self.elements.FeatureFinder.append(allOptions);
+                self.elements.FeatureFinder.selectpicker('refresh');
+            },
+
+            AddArticle: async function (e) {
+                var self = this;
+                var result = this.GetArticle();
+
+                if (result == null)
+                    return AppContext.ShowError("@g["You need to select an article first."]");
+                if (this.elements.Articles.Rows.DataSource.first(x => x.ArticleCode == result.ArticleCode))
+                    return AppContext.ShowInfo("@g["That article is already part of the order."]")
+
+                //add item to grid
+                self.elements.Articles.Rows.Add(result);
+
+                //clear control finder
+                var article = self.elements.ArticleFinder;
+                article.selectpicker('val', "");
+
+                self.SelectedArticles.push(result);
+
+                self.RemoveImageCards();
+
+                self.CreateImagesCards();
+
+                if (result.ArticleCode.includes("REMOVABLE") == true && self.elements.UnitsAndImageContainer.is(":hidden") == true)
+                    self.elements.UnitsAndImageContainer.show();
+
+                self.RequestToRefresh(self.Index);
+
+                
+
+            },
+
+            AddFeature: async function (e) {
+                var self = this;
+                var result = this.GetFeature();
+
+                if (result == null)
+                    return AppContext.ShowError("@g["You need to select an feature first."]");
+
+                if (this.elements.Features.Rows.DataSource.first(x => x.ID == result.ID))
+                    return AppContext.ShowInfo("@g["That feature is already part of the order."]")
+
+                //add item to grid
+                self.elements.Features.Rows.Add(result);
+
+                //clear control finder
+                var feature = self.elements.FeatureFinder;
+                feature.selectpicker('val', "");
+
+                self.SelectedFeatures.push(result);
+            },
+
+            /*HasItems: function () {
+                var self = this;
+                return self.elements.Articles.Rows.Count > 0;
+            },*/
+            IsValid: function() {
+                var self = this;
+                return self.model.ValidState();
+            },
+
+            GetArticle: function () {
+
+                var self = this;
+                var item;
+                var article = self.elements.ArticleFinder;
+                var found = self.Labels.find(art => art.ID == article.val());
+
+                if (found != undefined) {
+                    item = {
+                        ArticleID: found.ID,
+                        ArticleName: found.Description,
+                        ArticleCode: found.ArticleCode,
+                        ArticleType: found.LabelType,
+                        RFID: found.EncodeRFID,
+                        LabelID: found.LabelID
+                    }
+                } else {
+                    item = null;
+                }
+
+                return item;
+            },
+
+            GetFeature: function () {
+
+                var self = this;
+                var item;
+                var featureSeleted = self.elements.FeatureFinder;
+                var found = self.Features.find(feature => feature.ID == featureSeleted.val());
+
+                if (found != undefined) {
+                    item = {
+                        ID: found.ID,
+                        SeasonID: found.ID_SEASON,
+                        BrandID: found.ID_BRAND,
+                        LabelID: found.ID_LABEL,
+                        DescLabel: found.DESC_LABEL,
+                        DescName: found.DESC_NAME,
+                        Brand: found.BRAND,
+                        SectionID: found.ID_SECTION,
+                        ElementType: found.TIPO_ELEMENTO,
+                        CodiMD: found.CODI_MD,
+                        CodiMDMarchamo: found.CODI_MD_MARCHAMO,
+                        EsAsos: found.ES_ASOS
+                    }
+                } else {
+                    item = null;
+                }
+
+                return item;
+            },
+
+            RemoveArticle: function (e) {
+                e.preventDefault();
+                var self = this;
+                var idx = this.elements.Articles.Rows.SelectedIndex;
+                if (idx >= 0 && self.elements.Articles.Rows.Count > 0) {
+
+                    var ArticleId = self.elements.Articles.Rows.Get(idx).ArticleID;
+                    var articleCode = self.elements.Articles.Rows.Get(idx).ArticleCode;
+
+                    self.elements.Articles.Rows.Remove(idx);
+
+                    const index = self.SelectedArticles.findIndex(object => {
+                        return object.ArticleID === ArticleId;
+                    });
+
+                    self.RemoveArticleAndPreview(ArticleId, index);
+                    self.ArticlesSizes = self.ArticlesSizes.filter(item => item.ArticleID !== ArticleId);
+                    self.RemoveSizeUnitsGrid(articleCode);
+                }
+
+                self.RequestToRefresh(self.Index);
+            },
+
+            RemoveSizeUnitsGrid: function (articleCode) {
+                if (articleCode.includes("REMOVABLE")) {
+                    let self = this;
+                    $(self.elements.UnitsContainer).find('table tbody').empty();
+                    self.elements.UnitsContainer.hide();
+                }
+            },
+
+            RemoveArticleAndPreview(articleid, index) {
+                var self = this;
+                self.SelectedArticles.splice(index, 1);
+
+                //delete image
+            },
+
+            CreateImagesCards: function () {
+
+                var self = this;
+                var k = 0;
+
+                for (var i = 0; i < self.SelectedArticles.length; i++) {
+
+                    self._AddImage(self.SelectedArticles[i], i);
+                }
+
+                $('.carousel-item', self.elements.CarrouselContent).first().addClass('active');
+                $('> li', self.elements.CarrouselIndicator).first().addClass('active');
+                $('#articlesSelected').carousel();
+
+            },
+
+            RemoveImageCards: function () {
+                var self = this;
+                self.elements.CarrouselContent.html("");
+            },
+
+            _AddImage: function (detail, position) {
+
+                var self = this;
+                var url = "";
+
+                var srcAttr = 'scr';
+
+                var classActive = '';
+
+                var description = '<p>&nbsp;</p>';
+
+
+                //bylabel
+                // http://localhost/labels/getpreview/3715
+
+                // byarticle
+                // http://localhost/articles/getfixedpreview/15311
+
+                if (detail.LabelID == null) {
+                    url = `/articles/getfixedpreview/${detail.LabelID}`
+                } else {
+                    url = `/articles/getpreview/${detail.ArticleID}`
+                }
+
+                if (position == 0) {
+                    srcAttr = 'src';
+                    classActive = 'active';
+                }
+
+                $(`<div class="carousel-item text-center" data-ArticleCode="${detail.ArticleCode}">
+                                            <a data-gallery="photoviewer" href="${url}" data-title="${detail.ArticleCode}" data-position="${position}">
+                                                <img src="${url}" style="height: 350px;">
+                                            </a>
+                                            <div class="carousel-caption d-none d-md-block" style="color: black;text-shadow: 4px 4px 4px #ADADAD; position: static">
+                                                <h5>${detail.ArticleCode}</h5>
+                                                ${detail.ArticleName}
+                                                <br>
+                                            </div>
+                                       </div>`).appendTo(self.elements.CarrouselContent)
+                $('<li data-target="#articlesSelected" data-slide-to="' + position + '"></li>').appendTo(self.elements.CarrouselIndicator)
+
+            },
+            GetSelectedArticles: function () {
+
+                let self = this;
+
+                return $.extend([], self.SelectedArticles)
+            },
+            GetSelectedFeatures: function () {
+
+                let self = this;
+
+                return $.extend([], self.SelectedFeatures)
+            },
+            GetProductFields: function () {
+
+                let self = this;
+
+                let productFields = [];
+                var imageName = $("div[data-entityid]:last").data("entityid");
+                productFields.push({ Name: 'USERIMAGE', Value: imageName });
+                productFields.push({ Name: 'Description', Value: self.model.Description });
+
+                return productFields;
+
+            },
+
+            GetCustomDetails: function () {
+
+                let self = this;
+
+                let customFields = [];
+
+                let inputs = $('input[name*="CustomDetails"]');
+                var valuesUnits = "";
+                var barcode = "";
+                var name = "";
+                var value = "";
+
+                inputs.each((idx, input) => {
+                    if ($(input).attr('name').includes("Barcode"))
+                        barcode = parseInt($(input).val());
+                    if ($(input).attr('name').includes("Name"))
+                        name = $(input).val();
+                    if ($(input).attr('name').includes("Value"))
+                        value = $(input).val();
+                    if ((idx + 1) % 3 == 0)
+                        customFields.push({ Barcode: barcode, Name: name, Value: value });
+                });
+
+                return customFields;
+            },
+            onChanged: function () {
+                self = this;
+                let _value = self.elements.OrderNumber.val();
+
+                var postData = {
+                    OrderGroupID: self.OrderGroupID,
+                    OrderNumber: _value,
+                    ProjectID: self.ProjectID
+                };
+
+                $.ajax({
+                    url: '/orders/actions/changeordernumber',
+                    method: 'POST',
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json",
+                    data: postData ? JSON.stringify(postData) : null,
+                    success: function (data) {
+                        AppContext.ShowSuccess("Number Order Changed");
+                    },
+                    error: function (error) {
+                        console.error('Error:', error);
+                        AppContext.ShowError("Error when changing the order number");
+                    }
+                });
+
+            },
+
+            RequestToRefresh: function () {
+
+                let self = this;
+
+                self.RequestToRefreshEvent.Raise({
+                    Index: self.Index
+                });
+
+            },
+
+            StartViewer: function () {
+
+                $('[data-gallery=photoviewer]').click(function (e) {
+
+                    e.preventDefault();
+
+                    var items = [],
+                        // get index of element clicked
+                        options = {
+                            index: $(this).data("position"),
+                            resizable: false,
+                            initMaximized: true,
+                            title: true,
+                            headerToolbar: ['close'],
+                            footerToolbar: ['zoomIn', 'zoomOut', 'actualSize', 'rotateRight', 'prev', 'next', 'close']
+                        };
+
+                    // looping to create images array
+                    $('[data-gallery=photoviewer]').each(function () {
+                        let src = $(this).attr('href');
+                        items.push({
+                            src: src,
+                            title: $(this).attr('data-title')
+                        });
+                    });
+
+                    new PhotoViewer(items, options);
+
+                });
+            }
+        };
+
+                        /// </script>
+

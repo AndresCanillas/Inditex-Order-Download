@@ -1,0 +1,64 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+	<title>Print.SmartDots</title>
+	<meta name="viewport" content="width=device-width">
+	<link rel="stylesheet" href="/css/bootstrap.css">
+	<link rel="stylesheet" href="/css/font-awesome.min.css">
+	<link rel="stylesheet" href="/css/themify-icons.css">
+	<link rel="stylesheet" href="/css/AppContext.css">
+	<link rel="stylesheet" href="/css/AppContext.GridView.css">
+	<link rel="stylesheet" href="/styles/kendo.common.min.css">
+	<link rel="stylesheet" href="/styles/kendo.default.min.css">
+	<link rel="stylesheet" href="/styles/kendo.default.mobile.min.css">
+	<link rel="stylesheet" href="/css/views.css">
+	<script src="/js/jquery-3.0.0.min.js"></script>
+	<script src="/js/jquery.validate.min.js"></script>
+	<script src="/js/jquery.validate.unobtrusive.min.js"></script>
+	<script src="/js/bootstrap.min.js"></script>
+	<script src="/js/kendo.all.min.js"></script>
+	<script src="/js/lodash.min.js"></script>
+	<script src="/js/AppContext.js"></script>
+	<script src="/js/AppContext.Events.js"></script>
+	<script src="/js/AppContext.Extensions.js"></script>
+	<script src="/js/AppContext.UI.js"></script>
+	<script src="/js/AppContext.ConfigSystem.js"></script>
+	<script src="/js/AppContext.AppDomain.js"></script>
+	<script src="/common/ConfirmDialog.js"></script>
+	<script src="/HomeView.js"></script>
+</head>
+<body>
+	<div name="mainContainer" class="main-panel-content">
+		<div class="card">
+			<div class="card-body container-fluid">
+				<div class="row">
+					<div class="col-sm-12 col-md-12 col-lg-6 col-xl-6">
+						<form class="cat-form">
+							<div class="form-group">
+								<label class="col-sm col-form-label">Address:*</label>
+								<div class="col-sm cat-ref">
+									<div class="fa fa-external-link cat-refbtn"></div>
+									<div class="fa fa-search cat-refbtn"></div>
+									<div class="cat-reftext">Caliope 302 Col. Privalia Concordia 1er Sec. Apodaca Nuevo León 66609 México</div>
+								</div>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div>
+		<div style="width:165px; margin:auto">
+			<div class="btn-group" role="group">
+				<button type="button" class="btn btn-default" action="PageClick" data-index="1">1</button>
+				<button type="button" class="btn btn-default" action="PageClick" data-index="2">2</button>
+				<button type="button" class="btn btn-default" action="PageClick" data-index="9">9</button>
+				<button type="button" class="btn btn-default" action="PageClick" data-index="10">10</button>
+			</div>
+		</div>
+		document.querySelector(".btn-group").clientWidth
+	</div>
+</body>
+</html>

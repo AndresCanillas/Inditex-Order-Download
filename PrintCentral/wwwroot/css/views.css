@@ -1,0 +1,966 @@
+﻿/****************** Kendo grid styles ***********************/
+.k-grid {
+    border-top: none;
+    color: #000;
+    font-size: 12px;
+    max-height: 65vh;
+    width: auto;
+}
+
+div[name='OrdersTable'].k-grid .k-grid-header {
+    padding-right: 18px !important;
+}
+
+.k-grid .k-grid-header .k-header {
+    font-weight: bold;
+}
+
+.k-grid .k-grid-header th.k-header {
+    background-color: #e9ecef;
+}
+
+.k-grid .k-checkbox-label {
+    line-height: 10px;
+    vertical-align: middle;
+}
+
+.k-grid-header th.k-header > .k-link {
+    color: #495057;
+}
+
+div[name='OrdersTable'].k-grid .k-grid-header th.k-header:first-child {
+    width: 30px;
+}
+
+.grid-body table tbody tr {
+    cursor: default;
+}
+
+div[name='OrdersTable'].k-grid tbody td {
+    padding: .3em .6em;
+    white-space: nowrap;
+}
+
+    div[name='OrdersTable'].k-grid tbody td:first-child {
+        width: 30px;
+    }
+
+.k-grid tbody tr:hover {
+    background-color: #20A8D8;
+    color: #ffffff;
+}
+
+div[name='OrdersTable'].k-grid tbody .k-state-selected {
+    background-color: #007bb5;
+    color: #ffffff;
+}
+
+    div[name='OrdersTable'].k-grid tbody .k-state-selected:hover {
+        background-color: #20A8D8;
+        color: #ffffff;
+    }
+
+div[name='OrdersTable'].k-grid .k-checkbox:checked + .k-checkbox-label:before {
+    color: #495057;
+}
+
+div[name='OrdersTable'].k-grid .k-grid-content {
+    max-height: 60vh;
+    overflow: scroll !important;
+}
+
+.k-grid-header-wrap {
+    border-style: none;
+}
+
+/***************** End Kendo grid styles ***********************/
+
+/***************** Pending Jobs view ***********************/
+.pending-job-table-row viewcolumn:last-child .col-sm {
+    padding-right: 0px;
+}
+
+/***************** End Pending Jobs view ***********************/
+
+/***************** Sort Printer Queue view ***********************/
+div.sort-print-queue-view-top-items .form-group div.col-form-label {
+    display: none;
+}
+
+div.sort-print-queue-view-top-items {
+    display: -webkit-box;
+    height: 40px;
+}
+
+    div.sort-print-queue-view-top-items button {
+        margin-left: 30px;
+    }
+
+    div.sort-print-queue-view-top-items button {
+        padding: 0.265rem 0.75rem;
+    }
+
+    div.sort-print-queue-view-top-items .sort-reset {
+        font-size: 12px;
+    }
+
+.k-popup #companiesList_listbox {
+    white-space: nowrap;
+}
+
+.k-list-container {
+    width: auto !important;
+}
+
+.k-popup #companiesList_listbox .k-item {
+    padding-left: 20px;
+}
+
+    .k-popup #companiesList_listbox .k-item:first-child {
+        padding-left: 4px;
+    }
+
+div.sort-print-queue-view-top-items span.k-dropdown-wrap, div.sort-print-queue-view-top-items span.k-state-focused:hover {
+    background-color: #fff;
+}
+
+.k-popup #companiesList_listbox .k-item {
+    background-color: #fff;
+}
+
+    .k-popup #companiesList_listbox .k-item:hover {
+        background-color: #007bff;
+        color: #fff;
+    }
+
+.k-popup #companiesList_listbox .k-state-selected {
+    background-color: #fff;
+    color: #2e2e2e;
+}
+
+.k-popup #companiesList_listbox .k-state-focused.k-state-selected {
+    box-shadow: none !important;
+}
+
+div[name='sortPrinterQueueTable'].k-grid {
+    border-top: 1px solid #d5d5d5;
+}
+
+div[name='sortPrinterQueueTable'] .k-grid-content {
+    max-height: 35vh;
+    overflow: scroll !important;
+    padding-right: 0px !important;
+}
+
+div[name='sortPrinterQueueTable'] .k-scrollbar {
+    visibility: hidden;
+}
+
+div[name='sortPrinterQueueTable'] .k-grid-header table colgroup col, div[name='sortPrinterQueueTable'] .k-grid-content table colgroup col {
+    width: 100px;
+}
+
+div[name='sortPrinterQueueTable'] .k-grid-content td {
+    white-space: nowrap;
+}
+
+div[name='sortPrinterQueueTable'] + #HeaderFields, div[name='sortPrinterQueueTable'] + #HeaderFields + #StopFields {
+    margin: 15px 0;
+}
+
+    div[name='sortPrinterQueueTable'] + #HeaderFields span, div[name='sortPrinterQueueTable'] + #HeaderFields + #StopFields span {
+        color: #495057;
+        font-weight: bold;
+    }
+
+    div[name='sortPrinterQueueTable'] + #HeaderFields #elements, div[name='sortPrinterQueueTable'] + #HeaderFields + #StopFields #elements {
+        border-top: 1px solid #d5d5d5;
+        max-width: 1050px;
+        padding-top: 15px;
+    }
+
+        div[name='sortPrinterQueueTable'] + #HeaderFields #elements input, div[name='sortPrinterQueueTable'] + #HeaderFields + #StopFields #elements input {
+            height: 15px;
+            text-align: left;
+            vertical-align: sub;
+            width: 15px;
+        }
+
+        div[name='sortPrinterQueueTable'] + #HeaderFields #elements label, div[name='sortPrinterQueueTable'] + #HeaderFields + #StopFields #elements label {
+            text-align: left;
+            width: 135px;
+        }
+
+/***************** End Sort Printer Queue view ************************/
+
+/***************** All Views ************************/
+
+.form-subtitle {
+    font-size: 17px;
+}
+
+.loading {
+    min-width: 100px;
+    min-height: 100px;
+    background: transparent url("/css/Default/loading_2x.gif") no-repeat scroll center center;
+}
+
+/***************** End All View ************************/
+
+/***************** Catalog view ************************/
+
+.edit-catalog-field, .delete-catalog-field, .action-catalog-field {
+    min-width: 30px !important;
+    width: 30px;
+}
+
+.edit-catalog-field {
+    cursor: default;
+}
+
+.enabled-catalog-field {
+    background: #bcb4b0;
+    border-color: #b6b6b6;
+}
+
+.disabled-catalog-field {
+    background: #e9e9e9;
+}
+
+#catalogFieldsGrid .k-button:active {
+    background-color: #bcb4b0 !important;
+    border-color: #b6b6b6 !important;
+}
+
+.k-button:active {
+    background-color: #bcb4b0 !important;
+    border-color: #b6b6b6 !important;
+}
+
+div[name='catalogFieldsGrid'] .k-grid-content {
+    max-height: 40vh;
+}
+
+div[name='catalogFieldsGrid'].k-grid {
+    border-top: 1px solid #d5d5d5;
+    max-width: 488px;
+}
+
+    div[name='catalogFieldsGrid'].k-grid th.k-header:nth-child(-n+4), div[name='catalogFieldsGrid'].k-grid tbody td:nth-child(-n+4) {
+        border-left-width: 0;
+    }
+
+div[name='catalogFieldsGrid'] .k-grid-header table colgroup col:nth-child(-n+4), div[name='catalogFieldsGrid'] .k-grid-content table colgroup col:nth-child(-n+4) {
+    width: 40px !important;
+}
+
+div[name='catalogFieldsGrid'].k-grid tbody td {
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+/***************** End Catalog view ************************/
+
+
+/***************** Catalog Assign Roles view ************************/
+
+.catalog-role-display {
+    display: inline-block;
+    width: 30%;
+}
+
+/***************** End Assign Roles view ************************/
+
+/***************** Catalog Grid view ************************/
+
+.clear-records {
+    padding: 0px 10px 0px 10px;
+    font-size: 12px;
+    margin: 0px;
+    height: 20px;
+}
+
+/***************** End Catalog Grid view************************/
+
+/***************** Select Brand Project view ************************/
+
+.brand-project-link {
+    position: relative;
+    margin: 0 auto;
+    clear: left;
+    height: auto;
+    z-index: 0;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.75);
+    font-weight: 600;
+}
+
+    .brand-project-link:hover {
+        color: rgba(255, 255, 255, 1)
+    }
+
+.brand-nav-preview {
+    max-height: 40px;
+    max-width: 100px;
+    padding: 1px;
+    display: inline;
+}
+
+/***************** End Select Brand Project view************************/
+
+
+/***************** View Utils ************************/
+
+.clickable {
+    cursor: pointer;
+}
+
+/***************** End  View Utils ************************/
+
+/***************** Conflict Resolver view ************************/
+
+.conflict-resolve-grid {
+    display: flex;
+    flex-direction: column;
+}
+
+    .conflict-resolve-grid .card-footer {
+        min-height: 70px;
+    }
+
+/***************** End Conflict Resolver view ************************/
+
+/******************* OrderGroupIndexView **************************/
+
+.row-odd {
+}
+
+
+.row-even {
+}
+
+.order-groups-grid .gvrow {
+    height: 26px;
+}
+
+/*.order-groups-grid .gvrow > .gvcell:first-child {
+    border-bottom: none;
+}*/
+
+
+.order-groups-grid .order-group {
+    font-size: 14px;
+    /*border-top: 1px solid gray;*/
+    background-color: lightgray;
+    font-weight: 500;
+    color: #4c4c4c;
+    height: 30px;
+}
+
+
+.order-group.gvrowselected {
+    background-color: rgba(20,133,201,0.8);
+    color: white;
+}
+
+
+.order-group .gvcell {
+    border-right: 0;
+    padding-right: 1px;
+    border-bottom: none;
+}
+
+    .order-group .gvcell:last-child {
+        border-right: 1px solid #D8D8D8;
+        padding-right: 0px;
+    }
+
+
+.order-group .gvcell {
+    display: none;
+}
+
+
+    .order-group .gvcell:nth-child(1), .order-group .gvcell:nth-child(2), .order-group .gvcell:nth-child(3) {
+        display: inline-block;
+    }
+
+    /* join from child 4 to child 10 */
+    .order-group .gvcell:nth-child(4) {
+        min-width: 935px !important; /* TODO: set media-queries with */
+        display: inline-block;
+        margin-right: 15px;
+    }
+
+    /* join from child 11 to child 12 */
+    .order-group .gvcell:nth-child(9) {
+        min-width: 245px !important; /* TODO: set media-queries with */
+        display: inline-block;
+        margin-right: 15px;
+    }
+    /* join from child 13 to child 14 */
+    .order-group .gvcell:nth-child(10) {
+        min-width: 190px !important; /* TODO: set media-queries with */
+        display: inline-block;
+        margin-right: 15px;
+    }
+    .order-vendor-info {
+        display: inline;
+        /*float: left;*/
+        padding-left: 20px;
+        overflow: hidden;
+    }
+
+.order-groups-grid .derive-warning {
+    background-color: rgba(255,0,0,.1);
+    border: 1px solid rgba(255,0,0,.1);
+    border-radius: 5px;
+    color: rgba(0,0,0,.8);
+    display: block;
+    margin: 0 auto;
+    padding: 10px 15px;
+    width: 50%;
+}
+
+/***************** End OrderGroupIndexView ************************/
+
+/***************** Badge Link *****************/
+.badge-link {
+    color: #007bff;
+    background-color: transparent;
+}
+
+    .badge-link[href]:hover, .badge-link[href]:focus {
+        text-decoration: underline !important;
+        color: #ffffff;
+    }
+
+/***************** End Badge Link *****************/
+
+
+/***************** Breadcrumbs *****************/
+/* https://codepen.io/firatcftc/pen/sHlnK */
+.arrows-ui.breadcrumb {
+    background-color: transparent;
+    margin: 0px;
+    list-style: none;
+    display: inline-block;
+    display: flex;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+    .arrows-ui.breadcrumb .icon {
+        font-size: 14px;
+    }
+
+    .arrows-ui.breadcrumb li {
+        float: left;
+    }
+
+        .arrows-ui.breadcrumb li a {
+            color: #fff;
+            display: block;
+            background: #3498db;
+            text-decoration: none;
+            position: relative;
+            height: 40px;
+            line-height: 40px;
+            padding: 0 10px 0 5px;
+            text-align: center;
+            margin-right: 23px;
+        }
+
+        .arrows-ui.breadcrumb li.fill-width:last-child {
+            flex-grow: 1;
+        }
+
+        .arrows-ui.breadcrumb li:last-child a {
+            margin-right: 5px;
+        }
+
+        /*.breadcrumb li:nth-child(even) a {
+            background-color: #2980b9;
+        }
+
+            .breadcrumb li:nth-child(even) a:before {
+                border-color: #2980b9;
+                border-left-color: transparent;
+            }
+
+            .breadcrumb li:nth-child(even) a:after {
+                border-left-color: #2980b9;
+            }*/
+
+        .arrows-ui.breadcrumb li:first-child a {
+            padding-left: 15px;
+            -moz-border-radius: 4px 0 0 4px;
+            -webkit-border-radius: 4px;
+            border-radius: 4px 0 0 4px;
+        }
+
+            .arrows-ui.breadcrumb li:first-child a:before {
+                border: none;
+            }
+
+        .arrows-ui.breadcrumb li:last-child a {
+            padding-right: 15px;
+            -moz-border-radius: 0 4px 4px 0;
+            -webkit-border-radius: 0;
+            border-radius: 0 4px 4px 0;
+        }
+
+            .arrows-ui.breadcrumb li:last-child a:after {
+                border: none;
+            }
+
+        .arrows-ui.breadcrumb li a:before, .arrows-ui.breadcrumb li a:after {
+            content: "";
+            position: absolute;
+            top: 0;
+            border: 0 solid #3498db;
+            border-width: 20px 11px;
+            width: 0;
+            height: 0;
+        }
+
+        .arrows-ui.breadcrumb li a:before {
+            left: -20px;
+            border-left-color: transparent;
+        }
+
+        .arrows-ui.breadcrumb li a:after {
+            left: 100%;
+            border-color: transparent;
+            border-left-color: #3498db;
+        }
+
+        .arrows-ui.breadcrumb li a:hover {
+            background-color: #1abc9c;
+        }
+
+            .arrows-ui.breadcrumb li a:hover:before {
+                border-color: #1abc9c;
+                border-left-color: transparent;
+            }
+
+            .arrows-ui.breadcrumb li a:hover:after {
+                border-left-color: #1abc9c;
+            }
+
+        .arrows-ui.breadcrumb li a:active {
+            background-color: #16a085;
+        }
+
+            .arrows-ui.breadcrumb li a:active:before {
+                border-color: #16a085;
+                border-left-color: transparent;
+            }
+
+            .arrows-ui.breadcrumb li a:active:after {
+                border-left-color: #16a085;
+            }
+
+
+        /* Colors */
+        /* verde*/
+
+        .arrows-ui.breadcrumb li a.completed {
+            color: #fff;
+            background: #5FB85E;
+        }
+
+        .arrows-ui.breadcrumb li:first-child a.completed {
+            padding-left: 15px;
+            -moz-border-radius: 4px 0 0 4px;
+            -webkit-border-radius: 4px;
+            border-radius: 4px 0 0 4px;
+        }
+
+            .arrows-ui.breadcrumb li:first-child a.completed:before {
+                border: none;
+            }
+
+        .arrows-ui.breadcrumb li:last-child a.completed:after {
+            border: none;
+        }
+
+        .arrows-ui.breadcrumb li a.completed:before, .arrows-ui.breadcrumb li a.completed:after {
+            border: 0 solid #5FB85E;
+            border-width: 20px 11px;
+        }
+
+        .arrows-ui.breadcrumb li a.completed:before {
+            left: -20px;
+            border-left-color: transparent;
+        }
+
+        .arrows-ui.breadcrumb li a.completed:after {
+            left: 100%;
+            border-color: transparent;
+            border-left-color: #5FB85E;
+        }
+
+        .arrows-ui.breadcrumb li a.completed:hover {
+            background-color: #5ba15a;
+        }
+
+            .arrows-ui.breadcrumb li a.completed:hover:before {
+                border-color: #5ba15a;
+                border-left-color: transparent;
+            }
+
+            .arrows-ui.breadcrumb li a.completed:hover:after {
+                border-left-color: #5ba15a;
+            }
+
+        .arrows-ui.breadcrumb li a.completed:active {
+            background-color: #5ba15a;
+        }
+
+            .arrows-ui.breadcrumb li a.completed:active:before {
+                border-color: #5ba15a;
+                border-left-color: transparent;
+            }
+
+            .arrows-ui.breadcrumb li a.completed:active:after {
+                border-left-color: #5ba15a;
+            }
+
+        /* gris */
+
+        .arrows-ui.breadcrumb li a.pending {
+            color: #495057;
+            background: #E4E5E6;
+        }
+
+        .arrows-ui.breadcrumb li:first-child a.pending:before {
+            border: none;
+        }
+
+        .arrows-ui.breadcrumb li:last-child a.pending:after {
+            border: none;
+        }
+
+        .arrows-ui.breadcrumb li a.pending:before, .arrows-ui.breadcrumb li a.pending:after {
+            border: 0 solid #E4E5E6;
+            border-width: 20px 11px;
+        }
+
+        .arrows-ui.breadcrumb li a.pending:before {
+            border-left-color: transparent;
+        }
+
+        .arrows-ui.breadcrumb li a.pending:after {
+            border-color: transparent;
+            border-left-color: #E4E5E6;
+        }
+
+        .arrows-ui.breadcrumb li a.pending:hover {
+            background-color: #E4E5E6;
+        }
+
+            .arrows-ui.breadcrumb li a.pending:hover:before {
+                border-color: #E4E5E6;
+                border-left-color: transparent;
+            }
+
+            .arrows-ui.breadcrumb li a.pending:hover:after {
+                border-left-color: #E4E5E6;
+            }
+
+        .arrows-ui.breadcrumb li a.pending:active {
+            background-color: #E4E5E6;
+        }
+
+            .arrows-ui.breadcrumb li a.pending:active:before {
+                border-color: #E4E5E6;
+                border-left-color: transparent;
+            }
+
+            .arrows-ui.breadcrumb li a.pending:active:after {
+                border-left-color: #E4E5E6;
+            }
+
+
+/***************** End Breadcrumbs *****************/
+
+/************* Fix for Artifacts Grid **************/
+.gvrow:hover a.btn-link, .gvrowselected a.btn-link {
+    color: whitesmoke;
+}
+/*********** End Fix for Artifacts Grid ************/
+
+/* Wizards Quantity for MANGO  */
+.qw-pending-download li i {
+    display: none;
+}
+
+.qw-pending-download li i.fa-check-circle {
+    color: forestgreen;
+}
+
+.qw-pending-download li i.fa-spinner {
+    color: lightslategray;
+}
+
+.qw-pending-download li i.fa-exclamation-circle {
+    color: yellow;
+}
+
+.qw-pending-download li.ready i.fa-check-circle {
+    display: block;
+}
+
+.qw-pending-download li.pending i.fa-spinner {
+    display: block;
+}
+
+.qw-pending-download li.error i.fa-exclamation-circle {
+    display: block;
+}
+
+
+/*@media (min-width: 576px) {*/
+    .form-inline .form-group {
+        margin-top: 5px;
+    }
+/*}*/
+
+/********************* End Wizards Quantity for MANGO **********************/
+
+
+/************* Override Kendo CSS  compatible for bootstra **************/
+.section:last-child {
+    border-bottom: none !important;
+}
+
+/* https://demos.telerik.com/kendo-ui/bootstrap */
+
+.k-dropdown-wrap.k-state-default {
+    border-radius: 0;
+}
+
+/*.k-autocomplete.form-control, .k-combobox.form-control {
+    width: 100%;
+}*/
+
+.k-autocomplete > input, .k-dropdown-wrap > input {
+    height: 29px;
+}
+
+a.collapse-compo i.c-open {
+    display: inline-block;
+}
+a.collapse-compo i.c-close {
+    display: none;
+}
+
+a.collapse-compo.collapsed i.c-close {
+    display: inline-block;
+}
+
+a.collapse-compo.collapsed i.c-open {
+    display: none;
+}
+
+/*********** End Override Kendo CSS  compatible for bootstra *************/
+
+
+/******* Compo Wizard Generic *******/
+
+.k-multiselect-wrap li.k-button {
+    width: 100% !important;
+}
+
+
+.compo-filled > i.fa {
+    display: none;
+}
+
+    .compo-filled > i.fa.not-defined, .compo-filled.no > i.fa.not-defined {
+        display: inline;
+    }
+
+    .compo-filled.yes > i.fa.defined {
+        display: inline;
+    }
+
+    .compo-filled.yes > i.fa.not-defined {
+        display: none;
+    }
+   
+
+.compo-filled.pending > i{
+    color:orange !important;
+}
+
+
+.comboArticlesNull {
+    border-color:#dc3545 !important;
+}
+
+.icons-compo {
+    height: 30px;
+    width: 30px;
+    padding-left: 4px;
+    text-align: center;
+    line-height: 34px;
+}
+
+
+/** customise button border for SelectPicker plugin */
+.fixBorders {
+    border-color: rgb(248, 249, 250); /* btn-ligth color*/
+    border-bottom-style: solid;
+    border-width: 1px;
+}
+
+.fixBorders-providers {
+    border-color: #ced4da;
+    border-bottom-style: solid;
+    border-width: 1px;
+}
+
+
+.bootstrap-select > select.mobile-device:focus + .dropdown-toggle, .bootstrap-select .dropdown-toggle.fixBorders:focus {
+    outline: none !important;
+}
+.bootstrap-select > select.mobile-device:focus + .dropdown-toggle, .bootstrap-select .dropdown-toggle.fixBorders-providers:focus {
+       outline: none !important;
+}
+
+
+@font-face {
+    font-family: "SCALPERS_SYMBOLS";
+    src: url('/css/fonts/scalpers/SCALPERS_SYMBOLS.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: "SCALPERS_SYMBOLS_HOME";
+    src: url('/css/fonts/scalpers/SCALPERS_SYMBOLS_HOME.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: "SIMBOLOS CALZADO";
+    src: url('/css/fonts/scalpers/SIMBOLOS CALZADO.otf') format('truetype');
+}
+
+
+@font-face {
+    font-family: "ECI CARE SYMBOLS2.2";
+    src: url('/css/fonts/amo/ECI CARE SYMBOLS2.2.ttf') format('truetype');
+}
+
+/* 2026-01  */
+@font-face {
+    font-family: "ECIv4";
+    src: url('/css/fonts/indet/ECIv4.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'INDET_Care_Symbols';
+    src: url('/css/fonts/indet/INDET_Care_Symbols.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'WASH CARE SYMBOLS CLASSIC M54';
+    src: url('/css/fonts/monoprix/WASH CARE SYMBOLS CLASSIC M54.TTF') format('truetype');
+}
+
+
+.scalpers-wr-symbol {
+    font-family: 'SCALPERS_SYMBOLS_HOME';
+    font-size: 2.5em;
+}
+
+.scalpers-shoes-fiber {
+    font-family: 'SIMBOLOS CALZADO';
+    font-size: 2.5em;
+}
+
+.amo-wr-symbol {
+    font-family: 'ECI CARE SYMBOLS2.2';
+    font-size: 2.5em;
+}
+
+.common-wr-symbol {
+    font-family: 'ECI CARE SYMBOLS2.2';
+    font-size: 2.5em;
+}
+
+.indet-wr-symbol {
+    font-family: 'INDET_Care_Symbols';
+    font-size: 2.5em;
+}
+
+.indetM54-wr-symbol {
+    font-family: 'WASH CARE SYMBOLS CLASSIC M54';
+    font-size: 2.5em;
+}
+
+.eseOese-wr-symbol {
+    font-family: 'ECIv4';
+    font-size: 2.5em;
+}
+
+
+
+/* monoprix symbols */
+@font-face {
+    font-family: 'Wingdings 3';
+    src: url('/css/fonts/monoprix/WINGDNG3.TTF') format('truetype');
+}
+
+@font-face {
+    font-family: Wingdings1;
+    src: url('/css/fonts/monoprix/wingding.ttf');
+}
+
+.MNP_Symbols_3 {
+    font-family: 'Wingdings 3';
+}
+
+.MNP_Symbols_1 {
+    font-family: 'Wingdings1';
+}
+
+/*Brownie Family*/
+@font-face {
+    font-family: 'Brownie Care Instructions2';
+    src: url('/css/fonts/brownie/BrownieCareSymbolsv2.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'Brownie Care Instructions3';
+    src: url('/css/fonts/brownie/BrownieCareSymbolsv3.ttf') format('truetype');
+}
+
+.brownie_font_care_instructions2 {
+    font-family: 'Brownie Care Instructions2';
+    font-size: 30px;
+    line-height: 1;
+}
+.brownie_font_care_instructions3 {
+    font-family: 'Brownie Care Instructions3';
+    font-size: 30px;
+    line-height: 1;
+}
+
+/*Inditex - Massimo Dutty*/
+@font-face {
+    font-family: 'Indetgroup_Ginetex_v2';
+    src: url('/css/fonts/indet/Indetgroup_Ginetex_v2.ttf') format('truetype');
+}
+
+.indetgroup-ginetex {
+    font-size: 30px;
+    font-family: 'Indetgroup_Ginetex_v2';
+    line-height: 1;
+}
+
+.custom-card {
+    background-color: white;
+    width: 48%;
+    margin: 1%;
+    padding: 1%;
+}

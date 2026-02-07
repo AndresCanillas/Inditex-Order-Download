@@ -1,0 +1,20 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+
+<div style="font-size:17px;">@g["Tasks"]</div>
+<hr class="subtitle" />
+<div component="OrderGrid" name="Tasks" style="padding:0 5px 5px 5px; overflow:auto; max-height:500px;" rowcssclass="SetRowCssClass">
+	<template>
+		<column width="220" field="TaskName">@g["Task Name"]</column>
+		<column width="80" field="Waiting" Render="WaitingLink">@g["Waiting"]</column>
+		<column width="80" field="Rejected" Render="RejectedLink">@g["Rejected"]</column>
+	</template>
+</div>
+<div style="padding:5px; font-size:12px;">
+	<span>Waiting:</span> <span model name="TotalWaiting" style="padding-right:10px;">0</span>
+	<span>Rejected:</span> <span model name="TotalRejected" style="padding-right:10px;">0</span>
+</div>

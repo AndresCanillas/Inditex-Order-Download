@@ -1,0 +1,340 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@inject IOrderRepository orderRepo
+@inject IProjectRepository projectRepo
+@inject IEventQueue events
+@{
+    Layout = null;
+
+
+}
+//# sourceURL=https://Pages/Validation/Tempe/Accessories/ItemAssignmentWizard.js
+/// <script>
+
+        var ItemAssignmentWizard = function (orderSelection, wizardStep, allSteps) {
+
+            this.OrderSelection = orderSelection;
+            this.WizardStep = wizardStep;
+            this.AllSteps = allSteps;
+            this.BreadCrumbs = null;
+            this.ArticleList = {};
+            this.ArticleSelected = [];
+            this.ProjectIDList = [];
+            this.ComponentBaseName = "ArticleSelection_";
+            this.ComponentImages = 'Images';
+            this.Sections = [];
+
+            let self = this;
+
+            AWizardBaseView.Extend(this, "@g["Assign Items"]", `@Url.Content("~/Validation/Tempe/Accessories/ItemAssignmentWizard")?n=${self.OrderSelection.length}`, wizardStep, allSteps);
+
+            
+        }
+
+        ItemAssignmentWizard.prototype = {
+
+            constructor: ItemAssignmentWizard,
+
+            OnLoad: async function () {
+
+                var self = this;
+
+                self.ShowStatus();
+                await self.LoadArticles();
+                await self.LoadSections();
+                self.InitializeComponents(self.ComponentBaseName);
+            },
+
+            InitializeComponents: function (component) {
+                let self = this;
+
+                self.OrderSelection.forEach((sel, idx, arr) => {
+
+                    let cmp = self.elements[component + idx];
+
+                    let labels = self.ArticleList[sel.ProjectID.toString()].filter(article => article.LabelID > 0 && article.ArticleCode != '@Article.EMPTY_ARTICLE_CODE')
+                    let items = [];
+
+                    cmp.Initialize(sel, labels, items, self.Sections,idx);
+
+                    cmp.RequestToRefreshEvent.Subscribe(self, self.RequestToRefresh);
+
+                });
+            },
+
+            LoadArticles: async function () {
+
+                let self = this;
+
+                let projectsIDs = []
+
+                self.OrderSelection.forEach((sel, idx, arr) => {
+
+                    projectsIDs.push(sel.ProjectID)
+
+                });
+
+                self.ProjectIDList = [...new Set(projectsIDs)];
+
+                // Sample execute multiple ajax request asyn way
+                // this cases never happened because
+                // wizard validation only allow validate multiple orders only belong to the same projectID
+                await Promise.all(self.ProjectIDList.map(async (i) => {
+
+                    return await AppContext.Articles.GetFullByProjectIDFiltered({ ProjectID: parseInt(i), ArticleType: 1 }).then((result) => {
+                        self.ArticleList[i.toString()] = result;
+                    })
+                })).then(self.ArticlesLoadedOK, self.ArticlesCantLoad)
+
+            },
+
+            LoadSections: async function () {
+
+                var self = this;
+                var SectionsCatalogName = '@Catalog.BRAND_SECTIONS_CATALOG';
+                var catalog = "";
+
+                const catalogPromise = AppContext.Catalogs.GetByName(
+                    self.OrderSelection[0].ProjectID,
+                    SectionsCatalogName,
+                    null,
+                    null,
+                    false,
+                    false
+                ).then((response) => {
+                    catalog = response;
+                });
+
+                const catalogDataPromise = catalogPromise.then(() => {
+                    return AppContext.CatalogData.GetByCatalogID(
+                        catalog.Data.CatalogID,
+                        null,
+                        null,
+                        false
+                    );
+                }).then((sectionsResponse) => {
+                    self.Sections = JSON.parse(sectionsResponse);
+                });
+
+                await Promise.all([catalogPromise, catalogDataPromise])
+                    .then(self.SectionsLoadedOK)
+                    .catch(self.SectionsCantLoad);
+            },
+
+            /*LoadFeatures: async function () {
+                let self = this;
+                let projectsIDs = [];
+                var catalog = null;
+
+                self.OrderSelection.forEach((sel, idx, arr) => {
+                    projectsIDs.push(sel.ProjectID)
+                });
+
+                const catalogPromise = AppContext.Catalogs.GetByName(
+                    self.OrderSelection[0].ProjectID,
+                    "Features",
+                    null,
+                    null,
+                    false,
+                    false
+                ).then((response) => {
+                    catalog = response;
+                });
+
+                const catalogDataPromise = catalogPromise.then(() => {
+                    return AppContext.CatalogData.GetByCatalogID(
+                        catalog.Data.CatalogID,
+                        null,
+                        null,
+                        false
+                    );
+                }).then((featuresResponse) => {
+                    self.Features = JSON.parse(featuresResponse);
+                });
+
+                await Promise.all([catalogPromise, catalogDataPromise])
+                    .then(self.MadeInLoadedOK)
+                    .catch(self.MadeInCantLoad);
+            },*/
+
+            SectionsLoadedOK: function () {
+
+            },
+
+            SectionsCantLoad: function () {
+                console.log('error promises sections')
+            },
+
+            Save: function () {
+
+                var self = this;
+
+                var flags = self.ComponentsValidation();
+
+                if (!flags[0]) {
+                    AppContext.ShowError("@g["You must add at least 1 item to continue"]");
+                    return;
+                }
+                if (!flags[1]) {
+                    AppContext.ShowError("@g["You must fill all required fields to continue"]");
+                    return;
+                }
+                /*if (!self.model.ValidState()) {
+
+                    var deffered = $.Deferred();
+
+                    deffered.reject();
+
+                    return deffered.promise();
+                };*/
+
+                self.CompleteOrderSelection();
+
+                var promise = AppContext.Wizard.SaveAssigmentItems({ selection: self.OrderSelection, productfields: [] })
+                    .then(() => {
+                        AppContext.Wizard.GetOrdersDataAssigment(self.OrderSelection).done((result) => self._UpdateSelection(result));
+                        AppContext.ShowSuccess("@g["State Saved"]");
+                    })
+
+                return promise;
+
+            },
+
+            _solve: function () {
+                var self = this;
+
+                if (!self.model.ValidState()) {
+
+                    var deffered = $.Deferred();
+
+                    deffered.reject();
+
+                    return deffered.promise();
+                };
+
+                self.CompleteOrderSelection();
+
+                var promise = AppContext.Wizard.SolveAssigmentItems({ selection: self.OrderSelection, productfields: [] })
+                    .then((result) => {
+                        self._UpdateSelection({ Data: { OrderData: result.Data } })
+                    })
+
+                return promise;
+
+            },
+
+            SaveAndNext: function () {
+
+                var self = this;
+                var flags = self.ComponentsValidation();
+                if (!flags[0]) {
+                    AppContext.ShowError("@g["You must add at least 1 item to continue"]");
+                    return;
+                }
+                if(!flags[1]){
+                    AppContext.ShowError("@g["You must fill all required fields to continue"]");
+                    return;
+                }
+
+                var p = self._solve();
+
+                p.done(() => {
+
+                    self.GetValidator().GetStep(self.WizardStep.Position + 1);
+
+                })
+
+            },
+
+            CompleteOrderSelection: function () {
+                var self = this;
+
+                self.OrderSelection.forEach((sel, idx, arr) => {
+
+                    let cmp = self.elements[self.ComponentBaseName + idx];
+                    sel.SelectedArticles = cmp.GetSelectedArticles();
+                    sel.ProductFields = cmp.GetProductFields();
+                    sel.CustomDetails = cmp.GetCustomDetails();
+                    //sel.OrderNumber = sel.ProductFields[0].Value;
+                });
+            },
+
+            _UpdateSelection: function (result) {
+
+                var self = this;
+
+                for (var i = 0; i < result.Data.OrderData.length; i++) {
+
+                    var sel = result.Data.OrderData[i]
+
+                    var ordersInGroup = []
+
+                    for (var j = 0; j < sel.Orders.length; j++) {
+                        self.OrderSelection[i].Orders.push(sel.Orders[j])
+                    }
+
+                    self.OrderSelection[i].Orders = [... new Set(self.OrderSelection[i].Orders)];
+                }
+
+            },
+
+            ComponentsValidation: function () {
+                let self = this;
+                let flagItems = true;
+                let flagModel = true;
+
+                self.OrderSelection.every((sel, idx, arr) => {
+
+                    let cmp = self.elements[self.ComponentBaseName + idx];
+
+                    /*if (!cmp.HasItems())
+                        flagItems = false;*/
+                    if(!cmp.IsValid())
+                        flagModel = false;
+                    
+                });
+
+                return [flagItems,flagModel]
+
+            },
+
+            /// #region Articles Handlers
+            // this is use like promise function, the arguments alwasy be: promise1, promise2,... promiseN
+            ArticlesLoadedOK: function () {
+
+                // all articles are loaded ok
+            },
+
+            ArticlesCantLoad: function () {
+                console.log('error')
+            },
+
+            RequestToRefresh: function (evt) {
+
+                let self = this;
+                let index = evt.Index;
+                let cmpName = "ArticleSelection_" + index;
+                let cmp = self.elements[cmpName];
+
+
+                self.Save().done(() => {
+                    cmp.Close();
+     
+                    let view = new ItemAssignmentGridView();
+                    view.ViewContainer = $(`div[name="${cmpName}"]`);
+
+                    self.elements[cmpName] = view;
+                    view.RequestToRefreshEvent.Subscribe(self, self.RequestToRefresh);
+                    view.OnLoaded.Subscribe(() => { view.Initialize(cmp.Selection, cmp.Labels, cmp.Items, self.Sections, index); })
+                    view.Show($(`div[name="${cmpName}"]`));
+                });
+                
+                
+            }
+            /// #endregion Article Handlers
+
+        };
+        
+/// </script>
+

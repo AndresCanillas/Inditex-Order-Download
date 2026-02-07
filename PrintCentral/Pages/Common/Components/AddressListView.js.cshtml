@@ -1,0 +1,215 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Common/Components/AddressListView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var AddressListView = function (setup) {
+		FormView.Extend(this, "@g["List of Addresses"]");
+        this.Content = $('<div name="ListContainer"></div>');
+		this.dataSource = null;
+        this.ItemSelected = new AppEvent();
+        this.DefaultItemSelected = new AppEvent();
+        this.Setup = setup;
+	};
+
+	AddressListView.prototype = {
+        constructor: AddressListView,
+
+		OnLoad: function () {
+			AppContext.AppEventListener.Subscribe(this, this.HandleNotifications);
+			if (this.Setup != null)
+				this.LoadItems(this.Setup);
+		},
+
+		OnUnload: function () {
+			AppContext.AppEventListener.Unsubscribe(this, this.HandleNotifications);
+            this.ItemSelected.Dispose();
+            this.DefaultItemSelected.Dispose();
+		},
+
+		HandleNotifications: function (e) {
+            if (e.EventName === "EntityEvent") {
+                if (e.EntityName === "Address") {
+					if(e.Operation === 2)
+						this.HandleDeleteNotification(e.Entity);
+					if (e.Operation === 1)
+						this.HandleUpdateNotification(e.Entity);
+				}
+			}
+		},
+
+		HandleDeleteNotification(entity) {
+			var card = this.ViewContainer.find(`[data-entityid='${entity.ID}']`);
+			if (card.length === 1) {
+				card.off();
+				card.remove();
+			}
+		},
+
+		HandleUpdateNotification(entity) {
+			this.UpdateCard(entity);
+		},
+
+        LoadItems: function (setup) {
+            
+			if (setup == null) setup = { ProjectID: @userData.SelectedCompanyID };
+			if (setup.CompanyID == null)
+                setup.CompanyID = @userData.SelectedCompanyID;
+            this.CompanyID = setup.CompanyID;
+			this.ShowNewOption = setup.AddOption == true;
+			this.ShowOpenOption = setup.OpenOption == true;
+			this.ShowDeleteOption = setup.DeleteOption == true;
+			var self = this;
+            AppContext.Addresses.GetByCompany(this.CompanyID, function (data) {
+				if (data != null) {
+                    self.LoadAddresses(setup, data);
+				}
+			});			
+		},
+
+		LoadAddresses: function (setup, data) {
+            this.dataSource = data;
+            this.elements.ListContainer.empty();
+            //Add permission
+
+			if(this.ShowNewOption) this.CreateNewCard();
+			
+            
+            if (data != null) {
+				for (var i = 0; i < data.length; i++) {
+					this.CreateItemCard(data[i]);
+                }
+
+                if (data.length < 1) {
+                    AppContext.ShowInfo('@g["No address found"]');
+                }
+			}
+		},
+
+		CreateNewCard: function () {
+			var self = this;
+			var html = $(`
+			<div class="new-item-card address-card">
+				<div style="padding-top:10px;">
+					<div class="btn btn-outline-secondary btn-sm" action="CreateItem" style="display:block; margin:auto; width:140px;"><span class="fa fa-plus"></span>&nbsp;&nbsp;@g["New Address"]</div>
+				</div>
+			</div>`);
+			AppContext.BindActions(html, this);
+	        self.elements.ListContainer.append(html);
+		},
+
+        CreateItem: function (e) {
+			var self = this;
+            AppContext.LoadJS("/common/AskNameDialog.js").then(() => {
+				var dialog = new AskNameDialog("@g["New Address"]");
+				dialog.ShowDialog(function (dlgData) {
+                    if (dlgData) {
+                        AppContext.Addresses.Insert(dlgData, self.CompanyID, function (result) {
+							if (result.Success) {
+								self.CreateItemCard(result.Data);
+								self.dataSource.push(result.Data);
+								var card = self.ViewContainer.find(`[data-entityid='${result.Data.ID}']`);
+                                self.ItemSelected.Raise({ target: self, item: result.Data });
+                                self.OpenClicked({ target: card });
+							}
+						});
+					}
+				});
+			})
+		},
+
+		DeleteItem: function (e) {
+			var self = this;
+			var card = $(e.target.parentNode);
+			var id = card.attr("data-entityid");
+			var confirm = new ConfirmDialog("@g["Delete Address? IMPORTANT: This operation cannot be undone."]");
+			confirm.ShowDialog(function (response) {
+				if (response) {
+					AppContext.Addresses.Delete(id, function (result) {
+						if (result.Success) {
+							card.off();
+							card.remove();
+                            var idx = self.dataSource.findIndex(function (e) { return e.ID == id; });
+                            self.dataSource.splice(idx, 1);
+						}
+					});
+				}
+			});
+		},
+
+		CreateItemCard: function (data) {
+			var self = this;
+			var openAction = this.ShowOpenOption ? " action=OpenClicked" : " style='cursor:default;'";
+			var deleteAction = this.ShowDeleteOption ? '<span class="ti ti-close card-right card-close" action=DeleteItem></span>' : "";
+
+			var html = null;
+			html = this.CreateAddressItem(data, openAction, deleteAction);
+			AppContext.BindActions(html, this);
+		    self.elements.ListContainer.append(html);
+		},
+
+        CreateAddressItem: function (data, openAction, deleteAction) {
+            var isDefault = data.Default == true ? "badge-warning" : "badge-secondary";
+            var addName = data.Name ? data.Name.toString() : '-';
+
+			var html = $(`
+			<div class="item-card address-card" data-entityid="${data.ID}"${openAction}>
+				<span class="fa fa-map-marker"></span>${deleteAction}
+				<div name="Name">${addName}</div>
+				<div name="Address1">${data.AddressLine1 || ""}</div>
+				<div name="City">${data.CityOrTown || ""} ${data.ZipCode || ""}</div>
+				<div name="Country">${data.StateOrProvince || ""} ${data.StateOrProvince && data.Country ? ", " : ""} ${data.Country || ""}</div>
+				<span action="DefaultItem" class="badge ${isDefault}" name="IsDefault">@g["Default"]</span>
+			</div>`);
+			return html;
+		},
+
+        OpenClicked: function (e) {
+			var self = this;
+			e.preventDefault();
+			var cardElm = $(e.target).closest("[data-entityid]");
+			var id = cardElm.attr("data-entityid");
+			var cardData = this.dataSource.first(p => p.ID == id);
+			this.ItemSelected.Raise({ target: this, item: cardData });
+		},
+
+		UpdateCard: function (data) {
+			var idx = this.dataSource.findIndex(p => p.ID == data.ID);
+			if (idx >= 0) {
+				var self = this;
+                AppContext.Addresses.GetByID(data.ID, (data) => {
+                    self.dataSource[idx] = data;
+                    var card = self.ViewContainer.find(`[data-entityid='${data.ID}']`);
+                    card.find("[name='Address1']").text(data.AddressLine1);
+                    card.find("[name='City']").text((data.CityOrTown || "") + " " + (data.ZipCode || ""));
+                    card.find("[name='Country']").text((data.StateOrProvince || "") + (data.StateOrProvince && data.Country ? ", " : " ") + (data.Country || ""));
+                    var isDefault = card.find("[name='IsDefault']");
+                    if (data.Default) {
+                        isDefault.addClass("badge-warning");
+                        isDefault.removeClass("badge-secondary");
+                    }
+                    else {
+                        isDefault.addClass("badge-secondary");
+                        isDefault.removeClass("badge-warning");
+                    }
+                });
+			}
+        },
+
+        DefaultItem: function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var cardElm = $(e.target).closest("[data-entityid]");
+            var id = cardElm.attr("data-entityid");
+            var cardData = this.dataSource.first(p => p.ID == id);
+            this.DefaultItemSelected.Raise({ target: this, item: cardData });
+        }
+	};
+//</script>

@@ -1,0 +1,275 @@
+﻿@page
+@inject ILocalizationService g
+@{
+
+    Layout = null;
+}
+
+//# sourceURL=https://Pages/Common/Component/CatalogColumnSelection.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+//<script type="text/javascript">
+@*
+    options
+ { CatalogName:, 
+    ProjectID:, 
+    Title: '',  
+    CatalogDefinition: '' optional, CatalogName is null, use CatalogDefinition to fill combo
+    
+    }
+
+*@
+    var CatalogColumnSelection = function (options) {
+
+        this.options = options;
+
+        var viewUrl = "/Common/Components/CatalogColumnSelection";
+
+        FormView.Extend(this, this.options.Title, viewUrl);
+
+        this.Initialize();
+
+        this.AddedEvent = new Event();
+        this.RemovedEvent = new Event();
+
+    }
+
+
+
+
+    CatalogColumnSelection.prototype = {
+
+        construnctor: CatalogColumnSelection,
+
+        Initialize: function() {
+
+            var self = this;
+
+
+        },
+
+        OnLoad: function() {
+            var self = this;
+
+            console.log("CatalogColumnSelection ONLOAD");
+
+            self.elements.Title.html(self.options.Title);
+
+            // load Definition for Variable Data Catalog
+            self.GetCatalogDefinition().done((response) => {
+
+                self.CatalogDefinition = response.Data;
+
+                self.CatalogFieldsDefinition = JSON.parse(self.CatalogDefinition.Definition);
+
+                self.LoadDefinitionInCombo(self.CatalogFieldsDefinition)
+            })
+
+            //if (Array.isArray(self.options.FieldsConfig.Fields)) {
+
+            //    self.GetGrid().Rows.LoadData(self.options.FieldsConfig.Fields);
+            //    //self.options.FieldsConfig.Fields.forEach((field, i, arr) => {
+            //    //    self.GetGrid().Rows.Add(field);
+            //    //})
+            //}
+
+            //self.LoadData(self.options.FieldsConfig);
+
+        },
+
+        SetProjectID: function (projectID) {
+
+            var self = this;
+
+            self.options.ProjectID = projectID
+
+        },
+
+        Save: function() {
+            var self = this;
+
+            if (self.dialog == true) {
+                var data = self.SerializeSelection();
+                self.Close(data);
+            }
+
+        },
+
+        AddField_Event: function (evt) {
+            var self = this;
+            var fieldID = self.elements.FieldList.val();
+
+            if (fieldID < 1) return false;
+            // looking field by selected value in combo
+            var field = self.CatalogFieldsDefinition.find(f => f.FieldID == fieldID);
+
+            self.AddField(field);
+
+        },
+
+        AddField: function (field) {
+            var self = this;
+
+            var found = false;
+
+            self.GetGrid().Rows.Each((i, r) => {
+                if (r.FieldID == field.FieldID)
+                    found = true;
+            })
+
+            if (found) return; // red hight ligth
+
+            self.GetGrid().Rows.Add(field);
+
+            self.AddedEvent.Raise({
+                Column: field
+            })
+        },
+
+        RemoveField: function () {
+            var self = this;
+
+            var selectedRow = self.GetCurrentRow();
+
+            if (!selectedRow) return;
+
+            self.GetGrid().Rows.Remove(this.GetGrid().Rows.SelectedIndex);
+
+            self.RemovedEvent.Raise({
+                Column: selectedRow
+            })
+        },
+
+        GetGrid: function () {
+            var self = this;
+            return self.elements.FieldsTable;
+        },
+
+        GetCurrentRow: function () {
+            if (this.GetGrid().Rows.SelectedIndex < 0)
+                return null;
+
+            return this.GetGrid().Rows.Get(this.GetGrid().Rows.SelectedIndex);
+        },
+
+
+        GetCatalogDefinition: function () {
+            var self = this;
+
+            
+            if (!self.options.CatalogName && Array.isArray(self.options.CatalogDefinition)) {
+                var df = $.Deferred();
+                
+                df.resolve({
+                    Success: true,
+                    Message: '',
+                        Data: {
+                        Name: @g["All Report fields"],
+                        CatalogID: 0,
+                        Definition: JSON.stringify(self.options.CatalogDefinition)
+
+                    }
+                });
+                
+                return df.promise()
+                
+            } else {
+                // return a catalog json object
+                return AppContext.Catalogs.GetByName(self.options.ProjectID, self.options.CatalogName, null, null, false, false);
+            }
+        },
+
+        LoadDefinitionInCombo: function (fields) {
+
+            var self = this;
+            // use name like ID
+
+            var options = fields.filter(f => f.Type != @((int)Service.Contracts.Database.ColumnType.Reference) || f.Type != @((int)Service.Contracts.Database.ColumnType.Set))
+                .map((f, idx, arr) => {
+                    return { ID: f.FieldID, Value: `${f.Name} (${self.GetColumnType(f.Type)})` }
+            })
+
+
+            AppContext.LoadComboBox(self.elements["FieldList"], options, 'ID', 'Value')
+
+        },
+
+        SerializeSelection: function () {
+            var self = this;
+            // TODO: create DTO in C#
+            var selection = {
+                CatalogName: self.CatalogDefinition.Name,
+                CatalogID: self.CatalogDefinition.CatalogID,
+                Columns: []
+            };
+
+            self.GetGrid().Rows.Each((idx, rowData) => {
+                selection.Columns.push({ FieldID: rowData.FieldID, Name: rowData.Name, Type: rowData.Type });
+            });
+
+            return JSON.stringify(selection);
+        },
+
+        GetSelection: function () {
+            var self = this;
+            // TODO: create DTO in C#
+            var selection = {
+                CatalogName: self.CatalogDefinition.Name,
+                CatalogID: self.CatalogDefinition.CatalogID,
+                Columns: []
+            };
+
+            self.GetGrid().Rows.Each((idx, rowData) => {
+                selection.Columns.push({ FieldID: rowData.FieldID, Name: rowData.Name, Type: rowData.Type });
+            });
+
+            return selection;
+        },
+
+
+        GetColumnType: function (columnType) {
+
+            var type = '@g["Unknow"]';
+
+            switch (columnType) {
+                case @((int)Service.Contracts.Database.ColumnType.Reference):
+                    type = '@Service.Contracts.Database.ColumnType.Reference.ToString()'
+                    break;
+                case @((int)Service.Contracts.Database.ColumnType.Int):
+                    type = '@Service.Contracts.Database.ColumnType.Int.ToString()'
+                    break;
+                case @((int)Service.Contracts.Database.ColumnType.Long):
+                    type = '@Service.Contracts.Database.ColumnType.Long.ToString()'
+                    break;
+                case @((int)Service.Contracts.Database.ColumnType.Decimal):
+                    type = '@Service.Contracts.Database.ColumnType.Decimal.ToString()'
+                    break;
+                case @((int)Service.Contracts.Database.ColumnType.Bool):
+                    type = '@Service.Contracts.Database.ColumnType.Bool.ToString()'
+                    break;
+                case @((int)Service.Contracts.Database.ColumnType.Date):
+                    type = '@Service.Contracts.Database.ColumnType.Date.ToString()'
+                    break;
+                case @((int)Service.Contracts.Database.ColumnType.String):
+                    type = '@Service.Contracts.Database.ColumnType.String.ToString()'
+                    break;
+                case @((int)Service.Contracts.Database.ColumnType.Set):
+                    type = '@Service.Contracts.Database.ColumnType.Set.ToString()'
+                    break;
+
+                default:
+                    type = '@g["Unknow"]';
+                    break;
+
+            }
+
+            return type;
+
+        }
+
+
+    };
+
+
+// </script>

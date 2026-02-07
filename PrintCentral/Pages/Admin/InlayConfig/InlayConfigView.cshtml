@@ -1,0 +1,40 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+
+}
+
+
+<viewcard>
+    <form>
+        <input model name="CompanyID" value="" type="hidden" data-type="int" />
+        <viewrow>
+            <viewcolumn>
+                <div class="form-subtitle">@g["Inlay Configuration"]</div>
+                <hr class="subtitle" />
+                <div class="toolbar-body" style="width:100%">
+                    <span class="toolbar-grip"></span>
+                    <a href="#" title="@g["Add"]" action="AddInlayConfig"><span class="fa fa-plus" style="color:green;"></span></a>
+                    <a href="#" title="@g["Remove"]" action="RemoveInlayConfig"><span class="fa fa-trash"></span></a>
+                </div>
+                <div component="InlayConfigGrid" class="" name="InlayConfigList" style="width:100%; min-height:250px; max-height:250px;">
+                    <template>
+                                   
+                    </template>
+
+                    <menu></menu>
+
+                </div>
+            </viewcolumn>
+        </viewrow>
+
+        <viewfooter>
+            <viewcolumn>
+                <a href="#" class="btn btn-secondary" action="Close">@g["Close"]</a>
+                <a href="#" class="btn btn-primary" action="Save">@g["Save"]</a>
+            </viewcolumn>
+        </viewfooter>
+    </form>
+</viewcard>

@@ -1,0 +1,582 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+	var isAdmin = userData.IsIDT && User.IsAnyRole(Roles.SysAdmin, Roles.IDTLabelDesign, Roles.IDTProdManager);
+	var uilang = CultureInfo.CurrentUICulture.Name;
+}
+//# sourceURL=https://Pages/Common/Components/CatalogGridView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var CatalogGridView = function (catalogid, title, lang, assignRef) {
+		FormView.Extend(this, title || "", "/common/components/CatalogGridView");
+		this.CatalogID = catalogid;
+		this.Lang = lang;
+		this.AssignRef = assignRef == true;
+        this.IsSubset = false;
+		this.ProcessType = 5;
+		this.Readonly = @(isAdmin?"false":"true");
+	};
+
+	CatalogGridView.prototype = {
+        constructor: CatalogGridView,
+
+		OnLoad: function () {
+			var self = this;
+			var grid = this.elements.Grid;
+			this.currePageSize = 100;
+			grid.RowDoubleClick.Subscribe(this, (e) => {
+				if (this.AssignRef)
+					this.Assign(e);
+				else
+					this.OpenRecord(e);
+			});
+			grid.Rows.BeforeSelectedChanged.Subscribe(this, (e) => {
+				this.SaveRow(e.rowIndex, e.rowData);
+			});
+			if (this.AssignRef) {
+				this.elements["Grid"].Element.style.height = "300px";
+				this.elements["footer"].show();
+			}
+			if (this.CatalogID != null && this.Lang != null)
+                this.LoadCatalog(this.CatalogID, this.Lang);
+        },
+
+		OnUnload: function () {
+		},
+
+		LoadCatalog: function (catalogid, lang) {
+			var self = this;
+			this.CatalogID = catalogid;
+			this.Lang = lang;
+			return new Promise((resolve, reject) => {
+				AppContext.Catalogs.GetByCatalogID(catalogid, (catalog) => {
+					self.Catalog = catalog;
+					var def = JSON.parse(catalog.Definition);
+					self.CatalogDef = def;
+					self.elements.FieldSelector.SetFields(def);
+					var grid = self.elements.Grid;
+					grid.Clear();
+					grid.Headers.SetupFromCatalogDef(def, self.Readonly && catalog.IsReadonly, lang);
+					self.UpdateToolbar(catalog.IsReadonly);
+					this.currentPage = 0;
+					this.catalogid = catalogid
+						  AppContext.CatalogData.GetCountByCatalogID(catalogid, (count) => {
+							  this.IsFiltering = false; 
+							  this.TotalCatalog = count;
+							  AppContext.CatalogData.GetPageByCatalogID(catalogid,this.currentPage,this.currePageSize, (catalogData) => {
+							  this.data = JSON.parse(catalogData);
+							  this.LoadPage();
+							  resolve();
+						  })
+
+					})
+				});
+			});
+		},
+
+		LoadSet: function (leftcatalogid, rightcatalogid, id, fieldName, lang) {
+			var self = this;
+			this.IsSubset = true;
+			this.LeftCatalogID = leftcatalogid;
+			this.FieldName = fieldName;
+			this.CatalogID = rightcatalogid;
+			this.ParentRecordID = id;
+			this.Lang = lang;
+			return new Promise((resolve, reject) => {
+				AppContext.Catalogs.GetByCatalogID(rightcatalogid, (catalog) => {
+					self.Catalog = catalog;
+					var def = JSON.parse(catalog.Definition);
+					self.CatalogDef = def;
+                    self.elements.FieldSelector.SetFields(def);
+                    self.elements.SetBtn[0].hidden = false;
+                    self.elements.AddBtn[0].hidden = true;
+					var grid = self.elements.Grid;
+					grid.Clear();
+					grid.Headers.SetupFromCatalogDef(def, self.Readonly && catalog.IsReadonly, lang);
+					self.UpdateToolbar(catalog.IsReadonly);
+					AppContext.CatalogData.GetSubset(leftcatalogid, id, fieldName, (catalogData) => {
+						if (catalogData == null) reject();
+						else {
+							this.data = JSON.parse(catalogData);
+							this.currentPage = 0;
+							this.LoadPageSubSet();
+							resolve();
+						}
+					});
+				});
+			});
+		},
+		ExportCatalog : async function (e) 
+		{
+			let self = this
+				  const response = await fetch(`/catalogdata/export/${self.CatalogID}`, {
+				  method: "GET",
+			  });
+
+                  if (!response.ok) {
+                      AppContext.ShowError(`An error has occured: ${response.status}`);
+                      return 
+                  }
+			const blob = await response.blob();
+			const fileName = response.headers.get("Content-Disposition")?.split("filename=")[1] || "export.csv";
+			const link = document.createElement("a");
+			link.href = URL.createObjectURL(blob);
+			link.download = fileName.split(";")[0];
+			link.style.display = "none";
+			document.body.appendChild(link);
+            link.click();
+    		document.body.removeChild(link);
+			URL.revokeObjectURL(link.href);
+		},
+
+		LoadPage: function () {
+			var grid = this.elements.Grid;
+			var startIdx, endIdx, pageData;
+			if (this.TotalCatalog > this.currePageSize-1) {
+					  //startIdx = this.currentPage * this.currePageSize;
+					  startIdx = 0
+					  endIdx = (this.currentPage + 1) * this.currePageSize;
+				if (endIdx > this.data.length)
+					endIdx = this.data.length;
+				pageData = this.data.slice(startIdx, endIdx);
+				this.elements.PagingElement.show();
+			}
+			else {
+				startIdx = 0;
+				endIdx = this.data.length;
+				pageData = this.data;
+				this.elements.PagingElement.hide();
+			}
+			this.elements.StartIndex.text(((this.currentPage * this.currePageSize) + 1).toString());
+				  this.elements.EndIndex.text((((this.currentPage * this.currePageSize)) + this.data.length).toString());
+				  this.elements.TotalRecords.text(this.TotalCatalog.toString());
+			grid.Rows.LoadData(pageData);
+		},
+
+		LoadPageSubSet: function () {
+				  var grid = this.elements.Grid;
+				  var startIdx, endIdx, pageData;
+				  if (this.data.length > 2000) {
+					  startIdx = this.currentPage * 2000;
+					  endIdx = (this.currentPage + 1) * 2000;
+					  if (endIdx > this.data.length)
+						  endIdx = this.data.length;
+					  pageData = this.data.slice(startIdx, endIdx);
+					  this.elements.PagingElement.show();
+				  }
+				  else {
+					  startIdx = 0;
+					  endIdx = this.data.length;
+					  pageData = this.data;
+					  this.elements.PagingElement.hide();
+				  }
+				  this.elements.StartIndex.text((startIdx + 1).toString());
+				  this.elements.EndIndex.text(endIdx.toString());
+				  this.elements.TotalRecords.text(this.data.length.toString());
+				  grid.Rows.LoadData(pageData);
+			  },
+
+		PreviousPage: function (e) {
+			e.preventDefault();
+			if (this.currentPage <= 0)
+				return;
+			this.currentPage--;
+			if (!this.IsFiltering)
+				this.LoadPageFromAPI();
+                  else
+				  this.LoadPageFromAPIFiltered(); 
+		},
+		LoadPageFromAPIFiltered : function ()
+			  {	
+				  let self = this
+				  let searchterm = this.elements.SearchTerm.val();
+				  if(!searchterm) return ; 
+				return new Promise((resolve, reject) => {
+
+					  let filter = [];
+					  filter.push({
+						  FieldName: this.elements.FieldSelector.GetSelectedField(),
+						  Value: searchterm,
+						  SearchType: 0  // 0 = Contains
+					  });
+						AppContext.CatalogData.FreeTextSearchPaging(this.CatalogID, this.currentPage, this.currePageSize, filter, (result) => {
+							  if (result.Success) {
+								  self.data = JSON.parse(result.Data);
+								  self.LoadPage();
+								  resolve(); 
+							  }
+						  });
+						});
+		}, 
+
+	FirstPage: function (e) {
+				  e.preventDefault();
+				  this.currentPage = 0;
+				  if (!this.IsFiltering)
+					this.LoadPageFromAPI();
+                  else 
+					this.LoadPageFromAPIFiltered(); 
+			  },
+	LastPage: function (e) {
+				  e.preventDefault();
+				  this.currentPage =  Math.floor( this.TotalCatalog / this.currePageSize);
+				  if (!this.IsFiltering)
+						  this.LoadPageFromAPI();
+				  else
+						  this.LoadPageFromAPIFiltered();
+					},
+	LoadPageFromAPI : function () {
+
+			let self = this;
+
+				  return new Promise((resolve, reject) => {
+
+								  AppContext.CatalogData.GetPageByCatalogID(this.catalogid,this.currentPage,this.currePageSize, (catalogData) => {
+									this.data = JSON.parse(catalogData);
+									this.LoadPage();
+								    resolve();
+								})
+				  });
+
+		}, 
+
+		NextPage: function (e) {
+			e.preventDefault();
+			if (this.currentPage + 1 > Math.floor( this.TotalCatalog / this.currePageSize))
+			{
+				return; 
+			}
+			this.currentPage++;
+			if (!this.IsFiltering)
+				  this.LoadPageFromAPI();
+			else
+					this.LoadPageFromAPIFiltered();
+			  },
+
+		UpdateToolbar: function (readonly) {
+			
+			let self = this
+			if (this.elements.EditCompoBtn) 
+			{
+					  this.elements.EditCompoBtn.hide()
+			}
+			
+			if (self.Catalog.Name==='CompositionLabel') 
+			{
+					  if (this.elements.EditCompoBtn)
+					  {
+								this.elements.EditCompoBtn.show()
+					  }
+				
+			}
+			if (this.Readonly && readonly) {
+				this.elements.AddBtn.hide();
+				this.elements.SaveBtn.hide();
+				//this.elements.ImportFileBtn.hide();
+				this.elements.Separator1.hide();
+				this.elements.DeleteBtn.hide();
+			}
+			else {
+				this.elements.AddBtn.show();
+				this.elements.SaveBtn.show();
+				//this.elements.ImportFileBtn.show();
+				this.elements.Separator1.show();
+				this.elements.DeleteBtn.show();
+			}
+
+			if (this.Catalog.CatalogType === 1)
+			{
+				this.elements.ExportCatalogBtn.show()
+
+			}else {
+
+				this.elements.ExportCatalogBtn.hide()
+			}
+		},
+
+		AddRecord: function (e) {
+			e.preventDefault();
+			var rec = AppContext.CatalogData.NewRecord(this.CatalogDef);
+			this.elements.Grid.Rows.Add(rec);
+        },
+
+        AddSet: function (e) {
+            e.preventDefault();
+            var self = this;
+            if (self.CatalogID != null) {
+                AppContext.Catalogs.GetByCatalogID(self.CatalogID, () => {
+                    
+                        var frm = new CatalogGridView(self.CatalogID, "Asignar registro set", "es-ES", true);
+                        frm.ShowDialog((data) => {
+                            if (data) {
+                                AppContext.CatalogData.AddSet(self.LeftCatalogID, self.CatalogID, self.ParentRecordID, data.SelectedID, (result) => {
+                                    if (result.Success) {
+                                        AppContext.CatalogData.GetSubset(self.LeftCatalogID, self.ParentRecordID, self.FieldName, (catalogData) => {
+                                            var rec = AppContext.CatalogData.NewRecord(self.CatalogDef);
+                                            self.elements.Grid.Rows.Add(rec);
+                                            var data = JSON.parse(catalogData);
+                                            var newRecord = data.find(x => x.ID === result.Data);
+                                            var idx = data.length - 1;
+                                            self.elements.Grid.Rows.Update(idx, newRecord);
+                                        });
+                                    }
+                                });
+                            }
+                        }, "80%");                    
+                });
+            }
+            else {
+                this.AssignRef(e);
+            }
+        },
+
+		OpenRecord: function (e) {
+			e.preventDefault();
+			var self = this;
+			var grid = this.elements.Grid;
+			var rowidx = grid.Rows.SelectedIndex;
+			if (rowidx >= 0) {
+				//var rowData = grid.Rows.Get(rowidx);
+				//if (rowData.ID == 0) {
+				//	this.SaveRow(rowidx, rowData).then(() => self.InternalOpenRecord(rowidx)).catch(e => { });
+				//}
+				//else
+				self.InternalOpenRecord(rowidx);
+			}
+		},
+
+		InternalOpenRecord: function (rowidx) {
+			var self = this;
+			var grid = this.elements.Grid;
+			var rowData = grid.Rows.Get(rowidx);
+			AppContext.LoadJS("/Common/Components/CatalogFormView.js").then(() => {
+				var frm = new CatalogFormView(self.Catalog, getCatalogTitle(self.Catalog), rowData);
+				frm.ShowDialog((data) => {
+					if (data) {
+						grid.Rows.ClearErrors(rowidx);
+						grid.Rows.Update(rowidx, data);
+					}
+				}, "80%");
+			});
+
+		function getCatalogTitle(cat) {
+					  if (!cat.Captions)
+						  return cat.Name;
+					  var captions = JSON.parse(cat.Captions);
+					  var catName = captions.first(p => p.Language == "@uilang");
+					  if (catName != null) return catName.Text;
+					  else return cat.Name;
+				  }
+		},
+
+		EditCompoRecord : function (e)
+		{
+				let self = this
+				let grid = this.elements.Grid;
+				let rowidx = grid.Rows.SelectedIndex;
+				let rowData = grid.Rows.Get(rowidx);
+				
+				
+
+			    AppContext.LoadJS("/Common/Components/CatalogCompoEditFormView.js").then(() => {
+			    let frm = new CatalogCompoEditFormView(self.Catalog, getCatalogTitle(self.Catalog), rowData, 23);
+					  frm.ShowDialog((data) => {
+						  if (data) {
+							  grid.Rows.ClearErrors(rowidx);
+							  grid.Rows.Update(rowidx, data);
+						  }
+					  }, "90%");
+				  });
+
+							  function getCatalogTitle(cat) {
+							if (!cat.Captions)
+								return cat.Name;
+							var captions = JSON.parse(cat.Captions);
+							var catName = captions.first(p => p.Language == "@uilang");
+							if (catName != null) return catName.Text;
+							else return cat.Name;
+						}
+		}, 
+
+		SaveRow: function (rowIndex, rowData) {
+			return new Promise((resolve, reject) => {
+				if (rowIndex >= 0) {
+					var grid = this.elements.Grid;
+					if (grid.Rows.IsEdited(rowIndex) || rowData.ID == 0) {
+						var rec = { ID: rowData.ID, CatalogID: this.CatalogID, Data: JSON.stringify(rowData) };
+						AppContext.CatalogData.Update(rec, (result) => {
+							if (result.Success) {
+								grid.Rows.IsEdited(rowIndex, false);
+								var updatedData = JSON.parse(result.Data);
+								grid.Rows.Update(rowIndex, updatedData);
+								AppContext.ShowSuccess("@g["Record saved!"]", 100);
+								resolve();
+							}
+							else {
+								if (result.Data != null) {
+									var header = grid.Headers.Find(result.Data);
+									if (header != null)
+										grid.Rows.SetError(rowIndex, header.Index, rowData[header.Field], result.Message);
+								}
+								reject();
+							}
+						});
+					}
+					else resolve();
+				} else resolve();
+			});
+		},
+
+		SaveCatalog: function (e) {
+			if(e != null) e.preventDefault();
+			var grid = this.elements.Grid;
+			var rowIdx = grid.Rows.SelectedIndex;
+			var rowData = grid.Rows.Get(rowIdx);
+			return this.SaveRow(rowIdx, rowData);
+		},
+
+		SearchKeyPress: function (e) {
+			if (e.keyCode == 13)
+				this.FilterCatalog(e);
+		},
+
+		FilterCatalog: function (e) {
+			e.preventDefault();
+			var self = this;
+			var searchterm = this.elements.SearchTerm.val();
+			var grid = this.elements.Grid;
+			this.IsFiltering = true; 
+			if (searchterm.isNullOrEmpty()) {
+				if (this.IsSubset) {
+					AppContext.CatalogData.GetSubset(this.LeftCatalogID, this.ParentRecordID, this.FieldName, (catalogData) => {
+						if (catalogData != null) {
+							this.data = JSON.parse(catalogData);
+							this.currentPage = 0;
+							this.LoadPageSubSet();
+						}
+					});
+				}
+				else {
+					AppContext.CatalogData.GetByCatalogID(this.CatalogID, (catalogData) => {
+						if (catalogData != null) {
+							this.data = JSON.parse(catalogData);
+							this.currentPage = 0;
+							this.LoadPage();
+						}
+					});
+				}
+			}
+			else {
+				var filter = [];
+				filter.push({
+					FieldName: this.elements.FieldSelector.GetSelectedField(),
+					Value: searchterm,
+					SearchType: 0  // 0 = Contains
+				});
+				if (this.IsSubset) {
+					AppContext.CatalogData.SubsetFreeTextSearch(this.LeftCatalogID, this.ParentRecordID, this.FieldName, filter, (result) => {
+						if (result.Success) {
+							self.data = JSON.parse(result.Data);
+							self.currentPage = 0;
+							self.LoadPage();
+						}
+					});
+				}
+				else {
+					self.currentPage = 0;
+					AppContext.CatalogData.FreeTextSearchCount(this.CatalogID, filter, (count) => {
+						  self.TotalCatalog = count.Data;
+						  AppContext.CatalogData.FreeTextSearchPaging(this.CatalogID, self.currentPage, self.currePageSize, filter, (result) => {
+							  if (result.Success) {
+								  self.data = JSON.parse(result.Data);
+								  self.LoadPage();
+							  }
+						  });
+				  });
+				}
+			}
+		},
+
+        DeleteRecord: function (e) {
+            e.preventDefault();
+            var self = this;
+            var grid = this.elements.Grid;
+            var rowidx = grid.Rows.SelectedIndex;
+            if (rowidx >= 0) {
+                var rowData = grid.Rows.Get(rowidx);
+                var confirm = new ConfirmDialog("@g["Delete selected record?"]");
+                confirm.ShowDialog(function (response) {
+                    if (response) {
+                        var leftCatalogId = self.LeftCatalogID || 0;
+                        AppContext.CatalogData.Delete(self.CatalogID, rowData.ID, leftCatalogId, self.ParentRecordID, (result) => {
+                            if (result.Success) {
+                                grid.Rows.Remove(rowidx);
+                            }
+                        });
+                    }
+                });
+            }
+        },
+
+		Assign: function (e) {
+			e.preventDefault();
+			var self = this;
+			var grid = this.elements["Grid"];
+			var rowidx = grid.Rows.SelectedIndex;
+			if (rowidx < 0)
+				AppContext.ShowError("@g["You need to select a record from the list in order to assign the reference."]");
+			else {
+				if (grid.Rows.IsEdited(rowidx))
+					this.SaveCatalog(e).then(() => closeDialog());
+				else
+					closeDialog();
+			}
+
+			function closeDialog() {
+				var rowData = grid.Rows.Get(rowidx);
+				self.model.SelectedID = rowData.ID;
+				self.model.SelectedText = self.GetRowDisplayText(rowData);
+				self.Ok();
+			}
+		},
+
+		GetRowDisplayText: function (data) {
+			var displayText = "";
+			for (var f of this.CatalogDef) {
+				if (f.IsMainDisplay) return data[f.Name];
+			}
+			for (var f of this.CatalogDef) {
+				if (f.Type == 7) return data[f.Name];
+			}
+			return data.ID.toString();
+		},
+
+		ValidState: function () {
+			return this.elements["Grid"].ValidState();
+		},
+
+		GetGrid: function () {
+			return this.elements["Grid"];
+		},
+
+		ImportFile: function (e) {
+            e.preventDefault();
+
+            var self = this;
+
+			AppContext.LoadJS("/Common/Components/DataUploadDialog.js").then(() => {
+				var dlg = new DataUploadDialog(self.CatalogID);
+                dlg.ShowDialog((data) => {
+
+                    console.log(data);
+
+				});
+			});
+		}
+	};
+//</script>

@@ -1,0 +1,63 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+	<meta name="viewport" content="width=device-width" />
+	<link rel="stylesheet" href="/css/bootstrap.css" />
+	<link rel="stylesheet" href="/css/font-awesome.min.css">
+	<link rel="stylesheet" href="/css/themify-icons.css">
+	<link rel="stylesheet" href="/css/AppContext.css" />
+	<link rel="stylesheet" href="/styles/kendo.common.min.css" />
+	<link rel="stylesheet" href="/styles/kendo.default.min.css" />
+	<link rel="stylesheet" href="/styles/kendo.default.mobile.min.css" />
+	<title>Print.SmartDots</title>
+	<script src="/js/jquery-3.0.0.min.js"></script>
+	<script src="/js/jquery.validate.min.js"></script>
+	<script src="/js/jquery.validate.unobtrusive.min.js"></script>
+	<script src="/js/bootstrap.min.js"></script>
+	<script src="/js/kendo.all.min.js"></script>
+	<script src="/js/AppContext.js"></script>
+	<script src="/common/ConfirmDialog.js"></script>
+</head>
+<body>
+	<div class="card">
+		<div class="card-body" style="padding-top:10px;">
+			<div class="container-fluid">
+				<viewrow style="margin-top:20px;" class="row">
+					<viewcolumn class="col-sm-12" style="font-size: 14px; margin-bottom: 10px;">
+						<div style="width:10%;"></div>
+						<div style="width:80%;">
+
+							<div class="form-group row" style="margin-bottom:5px;">
+								<label class="col-sm col-form-label">Type:</label>
+								<div class="col-sm">
+									<select model name="Type" data-lable="Notification Type:" options="[{&quot;Value&quot;:&quot;0&quot;,&quot;Name&quot;:&quot;Error&quot;,&quot;Selected&quot;:true},{&quot;Value&quot;:&quot;1&quot;,&quot;Name&quot;:&quot;OrderTracking&quot;,&quot;Selected&quot;:false}]" action="change:ApplyFilter" style="position:relative; top:1px; height:33px;" class="form-control form-control-sm"><option value="0">Error</option><option value="1">OrderTracking</option></select>
+								</div>
+							</div>
+							<div class="form-group row" style="margin-bottom:5px;">
+								<label class="col-sm col-form-label">Date:</label>
+								<div class="col-sm"><span class="k-widget k-datepicker k-header form-control form-control-sm" style=""><span class="k-picker-wrap k-state-default">
+									<input model name="Date" data-type="Date" value="2019-03-27T10:20:26Z" action="change:ApplyFilter" class="k-input" data-role="datepicker" type="text" role="combobox" aria-expanded="false" autocomplete="off" aria-disabled="false" style="width: 100%;" aria-activedescendant="6c69b1a0-c6fe-4710-a11a-57a9700f40ee_cell_selected">
+									<span unselectable="on" class="k-select" aria-label="select" role="button"><span class="k-icon k-i-calendar"></span></span></span></span>
+								</div>
+							</div>
+						</div>
+					</viewcolumn>
+				</viewrow>
+				<viewrow class="row">
+					<div style="width:10%;"></div>
+					<div style="width:80%;">
+						<div name="NotificationContainer" style="margin-top:20px;">
+						</div>
+					</div>
+				</viewrow>
+			</div>
+		</div>
+	</div>
+	<script>
+		$(document).ready(() => {
+			var jqe = $("[data-field='Date']");
+			//jqe.kendoDatePicker();
+		});
+	</script>
+</body>
+</html>

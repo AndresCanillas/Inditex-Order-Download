@@ -1,0 +1,251 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@inject IPrinterRepository repo;
+@{
+	Layout = null;
+	var uilang = CultureInfo.CurrentUICulture.Name;
+	var printers = repo.GetList();
+	bool CanPrintLocally = printers.Count > 0;
+}
+//# sourceURL=https://Pages/Print/PrintGridView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var PrintGridView = function () {
+		FormView.Extend(this, "@g["Create new print order"]", "/Print/PrintGridView");
+		@if (CanPrintLocally)
+		{
+			@:this.CanPrintLocally = true;
+		}
+		else
+		{
+			@:this.CanPrintLocally = false;
+		}
+		this.Articles = [];
+	};
+
+
+	PrintGridView.prototype = {
+		constructor: PrintGridView,
+
+		OnLoad: function () {
+			var self = this;
+			AppContext.Articles.GetByProjectID(@userData.SelectedProjectID, (articles) => {
+				var map = null;
+				if (articles != null) {
+					this.Articles = articles;
+					map = {};
+					for (var article of articles) {
+						if (article.LabelID != null)
+							map[article.ArticleCode] = article.ArticleCode;
+					}
+				}
+				AppContext.Catalogs.GetByName(@userData.SelectedProjectID, "VariableData", (result) => {
+					if (result.Success) {
+						var grid = this.elements.Grid;
+						self.cat = result.Data;
+						var def = JSON.parse(result.Data.Definition);
+						def.splice(2, 0, { Name: "ArticleCode", Type: 7, Length: 25, CanBeEmpty:false, Captions: JSON.stringify([{Language:"@uilang", Text:"@g["Label"]"}]) });
+						def.splice(3, 0, { Name: "Quantity", Type: 2, Length: 5, CanBeEmpty: false, Captions: JSON.stringify([{ Language: "@uilang", Text: "@g["Quantity"]" }]) });
+						def.RemoveAll(p => p.Name == "ID");  // Remove ID Field
+						def.RemoveAll(p => p.Type == 1 || p.Type == 9);  // Remove reference & set fields.
+						grid.Headers.SetupFromCatalogDef(def, false, "@uilang");
+						var header = grid.Headers.Get(1);
+						header.Map = map;
+						grid.Headers.Update(header);
+						self.def = def;
+						for (var i = 0; i < 20; i++) {
+							var rec = AppContext.CatalogData.NewRecord(def);
+							rec.Quantity = "";
+							grid.Rows.Add(rec);
+						}
+						grid.AfterCellEdit.Subscribe(self, self.HandleCellEdit);
+					}
+				});
+			});
+		},
+
+		HandleCellEdit: function (e) {
+			if (e.field == "Barcode" && !e.proposedValue.isNullOrEmpty())
+				this.SearchProductData(e.proposedValue, e.rowIndex);
+		},
+
+		SearchProductData: function (barcode, rowIdx) {
+			var self = this;
+			AppContext.CatalogData.SearchFirst(this.cat.CatalogID, "Barcode", barcode, (data) => {
+				if (data != null && data.length > 0) {
+					var rowData = self.elements.Grid.Rows.Get(rowIdx);
+					var dbData = JSON.parse(data);
+					for (var p in dbData)
+						rowData[p] = dbData[p];
+					self.elements.Grid.Rows.Update(rowIdx, rowData);
+				}
+			});
+		},
+
+		AddRecord: function (e) {
+			e.preventDefault();
+			var rec = AppContext.CatalogData.NewRecord(this.def);
+			rec.Quantity = "";
+			this.elements.Grid.Rows.Add(rec);
+		},
+
+		ImportFile: function (e) {
+			e.preventDefault();
+			var self = this;
+			AppContext.LoadJS("/Print/BatchFileUploadDialog.js").then(() => {
+				var dlg = new BatchFileUploadDialog();
+				dlg.ShowDialog((data) => {
+					if (data != null) {
+						var barcodes = [];
+						for (var r of data.Rows) barcodes.push(r.Data.EAN13);
+						AppContext.CatalogData.SearchMultiple(self.cat.CatalogID, barcodes, (result) => {
+							if (result.Success) {
+								var variableData = JSON.parse(result.Data);
+								self.elements.Grid.Rows.Clear();
+								for (var r of data.Rows) {
+									var product = variableData.first((p) => p.Barcode == r.Data.EAN13);
+									if (product == null) {
+										product = { Barcode: r.Data.EAN13 };
+									}
+									var row = {};
+									for (var field of this.def)
+										row[field.Name] = product[field.Name];
+
+									row.ArticleCode = r.Data.Modelo_Label;
+									row.Quantity = r.Data.Cantidad;
+
+									self.elements.Grid.Rows.Add(row);
+								}
+							}
+						});
+					}
+				}, "65%");
+			});
+		},
+
+		PrintLabels: function (e) {
+			var self = this;
+			this.DeleteEmptyRows();
+			if (this.elements.Grid.Rows.Count <= 0) {
+				AppContext.ShowError("@g["Cannot create an empty order, please review."]");
+				return;
+			}
+			if (!this.elements.Grid.ValidState()) {
+				AppContext.ShowError("@g["Supplied information is not valid, please review."]");
+				return;
+			}
+			if (this.CanPrintLocally) {
+				AppContext.LoadJS("/Upload/ProductionTypeDialog.js").then(() => {
+					var dialog = new ProductionTypeDialog();
+					dialog.ShowDialog(function (data) {
+						if (data) self.CompleteOrder(data);
+					});
+				});
+			}
+			else this.CompleteOrder({ ProductionType: 1 });
+		},
+
+		CompleteOrder: function (orderData) {
+			var self = this;
+			this.ProductionType = parseInt(orderData.ProductionType);
+			this.PrinterID = parseInt(orderData.PrinterID);
+			orderData.Data = JSON.stringify(this.elements.Grid.Rows.DataSource);
+			AppContext.HttpPost(`/api/intake/printlabels`, orderData, (result) => {
+				if (result.Success) {
+					self.elements.MsgTitle.html("@g["Order(s) created successfully!"]");
+					var html = self.CreateResultMessage(result);
+					AppContext.BindActions(html, self);
+					self.elements.MsgContent.html(html);
+				}
+				else {
+					self.elements.MsgTitle.html("@g["Error while creating order"]");
+					self.elements.MsgContent.html("@g["There was an error in the last step of the process, please contact customer support."]");
+				}
+				self.elements.GridDisplay.hide();
+				self.elements.MessageDisplay.show();
+			}, null, true);
+		},
+
+		CreateResultMessage: function (result) {
+			var html;
+			if (self.ProductionType == 2)
+				html = $(`<p>@g["Order"] ${result.Data[0].OrderNumber} @g["is ready to be printed."] <a href="#" action="OpenPrinterQueue">@g["Click here"]</a> @g["to open the assigned printer."]</p>`);
+			else
+				html = $(`<p>@g["Order"] ${result.Data[0].OrderNumber} @g["was sent to be printed at an IDT location."] <a href="#" action="OpenOrdersReport">@g["Click here"]</a> @g["to open the uploaded orders report."]</p>`);
+			return html;
+		},
+
+		DeleteEmptyRows: function () {
+			var idx = 0;
+			var rows = this.elements.Grid.Rows;
+			while (idx < rows.Count) {
+				if (rows.Get(idx).Barcode.isNullOrEmpty())
+					rows.Remove(idx);
+				else
+					idx++;
+			}
+		},
+
+		OpenPrinterQueue: function (e) {
+			e.preventDefault();
+			var self = this;
+			AppContext.LoadJS("/Production/PrinterQueueView.js").then(() => {
+				var view = new PrinterQueueView(self.PrinterID);
+				view.Show(self.ViewContainer);
+			});
+		},
+
+		OpenOrdersReport: function (e) {
+			e.preventDefault();
+			var self = this;
+			//AppContext.LoadJS("/Upload/OrderReportView.js").then(() => {
+			//	var view = new OrderReportView();
+			//	view.Show(self.ViewContainer);
+   //         });
+			AppContext.LoadJS("/Upload/OrderGroupIndexView.js").then(() => {
+				var view = new OrderGroupIndexView();
+				view.Show(self.ViewContainer);
+			});
+		},
+
+		ShowPreview: function (e) {
+			e.preventDefault();
+			var rowData = this.elements.Grid.Rows.GetSelected().first();
+			if (rowData != null) {
+				var article = this.Articles.first((a) => a.ArticleCode == rowData.ArticleCode);
+				if (article != null) {
+					AppContext.LoadJS("/Common/ArticlePreviewDialog.js").then(() => {
+						var dlg = new ArticlePreviewDialog(article.ID);
+						dlg.ShowDialog(null, "60%");
+					});
+				}
+			}
+		},
+
+		ShowArticles: function (e) {
+			e.preventDefault();
+			AppContext.LoadJS("/Common/Components/ArticleListView.js").then(() => {
+				var view = new ArticleListView({ ShowFilters: false, ShowNewOption: false, ShowOpenOption: false, ShowDeleteOption: false, HideIfNotLabel: true });
+				view.ShowDialog(null, "70%");
+			});
+        },
+
+        DeleteRecord: function (e) {
+			var self = this;
+			var idx = this.elements.Grid.Rows.SelectedIndex;
+			if (idx >= 0) {
+				var col = this.elements.Grid.Rows.Get(idx);
+				var confirm = new ConfirmDialog("@g["Delete selected row from the grid?"]");
+				confirm.ShowDialog(function (response) {
+					if (response) {
+						self.elements.Grid.Rows.Remove(idx);
+					}
+				});
+			}
+        }
+	};
+//</script>

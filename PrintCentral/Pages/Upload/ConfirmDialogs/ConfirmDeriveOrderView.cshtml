@@ -1,0 +1,44 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@*
+*@
+<viewcard>
+    <viewrow>
+        <viewcolumn>
+            <div>@g["Derive Order N "]<span name="OrderNumberTitle"></span></div>
+        </viewcolumn>
+    </viewrow>
+    <viewrow>
+        <viewcolumn>
+            <div class="input-group input-group-sm">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">@g["Select provider"]:</span>
+                </div>
+                <input model name="ProviderID" no-transform type="text" class="form-control" action="change:AfterSelectProvider" list="ProviderList" />
+            </div>
+            <datalist name="ProviderList" id="ProviderList"></datalist>
+        </viewcolumn>
+    </viewrow>
+
+    <viewfooter>
+        <viewrow>
+            <viewcolumn>
+                <inlineform class="form-inline">
+                    <a href="#" class="btn btn-secondary btn-sm" action="Cancel">@g["Cancel"]</a>
+                </inlineform>
+            </viewcolumn>
+            <viewcolumn>
+                <inlineform class="form-inline pull-right">
+                    <div class="form-check mt-1 mr-sm-3">
+                        <input model name="Confirm" class="form-check-input" type="checkbox" id="__inlineFormCheck" no-transform action="click:ClickConfirm">
+                        <label class="form-check-label" for="__inlineFormCheck">
+                            @g["Confirm action?"]
+                        </label>
+                    </div>
+                    <a href="#" name="SubmitButton" class="btn btn-sm btn-primary" action="Save">@g["Derive Order"]</a>
+                </inlineform>
+            </viewcolumn>
+        </viewrow>
+    </viewfooter>
+</viewcard>

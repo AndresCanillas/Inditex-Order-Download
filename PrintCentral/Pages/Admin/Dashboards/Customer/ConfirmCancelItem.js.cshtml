@@ -1,0 +1,94 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Dashboards/Customer/ConfirmCancelItem.js
+//<script>
+    var ConfirmCancelItem = function (orderData) {
+          FormView.Extend(this, "@g["Cancel Order Dialog"]", `/Admin/Dashboards/Customer/ConfirmCancelItem`);
+        this.OrderData = orderData;
+        this.Confirmed = false;
+        this.Accepted = false;
+	};
+
+
+    ConfirmCancelItem.prototype = {
+        constructor: ConfirmCancelItem,
+
+        OnLoad: async function () {
+            var self = this;
+            self.EnableSubmit();
+        },
+
+        ClickConfirm: function () {
+            var self = this;
+
+            self.EnableSubmit();
+        },
+
+        Save: function () {
+            var self = this;
+
+            if (!self.IsEnableSubmit() || !self.model.ValidState()) {
+                AppContext.ShowError('@g["confirm action before"]')
+                return;
+            }
+
+            self.Accepted = true;
+            self.Close(self.GetData());
+        },
+
+        EnableSubmit: function () {
+          
+            var self = this;
+
+            var btn = self.elements.SubmitButton;
+
+            self.Confirmed = self.elements.Confirm.prop('checked');
+
+            if (self.IsEnableSubmit()) {
+                btn.removeClass('disabled')
+            } else {
+                btn.addClass('disabled')
+            }
+
+        },
+
+        CommentReceived: function (evt) {
+            var self = this;
+            var textLength = self.model.Comments.length;
+            var minRequired = 20
+
+            if (textLength >= minRequired) {
+
+                self.EnableSubmit();
+
+            }
+
+            self.elements.count_message.text(`${textLength} / ${minRequired}`)
+
+            return true;
+        },
+
+        IsEnableSubmit: function () {
+
+            @if (userData.IsIDT)
+            {
+            <text>
+            var enabled = this.Confirmed;
+            </text>
+            }else
+            {
+            <text>
+            var enabled = this.Confirmed && this.model.Comments.length > 20;
+            </text>
+            }
+
+            return enabled;
+        }
+    };
+//</script>
+
+

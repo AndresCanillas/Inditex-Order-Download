@@ -1,0 +1,52 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/Projects/Images/ImageView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+//<script>
+    var ImageView = function (imagedata) {
+        this.ImageData = imagedata;
+        FormView.Extend(this, "@g["Image Details"]", "/Admin/Brands/Projects/Images/ImageView");
+	};
+
+
+	ImageView.prototype = {
+		constructor: ImageView,
+
+		OnLoad: function () {
+			this.LoadData(this.ImageData);
+		},
+
+		OnUnload: function () {
+
+        }
+
+
+@if (userData.Admin_Projects_CanAddImages)
+{
+	<text>
+		,
+
+        Save: function (e) {
+			var self = this;
+			if (!this.model.ValidState()) return;
+            var data = this.GetData();
+
+			AppContext.HttpPost("/images/updateimagemetadata", data)
+                .done(function (result) {
+                    if (result.Success) {
+                        self.OnSaved.Raise(data);
+                        if (self.dialog === true)
+                            self.Close(data);
+                    }
+                });
+        }
+	</text>
+}
+    };
+//</script>

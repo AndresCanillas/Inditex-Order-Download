@@ -1,0 +1,152 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/BrandNode.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var BrandNode = function (id, name) {
+        TreeNode.Extend(this, "BrandNode", id, name);
+        this.CanEdit = true;
+        this.ShowAllProjects = false;
+
+        this.menu = {
+        MenuWidth: "250px",
+			Options: [
+                { Text: "@Html.Raw(g["Open"])", OnClick: this.OnDoubleClick }
+            @if (userData.Admin_Brands_CanRename)
+                {
+				@:,{ Text: "@Html.Raw(g["Rename"])", OnClick: this.Rename }
+				}
+				@if (userData.Admin_Projects_CanAdd)
+				{
+				@:,{ Text: "@Html.Raw(g["New Project"])", OnClick: this.AddProject }
+				},
+                { Text: "@Html.Raw(g["Import Project"])", OnClick: this.ImportProject }
+				@if (userData.Admin_Brands_CanDelete)
+				{
+				@:,{ IsSeparator: true }
+                @:,{ Text: "@Html.Raw(g["Delete"])", OnClick: this.Delete }
+				}
+			]
+		};
+	};
+
+	BrandNode.prototype = {
+        constructor: BrandNode,
+
+		GetContextMenu: function () {
+			return this.menu;
+		},
+
+		OnDoubleClick: function () {
+			var self = this;
+            AppContext.LoadJS("/Admin/Brands/BrandsView.js").then(() => {
+                var view = new BrandsView(self.EntityID, 1);
+				view.NodeID = self.NodeID;
+				view.OnSaved.Subscribe(self, function (data) { this.setText(data.Name); });
+				view.Show(self.getViewContainer());
+			});
+		},
+
+		@if(userData.Admin_Brands_CanRename)
+		{
+		<text>
+		Rename: function () {
+			this.BeginEdit();
+		},
+
+		OnEditEnding: function (value) {
+            return AppContext.Brands.Rename(this.EntityID, value);
+		},
+		</text>
+		}
+
+
+		@if(userData.Admin_Projects_CanAdd)
+		{
+		<text>
+        AddProject: function (e) {
+			var self = this;
+			AppContext.LoadJS(
+				"/Admin/Brands/Projects/ProjectNode.js",
+				"/Common/AskNameDialog.js").then(() => {
+				var dialog = new AskNameDialog("@g["New Project"]");
+                dialog.ShowDialog(function (data) {
+					if (data) {
+                        data.BrandID = self.EntityID;
+                        data.CompanyID = self.Parent.CompanyID;
+                        AppContext.Projects.Insert(data, function (result) {
+							if (result.Success) {
+								var node = new ProjectNode(result.Data, self.Parent.CompanyID);
+								self.AddNode(node);
+								node.OnDoubleClick();
+								if (!self.Expanded)
+									self.Expand();
+							}
+						});
+					}
+				});
+			});
+		},
+		</text>
+		}
+
+
+		@if(userData.Admin_Brands_CanDelete)
+		{
+		<text>
+		Delete: function () {
+			var self = this;
+			var confirm = new ConfirmDialog("@g["Delete selected brand? IMPORTANT: Deleting a brand will also delete all its projects and project data."]");
+			confirm.ShowDialog(function (response) {
+				if (response)
+                    AppContext.Brands.Delete(self.EntityID, function (result) {
+						if (result.Success)
+							self.Remove();
+					});
+			});
+		},
+		</text>
+		}
+
+        ImportProject: function () {
+			var self = this;
+			AppContext.LoadJS(
+				"/Admin/Brands/Projects/ProjectNode.js",
+				"/Admin/Brands/Projects/ProjectImport.js").then(() => {
+                    var view = new ProjectImport("@g["Import Project"]", self.EntityID, 0);
+                    view.ShowDialog();
+			});
+        },
+
+        OnExpanded: function () {
+            var self = this;
+            @(userData.IsSysAdmin? "self.ShowAllProjects = true" : "");           
+            AppContext.LoadJS("/Admin/Brands/Projects/ProjectNode.js").then(() => {
+                if (!self.IsLoaded) {
+                    self.IsLoaded = true;
+                    AppContext.Projects.GetByBrandID(self.EntityID, self.ShowAllProjects, function (data) { self.loadNodes(data, self.Parent.CompanyID); });
+                }
+            });
+		},
+
+        loadNodes: function (data, companyid) {
+			for (var index = 0; index < data.length; index++) {
+				var project = data[index];
+                if (!this.FindNode("ProjectNode", project.ID, false)) {
+                    var node = new ProjectNode(project, companyid);
+                    this.AddNode(node);
+                }
+            }
+        }
+	};
+//</script>
+
+
+

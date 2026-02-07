@@ -1,0 +1,18 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+
+<viewcard>
+	<viewrow>
+		<viewcolumn>
+			<div name="Labels" component="FormView" controller="/Common/Components/LabelsListView.js"></div>
+		</viewcolumn>
+	</viewrow>
+	@if (User.IsInRole(Roles.SysAdmin))
+	{
+	<a href="#" action="OpenDesigner">*</a>
+	}
+</viewcard>
+

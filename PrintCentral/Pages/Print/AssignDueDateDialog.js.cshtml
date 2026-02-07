@@ -1,0 +1,21 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Print/AssignDueDateDialog.js
+
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+
+//<script>
+	var AssignDueDateDialog = function () {
+		FormView.Extend(this, "@g["Set Due Date"]", "/Print/AssignDueDateDialog");
+	};
+
+	AssignDueDateDialog.prototype = {
+		constructor: AssignDueDateDialog
+	};
+//</script>

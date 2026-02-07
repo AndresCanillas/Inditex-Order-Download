@@ -1,0 +1,91 @@
+﻿.col-fixed-355 {
+	width: 355px;
+	min-width:355px;
+	float:left;
+}
+
+.col-offset-360 {
+	padding-left: 360px;
+}
+
+
+label {
+	padding: 0px;
+	display: inline-block;
+}
+
+.col-25 {
+	float: left;
+	width: 25%;
+	min-width:100px;
+	margin-top: 6px;
+}
+
+.col-50 {
+	float: left;
+	width: 50%;
+	min-width: 100px;
+	margin-top: 6px;
+}
+
+.col-75 {
+	float: left;
+	width: 75%;
+	min-width: 100px;
+	margin-top: 6px;
+}
+
+.form-row:after {
+	content: "";
+	display: table;
+	clear: both;
+}
+
+@media screen and (max-width: 500px) {
+	.col-25, .col-50, .col-75 input {
+		width: 100%;
+		margin-top: 0;
+	}
+}
+
+.ItemLog {
+	width:100%;
+	border: 1px solid #808080;
+	border-radius: 4px;
+	color: #262626;
+	margin-bottom:3px;
+	padding:5px;
+}
+
+.ItemLog.History {
+	background-color:#e2e2e2;
+}
+
+.ItemLog.Message {
+	background-color: #bbddf3;
+}
+
+.ItemLog.Warning {
+	background-color: #f6db9b;
+}
+
+.ItemLog.Error {
+	background-color: #f7b9b9;
+}
+
+.ItemLog .badge {
+	margin-right:5px;
+}
+
+.ItemLog .ti {
+	margin-right: 5px;
+}
+
+.ItemLog .fa {
+	margin-right: 5px;
+}
+
+
+
+
+

@@ -1,0 +1,18 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+<viewcard>
+    <viewrow>
+        <viewcolumn>
+            <input name="SelectedCompanyID" type="hidden" value="@userData.SelectedCompanyID" />
+            <div name="Addresses" component="FormView" controller="/Common/Components/AddressListView.js"></div>
+        </viewcolumn>
+    </viewrow>
+    <viewfooter>
+        <a href="#" class="btn btn-secondary" action="Close">@g["Close"]</a>
+    </viewfooter>
+</viewcard>
+

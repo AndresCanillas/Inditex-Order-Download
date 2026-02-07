@@ -1,0 +1,104 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/Projects/Categories/CategoriesView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var CategoriesView = function () {
+        FormView.Extend(this, "@g["Article Categories"]", "/Admin/Brands/Projects/Categories/CategoriesView");
+	};
+
+    CategoriesView.prototype = {
+		constructor: CategoriesView,
+
+		OnLoad: function () {
+			this.elements.Categories.Rows.BeforeSelectedChanged.Subscribe(this, this.BeforeSelectedChange);
+			this.elements.Categories.Rows.AfterSelectedChanged.Subscribe(this, this.ShowSelectedRow);
+		},
+
+		OnUnload: function () {
+			this.SaveCurrentRow();
+			this.elements.Categories.Rows.BeforeSelectedChanged.Unsubscribe(this.BeforeSelectedChange);
+			this.elements.Categories.Rows.AfterSelectedChanged.Subscribe(this, this.ShowSelectedRow);
+		},
+
+		LoadCategories: function (projectid) {
+			var self = this;
+			this.ProjectID = projectid;
+			AppContext.HttpGet(`/categories/getbyproject/${projectid}`, (data) => {
+				if (data != null && data.length > 0) {
+					self.elements.Categories.Rows.LoadData(data);
+				}
+			}, null, true);
+		},
+
+		BeforeSelectedChange: function (e) {
+			if (e.rowIndex >= 0)
+				this.SaveCurrentRow();
+		},
+
+		SaveCurrentRow: function ()
+		{
+			@if (userData.Admin_Categories_CanEdit)
+			{
+			<text>
+			if (this.Edited === true && this.RowData != null && this.model.ValidState()) {
+				this.Edited = false;
+				this.elements.btnSave.addClass("disabled");
+				this.elements.Categories.Rows.Update(this.elements.Categories.Rows.SelectedIndex, this.RowData);
+				if (this.RowData.ID == 0)
+					AppContext.HttpPost("/categories/insert", this.RowData);
+				else
+					AppContext.HttpPost("/categories/update", this.RowData);
+			}
+			</text>
+			}
+		},
+
+		ShowSelectedRow: function (e) {
+			if (e.rowIndex >= 0) {
+				this.elements.CategoryProperties.show();
+				this.RowData = e.rowData;
+				this.LoadData(e.rowData);
+				this.elements.btnSave.addClass("disabled");
+				this.Edited = false;
+			}
+			else {
+				this.elements.CategoryProperties.hide();
+			}
+		},
+
+		MarkAsEdited: function (e) {
+			if (this.model.ValidState()) {
+				this.Edited = true;
+				this.elements.btnSave.removeClass("disabled");
+				this.RowData = this.model.GetData();
+			}
+		},
+
+		AddCategory: function () {
+			this.elements.Categories.Rows.Add({ ID: 0, ProjectID: this.ProjectID, Name: "" });
+			this.elements.Categories.Rows.Select(this.elements.Categories.Rows.Count - 1, true);
+			this.elements.Name.focus();
+		},
+
+		RemoveCategory: function () {
+			if (this.RowData == null) return;
+			var self = this;
+			var confirm = new ConfirmDialog("@g["Delete selected article category? IMPORTANT: All articles currently assigned to this category will be modified to have NO category."]");
+			confirm.ShowDialog(function (response) {
+				if (response)
+					AppContext.HttpPost(`/categories/delete/${self.RowData.ID}`, null, function (result) {
+						if (result.Success)
+							self.elements.Categories.Rows.Remove(self.elements.Categories.Rows.SelectedIndex);
+					});
+			});
+		}
+	};
+//</script>

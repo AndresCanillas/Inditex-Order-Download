@@ -1,0 +1,124 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Companies/CompanyERPConfigView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var CompanyERPConfigView = function (companyId) {
+		FormView.Extend(this, "@g["Company ERP Configuration"]", `/Admin/Companies/CompanyERPConfigView?CompanyID=${companyId}`);
+        this.CompanyID = companyId;
+        this.WarningOnClose = false;
+	};
+
+
+    CompanyERPConfigView.prototype = {
+        constructor: CompanyERPConfigView,
+
+		OnLoad: function () {
+            var self = this;
+
+            self.GetGrid().Rows.AfterUpdated.Subscribe(self, self.DataChanged)
+            self.GetGrid().Rows.AfterRemoved.Subscribe(self, self.DataChanged)
+
+            self.LoadAllData();
+		},
+
+		OnUnload: function () {
+           
+		},
+
+        OpenAddress: function (e) {
+			
+        },
+
+        CheckToClose: function () {
+
+            var self = this;
+
+            if (self.WarningOnClose) {
+                var dlg = new ConfirmDialog("@g["Discard Changes?"]");
+                dlg.ShowDialog(function (response) {
+
+                    if (!response) {
+                        return;
+                    }
+
+                    self.Close(null)
+
+                });
+            } else {
+                self.Close(null);
+            }
+
+        },
+
+        LoadERPConfig: function () {
+            var self = this;
+
+            AppContext.Companies.GetERPConfigs(self.CompanyID)
+                .done((response) => {
+                    self.GetGrid().Rows.LoadData(response.Data, true);
+                })
+        },
+
+        LoadAllData: function () {
+            var self = this;
+
+            return AppContext.Addresses.GetByCompany(this.CompanyID)
+                .done((response) => {
+                    self.LoadERPConfig();
+                })
+
+
+        },
+
+        Save: function () {
+            var self = this;
+            var data = self.GetGrid().Rows.DataSource;
+
+            AppContext.Companies.SaveERPConfig(self.CompanyID, data).done(() => {
+                self.WarningOnClose = false;
+                self.LoadERPConfig();
+            });
+        },
+
+        GetGrid: function () { return this.elements.ERPCompanyConfigList; },
+
+        AddConfig: function (e) {
+            e.preventDefault();
+            this.GetGrid().Rows.Add({ ID: 0, Currency: "EUR", ProductionLocationID: 1, ERPInstanceID: 1 });
+        },
+
+        RemoveConfig: function () {
+			var self = this;
+            var idx = this.GetGrid().Rows.SelectedIndex;
+			if (idx >= 0) {
+				var confirm = new ConfirmDialog("@g["Delete ERP Config"]");
+				confirm.ShowDialog(function (response) {
+                    if (response) {
+                        var rowData = self.GetGrid().Rows.Get(idx);
+
+                        if (rowData.ID > 0) {
+                            AppContext.Companies.DelERPConfig(rowData.ID).done(() => { self.GetGrid().Rows.Remove(idx); })
+                        }
+                        else {
+                            self.GetGrid().Rows.Remove(idx);
+                        }
+                    }
+				});
+			}
+		},
+
+        DataChanged: function () {
+            this.WarningOnClose = true;
+        }
+
+    };
+//</script>
+
+

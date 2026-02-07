@@ -1,0 +1,67 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData  userData
+@{
+    Layout = null;
+}
+    <form name="composition-wizard-frm" method="post" onsubmit="return false;">
+        <viewform>
+            
+            <viewcard>
+
+                <viewrow>
+                    <viewcolumn>
+                        <div name="BreadcrumbContainer">
+                            
+                        </div>
+
+                    </viewcolumn>
+                </viewrow>
+
+                <viewrow>
+                    <viewcolumn>
+                        <!--  esta es la zona que cambia en el wizard  -->
+                        <div name="compo">
+
+                            <div css="section" data-idx="1">
+
+                                <select model name="section[1].Code" label="@g["Section"]"></select>
+                                <div css="fibers-container">
+
+                                    <div css="form-group">
+                                        <div class="form-group row" style="margin-bottom:5px;">
+                                            <label class="col-sm col-form-label"></label>
+                                            <div class="input-group input-group-sm col-sm">
+                                                <input model name="section[1].Percentage" validation="numeric;maxlen(3)" type="number" placeholder="@g["%"]" no-transform class="form-control form-control-sm" style="    min-width: 10px;    max-width: 30px;" />
+                                                <select model name="section[1].FiberCode" label="@g["Section"]"></select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+                        </div>
+                        
+                    </viewcolumn>
+                </viewrow>
+
+                <viewfooter>
+
+                    <div class="row justify-content-end" name="AvailableActions">
+                        <div class="col-4 text-center">
+                            <a href="#" class="btn btn-sm btn-outline-primary" action="Save"> <span class="fa fa-fw fa-save" aria-hidden="true"></span> @g["Save"]</a>
+                        </div>
+                        <div class="col-4 text-right">
+                            <a href="#" class="btn btn-sm btn-primary" action="SaveAndNext">@g["Save And Next"] <span class="fa fa-fw fa-chevron-right" aria-hidden="true"></span></a>
+                        </div>
+                    </div>
+
+                </viewfooter>
+
+            </viewcard>
+        </viewform>
+        
+    </form>

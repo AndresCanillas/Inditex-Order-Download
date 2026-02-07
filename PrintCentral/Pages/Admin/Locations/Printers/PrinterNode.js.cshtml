@@ -1,0 +1,108 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Locations/Printers/PrinterNode.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var PrinterNode = function (id, text) {
+		TreeNode.Extend(this, "PrinterNode", id, text);
+		this.CanEdit = true;
+		this.menu = {
+			MenuWidth: "250px",
+			Options: [
+				{ Text: "@Html.Raw(g["Open"])", OnClick: this.OnDoubleClick }
+				@if (userData.Admin_Printers_CanRename)
+				{
+				@:, { Text: "@Html.Raw(g["Rename"])", OnClick: this.Rename }
+				}
+				@if (userData.Admin_Printers_CanDelete)
+				{
+				@:, { IsSeparator: true }
+				@:, { Text: "@Html.Raw(g["Delete"])", OnClick: this.Delete }
+				}
+			]
+		};
+		this.Expand();
+	};
+
+    PrinterNode.prototype = {
+		constructor: PrinterNode,
+
+		loadDependencies: function (callback) {
+			AppContext.LoadJS("/admin/Locations/Printers/PrinterView.js").then(() => callback());
+		},
+
+		GetContextMenu: function () {
+			return this.menu;
+		},
+
+
+		@if (userData.Admin_Printers_CanRename)
+		{
+		<text>
+		Rename: function () {
+			this.BeginEdit();
+		},
+
+		OnEditEnding: function (value) {
+			return AppContext.Printers.Rename(this.EntityID, value);
+		},
+		</text>
+		}
+
+
+		@if (userData.Admin_Printers_CanDelete)
+		{
+		<text>
+		Delete: function () {
+			var self = this;
+			var confirm = new ConfirmDialog("@g["Delete Printer? Note: This operation cannot be undone."]");
+			confirm.ShowDialog(function (response) {
+				if (response) {
+					AppContext.Printers.Delete(self.EntityID, function (result) {
+						if (result.Success)
+							self.Remove();
+					});
+				}
+			});
+		},
+		</text>
+		}
+
+
+		@if (userData.Admin_Printers_CanChangeCompany)
+		{
+		<text>
+		MovePrinterNode: function (data) {
+			var locationID = this.Parent.Parent.EntityID;
+			if (data.locationID != locationID) {
+				var locationNode = this.getTreeView().FindNode("LocationNode", data.LocationID, true);
+				this.Remove();
+				if (locationNode != null) {
+					var destinationNode = locationNode.FindNode("PrintersRootNode", 0, true);
+					if (destinationNode != null)
+						destinationNode.AddNode(new PrinterNode(data.PrinterID, this.nodeText));
+				}
+			}
+		},
+		</text>
+		}
+
+		OnDoubleClick: function () {
+			var self = this;
+			this.loadDependencies(function () {
+				var view = new PrinterView(self.EntityID);
+				view.NodeID = self.NodeID;
+				view.OnPrinterMoved.Subscribe(self, self.MovePrinterNode);
+				view.OnSaved.Subscribe(self, function (data) { this.setText(data.Name); });
+				view.Show(self.getViewContainer());
+			});
+		}
+	};
+//</script>

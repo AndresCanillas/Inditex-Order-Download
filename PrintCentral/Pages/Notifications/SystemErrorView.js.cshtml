@@ -1,0 +1,54 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Notifications/SystemErrorView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var SystemErrorView = function (notification) {
+		FormView.Extend(this, "@g["Notification"]", "/Notifications/SystemErrorView");
+		this.Notification = notification;
+		if (this.Notification != null && this.Notification.Data != null) {
+			this.Data = JSON.parse(notification.Data);
+		}
+	};
+
+
+	SystemErrorView.prototype = {
+		constructor: SystemErrorView,
+
+		OnLoad: function () {
+			var self = this;
+			this.LoadData(this.Notification);
+			if (this.Data != null) {
+				AppContext.LoadJS("/js/prettyprint.js").then(() => {
+					var table = prettyPrint(self.Data);
+					self.elements.DataContainer[0].appendChild(table);
+				});
+			}
+		},
+
+		DismissNotification: function (e) {
+			var self = this;
+
+            var dlg = new ConfirmDialog("@g["Please, confirm to dismiss this notification?"]");
+			dlg.ShowDialog(function (response) {
+
+                if (!response) {
+                    return;
+                }
+
+				AppContext.HttpPost(`/notifications/dismiss/${self.Notification.ID}`, null, function (response) {
+					if (response.Success) {
+						var notifications = new NotificationList();
+						notifications.Show(self.ViewContainer);
+					}
+				});
+			});
+		}
+	};
+//</script>

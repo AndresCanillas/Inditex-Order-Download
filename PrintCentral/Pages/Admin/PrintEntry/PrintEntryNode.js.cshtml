@@ -1,0 +1,32 @@
+﻿@page
+@inject ILocalizationService g
+@inject IAppConfig config
+@{
+    Layout = null;
+    string printentry_url = config["PrintEntry.Url"];
+}
+//# sourceURL=https://Pages/Admin/PrintEntry/PrintEntryNode.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+
+    var PrintEntryNode = function () {
+        TreeNode.Extend(this, "PrintEntryNode", 0, "@g["Print Entry"]");
+        this.CanEdit = false;
+		this.Expand();
+	};
+
+    PrintEntryNode.prototype = {
+        constructor: PrintEntryNode,
+
+		OnDoubleClick: function (e) {
+			var self = this;
+            AppContext.LoadJS("/Admin/PrintEntry/PrintEntryNode.js").then(() => {
+                window.open('@printentry_url', "_blank");
+			});
+		}
+    };
+
+//</script>

@@ -1,0 +1,96 @@
+﻿@page
+@inject ILocalizationService g
+@inject RequestLocalizationOptions langOptions
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/Projects/Catalogs/CaptionsView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+/// <reference path="/js/AppContext.AppDomain.js" />
+
+//<script>
+	var CaptionsView = function (captions) {
+		FormView.Extend(this, "@g["Captions"]", `/Admin/Brands/Projects/Catalogs/CaptionsView`);
+		this.MaxRows = @langOptions.SupportedUICultures.Count;
+		if (captions.isNullOrEmpty())
+			this.Captions = [];
+		else
+			this.Captions = JSON.parse(captions);
+    };
+
+    CaptionsView.prototype = {
+		constructor: CaptionsView,
+
+		OnLoad: function () {
+			this.model.CustomValidation.Subscribe(this, this.HandleCustomValidation);
+			if (this.Captions != null)
+				this.elements.CaptionsTable.LoadData(this.Captions);
+		},
+
+		OnUnload: function () {
+			this.model.CustomValidation.Unsubscribe(this.HandleCustomValidation);
+		},
+
+		HandleCustomValidation: function (e) {
+			var captions = this.elements.CaptionsTable.data;
+			var element = this.elements.CaptionsTable.containerElement;
+			if (captions != null) {
+				var groups = captions.groupBy((p) => p.Language);
+				if (groups.length != captions.length) {
+					e.target.SetElementError(element, "@g["Labels cannot have the Language field duplicated."]");
+					e.preventDefault();
+					return;
+				}
+				else e.target.ClearElementError(element);
+				if (captions.where(p => String.isNullOrEmpty(p.Text)).length > 0) {
+					e.target.SetElementError(element, "@g["Label Text cannot be empty."]");
+					e.preventDefault();
+					return;
+				}
+				else e.target.ClearElementError(element);
+			}
+		},
+
+		@if (userData.Admin_Catalogs_CanEdit)
+		{
+		<text>
+		AddCaption: function (e) {
+			e.preventDefault();
+			if (this.elements.CaptionsTable.GetRowCount() >= this.MaxRows) {
+				AppContext.ShowError("@g["Cannot add any more labels"]");
+			}
+			else {
+				var index = this.elements.CaptionsTable.AddRow({ Language: "", Text: "" });
+				this.elements.CaptionsTable.BeginEdit(index, 0);
+			}
+		},
+
+		RemoveCaption: function (e) {
+			e.preventDefault();
+			var self = this;
+			var idx = this.elements.CaptionsTable.SelectedIndex;
+			if (idx >= 0) {
+				var col = this.elements.CaptionsTable.data[idx];
+				var confirm = new ConfirmDialog("@g["Delete Selected Caption?"]");
+				confirm.ShowDialog(function (response) {
+					if (response) {
+						self.elements.CaptionsTable.DeleteRow(idx);
+					}
+				});
+			}
+		},
+
+
+		Save: function (e) {
+			e.preventDefault();
+			if (!this.model.ValidState())
+				return;
+			this.Close(JSON.stringify(this.Captions));
+		},
+		</text>
+		}
+    };
+//</script>

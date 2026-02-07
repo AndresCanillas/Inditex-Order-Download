@@ -1,0 +1,43 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+
+<input name="SelectedCompanyID" type="hidden" value="@userData.SelectedCompanyID" />
+<viewcard>
+    <viewrow>
+        <viewcolumn>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="#" action="BackToBrands">@g["All Brands"]</a></li>
+                    <li name="NavBrand" class="breadcrumb-item" style="display:none;"><a href="#" action="BackToProjects">Brand</a></li>
+                    <li name="NavProject" class="breadcrumb-item" style="display:none;"><a href="#" action="BackToCatalogs">Project</a></li>
+                    <li name="NavCatalog" class="breadcrumb-item active" aria-current="page" style="display:none;">Catalog</li>
+                </ol>
+            </nav>
+        </viewcolumn>
+    </viewrow>
+    <viewrow name="BrandsRow">
+        <viewcolumn>
+            <div name="Brands" component="FormView" controller="/Common/Components/BrandsListView.js"></div>
+        </viewcolumn>
+    </viewrow>
+    <viewrow name="ProjectsRow" style="display:none;">
+        <viewcolumn>
+            <div name="Projects" component="FormView" controller="/Common/Components/ProjectsListView.js"></div>
+        </viewcolumn>
+    </viewrow>
+    <viewrow name="CatalogsRow" style="display:none;">
+        <viewcolumn>
+            <div name="Catalogs" component="FormView" controller="/Common/Components/CatalogsListView.js"></div>
+        </viewcolumn>
+    </viewrow>
+    <viewrow name="GridRow" style="display:none;">
+        <viewcolumn>
+            <div name="CatalogGrid" component="FormView" controller="/Common/Components/CatalogGridView.js" style="height:65vh;"></div>
+        </viewcolumn>
+    </viewrow>
+</viewcard>
+

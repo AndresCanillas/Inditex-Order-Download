@@ -1,0 +1,64 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Upload/UploadStep1.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var UploadStep1 = function (title, target) {
+		FormView.Extend(this, title, "/Upload/UploadStep1");
+		this.Target = target;
+	};
+
+
+	UploadStep1.prototype = {
+		constructor: UploadStep1,
+
+		OnLoad: function () {
+			var self = this;
+			this.elements.files.kendoUpload({
+				async: {
+					saveUrl: `/upload/${this.Target}`,
+					autoUpload: true
+				},
+				multiple: false,
+				success: function (e) {
+					if (!e.response.success) {
+						e.preventDefault();
+						AppContext.ShowError(e.response.message);
+					}
+					else {
+						self.FileUploaded();
+					}
+				},
+                error: function (config) {
+                    try {
+                        var operationResult = JSON.parse(config.XMLHttpRequest.responseText);
+                        AppContext.ShowError("@g["Error uploading file"] " + operationResult.message);
+                    } finally {
+
+                    }
+                },
+				localization: {
+					select: '@g["Select File"]',
+					remove: '@g["Remove"]',
+					cancel: '@g["Cancel"]',
+					headerStatusUploading: "@g["Uploading..."]",
+					headerStatusUploaded: "@g["Done"]"
+				}
+			});
+		},
+
+		FileUploaded: function () {
+			var self = this;
+			AppContext.LoadJS("/Upload/UploadStep2.js").then(() => {
+				var step2 = new UploadStep2(self.Title, self.Target);
+				step2.Show(self.ViewContainer);
+			});
+		}
+	};
+//</script>

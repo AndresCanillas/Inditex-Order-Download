@@ -1,0 +1,114 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/BrandsRootNode.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var BrandsRootNode = function (companyid) {
+        TreeNode.Extend(this, "BrandsRootNode", 0, "@g["Brands"]");
+		this.CompanyID = companyid;
+        this.CanEdit = false;
+		AppContext.AppEventListener.Subscribe(this, this.HandleNotifications);
+		@if (userData.Admin_Brands_CanAdd)
+		{
+		<text>
+		this.menu = {
+			MenuWidth: "200px",
+			Options: [{ Text: "@Html.Raw(g["New Brand"])", OnClick: this.CreateBrand }]
+	    };
+		</text>
+		}
+	};
+
+	BrandsRootNode.prototype = {
+        constructor: BrandsRootNode,
+
+		GetContextMenu: function () {
+			return this.menu;
+		},
+
+		OnRemoved: function () {
+			AppContext.AppEventListener.Unsubscribe(this, this.HandleNotifications);
+		},
+
+		HandleNotifications: function (e) {
+			if (e.EventName === "EntityEvent" &&
+				e.EntityName === "Brand" &&
+				e.Operation == 1) this.HandleBrandUpdate(e.Entity);
+		},
+
+		HandleBrandUpdate: function (brand) {
+			var node = this.FindNode("BrandNode", brand.ID, false);
+			if (node != null)
+				node.setText(brand.Name);
+		},
+
+		@if(userData.Admin_Brands_CanAdd)
+		{
+		<text>
+		CreateBrand: function () {
+			var self = this;
+			this.loadDependencies(() => {
+				var dialog = new AskNameDialog("@g["New Brand"]");
+				dialog.ShowDialog(function (dlgData) {
+					if (!dlgData) return;
+					dlgData.CompanyID = self.CompanyID;
+					AppContext.Brands.Insert(dlgData, function (result) {
+						if (result.Success) {
+							var node = new BrandNode(result.Data.ID, result.Data.Name);
+							self.AddNode(node);
+							node.OnDoubleClick();
+							if (!self.Expanded)
+								self.Expand();
+						}
+					});
+				});
+			});
+		},
+		</text>
+		}
+
+        loadDependencies: function (callback) {
+			AppContext.LoadJS(
+				"/Admin/Brands/BrandNode.js",
+				"/Admin/Brands/Projects/ProjectNode.js",
+                "/Admin/Brands/BrandsList.js").then(()=>callback());
+        },
+
+        OnExpanded: function () {
+            var self = this;
+            this.loadDependencies(function (){
+                if (!self.IsLoaded) {
+                    self.IsLoaded = true;
+                    AppContext.Brands.GetByCompanyID(self.CompanyID, function (data){ self.loadNodes(data); });
+                }
+            });
+        },
+
+        loadNodes: function (data){
+            var brand, node;
+			for (var index = 0; index < data.length; index++) {
+				brand = data[index];
+                if (!this.FindNode("BrandNode", brand.ID, false)) {
+                    node = new BrandNode(brand.ID, brand.Name);
+                    this.AddNode(node);
+                }
+            }
+        },
+
+        OnDoubleClick: function (e) {
+            var self = this;
+            this.loadDependencies(function () {
+				var view = new BrandsList(self.CompanyID);
+                view.NodeID = self.NodeID;
+                view.Show(self.getViewContainer());
+            });
+		}
+    };
+//</script>

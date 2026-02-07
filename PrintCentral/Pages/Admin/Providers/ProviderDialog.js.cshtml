@@ -1,0 +1,402 @@
+﻿@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Providers/ProviderDialog.js
+///<reference path="/js/jquery-3.0.0.min.js" />
+///<reference path="/js/Kendo.all.min.js" />
+///<reference path="/js/AppContext.js" />
+
+//<script>
+      var ProviderDialog = function (companyid, providerData) {
+          FormView.Extend(this, "@g["New Provider"]", `/admin/Providers/ProviderDialog`);
+          this.CompanyID = companyid;
+          this.Provider = providerData;
+          this.LoadedLocations = false;
+          this.IsNewProvider = false;
+          this.CompanyArticles = []; 
+          this.isRendered = false; 
+      };
+
+    ProviderDialog.prototype =
+    {
+        constructor: ProviderDialog,
+
+        OnLoad: function () {
+            var self = this
+            if (self.Provider != null) {
+                self.model.ID = self.Provider.ID;
+                self.model.ProviderID = self.Provider.ProviderCompanyID;
+                self.model.ProviderCompanyID = self.Provider.ProviderCompanyID;
+                self.model.ClientReference = self.Provider.ClientReference;
+                self.model.Instructions = self.Provider.Instructions;
+                self.model.SLADays = self.Provider.SLADays;
+                //self.model.BillingInfoId = self.Provider.BillingInfoId;
+                self.model.Currency = self.Provider.Currency || '';
+
+            }
+            else {
+                self.IsNewProvider = true;
+            }
+
+            self.PrepareProviderFinder();
+
+            if (self.Provider != null) {
+                self.GetCompaniesByFilter(self.Provider.CompanyName)
+                .done(() => {
+                        // override value
+                    self.elements.ProviderCompanyID.selectpicker('val', self.Provider.ProviderCompanyID);
+                    self.model.ProviderCompanyID = self.Provider.ProviderCompanyID;
+                    self.model.ProviderID = self.Provider.ProviderCompanyID;
+                    self.UpdateProviderInfo()
+                });
+            }
+
+            @*  AppContext.Companies.GetAll(function (data)
+                {
+
+                self.companies = data.filter((e, i) => { return e.ID != self.CompanyID; });
+                AppContext.LoadComboBox(self.elements.ProviderCompanyID, self.companies, "ID", "Name");
+                if (self.Provider != null)
+                self.model.ProviderCompanyID = self.Provider.ProviderCompanyID;
+                }); *@
+
+                AppContext.Providers.GetArticlesByCompanyId(self.CompanyID, function (data) {
+                    if (data) {
+                        const arrayOfProjects = [];
+                        const objectMap = new Map();
+                        data.forEach(art => {
+                            if (!objectMap.has(art.ProjectID)) {
+                                objectMap.set(art.ProjectID, art.ProjectName);
+                                arrayOfProjects.push({ projectID: art.ProjectID, projectName: art.ProjectName });
+                            }
+                        });
+                        arrayOfProjects.sort((a, b) => {
+                            return a.projectName.localeCompare(b.projectName);
+                        });
+
+                        AppContext.LoadComboBox(self.elements.CompanyProjectID, arrayOfProjects, "projectID", "projectName");
+                        let arrayOfArticlesRenamed = data.map(a => {
+                            if (a.LabelId) {
+                                a.ArticleName = `${a.ArticleName}-${a.ArticleCode}-${a.ProjectName}`
+                                return a;
+
+                            }
+                        });
+                        self.CompanyArticles = arrayOfArticlesRenamed;
+
+                        let arrayOfArticlesFilteredByProject = self.CompanyArticles.filter(ca => ca.ProjectID == self.elements.CompanyProjectID.val())
+
+                        AppContext.LoadComboBox(self.elements.CompanyArticleID, arrayOfArticlesFilteredByProject, "ArticleID", "ArticleName");
+                        self.PrepareArticleFinder();
+
+                    }
+                });
+
+            if (!self.IsNewProvider) {
+                AppContext.Providers.GetArticlesByProviderId(self.Provider.ProviderCompanyID, self.CompanyID, function (data) {
+                    self.elements.ProviderArticleTable.LoadData(data);
+                });
+
+            }
+
+        },
+
+        OnUnload: function () {
+            let self = this;
+            
+            let combo = self.elements.ProviderCompanyID;
+
+            combo.selectpicker('destroy');
+        },
+
+
+        PrepareArticleFinder: function () {
+            let self = this;
+            self.elements.CompanyArticleID.selectpicker({
+                liveSearch: true,
+                liveSearchStyle: 'contains',
+                liveSearchNormalize: true,
+                style: 'btn-sm btn-light fixBorders',
+                sanitize: false
+
+                //      ItemAssignmentGridView.SelectPickerConfig = {
+                //liveSearch: true,
+                //liveSearchStyle: 'contains',
+                //liveSearchNormalize: true,
+                //style: 'btn-sm btn-light fixBorders',
+                //sanitize: false,
+                //sanitizeFn: (el) => { return el; }
+
+            });
+            self.elements.CompanyArticleID.selectpicker('val', '0');
+            console.log(self.elements.CompanyArticleID.selectpicker);
+        },
+
+        TestOrderArticles: function (e) {
+            AppContext.Providers.TestGetOrderArticles(function (response) {
+
+            });
+        },
+
+        RemoveArticle: function (e) {
+            var self = this;
+            var providerArticle = this.elements.ProviderArticleTable.GetSelectedData();
+            if (providerArticle) {
+                var dlg = new ConfirmDialog("@g["Remove association between this article and the selected provider?"]");
+                dlg.ShowDialog(function (response) {
+                    if (response) {
+                        AppContext.Providers.RemoveArticleFromProvider(providerArticle.ID, function (result) {
+                            if (result.Success) {
+                                self.elements.ProviderArticleTable.DeleteRow(self.elements.ProviderArticleTable.SelectedIndex);
+                            }
+                        });
+                    }
+                });
+            }
+
+        },
+        AddArticle: function (e) {
+            var self = this;
+            let articleid = this.elements.CompanyArticleID.val();
+            let arrayOfArticlesToSave = [];
+            if (!articleid) {
+                return;
+            }
+            let companyProviderId = this.elements.ProviderCompanyID.val();
+            for (i = 0; i < articleid.length; i++) {
+                const existe = self.elements.ProviderArticleTable.data.find(a => a.ArticleId == articleid[i])
+                if (!existe) {
+                    arrayOfArticlesToSave.push(articleid[i]);
+                }
+            }
+            if (companyProviderId) {
+                if (arrayOfArticlesToSave.length > 0) {
+                    AppContext.Providers.AddArticlesToProvider(arrayOfArticlesToSave, companyProviderId, function (result) {
+                        if (result.Success) {
+                            for (i = 0; i < result.Data.length; i++) {
+                                self.elements.ProviderArticleTable.AddRow(result.Data[i]);
+                            }
+
+                        }
+                    });
+                }
+
+            }
+
+        },
+
+        UpdateProviderInfo: function (e) {
+            var self = this;
+            var companyid = this.elements.ProviderCompanyID.val();
+
+
+            if (companyid != null) {
+                var company = this.companies.find(function (e) { return e.ID == companyid; });
+                this.model.CompanyName = company.Name;
+                this.model.CompanyCode = company.CompanyCode;
+
+                if (this.LoadedLocations === false) {
+                    this.LoadedLocations = true;
+                    AppContext.Locations.GetByCompanyID(1, function (data) {
+                        self.locations = data;
+                        AppContext.LoadComboBox(self.elements.DefaultProductionLocation, data, "ID", "Name");
+                        if (self.Provider != null)
+                            self.model.DefaultProductionLocation = self.Provider.DefaultProductionLocation;
+                    });
+                }
+                AppContext.Providers.GetArticlesByProviderId(companyid, self.CompanyID, function (data) {
+                    self.elements.ProviderArticleTable.LoadData(data);
+                });
+            }
+        },
+
+        UpdateArticlesInfo: function (e) {
+            let self = this;
+
+            if (self.isRendered) {
+                let projectId = this.elements.CompanyProjectID.val();
+                let arrayOfArticlesFilteredByProject = self.CompanyArticles.filter(ca => ca.ProjectID == self.elements.CompanyProjectID.val());
+                self.elements.CompanyArticleID.selectpicker('val', "");
+                self.elements.CompanyArticleID.selectpicker('refresh')
+                AppContext.LoadComboBox(self.elements.CompanyArticleID, arrayOfArticlesFilteredByProject, "ArticleID", "ArticleName");
+                self.PrepareArticleFinder();
+                self.elements.CompanyArticleID.selectpicker('refresh')
+
+            } else {
+                self.isRendered = true;
+            }
+
+        },
+
+        SetLocationName: function (e) {
+            var locationid = this.elements.DefaultProductionLocation.val();
+            if (locationid != null) {
+                var location = this.locations.find(function (e) { return e.ID == locationid; });
+                this.model.LocationName = location.Name;
+            }
+        },
+
+        AddCompany: function (e) {
+            var self = this;
+
+            if(self.elements.BtnAddCompany.hasClass('invisible'))  {
+                if(e) e.preventDefault();
+                return false;
+            }
+
+            AppContext.LoadJS("/Common/AskNameDialog.js").then(() => {
+                var dialog = new AskNameDialog("@g["New Company"]");
+                dialog.ShowDialog(function (dlgData) {
+                    if (dlgData) {
+                        AppContext.Companies.Insert(dlgData, function (result) {
+                            if (result.Success) {
+                                self.EditCompany(null, result.Data.ID);
+                            }
+                        });
+                    }
+                });
+            });
+        },
+
+        EditCompany: function (e, id) {
+            var self = this;
+            var companyid = id == null ? this.elements.ProviderCompanyID.val() : id;
+            if (companyid != null) {
+                var dlg = new CompanyView(companyid);
+                dlg.ShowDialog((data) => {
+                    if (data != null) {
+                        self.GetCompanies(id);
+                    }
+                }, "90%");
+            }
+        },
+
+        RemoveCompany: function () {
+            var self = this;
+            var companyId = self.elements.ProviderCompanyID.val();
+            var providerId = self.Provider ? self.Provider.ID : null;
+            if (companyId != null) {
+                var dlg = new ConfirmDialog("@g["Are you sure to delete current selected company, this action cannot be undone?"]");
+                dlg.ShowDialog(function (response) {
+                    if (response) {
+                        AppContext.Companies.Delete(companyId, function (result) {
+                            if (result.Success) {
+                                if (providerId) {
+                                    AppContext.Providers.RemoveProviderFromCompany(providerId);
+                                    self.GetCompanies();
+                                }
+                            }
+                        });
+                    }
+                }, "40%");
+            }
+        },
+
+        GetCompanies: function (id) {
+            var self = this;
+            var companyId = id == null ? self.elements.ProviderCompanyID.val() : id;
+
+            AppContext.Companies.GetAll(function (data) {
+                self.companies = data.filter((e, i) => { return e.ID != self.CompanyID; });
+                var selected = data.find(function (e) {
+                    return e.ID == companyId;
+                });
+                AppContext.LoadComboBox(self.elements.ProviderCompanyID, self.companies, "ID", "Name");
+                if (selected) {
+                    self.model.ProviderCompanyID = selected.ID;
+                    self.UpdateProviderInfo();
+                }
+            });
+        },
+        OnCancel: function () {
+
+            var self = this;
+
+            if (self.IsNewProvider) {
+
+                let companyProviderId = this.elements.ProviderCompanyID.val();
+                if (self.CompanyID && companyProviderId) {
+                    AppContext.Providers.RemoveAllArticlesFromProvider(self.CompanyID, companyProviderId, function (response) {
+
+
+                    });
+                }
+            }
+            this.Cancel();
+        },
+
+        PrepareProviderFinder: function () {
+
+            let self = this;
+
+            let combo = self.elements.ProviderCompanyID;
+
+            combo.selectpicker({
+                liveSearch: true,
+                liveSearchStyle: 'contains',
+                liveSearchNormalize: true,
+                //style: 'btn-sm btn-light',
+                style: 'btn-sm btn-light fixBorders-providers',
+                container: 'body'
+            });
+
+            self.elements.ProviderListContainer.on('changed.bs.select', (evt) => {
+                self.UpdateProviderInfo()
+            });
+
+            self.elements.ProviderListContainer.find('.bs-searchbox > [type="search"] ').on('keyup', (evt) => {
+
+                let self = this;
+                let validKey = /\w+|\d+/i.test(evt.key);
+                
+                if(!validKey || !evt.target.value || evt.target.value.length < 3 && !self.SerchingCompanies)
+                    return;
+                
+                self.SerchingCompanies = true;
+
+                let filter = evt.target.value;
+
+                self.GetCompaniesByFilter(filter)
+                .done(() => {
+                      self.SerchingCompanies = false;
+                });
+                      
+                
+
+            });
+
+
+        },
+
+        GetCompaniesByFilter: function (filter) {
+              let self = this;
+              let combo = self.elements.ProviderCompanyID;
+
+              // disable add new provider
+              self.elements.BtnAddCompany.addClass('invisible');
+
+
+              return AppContext.Companies.FilterByName(filter)
+                .done((found) => {
+                    
+                    self.companies = found;
+
+                    combo.empty();
+                    
+                    if (self.companies.length < 1) // enable add
+                        self.elements.BtnAddCompany.removeClass('invisible');
+                    
+                    combo.append(`<option>@g["Select an option"]</option>`)
+
+                    found.forEach((company) => {
+                        combo.append(`<option value="${company.ID}">${company.Name}</option>`)
+                    })
+
+                    combo.selectpicker('refresh')
+                });
+        }
+    };
+      
+//</script>

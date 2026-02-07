@@ -1,0 +1,98 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+
+
+}
+//# sourceURL=https://Pages/Validation/Common/CompositionWizard.js
+/// <script>
+
+
+/**
+ * 
+ * @@param orderSelection
+ * @@param wizardStep
+ * @@param allSteps
+ */
+/*
+order selection is array of orders selected from OrderGroupIndexView
+[{ OrderGroupID: 1, OrderNumber: '8545', Details: [], Orders: [OrderId, OrderID, ....], WizardStepPosition: 0  }]
+ */
+var CompositionWizard = function (orderSelection, wizardStep, allSteps) {
+
+    this.OrderSelection = orderSelection;
+    this.FormSelector = '[name="composition-wizard-frm"]'
+    AWizardBaseView.Extend(this, "@g["Quantities Wizard"]", `@Url.Content("~/Validation/Common/CompositionWizard")`, wizardStep, allSteps);
+}
+
+CompositionWizard.prototype = {
+
+    constructor: CompositionWizard,
+
+    OnLoad: function () {
+
+        var self = this;
+
+        self.model.WizardID = self.WizardStep.WizardID;
+        self.model.WizardStepID = self.WizardStep.ID;
+
+        self.ShowStatus();
+    },
+
+    Save: function () {
+
+        var self = this;
+        if (!self.model.ValidState()) {
+
+            var deffered = $.Deferred();
+
+            deffered.reject();
+
+            return deffered.promise();
+        };
+
+        var arrayData = $(self.FormSelector).serializeArray();
+
+        return AppContext.Wizard.SaveStateLabellingCompoSimple(arrayData)
+
+    },
+
+
+    _solve: function () {
+        var self = this;
+
+        if (!self.model.ValidState()) {
+
+            var deffered = $.Deferred();
+
+            deffered.reject();
+
+            return deffered.promise();
+        };
+
+        var arrayData = $(FormSelector).serializeArray();
+
+        return AppContext.Wizard.SolveLabellingCompoSimple(arrayData);
+
+    },
+
+    SaveAndNext: function () {
+
+		var self = this;
+
+        var p = self._solve();
+
+        p.done(() => {
+
+            self.GetValidator().GetStep(self.WizardStep.Position + 1);
+
+        })
+
+    },
+
+};
+
+/// </script>
+

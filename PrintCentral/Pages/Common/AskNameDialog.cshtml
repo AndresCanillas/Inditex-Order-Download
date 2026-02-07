@@ -1,0 +1,17 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+
+<viewrow>
+	<viewcolumn>
+		<viewform>
+			<input model name="Name" label="@g["Name"]:" action="keypress:AutoClose" validation="required" type="text" />
+		</viewform>
+	</viewcolumn>
+</viewrow>
+<viewfooter>
+	<button type="button" class="btn btn-primary" action="Ok">@g["OK"]</button>
+	<button type="button" class="btn btn-secondary" action="Cancel">@g["Cancel"]</button>
+</viewfooter>

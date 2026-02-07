@@ -1,0 +1,26 @@
+﻿@page
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/WF/ReasonDialog.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var ReasonDialog = function (title, operationText) {
+		FormView.Extend(this, title, `/Admin/WF/ReasonDialog`);
+		this.operationText = operationText;
+	};
+
+	ReasonDialog.prototype = {
+		constructor: ReasonDialog,
+
+		OnLoad: async function () {
+			this.elements.OKButton.text(this.operationText);
+		},
+
+		OnUnload: function () {
+		}
+	};
+//</script>

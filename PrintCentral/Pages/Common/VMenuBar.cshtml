@@ -1,0 +1,164 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@inject ICatalogRepository catalogRepo
+@inject ICompanyRepository companyRepository
+
+@{
+    Layout = null;
+    var top = 13;
+    var catalog = catalogRepo.GetByName(userData.SelectedProjectID, "VariableData");
+    var manualEntries = companyRepository.GetAvailablesManualEntry(userData.SelectedCompanyID, userData.SelectedBrandID, userData.SelectedProjectID);
+    var orderPoolManager = companyRepository.GetAvailablesOrderPoolManager(userData.SelectedCompanyID, userData.SelectedBrandID, userData.SelectedProjectID);
+    var pdfExtractors = companyRepository.GetAvailablesPDFExtractors(userData.SelectedCompanyID, userData.SelectedBrandID, userData.SelectedProjectID);
+}
+   
+@if (userData.CanSeeVMenu_UploadMenu)
+{
+    top += 50;
+    <div name="UploadOption" action="OpenUploadMenu" class="menubar-item"><span class="ti ti-cloud-up"></span></div>
+    <div name="UploadMenu" class="submenubar hidden" style="top:@(top)px;">
+        <div class="submenubar-header">@g["Upload"]</div>
+
+        @if (manualEntries.Any())
+        {
+            @foreach (var entry in manualEntries)
+            {
+                <div class="submenubar-item" data-companyID ="@entry.CompanyID" data-url="@entry.Url" data-brandID ="@entry.BrandID" data-projectID="@entry.ProjectID"   action="ShowManualEntry"><span class="ti ti-ruler-pencil"></span> @entry.Name
+                    
+                </div>
+            }
+            
+        }
+
+        @if (orderPoolManager.Any())
+        {
+            @foreach (var entry in orderPoolManager)
+            {
+                <div class="submenubar-item" data-companyID="@entry.CompanyID" data-url="@entry.Url" data-brandID="@entry.BrandID" data-projectID="@entry.ProjectID" action="ShowOrderPoolManager">
+                    <span class="ti ti-ruler-pencil"></span> @entry.Name
+
+                </div>
+            }
+
+        }
+
+        @if (userData.CanSeeVMenu_UploadOrder)
+        {
+            <div class="submenubar-item" action="UploadOrder"><span class="ti ti-package"></span>@g["Order"]</div>
+        }
+        @if (userData.CanSeeVMenu_UploadData)
+        {
+            <div class="submenubar-item" action="UploadVariableData"><span class="ti ti-package"></span>@g["Variable Data"]</div>
+        }
+		@if (manualEntries.Any(m=>m.EnabledFilePool && m.EnabledOrderPool))
+		{
+			<div class="submenubar-item" action="UploadPoolFile"><span class="ti ti-package"></span>@g["Order Pool"]</div>
+		}
+        @if (userData.Can_UploadDelivery)
+        {
+            <div class="submenubar-item" action="UploadDelivery"><span class="ti ti-package"></span>@g["Delivery"]</div>
+        }
+		@if (userData.CanSeeVMenu_UploadOrdersReport)
+        {
+            <div class="submenubar-item submenubar-separator"></div>
+            <div class="submenubar-item" action="ShowOrders"><span class="ti ti-bookmark-alt"></span>@g["Uploaded Orders"]</div>
+        }
+
+        @if (pdfExtractors.Any())
+        {
+            @foreach (var pdf in pdfExtractors)
+            {
+                <div class="submenubar-item" data-companyID="@pdf.CompanyID" data-url="@pdf.Url" data-brandID="@pdf.BrandID" data-projectID="@pdf.ProjectID" action="ShowPDFExtractor">
+                    <span class="ti ti-ruler-pencil"></span> @pdf.Name
+
+                </div>
+            }
+        }
+
+        @* <div class="submenubar-item"  action="ShowPDFExtractor"><span class="ti ti-bookmark-alt"></span>@g["PDF Extractor"]</div> *@
+
+    </div>
+}
+else
+{
+    <input type="hidden" name="UploadOption" />
+    <input type="hidden" name="UploadMenu" />
+}
+
+@if (userData.CanSeeVMenu_PrintMenu)
+{
+    top += 50;
+    <div name="PrintOption" action="OpenPrintMenu" class="menubar-item"><span class="ti ti-printer"></span></div>
+    <div name="PrintMenu" class="submenubar hidden" style="top:@(top)px;">
+        <div class="submenubar-header">@g["Print"]</div>
+        @if (userData.CanSeeVMenu_PrintLabels && catalog != null && !catalog.IsHidden)
+        {
+            <div class="submenubar-item" action="BatchPrint"><span class="ti ti-ticket"></span>@g["Print Labels"]</div>
+            <div class="submenubar-item submenubar-separator"></div>
+        }
+        @if (userData.CanSeeVMenu_PrintJobsReport)
+        {
+            <div class="submenubar-item" action="ShowPendingJobs"><span class="ti ti-bookmark-alt"></span>@g["Pending Jobs"]</div>
+            <div class="submenubar-item submenubar-separator"></div>
+        }
+        @if (userData.CanSeeVMenu_Printers)
+        {
+            <div class="submenubar-item" action="ShowPrinters"><span class="ti ti-printer"></span>@g["Printers"]</div>
+        }
+    </div>
+}
+else
+{
+    <input type="hidden" name="PrintOption" />
+    <input type="hidden" name="PrintMenu" />
+}
+
+@if (userData.IsIDT)
+{
+    top += 50;
+    <div name="DashboardsOption" action="ShowDashboards" class="menubar-item">
+        <span class="ti ti-dashboard"></span>
+        <div model name="ItemsCount" style="position:relative;top:-45px; left:18px; display:none;" class="numberCircle"></div>
+    </div>
+}
+else
+{
+    <input type="hidden" name="DashboardsOption" />
+    <div type="hidden" model name="ItemsCount"></div>
+}
+
+@if (userData.CanSeeVMenu_Admin)
+{
+    top += 50;
+    <div name="AdminOption" action="OpenAdminMenu" class="menubar-item"><span class="ti ti-panel"></span></div>
+    <div name="AdminMenu" class="submenubar hidden" style="top:@(top)px; width:280px;">
+        <div class="submenubar-header">@g["Administration"]</div>
+        @if (userData.CanSeeVMenu_AdminBrands)
+        {
+            <div class="submenubar-item" action="ShowBrands"><span class="ti ti-ruler-pencil"></span>@g["Brands"]</div>
+        }
+        @if (userData.CanSeeVMenu_AdminArticles)
+        {
+            <div class="submenubar-item" action="ShowArticles"><span class="ti ti-tag"></span>@g["List of articles"]</div>
+        }
+        @if (userData.CanSeeVMenu_AdminLocations)
+        {
+            <div class="submenubar-item" action="ShowLocations"><span class="ti ti-direction-alt"></span>@g["Manage locations"]</div>
+        }
+        @if (userData.CanSeeVMenu_AdminUsers)
+        {
+            <div class="submenubar-item" action="ShowUsers"><span class="ti ti-unlock"></span>@g["Manage users"]</div>
+        }
+        <div class="submenubar-item" action="ShowAddresses"><span class="ti ti-tag"></span>@g["List of Addresses"]</div>
+
+        <div class="submenubar-item" action="ShowReport"><span class="ti ti-tag"></span>@g["Custom Report"]</div>
+    </div>
+}
+else
+{
+    <input type="hidden" name="AdminOption" />
+    <input type="hidden" name="AdminMenu" />
+}
+
+

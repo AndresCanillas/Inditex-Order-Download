@@ -1,0 +1,400 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages/ManualEntry/OrderPoolGrupoTendamView.js
+///<reference path="/js/jquery-3.0.0.min.js" />
+///<reference path="/js/Kendo.all.min.js" />
+///<reference path="/js/AppContext.js" />
+///<reference path="/js/AppContext.AppDomain.js" />
+
+// <script>
+    var OrderEntryView = function (options) {
+
+        if (!options) {
+            options = {};
+        }
+
+        //this.options = OrderEntryView.GetDefaults(options);
+
+        console.log("OrderEntry- Ctor")
+
+        FormView.Extend(this, "@g["Agrupador pedidos Grupo Tendam"]", `/ManualEntry/OrderPoolGrupoTendamView`);
+
+           this.Options = options;
+           this.CompanyId = null;
+           this.OrderId = 0;
+           this.ProjectId = 0;
+           this.Articles = null;
+           this.Providers = null;
+           this.FormSelector = '[name="dataentry-frm"]';
+           this.OrderStatus = null;
+           this.OrderData = null;
+           this.Languages = [{ "Culture": "es-ES", "Lang": "Spanish" }, { "Culture": "ca-ES", "Lang": "Catalan" }, { "Culture": "en-US", "Lang": "English" }, { "Culture": "fr-FR", "Lang": "French" }, { "Culture": "tr-TR", "Lang": "Turkish" }];
+           this.Step = 0;
+           this.DataAllSteps = [];
+           this.OrderSelection = [];
+           this.OnWizardCreated = new AppEvent();
+           this.SelectedOrdersToGroup = []
+       };
+
+
+    // public static method
+                     OrderEntryView.GetDefaults = function (options) {
+
+        return $.extend({
+            Title: '@g["Custom Report"]',
+            Filter: {},
+            EnableStorageFilter: true,
+        }, options);
+    };
+
+
+           OrderEntryView.prototype = {
+                   constructor: OrderEntryView,
+
+            OnLoad: function () {
+                var self = this;
+                console.log("OnLoad - OrderEntry");
+                self.InitializeView();
+            },
+
+            SetOptions: function (options) {
+                this.Options = options;
+            },
+            OnShow: function () {
+                var self = this;
+
+            },
+            OnHide: function () {
+                var self = this;
+                self.ClearPage();
+            },
+            InitializeView: function () {
+               let self = this;
+               const $SearchingTool = document.getElementById("SearchingTool");
+               if ($SearchingTool)
+               {
+                  $SearchingTool.style.display='none';
+               }
+            },
+
+            ClearAllRows: function ()
+            {
+                const $table = document.querySelector("#ResultsGrid")
+                const $tableBody = $table.querySelector ("tbody")
+                    $tableBody.innerHTML = "";
+            },
+            ShowOverlay: function () {
+                var overlay = null;
+                overlay = $('<div><div id="overlay"></div><div id="overlaymessage">Processing...</div></div>');
+                overlay.appendTo(document.body)
+            },
+      
+
+            AddRows : function (filteredOrders)
+            {
+                let self =this;
+                const table = document.querySelector(`#ResultsGrid`);
+                if (!table) {
+                    console.error(`No se encontró una tabla con el ID '${tableId}'`);
+                return;
+            }
+            const tableBody = table.querySelector("tbody");
+
+            if (!filteredOrders) return
+
+            // Agrupar órdenes por OrderNumber
+            const groupedOrders = filteredOrders.reduce((acc, order) => {
+                if (!acc[order.OrderNumber]) {
+                    acc[order.OrderNumber] = [];
+                }
+                acc[order.OrderNumber].push(order);
+                return acc;
+            }, {});
+
+            // Crear filas agrupadas
+            Object.keys(groupedOrders).forEach(orderNumber => {
+                // Fila de cabecera del grupo
+                const headerRow = document.createElement("tr");
+                headerRow.className = "group-header";
+                headerRow.innerHTML = `
+                <td colspan="7" orderNumber=${orderNumber} style="background-color: #f0f0f0; font-weight: bold; padding: 10px;">
+                                      <button class="edit-button select-button btn btn-primary btn-sm" data-selected="false">
+                                          Select
+                                      </button>
+                                      Order Number: ${orderNumber} Pattern: ${self.Pattern}
+                           </td>
+
+                `;
+                tableBody.appendChild(headerRow);
+                                           // Añadir eventos a los botones
+               headerRow.querySelector(".select-button").addEventListener("click", (e) => {
+                               e.preventDefault();
+                               if (e.pointerType === 'mouse')
+                               {
+                                   console.log("Target", e.target);
+                                          self.SelectRow(headerRow);
+                               } else {
+                                   self.SearchOrder();
+                               }
+                           });
+
+                // Filas de detalles del grupo
+                groupedOrders[orderNumber].forEach(o => {
+                    const newRow = document.createElement("tr");
+                    newRow.className = "group-detail";
+                    let processedDate = o.ProcessedDate ? o.ProcessedDate : '';
+                    newRow.innerHTML = `
+                    <td style="display: none;">${o.ID}</td>
+                    <td>${o.OrderNumber}</td>
+                    <td>${o.ArticleCode}</td>
+                    <td>${o.CategoryText2}</td>
+                    <td>${o.CategoryText3}</td>
+                    <td>${o.ColorCode} - ${o.ColorName}</td>
+                    <td>${o.Size}</td>
+                    <td>${o.Quantity}</td>
+                `;
+
+                    tableBody.appendChild(newRow);
+
+
+                });
+            });
+            },
+         
+
+            SelectRow : function (row)
+            {
+                let self = this
+                const cells = row.querySelectorAll("td");
+                let ordernumber = cells[0].attributes[1].nodeValue
+                const button = row.querySelector(".select-button");
+                const isSelected = button.getAttribute("data-selected") === "true";
+
+                if (isSelected) {
+                    // Deseleccionar: eliminar del array
+                    const index = self.SelectedOrdersToGroup.indexOf(ordernumber);
+                    if (index > -1) {
+                        self.SelectedOrdersToGroup.splice(index, 1);
+                    }
+                    button.textContent = "Select";
+                    button.setAttribute("data-selected", "false");
+                    button.classList.remove("btn-danger");
+                    button.classList.add("edit-button");
+                } else {
+                    // Seleccionar: añadir al array
+                    self.SelectedOrdersToGroup.push(ordernumber);
+                    button.textContent = "Unselect";
+                    button.setAttribute("data-selected", "true");
+                    button.classList.remove("edit-button");
+                    button.classList.add("btn-danger");
+                }
+
+                console.log("Selected Orders:", self.SelectedOrdersToGroup);
+            },
+
+            ClearPage: function () {
+                var self = this;
+
+                //raise Clear Methods (Combos)
+
+                self.model.ProviderCompanyID =-1;
+
+                //fields
+
+                self.DeliveryDate = "@DateTime.Now.ToString("yyyy-MM-dd")";
+
+                //hiddens
+                self.model.CreatedDate = "1900-01-01";
+                self.model.ProviderCompanyID = "";
+
+                //grids
+            },
+            SearchOrderEvt: function (e) {
+                e.preventDefault();
+                let self = this;
+                 self.SearchOrder();
+            },
+            SelectAllOrdersEvt : function (e) 
+            {
+                e.preventDefault();
+                let self = this;
+                
+                // Limpiar array de órdenes seleccionadas
+                self.SelectedOrdersToGroup = [];
+                
+                // Obtener todas las filas de cabecera de grupo
+                const groupHeaders = document.querySelectorAll("#ResultsGrid .group-header");
+                
+                // Recorrer cada cabecera de grupo
+                groupHeaders.forEach(headerRow => {
+                    const cells = headerRow.querySelectorAll("td");
+                    const orderNumber = cells[0].attributes[1].nodeValue;
+                    const button = headerRow.querySelector(".select-button");
+                    
+                    // Añadir al array de seleccionados
+                    self.SelectedOrdersToGroup.push(orderNumber);
+                    
+                    // Actualizar estado visual del botón
+                    button.textContent = "Unselect";
+                    button.setAttribute("data-selected", "true");
+                    button.classList.remove("edit-button");
+                    button.classList.add("btn-danger");
+                });
+                
+                console.log("All Orders Selected:", self.SelectedOrdersToGroup);
+            },
+            SearchOrder:  function () {
+                       
+                       let self = this;
+                       let ordernumber = self.elements.SearchOrderNumber.val();
+                       self.SelectedOrdersToGroup= [];
+                       console.log("Search Order", ordernumber);
+                       self.ClearPage();
+                       self.ClearAllRows()
+                       self.Pattern = ordernumber
+                       const SearchingTool = document.querySelector("#SearchingTool")
+                      
+                       SearchingTool.style.display = 'block';
+                       orderfilter =  {
+                           ProjectID : self.Options.ProjectID,
+                           ManualEntryFilterService:'TENDAM',
+                           CategoryText6:ordernumber, 
+                           CategoryCode6:ordernumber, 
+                           CategoryCode1:ordernumber
+
+                       }
+                       //       url, data, callback, errorhandler, showOverlay, showSuccessMessage
+                        AppContext.HttpPost(`/manualentry/getordersbyfilter`, orderfilter, (data) => {
+                           if (data.Data != null ) {
+                               self.OrdersData = data.Data;
+                               self.AddRows(self.OrdersData) ;
+                               const saveButton = document.getElementById('btn-SaveAndNext');
+                                if (saveButton) {
+                                     saveButton.classList.add("btn-primary")
+                                     saveButton.classList.remove("disabled")
+                                     saveButton.disabled = false; 
+                                }
+                           }else {
+                               AppContext.ShowError("@g["No Data Found"]");
+                           }
+                       }, null, true);
+
+                      // let filteredOrders = self.OrdersData.filter(x => x.OrderNumber.startsWith(ordernumber) && x.ArticleCode.startsWith(articlecode));
+                       
+                       //console.log(filteredOrders);
+
+
+
+
+                       // self.RemoveOverlay();
+                   },
+  
+
+            SaveAndNext : async function (e)
+            {
+                e.preventDefault()
+                let self = this
+                console.log(self.SelectedOrder)
+                if (self.SelectedOrdersToGroup.length == 0) 
+                {
+                    AppContext.ShowError("Please select at least one order"); 
+                    return; 
+                }
+                // Desactivar el botón para prevenir múltiples clics
+                const saveButton = document.getElementById('btn-SaveAndNext');
+                if (saveButton) {
+                    saveButton.disabled = true;
+                    saveButton.classList.add("disabled") 
+                    saveButton.classList.remove("btn-primary")
+                }
+
+                let groupOrders = {
+                    CompanyID: self.Options.CompanyID, 
+                    BrandID:self.Options.BrandID,
+                    ProjectID: self.Options.ProjectID, 
+                    Pattern: self.Pattern,
+                    Orders : self.SelectedOrdersToGroup,
+                    ManualEntryGroupingService:"TENDAM"
+
+                }
+
+
+
+                console.log("Selected orders",groupOrders)
+                let result = await AppContext.HttpPost(`/manualorderentry/groupordersbypattern`, groupOrders, null, null, true);
+
+                if (result.Success) {
+                           self.OrderSavedHandler2(result.Data, self.Options.ProjectID, self.Pattern);
+                } else {
+                    // Reactivar el botón si hay error
+                    if (saveButton) {
+                        saveButton.disabled = false;
+                        saveButton.classList.remove("disabled")
+                        saveButton.classList.add("btn-primary")
+                    }
+                }
+            },
+
+            OrderSavedHandler2: function (data, projectId,ordernumber) {
+                let self = this;
+                let orderID = data[0].OrderID;
+                AppContext.HttpGet(`/manualorderentry/getsavedorder/${orderID}/${projectId}`, (result) => {
+
+                    if (result.Success) {
+                        if (result.Data) {
+                            result.Data.forEach((order) => {
+
+                                let orderSelection = {
+
+                                    OrderNumber: ordernumber,
+                                    Details: [],
+                                    OrderGroupID: order.OrderGroupID,
+                                    Orders: [order.ID],
+                                    ProjectID: order.ProjectID
+                                }
+
+                                self.OrderSelection.push(orderSelection);
+                            })
+
+                            validatorHandler = new ValidatorHelper(self.OrderSelection);
+
+                            validatorHandler.OnWizardCreated.Subscribe((e) => {
+                                var wizard = e.wizardController;
+                                var wizardStep = e.wizardStep
+                                wizard.Show(self.ViewContainer);
+                            })
+
+                            validatorHandler.Continue();
+
+                        } else {
+                            AppContext.ShowWarning("@g["Order Queued!"]");
+                            self.ClearPage();
+                            self.RemoveOverlay();
+                        }
+                        result.Data.forEach((element) => {
+
+                            console.log("Order Saved", element)
+                        })
+                    } else {
+                        self.ClearPage();
+                        self.RemoveOverlay();
+                        window.location.href = '/';
+
+                    }
+
+                }, null, true)
+
+            },
+
+ 
+
+
+
+           //#endregion
+
+	};
+//</script>

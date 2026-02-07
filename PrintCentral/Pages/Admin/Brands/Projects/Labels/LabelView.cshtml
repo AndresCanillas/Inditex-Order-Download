@@ -1,0 +1,114 @@
+﻿@page
+@inject ILocalizationService g
+@inject ILabelRepository labelRepo
+@inject IMaterialRepository materialRepo
+@inject IUserData userData
+@{
+    Layout = null;
+    var materials = materialRepo.GetList();
+    var readOnly = userData.Admin_Labels_CanEdit ? "" : "readonly";
+    var disabled = userData.Admin_Labels_CanEdit ? "" : "disabled";
+}
+<viewcard>
+    <viewform>
+        <viewrow>
+            <viewcolumn>
+                <viewrow>
+                    <viewcolumn>
+                        <div model name="ID" label="ID:"></div>
+                        <input model name="CompanyID" type="hidden" />
+                        <input model name="ProjectID" type="hidden" />
+                        <input model name="FileName" type="hidden" />
+                        <input type="hidden" model name="GroupingFields" />
+                        @if (userData.Admin_Labels_CanRename)
+                        {
+                            <input model name="Name" label="@g["Name"]:*" validation="required;maxlen(50)" type="text" />
+                        }
+                        else
+                        {
+                            <div model name="Name" label="@g["Name"]:*"></div>
+                        }
+                        <textarea model name="Comments" label="@g["Comments"]:*" validation="required;maxlen(2000)" style="height:87px;" @readOnly></textarea>
+                        <input model name="IsValid" label="@g["Validated Label?"]" type="checkbox" data-type="bool" />
+                        <select model name="Type" label="@g["Label Type"]:*" validation="required" options="@(OptionList.FromEnum<LabelType>())"></select>
+                        <select model name="MaterialID" label="@g["Material"]:*" validation="required" options="@(OptionList.FromEnumerable(materials, "ID", "Name"))"></select>
+                    </viewcolumn>
+                </viewrow>
+                <viewrow>
+                    <viewcolumn>
+                        <input model name="DoubleSide" label="@g["Double Side?"]" type="checkbox" @disabled />
+                        <input model name="EncodeRFID" label="@g["Encode RFID?"]" type="checkbox" @disabled />
+                        <input model name="IsSerialized" label="@g["Is Serialized?"]" type="checkbox" @disabled />
+                        <input model name="Shared" label="@g["Save as shared Label?"]" type="checkbox" @disabled />
+                        <input model name="LabelsAcross" label="@g["Labels across?"]" type="checkbox" @disabled />
+                        <input model name="DenyPartialExport" label="@g["Deny Partial Export?"]" type="checkbox" @disabled />
+                        <input model name="IncludeComposition" label="@g["Includes Composition?"]" type="checkbox" @disabled />
+                        <input model name="ShoeComposition" label="@g["Compatible with Shoe Composition?"]" type="checkbox" @disabled />
+                        <input model name="IncludeCareInstructions" label="@g["Include Care Instructions"]" type="checkbox" @disabled />
+
+                        @* <input model name="IsForComposition" label="@g["Labels across?"]" type="checkbox" @disabled /> *@
+                        <div class="form-group row" style="margin-bottom:5px;">
+                            <label class="col-sm col-form-label">@g["Rows"] x @g["Columns"]</label>
+                            <div class="input-group input-group-sm col-sm">
+                                <input model name="Rows" validation="numeric;maxlen(3)" type="text" @disabled placeholder="@g["Rows"]" no-transform class="form-control form-control-sm" style="    min-width: 30px;    max-width: 80px;" />
+                                <span class="input-group-addon" style="padding:4px 2px 0 2px">x</span>
+                                <input model name="Cols" label="@g["Columns"]:" validation="numeric;maxlen(3)" type="text" @disabled placeholder="@g["Columns"]" no-transform class="form-control form-control-sm" style="    min-width: 30px;    max-width: 80px;" />
+                            </div>
+                        </div>
+
+                    </viewcolumn>
+                </viewrow>
+            </viewcolumn>
+            <viewcolumn style="">
+                <div style="font-size:17px;">@g["Preview"]</div>
+                <hr class="subtitle" />
+                <viewrow>
+                    <viewcolumn style="min-height:400px; min-width:400px;">
+                        <div class="form-group row">
+                            <img name="LabelPreview" class="image-preview label-preview2" />
+                        </div>
+                    </viewcolumn>
+                </viewrow>
+                <viewrow>
+                    <viewcolumn>
+                        <input model name="PreviewData" type="hidden" value="" />
+                        <input model name="Mappings" type="hidden" value="" />
+                        <div style="max-width:520px; margin:auto">
+                            <a action="EnlargePreview" title="@g["Enlarge"]" href="#" name="EnlargeBtn" class="btn btn-sm btn-outline-primary" style="font-size:13px; width:160px; margin-top:15px;">@g["Enlarge"]</a>
+                            @if (userData.Admin_Labels_CanEdit)
+                            {
+                                <a action="SetPreview" title="@g["Update Preview"]" href="#" class="btn btn-sm btn-outline-primary" style="font-size:13px; width:160px; margin-top:15px;">@g["Update Preview"]</a>
+                            }
+                            <a action="ManageMappings" title="@g["Manage Mappings"]" href="#" class="btn btn-sm btn-outline-primary" style="font-size:13px; width:160px; margin-top:15px;">@g["Mappings"]</a>
+                            <a name="DisplayFields" action="SetDisplayFields" href="#" class="btn btn-sm btn-outline-primary" style="font-size:13px; width:160px; margin-top:15px;">@g["Display Fields"]</a>
+                            <a name="ComparerField" action="SetComparerField" href="#" class="btn btn-sm btn-outline-primary" style="font-size:13px; width:160px; margin-top:15px;">@g["Comparer Field"]</a>
+
+                        </div>
+                    </viewcolumn>
+                </viewrow>
+            </viewcolumn>
+        </viewrow>
+             
+        <viewrow>
+            <viewcolumn>
+              
+                <div style="font-size:17px;">@g["Label File"]</div>
+                <hr class="subtitle" />
+                @if (userData.Admin_Labels_CanEdit)
+                {
+                    <input name="LabelFile" type="hidden" data-type="file" accept=".nlbl, .lbl" />
+                }
+                <input model name="UpdatedFileBy" label="@g["Updated By"]:" disabled type="text" />
+                <input model name="UpdatedFileDate" label="@g["Updated Date"]:" disabled type="datetime" />
+                <a name="downloadLink" class="d-none" href="#">@g["Download Label File"]</a>
+            </viewcolumn>         
+        </viewrow>
+    </viewform>
+    <viewfooter>
+        @if (userData.Admin_Labels_CanEdit)
+        {
+            <a href="#" class="btn btn-primary" action="Save">@g["Save"]</a>
+        }
+        <a href="#" class="btn btn-secondary" action="Cancel">@g["Cancel"]</a>
+    </viewfooter>
+</viewcard>

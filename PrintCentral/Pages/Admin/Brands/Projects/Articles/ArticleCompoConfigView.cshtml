@@ -1,0 +1,88 @@
+﻿@page
+@using Service.Contracts.PrintCentral
+@using WebLink.Contracts.Models
+@inject ILocalizationService g
+@inject IArticleRepository repo
+@{
+
+    var CalculationModes = new List<Object>() {
+new {value=0, desc=g["Only 1 Page"] }, 
+new {value=1, desc=g["Multiple Pages"] }, 
+new {value=2, desc=g["Multiple Pages merging with additionals "] }, 
+};
+}
+
+<viewform>
+    <input model name="ID" type="hidden" data-type="int" />   
+    <input model name="ProjectID" type="hidden" data-type="int" /> 
+    <input model name="ArticleID" type="hidden" data-type="int" /> 
+    <input model name="ArticleCode" type="hidden" data-type="text" />
+    <input model name="CompanyID" type="hidden" data-type="int" /> 
+
+
+    <viewrow>
+        <viewcolumn>
+            @* <div class="form-subtitle"></div>@g["Article composition definition"] *@
+
+        </viewcolumn>
+    </viewrow>
+    <viewrow>
+        <viewcolumn>
+            <input model name="WidthInches" type="hidden" label="@g["Width in milimeters"]" data-type="number" />
+            <input  name="WidthInchesMM" type="number" label="@g["Width in milimeters"]" data-type="number" />
+        </viewcolumn>
+    </viewrow>
+    <viewrow>
+        <viewcolumn>
+            <input model name="WidthAdditionalInInches" type="hidden" label="@g["Additional Width in milimeters"]" data-type="number" />
+            <input  name="WidthAdditionalInInchesMM" type="number" label="@g["Additional Width in milimeters"]" data-type="number" />
+        </viewcolumn>
+    </viewrow>
+    <viewrow>
+        <viewcolumn>
+            <input model name="HeightInInches" type="hidden" label="@g["Height in milimeters"]" data-type="number" />
+            <input  name="HeightInInchesMM" type="hidden" label="@g["Height in milimeters"]" data-type="number" />
+        </viewcolumn>
+    </viewrow>
+    <viewrow>
+        <viewcolumn>
+            <input model name="LineNumber" type="number" label="@g["Number of Lines"]" data-type="number" />
+        </viewcolumn>
+    </viewrow>
+    <viewrow>
+        <viewcolumn>
+            <input model name="WithSeparatedPercentage" type="checkbox" label="@g["Separated Percentage"]" data-type="bool" />
+        </viewcolumn>
+    </viewrow>
+    <viewrow>
+        <viewcolumn>
+            <input model name="DefaultCompresion" type="number" label="@g["Default Compression"]" data-type="number" />
+        </viewcolumn>
+    </viewrow>
+    <viewrow>
+        <viewcolumn>
+            <input model name="MaxLinesToIncludeAdditional" type="number" label="@g["Composition max length"]" data-type="number" />
+        </viewcolumn>
+    </viewrow>
+    <viewrow>
+        <viewcolumn>
+            <input model name="PPI" type="number" label="@g["Pixels Per Inch "]" data-type="number" />
+        </viewcolumn>
+    </viewrow>
+
+    <viewrow>
+        <viewcolumn>
+            <input model name="MaxPages" type="number" label="@g["Number of pages "]" data-type="number" />
+        </viewcolumn>
+    </viewrow>
+
+    <viewrow>
+         <viewcolumn>
+            <select model name="ArticleCompositionCalculationType" label="@g["Calculation Mode"] :" options="@(OptionList.FromEnumerable(CalculationModes, "value", "desc"))" />
+        </viewcolumn>
+    </viewrow>
+
+    <viewfooter>
+        <a href="#" class="btn btn-primary" action="Save">@g["Save"]</a>
+    </viewfooter>
+</viewform>

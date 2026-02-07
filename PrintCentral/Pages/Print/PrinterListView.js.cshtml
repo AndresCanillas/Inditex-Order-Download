@@ -1,0 +1,143 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Production/PrinterListView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var PrinterListView = function () {
+		FormView.Extend(this, "@g["Printers"]", "/Print/PrinterListView");
+		this.locations = null;
+		this.printers = null;
+	};
+
+
+	PrinterListView.prototype = {
+		constructor: PrinterListView,
+
+		OnLoad: function () {
+			var self = this;
+			var events = new AppContext.PrinterJobEvents(this, this.HandlePrinterJobEvent);
+			events.Listen();
+			this.OnUnloaded.Subscribe(this, function () { events.Dispose(); });
+			AppContext.Locations.GetList(function (data) {
+				self.locations = data;
+			AppContext.Printers.GetList(function (data) {
+				self.printers = data;
+				self.LoadLocations();
+			});
+				self.LoadPrinters();
+			});
+		},
+
+		LoadLocations: function (e) {
+			if (this.locations != null) {
+				var data = this.locations.filter(function (value) {
+					return (value.CompanyID == this.model.CompanyID);
+				}, this);
+				AppContext.LoadComboBox(this.elements.LocationID, data, "ID", "Name");
+				if (data.length === 0)
+					this.elements.PrinterContainer.empty();
+			}
+		},
+
+		LoadPrinters: function (e) {
+			var self = this;
+			if (this.printers != null) {
+				this.elements.PrinterContainer.empty();
+				var data = this.printers.filter(function (value) {
+					return (value.LocationID == this.model.LocationID);
+				}, this);
+				for (var i = 0; i < data.length; i++) {
+					this.CreatePrinterCard(data[i]);
+				}
+				AppContext.Printers.GetStates(function (data) {
+					self.UpdatePrinterStates(data);
+				});
+			}
+		},
+
+		CreatePrinterCard: function (data) {
+			var html = $(`<div class="item-card printer-card" data-entityid="${data.ID}" action="OpenPrinterQueue">
+				<span class="fa fa-print"></span>
+				<div>${data.Name}</div>
+				<div>${data.DeviceID}</div>
+				<span data-badge="Connected" class="badge badge-danger"></span>
+				<span data-badge="Paused" class="badge badge-secondary">Paused</span>
+				<span data-badge="PaperOut" class="badge badge-secondary">PaperOut</span>
+				<span data-badge="RibbonOut" class="badge badge-secondary">RibbonOut</span>
+				<span data-badge="HeadOpen" class="badge badge-secondary">HeadOpen</span>
+			</div>`);
+			this.elements.PrinterContainer.append(html);
+			AppContext.BindActions(html, this);
+		},
+
+		OpenPrinterQueue: function (e) {
+			var self = this;
+			var card = $(e.target).closest("[data-entityid]");
+			var id = card.attr("data-entityid");
+			AppContext.LoadJS("/production/PrinterQueueView.js").then(() => {
+				var view = new PrinterQueueView(id);
+				view.Show(self.ViewContainer);
+			});
+		},
+
+		UpdatePrinterStates: function (data) {
+			for (var i = 0; i < data.length; i++)
+				this.HandlePrinterJobEvent(7, data[i]);
+		},
+
+		HandlePrinterJobEvent: function (type, data) {
+			if (type == 8)
+				this.UpdatePrinterStates(data);
+			else {
+				var card = this.ViewContainer.find(`[data-entityid='${data.ID}']`);
+				if (card.length > 0) {
+					switch (type) {
+						case 7:
+							this.UpdateBadges(card, data.FL);
+							break;
+					}
+				}
+			}
+		},
+
+		UpdateBadges: function (card, flags) {
+			this.UpdateBadge(card, "Connected", flags & 1);
+			this.UpdateBadge(card, "Paused", flags & 4);
+			this.UpdateBadge(card, "PaperOut", flags & 8);
+			this.UpdateBadge(card, "RibbonOut", flags & 16);
+			this.UpdateBadge(card, "HeadOpen", flags & 32);
+		},
+
+		UpdateBadge: function (card, badgeName, condition) {
+			var badge = card.find(`[data-badge='${badgeName}']`);
+			if (badgeName == "Connected") {
+				if (condition > 0) {
+					badge.addClass("badge-success");
+					badge.removeClass("badge-danger");
+					badge.text("Online");
+				}
+				else {
+					badge.addClass("badge-danger");
+					badge.removeClass("badge-success");
+					badge.text("Offline");
+				}
+			}
+			else {
+				if (condition > 0) {
+					badge.addClass("badge-warning");
+					badge.removeClass("badge-secondary");
+				}
+				else {
+					badge.addClass("badge-secondary");
+					badge.removeClass("badge-warning");
+				}
+			}
+		}
+	};
+//</script>

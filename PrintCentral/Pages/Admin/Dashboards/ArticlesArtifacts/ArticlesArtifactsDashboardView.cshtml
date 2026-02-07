@@ -1,0 +1,113 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@inject ILocationRepository fabricRepo
+@inject ICompanyRepository repoCompanies
+@inject IProjectRepository projectRepo
+@inject IBrandRepository brandRepo
+@{
+	Layout = null;
+	List<ILocation> fabrics = new List<ILocation>();
+	List<ICompany> companies = new List<ICompany>();
+	List<IProject> projectsFound = new List<IProject>();
+	List<IProject> projects = new List<IProject>();
+
+	if (userData.IsIDT)
+	{
+		if (userData.IsSysAdmin || userData.IsIDTAdminRoles)
+		{
+			fabrics = fabricRepo.GetByCompanyID(1).Select(s => new Location() { ID = s.ID, Name = $"[{s.FactoryCode}] - {s.Name}" }).ToList<ILocation>();
+			companies = repoCompanies.GetList();
+			projectsFound = projectRepo.GetList();
+			
+		}
+		if (userData.IsIDTExternal)
+		{// external user only can see orders related with his factory
+			fabrics = fabrics.Where(w => w.ID == userData.LocationID).ToList();
+		}
+	}
+	else
+	{
+		fabrics = fabricRepo.GetFactoriesInUseFor(userData).ToList();
+	}
+
+	var brands = brandRepo.GetAllByID(projectsFound.Select(s => s.BrandID));
+
+	projects = projectsFound.Join(brands, pr => pr.BrandID, br => br.ID, (p, b) => new
+	{
+		Project = p,
+		Brand = b
+
+	})
+	.Where(w => w.Project.Hidden == false)
+	.Select(s => new Project()
+	{
+		ID = s.Project.ID,
+		Name = string.Format("{0}/{1};{2}", s.Brand.Name, s.Project.Name, s.Brand.CompanyID)
+
+	})
+
+	.OrderBy(r => r.Name)
+	.ToList<IProject>();
+}
+
+<div style="margin-top:10px">
+	<div style="font-size:17px;">@g["Articles and Artifacts"]</div>
+	<hr class="subtitle" />
+
+    <div name="filter" style="margin-bottom:10px;">
+        <inlineform>
+			<select model name="CompanyID" label="@g["Company"]:" action="change:CompanyChanged" options="@(OptionList.FromEnumerable(companies, "ID", "Name", null, g["All"]))" style="max-width:200px;"></select>
+			<datalist id="ProjectList" options="@(OptionList.FromEnumerable(projects, "ID", "Name", null, g["All"]))"></datalist>
+			<select id="ProjectCombo" model name="ProjectID" label="@g["Project"]:" action="change:FilterChanged" options="@(OptionList.FromEnumerable(projects,"ID", "Name", null, g["All"]))" style="max-width:120px;"></select>
+            @*<<input type="text" model name="Search" label="@g["Project ID"]:" style="min-width:120px;max-width:160px;" autocomplete="off" />
+			select model name="FactoryID" label="@g["Factory"]:" data-type="int" action="change:DoSearch" options="@(OptionList.FromEnumerable(fabrics, "ID", "Name", null, g["All"]))" style="max-width:200px;"></select> 
+			<a href="#" title="@g["Search"]" action="DoSearch"><span class="fa fa-search"></span></a>*@
+        </inlineform>
+    </div>
+
+	<div name="GridReportArticlesArtifactsToolbar" class="toolbar-body" style="width:100%; display:flex; align-items:center; gap:10px;">
+		<div style="display:flex;align-items:center;gap:8px;">
+			<span style="font-size:12px;">@g["Show comments"]:</span>
+			<a href="#" title="Show comments" action="ShowComments" class="dynamic-actions"><span class="fa fa-fw fa fa-eye"></span></a>
+		</div>
+		<span class="" style="font-size:12px; margin-right:8px;">@g["Filter by"]:</span>
+		<div name="FieldSelector" component="CatalogFieldSelector" controller="/Admin/Dashboards/ArticlesArtifacts/CatalogFieldSelector.js" style="display:inline;"></div>
+			<input name="SearchTerm" type="text" action="keypress:SearchKeyPress" style="font-size:13px; width:200px; margin-left:8px;" />
+			<a href="#" title="@g["Search"]" action="FilterCatalog">
+				<span class="fa fa-search"></span>
+			</a>
+		</div>
+	<div component="OrderGrid" name="Articles" id="ArticlesArtifactsGrid" style="overflow:auto; max-height:500px;" rowcssclass="SetRowCssClass">
+		<template>
+			<column width="140" field="ArticleCode">@g["Article Code"]</column>
+			<column width="140" field="ArticleDescription">@g["Article Description"]</column>
+			<column width="200" field="LabelName">@g["Label Code"]</column>
+            <column width="200" field="Comments" >@g["Label Description"]</column>
+			<column width="50" field="IsValid" render="RenderSelectBox">@g["Is Validated?"]</column>
+			<column width="140" field="UpdatedDateLabel">@g["Updated Date Label"]</column>
+			<column width="50" field="IsMain">@g["Is Main?"]</column>
+			<column width="200" field="FileNameLabel">@g["Filename Label"]</column>
+		</template>
+	</div>
+	<div class="d-flex">
+		<div name="PageSelector" style="padding-right:5%;">
+			<div name="InnerContainer" role="group" class="btn-group">
+				<button type="button" class="btn btn-default" style="margin:0px;" action="PreviousPage"><span class="ti ti-arrow-left"></span></button>
+				<div name="CurrentPageDisplay" class="text-center" style="margin:10px; width:100px;">1/1</div>
+				<button type="button" class="btn btn-default" style="margin:0px;" action="NextPage"><span class="ti ti-arrow-right"></span></button>
+			</div>
+		</div>
+		<div class="form-group row" style="display:flex;align-items:center;gap:8px;">
+			<span style="font-size:12px;">@g["Number of Registers"]:</span>
+			<div class="col-sm">
+			<input model="" class="form-control-sm form-control" action="change:OnChangedRegisters" style="width:10px;" name="NumbersRegisters" label="Number of Registers" type="number" validation="range(1,100)" value="14" max="100" min="1">
+			</div>
+		</div>
+	</div>
+
+
+
+</div>
+
+

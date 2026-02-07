@@ -1,0 +1,18 @@
+﻿@page
+@{
+	Layout = null;
+}
+<div component="FormView" name="TopNavBar" args='{"t":"1"}' controller="/common/NavBar.js"></div>
+
+<div class="left-menu">
+	<div name="treeContainer" class="left-menu-content">
+	</div>
+</div>
+
+<div class="main-panel">
+	<div class="main-panel-header">&nbsp;</div>
+	<div name="mainContainer" class="main-panel-content">
+	</div>
+
+	<div component="FormView" controller="/common/FooterBar.js"></div>
+</div>

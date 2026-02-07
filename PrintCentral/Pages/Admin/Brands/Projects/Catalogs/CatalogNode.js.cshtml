@@ -1,0 +1,102 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+	var requestCulture = CultureInfo.CurrentUICulture.Name;
+}
+//# sourceURL=https://Pages/Admin/Brands/Projects/Catalogs/CatalogNode.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+/// <reference path="/js/AppContext.AppDomain.js" />
+
+//<script>
+	var CatalogNode = function (catalog) {
+		this.Catalog = catalog;
+		var caption = catalog.Name;
+		if (catalog.Captions) {
+			var captionData = JSON.parse(catalog.Captions);
+			var captionDef = captionData.where((e) => { return e.Language == "@requestCulture"; });
+			if(captionDef.length > 0)
+				caption = captionDef[0].Text;
+		}
+		TreeNode.Extend(this, "CatalogNode", catalog.ID, caption);
+		this.CanEdit = true;
+		this.menu = {
+			MenuWidth: "250px",
+			Options: [
+				{ Text: "@Html.Raw(g["Open"])", OnClick: this.OnDoubleClick }
+				@if (userData.Admin_Catalogs_CanRename)
+				{
+				@:, { Text: "@Html.Raw(g["Rename"])", OnClick: this.Rename }
+				}
+				@if (userData.Admin_Catalogs_CanDelete)
+				{
+				@:, { IsSeparator: true }
+				@:, { Text: "@Html.Raw(g["Delete"])", OnClick: this.Delete }
+				}
+			]
+		};
+		this.Expand();
+	};
+
+	CatalogNode.prototype = {
+		constructor: CatalogNode,
+
+		loadDependencies: function (callback) {
+			AppContext.LoadJS("/Admin/Brands/Projects/Catalogs/CatalogView.js").then(()=>callback());
+		},
+
+		GetContextMenu: function () {
+			return this.menu;
+		},
+
+
+		@if (userData.Admin_Catalogs_CanRename)
+		{
+		<text>
+		Rename: function () {
+			this.BeginEdit();
+		},
+
+		OnEditEnding: function (value) {
+			return AppContext.Catalogs.Rename(this.EntityID, value);
+		},
+		</text>
+		}
+
+
+		@if (userData.Admin_Catalogs_CanRename)
+		{
+		<text>
+		Delete: function () {
+			var self = this;
+			var confirm = new ConfirmDialog("@g["Delete Catalog? IMPORTANT: This operation will also delete all the catalog records."]");
+			confirm.ShowDialog(function (response) {
+				if (response) {
+					AppContext.Catalogs.Delete(self.EntityID, function (result) {
+						if (result.Success)
+							self.Remove();
+					});
+				}
+			});
+		},
+		</text>
+		}
+
+
+		OnDoubleClick: function () {
+			var self = this;
+			this.loadDependencies(function () {
+				var view = new CatalogView(self.Catalog.CatalogID);
+				view.NodeID = self.NodeID;
+				view.OnSaved.Subscribe(self, function (data) { this.setText(data.Name); });
+				view.Show(self.getViewContainer());
+			});
+		}
+	};
+//</script>
+
+
+

@@ -1,0 +1,65 @@
+@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Delivery/DeliveryView.js
+///<reference path="/js/jquery-3.0.0.min.js" />
+///<reference path="/js/Kendo.all.min.js" />
+///<reference path="/js/AppContext.js" />
+
+
+///<script>
+		  var DeliveryView = function (orderId) {
+
+                this.orderId = orderId;	
+
+				FormView.Extend(this, "@g["Delivery Notes"]", "/Delivery/DeliveryView");
+		  };
+
+		  DeliveryView.prototype = {
+				constructor: DeliveryView,
+
+				OnLoad: function () {
+					this.FilterNotes(this.orderId);					
+				},
+
+				OnUnload: function () {
+					
+				},
+
+
+				FilterNotes: async function (orderId) {
+
+					self = this;
+
+					return AppContext.HttpPost("/delivery/getnotesfororder", orderId, null, null, true ,"@g["Processing..."]")
+						.then((response) => {
+							if (!response.Success) {
+								return;
+							}
+
+							let notes = response.Data;
+
+							self.elements.DeliveryNotesTable.Rows.LoadData(notes);
+						});
+				},
+
+				RenderTrackingCode : function (value, rowIdx, colIdx, dataType, data) {
+					if (value!=null) {
+						return `<a href="#" action="ShowTrackingInfo" data-id="${data.DeliveryNoteID}">${value}</a>`;
+					}
+					return "";
+				},
+
+				ShowTrackingInfo : async function (e)
+				{
+					var self = this;
+					var deliveriNoteId = e.target.dataset.id;
+					AppContext.LoadJS("/delivery/deliveryTrackingInfo.js").then(() => {
+							   var dialog = new DeliveryTrackingInfo(deliveriNoteId);
+						dialog.ShowDialog(null, "90%");
+					});
+				}
+		  };
+///</script>

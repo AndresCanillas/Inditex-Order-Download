@@ -1,0 +1,20 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Production/AskQuantityDialog.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+
+//<script>
+	var AskQuantityDialog = function () {
+		FormView.Extend(this, "@g["Add Extras"]", "/Production/AskQuantityDialog");
+	};
+
+	AskQuantityDialog.prototype = {
+		constructor: AskQuantityDialog
+	};
+//</script>

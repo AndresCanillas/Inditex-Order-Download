@@ -1,0 +1,64 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/OrderWorkflowConfig/OrderWorkflowConfigView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var OrderWorkflowConfigView = function (id) {
+		this.id = id;
+		var viewUrl = "/Admin/OrderWorkflowConfig/OrderWorkflowConfigView";
+		if (id)
+			viewUrl += `?id=${id}`;
+		FormView.Extend(this, "@g["Order Workflow Configuration"]", viewUrl);
+		this.OnUnloaded.Subscribe(this, (data) => {
+			if (this.ConfigForm != null) {
+				this.ConfigForm.Unload();
+				this.ConfigForm = null;
+			}
+		});
+	};
+
+
+    OrderWorkflowConfigView.prototype = {
+        constructor: OrderWorkflowConfigView,
+
+		OnLoad: function () {
+			var self = this;
+			if (this.model.SerializedConfig == null || this.model.SerializedConfig.length == 0) {
+				var dlg = new ConfirmDialog("@g["There is no Order Workflow configuration defined for this project... Create a new record?"]")
+				dlg.ShowDialog(function (result) {
+					if (result) {
+						self.ConfigForm = new AppContext.DynamicConfigForm("orderworkflow", self.model.SerializedConfig);
+						self.ConfigForm.Show(self.elements.ConfigContainer);
+					}
+					else {
+						setTimeout(() => self.Cancel(), 50);
+					}
+				});
+			}
+			else {
+				this.ConfigForm = new AppContext.DynamicConfigForm("orderworkflow", this.model.SerializedConfig);
+				this.ConfigForm.Show(this.elements.ConfigContainer);
+			}
+		},
+
+		Save: function (e) {
+			var self = this;
+			this.model.SerializedConfig = this.ConfigForm.Save();
+			var data = this.GetData();
+            AppContext.OrderWorkflowConfig.Update(data, function (result) {
+				if (result.Success) {
+					self.model.ID = result.Data.ID;
+					self.OnSaved.Raise(data);
+					if (self.dialog === true)
+						self.Close(result.Data);
+				}
+			});
+		}
+	};
+//</script>

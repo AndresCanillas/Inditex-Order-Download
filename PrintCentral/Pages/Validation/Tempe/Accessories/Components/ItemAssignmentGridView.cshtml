@@ -1,0 +1,100 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+
+@{
+	Layout = null;
+}
+<viewform>
+	<input type="hidden" model name="IMAGENNAME" validation="required" />
+	<viewrow>
+
+		<div class="form-group">
+			<div name="ArticleFinderContainer" class="input-group input-group-sm d-none">
+
+				<select name="ArticleFinder" data-live-search="true" class="form-control custom-select-sm" no-transform>
+				</select>
+
+				<div class="input-group-append">
+					<button class="btn btn-primary" type="button" action="AddArticle"><span class="fa fa-plus"></span></button>
+				</div>
+			</div>
+		</div>
+
+		<div class="article-grid-container custom-card">
+			<div component="OrderGrid" name="Articles">
+				<template>
+					<column width="120" field="ArticleName">@g["Article"]</column>
+					<column width="120" field="ArticleCode">@g["Article Code"]</column>
+					<column width="120" field="ArticleType">@g["Article Type"]</column>
+					<column width="120" field="RFID">@g["RFID"]</column>
+				</template>
+			</div>
+		</div>
+
+
+
+		<div name="article-carousel" id="articlesSelected" class="carousel slide d-none" data-ride="carousel" style=" width:60%; margin: 5px auto;">
+			<ol name="CarrouselIndicator" class="carousel-indicators">
+			</ol>
+
+			<div name="CarrouselContent" class="carousel-inner">
+			</div>
+
+			<a class="carousel-control-prev" href="#articlesSelected" role="button" data-slide="prev">
+				<span class="carousel-control-prev-icon" aria-hidden="true"></span>
+				<span class="sr-only">>@g["Previous"]</span>
+			</a>
+			<a class="carousel-control-next" href="#articlesSelected" role="button" data-slide="next">
+				<span class="carousel-control-next-icon" aria-hidden="true"></span>
+				<span class="sr-only">@g["Next"]</span>
+			</a>
+
+		</div>
+
+	</viewrow>
+	<div name="UnitsAndImageContainer">
+		<viewrow>
+			<div class="custom-card">
+				<input type="text" model name="Description" validation="maxlen(256);" label="@g["Article Description"]" />
+			</div>
+		</viewrow>
+		<viewrow>
+			
+			<div class="custom-card" name="UnitsContainerFather">
+				<div class="table-responsive" name="UnitsContainer">
+					<table class="table table-sm table-striped table-hover">
+						<thead>
+							<tr>
+								<th scope="col">@g["Size"]</th>
+								<th scope="col">@g["Color"]</th>
+								<th scope="col">@g["Units"]</th>
+							</tr>
+						</thead>
+
+						<tbody>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</viewrow>
+		<viewrow>
+			<div class="custom-card" name="ImageContainer">
+				<viewrow>
+					<viewcolumn class="mt-3">
+						<h4>@g["Select Order Image"]   </h4>
+					</viewcolumn>
+					<viewcolumn class="mt-3 text-right">
+						<button action="ResetImage" class="btn btn-primary">@g["Reset Image"]</button>
+					</viewcolumn>
+				</viewrow>
+				<viewrow>
+					<viewcolumn>
+						<div name="Images" component="FormView" controller="/Common/Components/ImageListView.js"></div>
+						<input model name="IMAGENNAME" validation="required" type="hidden" />
+					</viewcolumn>
+				</viewrow>
+			</div>
+		</viewrow>
+	</div>
+</viewform>

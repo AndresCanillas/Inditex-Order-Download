@@ -1,0 +1,579 @@
+﻿@page
+@inject ILocalizationService g
+@inject ICompanyRepository repo
+@inject IUserData  userData
+@inject IOrderRepository  orderRepo
+@inject IProjectRepository projectRepo
+@inject IEventQueue events
+@{
+    Layout = null;
+    int n = 0;
+
+    if (Request.Query.ContainsKey("n"))
+    {
+        n = Convert.ToInt32(Request.Query["n"]);
+    }
+
+    List<ICompany> companies = new List<ICompany>();
+    companies = repo.GetList().Where(c => c.ID == userData.SelectedCompanyID).ToList();
+
+
+}
+
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+<link href="~/css/iaextractor.css" rel="stylesheet" no-cache />
+<style>
+    .delete-article-btn {
+        background-color: #be3207;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 4px 12px;
+        cursor: pointer;
+        font-size: 12px;
+        margin-right: 5px;
+        white-space: nowrap;
+        transition: background-color 0.2s;
+    }
+
+    .advanced-combo {
+        position: relative;
+        margin-bottom: 20px;
+    }
+
+    .advanced-input {
+        width: 100%;
+        padding: 15px 50px 15px 15px;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        outline: none;
+        transition: all 0.3s;
+        box-sizing: border-box;
+    }
+
+        .advanced-input:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+        }
+
+    .advanced-arrow {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        transition: transform 0.3s;
+        color: #666;
+        user-select: none;
+        font-size: 14px;
+        padding: 5px;
+    }
+
+        .advanced-arrow:hover {
+            color: #007bff;
+        }
+
+        .advanced-arrow.open {
+            transform: translateY(-50%) rotate(180deg);
+        }
+
+    .advanced-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background-color: white;
+        border: 2px solid #ddd;
+        border-top: 1px solid #eee;
+        border-radius: 0 0 8px 8px;
+        max-height: 250px;
+        overflow-y: auto;
+        display: none;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+        .advanced-dropdown.show {
+            display: block;
+        }
+
+    .advanced-option {
+        padding: 12px 15px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+        transition: background-color 0.2s;
+        display: flex;
+        align-items: center;
+    }
+
+        .advanced-option:hover,
+        .advanced-option.keyboard-selected {
+            background-color: #f8f9fa;
+        }
+
+        .advanced-option.keyboard-selected {
+            background-color: #e3f2fd;
+            border-left: 3px solid #007bff;
+        }
+
+        .advanced-option:last-child {
+            border-bottom: none;
+        }
+
+    .match-highlight {
+        background-color: #ffeb3b;
+        font-weight: bold;
+        padding: 1px 2px;
+        border-radius: 2px;
+    }
+
+    .no-results {
+        padding: 20px;
+        color: #999;
+        font-style: italic;
+        text-align: center;
+    }
+
+    .result-info {
+        padding: 20px;
+        background-color: #f8f9fa;
+        border-radius: 6px;
+        margin-top: 20px;
+        display :none
+    }
+
+    .result-label {
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 5px;
+    }
+
+    .result-value {
+        color: #007bff;
+        font-family: monospace;
+        background-color: white;
+        padding: 8px 12px;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+    }
+
+    .instructions {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #e8f5e8;
+        border-radius: 6px;
+    }
+
+        .instructions h4 {
+            margin: 0 0 10px 0;
+            color: #2d5a2d;
+        }
+
+        .instructions ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 5px;
+            color: #4a6741;
+        }
+
+    .stats {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 15px;
+        padding: 10px;
+        background-color: #f1f3f4;
+        border-radius: 4px;
+        font-size: 14px;
+        color: #666;
+        display:none;
+    }
+
+    /* Animaciones */
+    @@keyframes fadeIn {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .advanced-dropdown.show {
+        animation: fadeIn 0.2s ease-out;
+    }
+
+    /* Scrollbar personalizado */
+    .advanced-dropdown::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .advanced-dropdown::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    .advanced-dropdown::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 3px;
+    }
+
+        .advanced-dropdown::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+    /* Estilo adicional para múltiples combos */
+    .combo-container {
+        margin-bottom: 20px;
+    }
+
+    .combo-label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+
+</style>
+<div class="container">
+    <header>
+        <h1>@g["Procesador de Pedidos PDF Zara"]</h1>
+        <div id="user-info"></div>
+    </header>
+
+    <div class="file-upload-container">
+        <div class="file-upload-area">
+            <i class="fas fa-file-pdf"></i>
+            <h3>@g["Seleccionar archivo PDF de pedido"]</h3>
+            <p>@g["Arrastra y suelta un archivo PDF o haz clic para seleccionarlo"]</p>
+            <input type="file" id="file-upload" accept=".pdf" />
+            <div id="file-name">@g["Ningún archivo seleccionado"]</div>
+        </div>
+        <button id="process-btn" class="btn-primary" disabled>@g["Procesar pedido"]</button>
+    </div>
+
+    <div id="status-message" class="status-message"></div>
+
+    <div id="loader" class="loader">
+        <i class="fas fa-spinner"></i>
+        <p>@g["Procesando pedido. Por favor, espere..."]</p>
+    </div>
+
+    <div id="content-display" class="content-display">
+        <div class="content-header">
+            <h2>@g["Visualización del pedido"] <span id="order-number"></span></h2>
+            <div>
+                <button id="download-json" class="btn-primary">
+                    <i class="fas fa-download"></i> @g["Descargar JSON"]
+                </button>
+            </div>
+        </div>
+        <div class="content-body">
+            <div class="pdf-container">
+@*                 <div class="content-tabs">
+                    <div class="tab" >@g["Vista PDF"]</div>
+                </div> *@
+                <div class="tab-content">
+                    <iframe id="pdf-viewer" src=""></iframe>
+                </div>
+            </div>
+            <div class="json-container">
+                <div class="content-tabs">
+                    <div class="tab active" data-tab="visual-view">@g["Previsualización"]</div>
+                    <div class="tab" data-tab="json-view">JSON</div>
+                </div>
+                <div class="tab-content" id="visual-view">
+                    <div id="order-display" class="order-display">
+                        <!-- El contenido se cargará dinámicamente -->
+                    </div>
+                </div>
+                <div class="tab-content hidden" id="json-view">
+                    <pre id="json-display" style="padding: 20px; white-space: pre-wrap;"></pre>
+                </div>
+            </div>
+        </div>
+        <div class="action-buttons">
+            <button class="btn-primary btn-reset">
+                <i class="fas fa-undo"></i> @g["Reset"]
+            </button>
+            <button class="btn-primary btn-reprocess" id="btn-reprocess">
+                <i class="fas fa-undo"></i> @g["Reprocess"]
+            </button>
+
+            <button id="btn-validate" class="btn-primary btn-validate">
+                <i class="fas fa-check"></i> @g["Validar"]
+            </button>
+        </div>
+    </div>
+
+
+    <!-- Modal de validación -->
+    <div id="validation-modal" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-check-circle"></i> @g["El pedido ha sido validado"]</h3>
+            <button class="close-modal">@g["Cerrar"]</button>
+        </div>
+    </div>
+
+    <!-- Modal de composición -->
+    <div id="composition-modal" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-edit"></i> @g["Editar Composición"]</h3>
+            <div class="composition-form">
+                <!-- El contenido del formulario se generará dinámicamente -->
+            </div>
+            <div class="form-buttons">
+                <button class="btn-primary" id="cancel-composition">@g["Cancelar"]</button>
+                <button class="btn-primary btn-validate" id="save-composition">@g["Aceptar"]</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de información de negocio -->
+    <div id="business-modal" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-edit"></i> @g["Editar Información del Pedido"]</h3>
+            <div class="business-form">
+                <div class="form-section">
+                    <div class="form-group">
+                        <label>@g["Pedido Zara:"]</label>
+                        <input type="text" id="pedidoZara" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>@g["Es Sur:"]</label>
+                        <select id="esSur" class="form-input">
+                            <option value="true">@g["Sí"]</option>
+                            <option value="false">@g["No"]</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>@g["Contiene Alarma:"]</label>
+                        <select id="alarma" class="form-input">
+                            <option value="true">@g["Sí"]</option>
+                            <option value="false">@g["No"]</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>@g["Código Taller:"]</label>
+                        <input type="text" id="codigoTaller" class="form-input">
+                    </div>
+
+                    <div class="form-group">
+                        <label>@g["Sección"]:</label>
+                        <select id="seccion" class="form-input">
+
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>@g["SubSección:"]</label>
+                        <select id="subseccion" class="form-input">
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>@g["Conjunto de tallas:"]</label>
+                        <select id="sizesset" class="form-input">
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <div class="combo-container">
+                            <label>@g["Proveedor:"]</label>
+                            <div class="advanced-combo" id="providersCombo">
+                                <input type="text" class="advanced-input" id="providersInput" style="width:100% !important" placeholder="Buscar proveedor...">
+                                <span class="advanced-arrow" id="providersArrow">▼</span>
+                                <div class="advanced-dropdown" id="providersDropdown"></div>
+                            </div>
+                            <div class="result-info" id="providersResult"></div>
+                            <div class="stats" id="providersStats"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>@g["Made In:"]</label>
+                        <select id="madeIn" class="form-input">
+                        </select>
+                    </div>
+                    <div id="validation-errors" class="validation-errors" style="display:none">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span id="validation-message" class="validation-message"></span>
+                        @* <button class="close-validation" aria-label="@g["Cerrar"]">&times;</button> *@
+                    </div>
+
+                    <style>
+                        /* Add these styles to the existing style block */
+                        .validation-errors {
+                            background-color: #f8d7da;
+                            border: 1px solid #f5c6cb;
+                            color: #721c24;
+                            padding: 12px 20px;
+                            border-radius: 4px;
+                            margin: 10px 0;
+                            display: flex;
+                            align-items: center;
+                            gap: 10px;
+                        }
+
+                            .validation-errors .fa-exclamation-circle {
+                                color: #dc3545;
+                                font-size: 18px;
+                            }
+
+                            .validation-errors .close-validation {
+                                margin-left: auto;
+                                background: none;
+                                border: none;
+                                color: #721c24;
+                                font-size: 20px;
+                                cursor: pointer;
+                                padding: 0 5px;
+                            }
+
+                            .validation-errors .validation-message {
+                                flex-grow: 1;
+                            }
+                    </style>
+                </div>
+            </div>
+            <div class="form-buttons">
+                <button class="btn-primary" id="cancel-business">@g["Cancelar"]</button>
+                <button class="btn-primary btn-validate" id="save-business">@g["Aceptar"]</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de edición de artículo -->
+    <div id="article-modal" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-edit"></i> @g["Editar Artículo"]</h3>
+            <div class="article-form">
+                <div class="form-section">
+                    <div class="form-group">
+                        <label>@g["Referencia Fornitura:"]</label>
+                        <input type="text" id="ref-fornitura" class="form-input ">
+                    </div>
+                    <div class="form-group">
+                        
+
+                        <div class="combo-container">
+                            <label>@g["Código Articulo:"]</label>
+                            <div class="advanced-combo" id="articlesCombo">
+                                <input type="text" class="advanced-input" id="articlesInput" placeholder="Buscar artículo...">
+                                <span class="advanced-arrow" id="articlesArrow">▼</span>
+                                <div class="advanced-dropdown" id="articlesDropdown"></div>
+                            </div>
+                            <div class="result-info" id="articlesResult"></div>
+                            <div class="stats" id="articlesStats"></div>
+                        </div>
+
+
+@*                         <select id="articleCode"  class="form-input">
+
+                        </select> *@
+                    </div>
+                    <div class="form-group">
+                        <label>@g["Temporada:"]</label>
+                        <input type="text" id="temporada" class="form-input">
+                    </div>
+
+                    <div class="form-group">
+                        <label>@g["Modelo:"]</label>
+                        <input type="text" id="modelo" class="form-input">
+                    </div>
+
+                    <div class="form-group">
+                        <label>@g["Calidad:"]</label>
+                        <input type="text" id="calidad" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>@g["Color:"]</label>
+                        <input type="text" id="color" class="form-input">
+                    </div>
+                </div>
+            </div>
+            <div class="form-buttons">
+                <button class="btn-primary" id="cancel-article">@g["Cancelar"]</button>
+                <button class="btn-primary btn-validate" id="save-article">@g["Aceptar"]</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de precios -->
+    <div id="price-modal" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-edit"></i> @g["Editar Precios"]</h3>
+            <div class="price-form">
+                <div class="form-section">
+                    <h4>@g["Precios y Divisas"]</h4>
+                    <div class="price-rows">
+                        <div class="price-row">
+                            <div class="form-group">
+                                <label>@g["Azul"]</label>
+                                <input type="text" class="currency-input BLUE" placeholder=@g["Tipo de divisa"]>
+                            </div>
+                            <div class="form-group">
+                                <label>@g["Precio"]</label>
+                                <input type="number" step="0.01" class="price-input price-BLUE" placeholder=@g["Precio"]>
+                            </div>
+                        </div>
+                        <div class="price-row">
+                            <div class="form-group">
+                                <label>@g["Rojo"]</label>
+                                <input type="text" class="currency-input RED " placeholder=@g["Tipo de divisa"]>
+                            </div>
+                            <div class="form-group">
+                                <label>@g["Precio"]</label>
+                                <input type="number" step="0.01" class="price-input price-RED" placeholder=@g["Precio"]>
+                            </div>
+                        </div>
+                        <div class="price-row">
+                            <div class="form-group">
+                                <label>@g["Negro"]</label>
+                                <input type="text" class="currency-input BLACK " placeholder=@g["Tipo de divisa"]>
+                            </div>
+                            <div class="form-group">
+                                <label>@g["Precio"]</label>
+                                <input type="number" step="0.01" class="price-input price-BLACK" placeholder=@g["Precio"]>
+                            </div>
+                        </div>
+                        <div class="price-row">
+                            <div class="form-group">
+                                <label>@g["USA / Brazil"]</label>
+                                <input type="text" class="currency-input USA" placeholder=@g["Tipo de divisa"]>
+                            </div>
+                            <div class="form-group">
+                                <label>@g["Precio"]</label>
+                                <input type="number" step="0.01" class="price-input price-USA" placeholder=@g["Precio"]>
+                            </div>
+                        </div>
+                        <div class="price-row">
+                            <div class="form-group">
+                                <label>@g["UK"]</label>
+                                <input type="text" class="currency-input UK" placeholder=@g["Tipo de divisa"]>
+                            </div>
+                            <div class="form-group">
+                                <label>@g["Precio"]</label>
+                                <input type="number" step="0.01" class="price-input price-UK" placeholder=@g["Precio"]>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-buttons">
+                <button class="btn-primary" id="cancel-price">@g["Cancelar"]</button>
+                <button class="btn-primary btn-validate" id="save-price">@g["Aceptar"]</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="disclaimer">
+        <p>@g["Esta aplicación procesa documentos PDF de pedidos y los convierte a formato JSON para facilitar su gestión."]</p>
+
+    </div>
+</div>

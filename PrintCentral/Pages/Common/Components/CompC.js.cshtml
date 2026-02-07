@@ -1,0 +1,31 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+	var isAdmin = User.IsAnyRole(Roles.SysAdmin, Roles.IDTLabelDesign);
+}
+//# sourceURL=https://Pages/Common/Components/CompC.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var CompC = function () {
+		FormView.Extend(this);
+		this.Content = $(`<div style="background-color:#FF0000; width:20px; height:20px; padding:10px;"></div >`);
+		this.dataSource = null;
+		this.ItemSelected = new AppEvent();
+	};
+
+	CompC.prototype = {
+        constructor: CompC,
+
+		OnLoad: function () {
+			console.log("CompC OnLoad");
+		},
+
+		OnUnload: function () {
+			console.log("CompC OnUnload");
+		}
+	};
+//</script>

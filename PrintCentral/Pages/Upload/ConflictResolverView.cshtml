@@ -1,0 +1,173 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData  userData
+@inject IOrderRepository repo
+@{
+    Layout = null;
+
+    int currentId = -1;
+    int newOrderID = -1;
+    int newOrderLabelID = 0;
+    OrderComparerViewModel resultCompare = new OrderComparerViewModel();
+
+    Newtonsoft.Json.Linq.JArray PrevData = new Newtonsoft.Json.Linq.JArray();
+    Newtonsoft.Json.Linq.JArray NewData = new Newtonsoft.Json.Linq.JArray();
+
+    // Obtener la orden nueva que afecta a la actual
+    if (Request.Query.ContainsKey("orderID") && int.TryParse(Request.Query["orderID"], out currentId))
+    {
+
+        var conflictedOrder = repo.GetConflictedOrderFor(currentId);
+
+        newOrderID = conflictedOrder.OrderID;
+        newOrderLabelID = conflictedOrder.LabelID ?? 0;
+
+        resultCompare = repo.Compare(conflictedOrder.OrderID, currentId, true, conflictedOrder.LabelID ?? 0);
+
+        PrevData = Newtonsoft.Json.Linq.JArray.Parse(resultCompare.PrevData);
+
+        NewData = Newtonsoft.Json.Linq.JArray.Parse(resultCompare.NewData);
+    }
+
+}
+
+<input model name="PrevOrderID" value="@currentId" type="hidden" />
+<input model name="NewOrderID" value="@newOrderID" type="hidden" />
+<input model name="NewOrderLabelID" value="@newOrderLabelID" type="hidden" />
+
+<textarea name="PrevData" class="d-none" readonly>@resultCompare.PrevData</textarea>
+<textarea name="NewData" class="d-none" readonly>@resultCompare.NewData</textarea>
+
+<textarea name="PrevUpdates" class="d-none">@(Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(resultCompare.PrevDataUpdates)))</textarea>
+<textarea name="NewUpdates" class="d-none">@(Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(resultCompare.NewDataUpdates)))</textarea>
+
+<viewform>
+    <div class="order-groups-grid bg-white p-3 mb-2 d-none">
+        <div class="pb-2 text-center"><span class="derive-warning">@g["This Order contains derived ones"]</span></div>
+        <div component="OrderGrid" name="DeriveOrdersGrid" style="width:100%; max-height:50vh;" rowcssclass="GridViewSetRowCssClass">
+            <template>
+                <column width="80" field="OrderNumber" render="RenderOrderNumber">@g["Order N°"]</column>
+                <column width="80" field="ProviderClientReference" render="RenderProviderClientReference">@g["Client N°"]</column>
+                <column width="200" field="ArticleName" render="RenderArticleName">@g["Article Name"]</column>
+                <column width="80" field="ArticleCode" render="RenderArticleCode">@g["Article Code"]</column>
+                <column width="100" field="Quantity" render="RenderQuantityRequested">@g["Quantity"]</column>
+                <column width="180" field="OrderStatusText" render="RenderStatusAndFlags">@g["Status"]</column>
+                @if (userData.IsIDT)
+                {
+                    <column width="120" field="MDOrderNumber" render="RenderMDReference">@g["MD Ref."]</column>
+                    <column width="120" field="SageReference" render="RenderSageReference">@g["Sage Reference"]</column>
+                    <column width="180" field="SageFlagsText" render="RenderSageFlagsText">@g["Sage Flags"]</column>
+                    <column width="80" field="FactoryCode" render="RenderFactoryCode">@g["Factory"]</column>
+                }
+                <column width="100" field="QuantityConfirmed" render="RenderQuantityConfirmed">@g["Qty. Confirmed"]</column>
+                <column width="150" field="UserName" render="RenderUserName">@g["User"]</column>
+                <column width="55" field="Source" render="RenderSource">@g["Source"]</column>
+                <column width="120" field="OrderDate" render="RenderOrdeDate">@g["Received On"]</column>
+                <column width="120" field="OrderDueDate" render="RenderOrderDueDate">@g["Due Date"]</column>
+            </template>
+        </div>
+    </div>
+
+    <div class="card-deck">
+
+        @*<viewrow>
+            <viewcolumn>*@
+        <div class="card text-center">
+            @*<div class="card-header">Header</div>*@
+            <div class="card-body text-dark conflict-resolve-grid">
+                <h5 class="card-title mb-3">@g["Current Order"]</h5>
+                @*<p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>*@
+                <div name="CurrentOrderGrid" component="OrderGrid" action="scroll:OnScroll" style="max-height:25rem;">
+                    <template>
+                        @for (int i = 0; i < PrevData.Count;)
+                        {
+                            Newtonsoft.Json.Linq.JObject row = PrevData[i] as Newtonsoft.Json.Linq.JObject;
+
+                            foreach (Newtonsoft.Json.Linq.JProperty col in row.Properties())
+                            {
+                                if (@col.Name != "dataId")
+                                {
+                                    <column width="80" field="@col.Name" render="AddPrevConflict">@col.Name</column>
+                                }
+                            }
+
+                            break; // only one record to get def
+                        }
+                    </template>
+                </div>
+
+                <div class="card-footer text-center mt-2">
+                    <a href="#" id="btn-KeepCurrent" action="KeepCurrent" class="btn btn-primary">@g["Keep Current"]</a>
+                </div>
+
+                <div>
+                    <viewtitle>@g["Current Order Preview"]</viewtitle>
+                    <div class="form-group row loading" name="CurrentOrderPreview">
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        @*</viewcolumn>
+
+            <viewcolumn>*@
+        <div class="card text-center">
+            @*<div class="card-header">Header</div>*@
+            <div class="card-body text-dark conflict-resolve-grid">
+                <h5 class="card-title mb-3">@g["Requested Changes"]</h5>
+                @*<p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>*@
+                <div name="NewOrderGrid" component="OrderGrid" action="scroll:OnScroll" style="max-height:25rem;">
+                    <template>
+                        @for (int i = 0; i < NewData.Count;)
+                        {
+                            Newtonsoft.Json.Linq.JObject row = PrevData[i] as Newtonsoft.Json.Linq.JObject;
+
+                            foreach (Newtonsoft.Json.Linq.JProperty col in row.Properties())
+                            {
+                                if (@col.Name != "dataId")
+                                {
+                                    <column width="80" field="@col.Name" render="AddNewConflict">@col.Name</column>
+
+                                }
+                            }
+
+                            break; // only one record to get def
+                        }
+                    </template>
+                </div>
+
+                <div class="card-footer text-center mt-2">
+                    <a href="#" name="BtnAcceptUpdate" action="AcceptUpdate" class="btn btn-warning"><span name="EnableUpdateIcon" class="fa fa-fw fa-warning d-none"></span>@g["Accept Update"]</a>
+                    <a href="#" id="btn-KeepBoth" action="KeepBoth" class="btn btn-info">@g["Keep Both"]</a>
+                </div>
+
+                <div>
+                    <viewtitle>@g["Requested Changes Preview"]</viewtitle>
+                    <div class="form-group row loading" name="NewOrderPreview">
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        @*</viewcolumn>
+
+            </viewrow>*@
+    </div>
+
+    <div class="card-deck mt-2">
+
+        <viewcard>
+
+            <a href="#" class="btn btn-outline-primary pull-left">@g["Back"]</a>
+
+            
+
+        </viewcard>
+
+
+
+    </div>
+
+
+
+</viewform>

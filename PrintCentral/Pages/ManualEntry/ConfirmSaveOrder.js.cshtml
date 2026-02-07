@@ -1,0 +1,30 @@
+﻿@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages/DataEntry/ConfirmSaveOrder.js
+///
+<reference path="/js/jquery-3.0.0.min.js" />
+///
+<reference path="/js/Kendo.all.min.js" />
+///
+<reference path="/js/AppContext.js" />
+//<script>
+
+      var ConfirmSaveOrder = function () {
+          FormView.Extend(this, "@g["Save Order"]", "/manualorderentry/ConfirmSaveOrder");
+      };
+
+      ConfirmSaveOrder.prototype = {
+          constructor: ConfirmSaveOrder,
+
+          OnLoad: function () {
+
+          },
+
+          SetMessage: function (msg) {
+              this.elements.Message.html("<h4>" + msg + "</h4>");
+          },
+      }
+      //</script>

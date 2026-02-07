@@ -1,0 +1,48 @@
+﻿@page
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/WF/ItemMoveDialog.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var ItemMoveDialog = function (workflowid, title) {
+		if (title == null)
+			title = "Move Item";
+
+		FormView.Extend(this, title, `/Admin/WF/ItemMoveDialog`);
+		this.WorkflowID = workflowid;
+	};
+
+	ItemMoveDialog.prototype = {
+		constructor: ItemMoveDialog,
+
+		OnLoad: async function () {
+			this.elements.DelayTime.hide();
+			var response = await AppContext.HttpGet(`/wf/tasks/${this.WorkflowID}`);
+			if (response.Success === true) {
+				AppContext.LoadComboBox(this.elements.TaskID, response.Data, "TaskID", "TaskName");
+			}
+		},
+
+		OnUnload: function () {
+		},
+
+		ItemStatusChanged: function () {
+			if (this.model.ItemStatus == 16 || this.model.ItemStatus == 32) {
+				this.elements.TaskID.prop("disabled", true);
+			}
+			else {
+				this.elements.TaskID.prop("disabled", false);
+			}
+			if (this.model.ItemStatus == 4) {
+				this.elements.DelayTime.show();
+			}
+			else {
+				this.elements.DelayTime.hide();
+			}
+		}
+	};
+//</script>

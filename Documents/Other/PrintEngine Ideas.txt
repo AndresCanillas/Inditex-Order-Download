@@ -1,0 +1,303 @@
+Printer Format definition
+
+A Printer Format describes the different graphical elements that compose a document meant to be printed or previewed on screen/image.
+
+
+document(width:8.5, height:11, margins: "0.5, 0.6, 0.5, 0.6") {
+	font(id:"F1", name:"Arial", size:13 style="Bold,Italic")
+
+	var(name:"Name", type:"text", default:"John Smith")
+	var(name:"Detail1", type:"complex")
+
+	header(){
+		text(x:80%, y:10, W:20%, value:"%DATE% %TIME%")
+	}
+
+	footer(){
+		text(x:40%, y:10, W:20%, value:"%- %PAGE% -")
+	}
+
+	rectangle(x:0, y:0, w:150, h:30, border:"0,1,0,1", 
+		bordercolor:FF0000, radius:5, backcolor:C0C0C0)
+
+	text(x:10, y:10, w:140, font:"f1", value:"Hello {Name}!")
+	image(x:70%, y:10, w:30%, src:"c:\\temp\\sample.png")
+
+	table(X:5%, Y:50, W:90%, Data:Detail1) {
+		theader(){
+			tcolumn(W:80, value:"Code")
+			tcolumn(W:180, value:"Description")
+			tcolumn(W:80, value:"Price")
+		}
+		trow(condition:"*"){
+			tcolumn(value:"{ArticleCode}")
+			tcolumn(value:"{Description}")
+			tcolumn(value:"{Price}")
+		}
+	}
+}
+
+General Syntax Rules:
+	Files must always be UTF-8 Encoding
+	NOT case sensitive, Table = table = TABLE = TaBlE and so on...
+	General syntax is:  element_name ( property_name : property_value , ... ) <CRLF>
+	Property_value might be enclosed between the double quote character: "  This is optional except when the value contains: spaces, commas, curly brakets ({ and }), backslash char, quotation char or CR/LF chars (these last 4 MUST be scaped).
+
+	Valid scape sequences:
+		\\	-> \
+		\"	-> "
+		\r	-> CR character
+		\n	-> LF character
+		All other charcters are valid as long they are provided between quotation marks. Example:  " \"the value\" \r\n new line C:\\Temp\\ "   
+
+	If a value is enclosed between quotation marks and the value itself contains quaotation marks, then we have to use scape sequence: \", otherwise the value will not be parsed correctly.
+	Elements can be defined in multiple lines (as shown with rectangle), however a property_value that is enclosed between quotation marks cannot be broken into multiple lines. If the value MUST contain CR/LF characters, then the scape sequences \r and \n must be used instead.
+	If an element can contain child elements, then it is necesary to enclose the child elements between curly brackets.
+	Not all elements actually accept child elements, the parser might parse them correctly, however if an element is not expected to have children, any children defined in the document will be ignored and not printed.
+	Comments start with //, once a comment is started the reminder of the line will be ignored by the parser.
+
+
+	
+Elements
+
+The following list defines each of the document elements available. For each element a general description is given and also we specify the name of the properties
+(which for the most part are self explanatory). Properties marked with * are required, while the other properties are optional and if not present, then a default
+value will be applied. The default value for those optional properties is often times inherited from the parent element.
+
+	font	Defines a font that can be used in other elements
+			Properties: id*, name*, size (default 13), style (default regular)
+
+	var		Defines a variable that can later be referenced within the value property of other elements. The engine will substitute the value of a variable within
+			the text being printed out.
+			Properties: name*, type (default text), listtype (default text), default (default empty string)
+	
+			Supported types include: Text, Integer, Decimal, DateTime, List & Complex
+
+	header	Defines a set of elements that will be printed at the top of each page
+			Properties: -none-
+	
+	footer	Defines a set of elements that will be printed at the bottom of each page
+			Properties: -none-
+
+	NOTE: There is no explicit body element. Any graphical elements NOT contained in either the header or the footer are considered to be body elements, these will be
+		  drawn on the pages of the document.
+
+	text	Graphical element used to display a string of text
+			Properties: X*, Y*, W, H, Padding, Value*, HAlignment, VAlignment Font, Color, BackColor, Border, BorderRadius, BorderColor
+
+			Remarks: If width and height are not defined, then they will be automatically calculated to fit the text as a single line. If the text goes outside of the
+			printable area, it will be clipped. Also, in this case HAlignment and VAlignment have no effect.
+
+	image	Graphical element used to print a bitmap on the document
+			Properties: X*, Y*, W, H, Padding, Src*, BackColor, Border, BorderRadius, BorderColor
+
+	table	Graphical element used to draw tables (data organized in rows and columns)
+			Properties: X*, Y*, W*, Padding, Data, Font, Color, BackColor, Border, BorderRadius, BorderColor
+
+	theader	Graphical element used to specify the header row of a table
+			Properties: Font, Color, BackColor, Border, BorderRadius, BorderColor
+
+
+	trow	Graphical element used to specify a row in the table.
+			Properties: Condition, H, Padding, Font, Color, BackColor, Border, BorderRadius, BorderColor
+
+			Remarks: If the condition property is present then this condition will be evaluated for each row present in the data source (specified in the parent table),
+			if the condition is meet, then the TRow will be used as template to print rows using data from the data source, otherwise a different row (or none at all)
+			will be used to print out data from the data source.
+			
+			Valid conditions:
+				- "static" Means that this TRow is static content not tied to the data source, it will be printed -as is-. This is the default value.
+				- "*" Means all rows in the data source should be printed using this TRow as template.
+				- "even" Means that this TRow should be used to render even rows from the data source.
+				- "odd" Means that this TRow should be used to render odd rows from the data source.
+				- any valid C# expression, It is possible to provide basic C# expressions such as "Price > 100". These must reference properties from the data source and
+				  are limited to simple logic and comparison operations such as:  && (and), || (or), > (grater than), < (smaller that) etc. As well as basic arithmetic operations.
+				  Any expression more complicated than that will not be evaluated correctly and will be ignored. 
+				  
+				  Whithin these expressions you can make reference to the following:
+					> Any property from the data source (application dependant)
+					> The variable "i" will contain the index of the current row being printed (0 for the first row, and N-1 for the last).
+					> The variable "datasource" will be an array representing all the rows from the data source. You can use this variable to access any element from
+					  the datasource as in the following example expression:
+
+						"i > 0 && datasource[i-1].Code != datasource[i].Code"
+
+						This expression means that the TRow will be used as template only if this is not the first row and if the Code property of the 
+						previous row is different from the Code of the current row.
+
+
+			All conditions except "static" require the parent table to have a valid Data property.
+			  
+	tcolumn		- Graphical element used to define a column within a row or the table header.
+			  Properties: W, Padding, Value*, Font, Color, BackColor, Border, BorderRadius, BorderColor
+
+	rectangle	- Graphical element used to draw a rectangle in the document
+			  Properties: X*, Y*, W*, H*, BackColor, Border, BorderRadius, BorderColor
+
+	line		- Graphical element used to print lines
+			  Properties: X1*, Y1*, X2*, Y2*, Thickness, Color
+
+
+
+
+
+General remarks
+	X, Y, W, H, X1, Y1, X2, Y2 can be given as concrete numbers or as percentages. When defined as percentages, the actual values of these properties will be calculated on the go based of the
+	size of the document (which is subject to vary from printer to printer), also if the elements are contained within a parent element, the percentage values will be calculated
+	off the parent element box size.
+
+	Padding defines the space that should be left between the edge of the element's drawing box and the content of the element itself, such that if the element has a border, this 
+	padding will allow for some space between the border and the content.
+
+	The padding and the border thickness are automatically substracted from the width of the element's drawing box size, which might result is a smaller available drawing area for
+	the element content. Any content that falls outside of the "available" drawing area will be clipped. However in the case of text, word wrapping will automatically apply as long
+	as the height of the element is left undefined.
+
+	In general, all elements will be drawn in a box with specific width and height, if the height is not defined, then the height will be calculated automatically based of the size
+	of the child elements, or the content of the element itself (image, text, rectangle, etc). Padding will also be taken into account for these calcualtions. If the width is not
+	defined, then the behavior will depend upon the specific element that is being created. For instance the text element will render its text as a single line if width is not defined,
+	while tcolumn will use a default width of 100.
+
+	Colors must always be given as hexadecimal numbers in this format: RRGGBB. Example: C0C0C0, would be a light gray.
+	
+	If not specified, Color is assumed to be Black.
+	
+	If not specified BackColor is assumed to be White (and therefore not drawn).
+	
+	Font is assumed to be the default font (Arial 13 Regular).
+
+	Some elements can serve as containers for other elements (for instance Table, THeader, TRow, TColumn), when that happens, child elements inherit 
+	the font, color and backcolor of the parent element unless new values are specified.
+
+	Border should be given in pixels, example: Border: "1". This means that the border will be drawn and have 1 pixel of thickness.
+	"2", would mean that the border would be drawn and have 2 pixles of thickness. "0", would mean that no border will be drawn at all.
+	The default value for Border is "0".
+
+	Specific border values can be given for each side of an element "box" by providing a comma delimited list of numbers in the Border property. If 
+	this syntax is used, then the first number is asumed to be the left border, then the top border, the right border and finally the bottom border.
+	Example: Border: "0,2,0,2", would draw the top and bottom borders only, with a thickness of two pixels.
+
+	BorderRadius allows to draw elements with rounded corners. This is asumed to be 0 by default and can be set to a maximum of 1/5 of the element's 
+	box largest dimession. This argument is ignored unless all 4 borders (left, top, right and bottom) are drawn.
+
+	BorderColor is simply the color of the border which is assumed to be black by default.
+
+	HAlignment is assumed to be Left if not provided (other values include: Center, Right and Justify)
+
+	VAlignment is assumed to be Top if not provided (other values include: Center, Bottom)
+
+
+Feeding variable data into the template
+---------------------------------------
+
+Macros
+-------
+
+There are macros that can be used to print variable data as part of any template. These can be placed in the "Value" property of the elements. The engine will
+search and replace the macros by its actual value before printing the document.
+
+%DATE%	= Prints the current system date as a short date, using the current UI culture settings.
+%TIME%	= Prints the current system time as a short time, using the current UI culture settings.
+%PAGE%	= Prints the current page number.
+
+More macros can be defined as needed.
+
+Example of a printer element using a macro:
+
+text(X: 10, Y: 10, Value: "Hello! Today is %DATE%, hope you have a good day.")
+
+
+
+Variables
+----------
+
+Variables can be defined in the "Variables" collection of the document. Once defined, values can be feed into the variables through the PrintEngine API before printing.
+Any element in the document can make reference to these variables using curly brakets... 
+
+
+Example of a printer element using a variable:
+
+text(X: 10, Y: 10, Value: "Hello {Name}, welcome to the show!")
+
+
+In the example above, we will replace {Name} for the actual value of the "Name" variable before printing.
+
+
+
+Loading values into variables
+-----------------------------
+
+The following example shows the suggested API for dealing with the PrinterEngine/PrinterFormat classes and feeding values to variables before printing.
+
+using(PrinterEngine eng = new PrinterEngine("Microsoft Print to PDF"))
+{
+	eng.PrinterSettings.PrintToFile = true;
+	eng.PrintFileName = "C:\\Temp\\out.pdf";
+	eng.Document = new PrinterFormat("C:\\Temp\\myformat.pf");
+	eng.Document.Variables["Name"].Values = "Jhon Smith";
+	eng.Print();
+}
+
+The above example is setting variables directly through the Variables collection found in the PrinterFormat class. However when a format feeds from 
+a complex data structure, for instance one that may include multiple headers and details (or tables), it would be impractical to load data into the
+format as shown above. For more complex scenarios, you can use the BindDataModel method. Example:
+
+using(PrinterEngine eng = new PrinterEngine("Microsoft Print to PDF"))
+{
+	eng.PrinterSettings.PrintToFile = true;
+	eng.PrintFileName = "C:\\Temp\\out.pdf";
+	eng.Document = new PrinterFormat("C:\\Temp\\myformat2.pf");
+	var complexDataStructure = someRepo.GetMyData();
+	eng.Document.BindDataModel(complexDataStructure);
+	eng.Print();
+}
+
+
+BindDataModel will automatically initialize all the variables in the template (including Lists and Complex variables) from the object passed as parameter.
+Optionally BindDataModel can receive a second argument of type boolean indicating if an exception should be thrown in case the passed object does not contain
+a value for any of the variables defined in the format.
+
+BindDataModel is usefull when the object used as model for the data source is defined as a C# class ahead of time. However if the model is dynamic, and 
+represented as a serialzed json string, then you can use BindFromJson method to accomplish a similar task, but without requiring a c# type to do so.
+BindFromJson takes a json string and parses it, assigning all the fields defined in the json object to variables within the printer format. Like with
+BindDataModel, it is possible to specify if an exception should be raised if the json object does not contain a value for any of the variables defined
+in the format.
+
+
+
+
+Previewing a document
+-----------------------
+
+The printer engine allows to preview a document by providing you with a collection of images (each image representing a page of the document). Your application can
+then use those images to present them on screen, zoom in/out, etc.
+
+The images generated are exactly the same as if the document was being printed to an actual printer, for that reason this preview is accurate and represents the document
+exactly as it will apper on paper once printed.
+
+The following example shows how to use the engine to generate those images and iterate through them. NOTE: How those images are shown to the user falls beyond the scope of the engine.
+Notice you still have to specify a valid printer even if you will only preview, also if needed to, you can change other printer settings such as paper size margins and so on, and see 
+those changes be reflected in the generated preview.
+
+using(PrinterEngine eng = new PrinterEngine("Microsoft Print to PDF"))
+{
+	eng.Document = new PrinterFormat("C:\\Temp\\myformat2.pf");
+	var complexDataStructure = someRepo.GetMyData();
+	eng.Document.LoadData(complexDataStructure);
+	using(PrinterPreview preview = eng.Preview())
+	{
+		foreach(var page in preview.Pages)
+		{
+			page.Save($"C:\\Temp\\page{page.PageNumber}.png", ImageFormat.Png);
+		}
+	}
+}
+
+IMPORTANT NOTES:
+
+	> Like the PrinterEngine, The PrinterPreview object is disposable, you should take care of disposing this object as early as possible to ensure resources are freed up.
+	> If you are previewing a document in a windows forms application, then you can pass the print preview control where you want to display the document as parameter to the
+	  call to Preview. This control can take care of printing for you, so it is a neat combination.
+
+
+

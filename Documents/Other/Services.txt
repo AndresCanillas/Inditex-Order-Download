@@ -1,0 +1,441 @@
+﻿Creating new service step by step
+------------------------------------------------
+
+Open Services solution  (From VSTS $/DESARROLLO/Main/Services.sln)
+
+Add new Windows Forms App (.NET Framework) Project  
+	NOTES:
+	1) Windows forms is used only when running the service in interactive mode, but the project will also work as a windows service.
+	2) Give the project a descriptive name (best if we discuss the name ahead of time together)
+	3) Ensure the project location is under "[YourLocalPath]\Desarrollo\Services\Main\"
+	4) Ensure the selected framework is ".NET Framework 4.6.1"
+	5) Hit OK
+
+
+
+Right click the project in Solution Explorer, then Add -> Reference, and add a reference to "Service.Contracts" project.
+
+
+Right click the project in solution explorer, then Manage Nuget Packages, then add the following packages:
+
+	> Newtonsoft.Json 11.0.2
+	> Microsoft.Owin.SelfHost 4.0.0
+	> Microsoft.AspNet.WebApi.OwinSelfHost 5.2.6
+	> Microsoft.Owin.Cors 4.0.0
+	> Microsoft.AspNet.Cors 5.2.6
+	> System.Configuration.ConfigurationManager 4.5.0
+
+
+
+Add an app.config file to the project (or open the existing one if present), then add the following settings:
+
+	<appSettings>
+		<add key="BaseServiceURL" value="https://*:5002" />
+	</appSettings>
+
+	IMPORTANT: Update the port number to ensure it does not collide with other services that might be running on the machine.
+
+This will be used as the base address for your service, here it is important to ensure that the selected port is not in use by another service
+running in the machine. Also ensure to create a rule to let traffic flow through that port if the firewall is enabled.
+
+It is recomended to use HTTPS as the protocol to ensure communication with the service is secure.
+
+
+
+
+
+Add a new class called "Service.cs" with the following boiler place code:
+
+	public class Service : IServiceSink
+	{
+		private ManualResetEvent waitHandle = new ManualResetEvent(false);
+		private volatile bool started;
+		private IDisposable webService;
+		private IFactory factory;
+
+		public Service(IFactory factory)
+		{
+			this.factory = factory;
+		}
+
+		public void Start(string url)
+		{
+			if (!started)
+			{
+				webService = WebApp.Start(url, (app)=>
+				{
+#if DEBUG
+					app.UseErrorPage();
+#endif
+					var config = new HttpConfiguration();
+					config.MapHttpAttributeRoutes();
+					config.Routes.MapHttpRoute(
+						name: "DefaultApi",
+						routeTemplate: "api/{controller}/{id}",
+						defaults: new { id = RouteParameter.Optional }
+					);
+					config.DependencyResolver = (factory as DIContainer);
+					app.UseCors(CorsOptions.AllowAll);
+					app.UseWebApi(config);
+				});
+			}
+			started = true;
+		}
+
+		public void Stop()
+		{
+			if (started)
+				webService.Dispose();
+			waitHandle.Set();
+			started = false;
+		}
+
+		public void WaitForExit()
+		{
+			waitHandle.WaitOne();
+		}
+
+		public bool WaitForExit(TimeSpan timeout)
+		{
+			return waitHandle.WaitOne(timeout);
+		}
+
+		public void Dispose()
+		{
+			Stop();
+		}
+	}
+
+
+
+
+Fix the using statements in "Service.cs" by adding the following at the top of the file:
+
+using System.Threading;
+using System.Web.Http;
+using Owin;
+using Microsoft.Owin.Hosting;
+using Microsoft.Owin.Cors;
+using Service.Contracts;
+
+	
+
+
+Add a new class called "DIContainer.cs" with the following boiler plate code:
+
+
+	public class DIContainer: ServiceFactory
+	{
+		public DIContainer()
+		{
+			Configure((f) =>
+			{
+				RegisterSingleton<IServiceSink, Service>();
+			});
+		}
+	}
+
+
+
+
+Fix the using statements in "DIContainer.cs" by adding the following at the top of the file:
+
+using Service.Contracts;
+
+
+
+
+Build the project to ensure all is going fine...
+
+
+
+Add a new ITEM, in the add item dialog, search for "Windows Service" call the file "WinService.cs", then replace the code
+with the following boiler plate code:
+
+	partial class WinService : ServiceBase
+	{
+		private IServiceSink service;
+		private IAppLog log;
+
+		public WinService(IServiceSink service, IAppLog log)
+		{
+			InitializeComponent();
+			this.service = service;
+			this.log = log;
+		}
+
+		protected override void OnStart(string[] args)
+		{
+			try
+			{
+				// Start the service...
+				service.Start(ConfigurationManager.AppSettings["BaseServiceURL"]);
+			}
+			catch (Exception ex)
+			{
+				log.LogException("Error starting the service.", ex);
+			}
+		}
+
+		protected override void OnStop()
+		{
+			try
+			{
+				// Stop the service...
+				service.Stop();
+			}
+			catch (Exception ex)
+			{
+				log.LogException("Error stoping the service.", ex);
+			}
+		}
+	}
+
+
+
+FIX the using statements by adding at the top:
+
+
+using System.Configuration;
+using Service.Contracts;
+
+
+
+
+
+From the DocumentService project, copy the "WinForm.cs" file, and paste it on the new project.
+
+Open the source code of WinForm.cs, and rename the namespace from "DocumentService" to the name of the current project.
+Also rename the namespace inside WinForm.Designer.cs.
+
+
+
+Open the Program.cs file and overwrite the Program class with the following boiler plate code:
+
+
+
+	static class Program
+	{
+		/// <summary>
+		/// The main entry point for the application.
+		/// </summary>
+		[STAThread]
+		static void Main()
+		{
+			var factory = new DIContainer();
+			var appInfo = factory.GetInstance<IAppInfo>();
+			var log = factory.GetInstance<IAppLog>();
+			var logFile = factory.GetInstance<IAppLogFile>();
+			logFile.Initialize(Path.Combine(appInfo.SystemLogDir, "service.log"));
+			log.LogMessage($"{appInfo.AppName} Starting");
+			if (Environment.UserInteractive)
+			{
+				try
+				{
+					Application.EnableVisualStyles();
+					Application.SetCompatibleTextRenderingDefault(false);
+				}
+				catch { }
+			}
+			try
+			{
+				if (Environment.UserInteractive)
+				{
+					Application.Run(factory.GetInstance<WinForm>());
+				}
+				else
+				{
+					System.ServiceProcess.ServiceBase[] ServicesToRun;
+					ServicesToRun = new System.ServiceProcess.ServiceBase[] { factory.GetInstance<WinService>() };
+					System.ServiceProcess.ServiceBase.Run(ServicesToRun);
+				}
+			}
+			catch (Exception ex)
+			{
+				log.LogException(ex);
+			}
+			finally
+			{
+				log.LogMessage($"{appInfo.AppName} Stopped");
+				log.Terminate();
+			}
+		}
+	}
+
+
+
+FIX the usings statements by adding the following at the top of Program.cs:
+
+
+using Service.Contracts;
+using System.IO;
+
+
+
+Remove Form1.cs file, as that will not be used...
+
+
+
+
+Rebuild the solution to ensure all is working as expected.
+
+
+
+Add a new folder called Controllers to the project, inside you can add new classes that inherit from ApiController to handle HTTP requests.
+Example:
+
+	using System.Web.Http;
+	using Service.Contracts;
+
+	public class MyController: ApiController
+	{
+		private IAppLog log;
+
+		public MyController(IAppLog log)
+		{
+			this.log = log;
+		}
+
+		public string Get(int id)
+		{
+			return "Hello! " + id;
+		}
+	}
+
+NOTE: ApiController is defined in "System.Web.Http", so you have to add the following using statement:
+
+
+
+You can call this from a web browser by entering the URL: "https://[machineip]:[port]/api/My/1000"
+It is possible to change the route by applying the [Route] attribute in each method
+Or change the HTTP method by using the attributes [HttpGet], [HttpPost], [HttpDelete], [HttpPut], etc
+You can receive or return user defined classes from any method, those will be serialized as json.
+
+
+
+
+Require HTTPS Filter
+------------------------
+
+Create a new folder called "Filters" in the project, then copy the "RequireHttpsAttribute.cs" file from the Filters directory from another service.
+Rename the namespace acordingly.
+Add the Attribute to the controllers that should use HTTPS. Example:
+
+	[RequireHttps]
+	class SampleController : ApiController
+	{
+		...
+
+Fix the usings section if necesary.
+
+
+
+
+Notes about setting up service to use HTTPS and run it as a windows service
+----------------------------------------------------------------------------
+
+
+
+IMPORTANT: All of the following commands requiere an elevated command prompt...
+
+
+
+How to create and register a self-signed X509 certificate
+----------------------------------------------------------
+
+It is possible to use IIS management console to create and register a self-signed certificate in a frienly way. However you can also use
+makecert to create a customized self-signed certificate. Example:
+
+
+Makecert –r –pe –n CN="[SubjectName]" –b 01/01/2017 –e 01/01/2030 –eku 1.3.6.1.5.5.7.3.1 -sky exchange -a sha512 -ss my -sr localmachine
+
+From Control Panel go to Administrative Tools / Manager Computer Certificates
+Then export the certificate including private key. Note: While exporting you can optionally set a password (remember password).
+Then add the resulting .pfx in the application as an embedded resource.
+NOTE: When registering the certificate during installation, remember that if you exported using a password, then you will have to provide the same password when trying to import the certificate.
+More details in: http://msdn.microsoft.com/en-us/library/bfsktky3.aspx  
+Article titled: Makecert.exe (Certificate Creation Tool)
+Makecert located at: C:\Program Files (x86)\Windows Kits\8.1\bin\x64
+
+Another option to create Self Signed Certificate with Power-Shell Console
+https://www.oshyn.com/blog/windows-10-self-signed-certificates
+
+New-SelfSignedCertificate -CertStoreLocation Cert:\LocalMachine\My -DnsName "localhost" -FriendlyName "localhost" -NotAfter (Get-Date).AddYears(10)
+
+New-SelfSignedCertificate -CertStoreLocation Cert:\LocalMachine\My -Subject "*.example.local" -DnsName "example.local", "*.example.local" -FriendlyName "LocalStarCert" -NotAfter (Get-Date).AddYears(10)
+
+Socket listening Permissions
+-----------------------------------------------------------
+
+In order to allow the process to bind to a given port without Admin privileges run:
+
+netsh http add urlacl url=https://*:5002/ user=Everyone
+
+
+NOTEs:
+	> The example uses URL https://*:5001/, be sure to update as needed for different services.
+	> This command is required if the process is not going to run as administrator (or Local System)
+	> The URL must be entered exactly as is is setup in the app.config file, also it must end with a "/", example:  https://*:5003/	
+	> The user name can be Everyone (or Todos if the OS is installed in spanish), or it can be your current domain user.
+
+
+
+
+To associate an SSL certificate to the end point run:
+----------------------------------------------------------
+
+
+
+netsh http add sslcert ipport=0.0.0.0:5002 certhash=29141f8c97586768655b5edcf068442d2df60a0e appid={4dc3e181-e14b-4a21-b022-59fc669b0914}
+
+certhash = certificate thumbprint (without spaces)
+appid = the guid shown after running: netsh http show sslcert
+
+Examples:
+C:\>netsh http add sslcert ipport=0.0.0.0:443 certhash=‎0328b32eac0fac5a8320f092ebf986396492d63f appid={4dc3e181-e14b-4a21-b022-59fc669b0914}
+C:\>netsh http add sslcert ipport=0.0.0.0:5004 certhash=cb24cf1f03f25a6d6257884c5d8d7d15e9773267 appid={214124cd-d05b-4309-9af9-9caa44b2b74a}
+
+Key Points: appid and certhash might be different on different machines!! Also CMD must be running as admin.
+
+
+Registering service
+-------------------------------------------------------
+
+sc.exe create "[ServiceName]" binPath= "[PathToExe]" start= auto displayName= "[ServiceName]"
+sc.exe description "[ServiceName]" "[ServiceDescription]"
+
+
+
+Unregister service
+-------------------------------------------------------
+
+sc.exe delete "[ServiceName]"
+
+NOTE: Ensure the service is stopped before attempting to run this command, or it will likely leave the service registered until next reboot.
+
+
+
+
+Client configuration:
+-------------------------------------------------------
+Ensure that clients (the systems calling the service) initialice the AcceptThumbprint property with the thumbprint of the certificate
+so that they accept the connection (for instance by reading the thumbprint from a config file). Optionally if this property is left as
+null, then the certificate will be accepted by default.
+
+
+
+
+
+Merging public and private key files into pfx
+-------------------------------------------------------
+
+Put the .cer and .key files in the same directory, run a command prompt from that folder, then run:
+
+certutil -MergePFX smartdots.es.cer smartdots.es.pfx
+
+
+
+
+Local IP: 192.168.11.115
+
+

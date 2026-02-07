@@ -1,0 +1,550 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+
+
+}
+//# sourceURL=https://Pages/Validation/AlvaroMoreno/QuantityWizard.js
+/// <script>
+
+    var QuantityWizard = function (orderSelection, wizardStep, allSteps) {
+
+        this.OrderSelection = orderSelection;
+        this.WizardStep = wizardStep;
+        this.AllSteps = allSteps;
+        this.BreadCrumbs = null;
+        this.MadeInData = [];
+        this.Project = null;
+        //this.OrderGroups = [];
+        this.MaxQuantityPercentage = 0;
+        this.IsApplyAutomaticPercentage = false;
+        this.AllowEditQuantity = false;
+        this.IsReadyToApply = false;
+        this.IsOrderRepeat = false;
+            FormView.Extend(this, "@g["Quantities Wizard"]", `@Url.Content("~/Validation/AlvaroMoreno/QuantityWizard")`);
+    }
+
+    QuantityWizard.prototype = {
+
+        constructor: QuantityWizard,
+
+        OnLoad: async function () {
+
+            var self = this;
+
+                var MadeInCatalogName = '@Catalog.BRAND_MADEIN_CATALOG';
+            
+            self.model.WizardID = self.WizardStep.WizardID;
+            self.model.WizardStepID = self.WizardStep.ID;
+            self.model.ProjectID = self.OrderSelection[0].ProjectID;
+            self.ProjectID = self.OrderSelection[0].ProjectID;
+            await self.LoadProjectData(self.ProjectID);
+
+            self.ShowStatus();
+            //self.LoadArticles(); // get article details
+
+            AppContext.Catalogs.GetByName(self.OrderSelection[0].ProjectID, MadeInCatalogName, null, null, false, false)
+                .done((rsp1) => {
+
+                    AppContext.CatalogData.GetByCatalogID(rsp1.Data.CatalogID, null, null, false)
+                        .done((madeInResponse) => {
+                            self.MadeInData = JSON.parse(madeInResponse);
+                            console.log(self.MadeInData);
+                            self.LoadArticles();
+
+
+                        });
+                });
+        },
+
+        LoadArticles: function () {
+
+            var self = this;
+            
+
+                AppContext.Wizard.AlvaroMoreno_GetOrderData(self.OrderSelection)
+                .done((result) => {
+                        self._AddRows({ Data: result.Data.OrderData });
+                    if (result.Data.length > 0) {
+                        self.IsOrderRepeat = result.Data[0].OrderNumber.indexOf("R") > 0;
+                    }
+                    if (self.IsApplyAutomaticPercentage) {
+                        self.SetMaxAll();
+                        //self.elements.btnSetMaxAll.hide();
+                        if (self.AllowEditQuantity === false && self.IsOrderRepeat == false) self.elements.MaxQuantityPercentage.prop("disabled", true);
+                    }
+                });
+
+
+        },
+
+        //begin ijsanchezm        
+
+        HandleValueKeyPress: function (e) {
+            var self = this;
+            let _value = self.elements.MaxQuantityPercentage.val();
+            if (_value < 0 || _value > self.MaxQuantityPercentage) {
+                self.elements.MaxQuantityPercentage.css("border-color", "#f83c3c");
+                self.elements.MaxQuantityPercentage.css("border-width", "1px");
+                self.elements.MaxQuantityPercentage.css("border-style", "solid");
+                //self.elements.btnSetMaxAll.hide();
+                self.IsReadyToApply = false;
+            }
+            else {
+                //border: 1px solid #ced4da;
+                self.elements.MaxQuantityPercentage.css("border-color", "#ced4da");
+                self.elements.MaxQuantityPercentage.css("border-width", "1px");
+                self.elements.MaxQuantityPercentage.css("border-style", "solid");
+                //self.elements.btnSetMaxAll.show();
+                self.IsReadyToApply = true;
+            }
+        },
+
+        ChangeValues: function () {
+            var self = this;
+                let _value = self.elements.MaxQuantityPercentage.val();
+                if (_value > 0 || _value < self.MaxQuantityPercentage) {
+                    var allEntries = self.elements.TableContainer.find('.user-entry');
+
+                    $.each(allEntries, (key, entry) => {
+                        var lbl = $(`#lblH${key}`);                        
+
+                        var field = $(entry);
+                        field.attr('max', _value);
+                        var request = field.attr('data-quantity-requested');
+                        switch (self.AllowQuantityEdition) {
+                            case 2:
+                                var value = Math.ceil(request * (1.0 + parseFloat(self.elements.MaxQuantityPercentage.val()) / 100.0));
+                                lbl.text(`@(g["Set Max"])(${value})`);
+                                field.val(value);
+                                field.attr("validation", `range(1,${value})`);
+                                break;
+                            case 1:
+                                var value = Math.ceil(parseInt(self.elements.MaxQuantityPercentage.val()) + parseInt(request));
+                                lbl.text(`@(g["Set Max"])(${value})`);
+                                field.val(value);
+                                field.attr("validation", `range(1,${value})`);
+                                break;
+                            default:
+                                field.val(request);
+                                break;
+                        }
+                        field.change();
+                    });
+                }
+        },
+
+        onChanged: function () {
+            this.ChangeValues();
+        },
+
+        focusout: function () {
+            if (this.IsReadyToApply) {
+                this.ChangeValues();
+            }
+        },
+
+        LoadProjectData: async function (ProjectID) {
+            //AppContext.Projects
+            var self = this;
+            var lbl = $("input[name='MaxQuantityPercentage']").parent().parent().find("label");
+            AppContext.Projects.GetByID(ProjectID)
+                .done((result) => {
+                    self.Project = result;
+                    self.AllowQuantityEdition = result.AllowQuantityEdition;
+                    self.IsApplyAutomaticPercentage = result.IsApplyAutomaticPercentage;
+                    self.AllowEditQuantity = result.AllowEditQuantity;
+                    switch (result.AllowQuantityEdition) {
+                        case 2:
+                            self.elements.MaxQuantityPercentage.val(result.MaxQuantityPercentage);
+                            self.elements.MaxQuantityPercentage.attr({ "max": result.MaxQuantityPercentage, "min": 0, "validation": "range(1," + result.MaxQuantityPercentage + "})" });
+                            self.MaxQuantityPercentage = result.MaxQuantityPercentage;
+                            lbl.text("@g["Percentaje"]");
+                            break;
+                        case 1:
+                            self.elements.MaxQuantityPercentage.val(result.MaxQuantity);
+                            self.elements.MaxQuantityPercentage.attr({ "max": result.MaxQuantityPercentage, "min": 0, "validation": "range(1," + result.MaxQuantity + ")" });
+                            self.MaxQuantityPercentage = result.MaxQuantity;
+                            lbl.text("@g["Fixed value"]");
+                            break;
+                        default:
+                            lbl.text("@g["None"]");
+                            self.elements.divQuantity.hide();
+                            //self.elements.MaxQuantityPercentage.attr({ "max": 0, "min": 0 });
+                            break;
+                    }
+                });
+        },
+
+        _AddRows: function (result) {
+
+            var self = this;
+
+            var k = 0;
+            var itemNumber = 0;
+
+            var $tbody = self.elements.TableContainer.find('tbody');
+
+            for (var i = 0; i < result.Data.length; i++) {
+
+                var sel = result.Data[i];
+
+                var trGroup = self._GetRowGroupTemplate(sel, k) 
+
+                $tbody.append(trGroup);
+
+                for (var j = 0; j < sel.Details.length; j++) {
+
+                    var tr = $(self._GetRowTemplate(sel.Details[j], k, itemNumber++, j));
+
+                    $tbody.append(tr);
+
+                }
+
+                k++;
+
+            }
+
+                
+
+            // bind model and antions inner tbody
+
+            self.model = AppContext.BindModel(self.ViewContainer, self);
+            AppContext.BindActions($tbody, self);
+
+        },
+
+        _GetRowGroupTemplate: function (sel, i) {
+            var self = this;
+
+            var combo = self._GetMadeInComboTemplate(sel,i);
+
+            var tr = `
+                <tr class="table-info">
+                    <td colspan="9">
+
+                        <input model name="rq[${i}].OrderNumber" value="${sel.OrderNumber}" type="hidden" />
+                        <input model name="rq[${i}].OrderGroupID" value="${sel.OrderGroupID}" type="hidden" />
+                        <input model name="rq[${i}].WizardStepPosition" value="${self.WizardStep.Position}" type="hidden" />
+                        <input model name="rq[${i}].ProjectID" value="${sel.ProjectID}" type="hidden" />
+
+                        <span class="btn btn-sm" style="cursor: auto;">
+                            @g["Order N°"] :  ${sel.OrderNumber}
+                        </span>
+
+                    </td>
+                    
+                </tr>
+                ${combo}
+            `;
+
+            return tr;
+        },
+
+         _GetMadeInComboTemplate: function (order, i) {
+                var self = this;
+                if(order.Details.length == 0)
+                    return '';
+
+                var d = order.Details[0];
+
+                //No mostrara el Made In
+                if(self.Project.AllowUpdateMadeIn == 0)
+                    return '';
+
+                var madeInDetails = self.MadeInData.map((item) => {
+                   var selected = ''
+                   if (item.ID == parseInt(d.ProductData.MadeIn) || item.English.indexOf(d.ProductData.FullMadeIn) >= 0)
+                        selected = 'selected="selected"';
+                   return `<option value="${item.ID}" ${selected}> ${item.English} </option>`;
+               });
+
+                madeInDetails.unshift('<option value="-1">@g["Select Made In"]</option>');
+            var combo = ` <tr>
+                           <td colspan="9">
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <div class="form-group row">
+                                                <label class="col-sm-2 col-form-label pl-4">
+    @(g["Made In"])
+                                                            <i class="fa fa-question-circle text-info" aria-hidden="true" data-toggle="tooltip" data-placement="top" title="${d.ProductData.FullMadeIn != null ? d.ProductData.FullMadeIn : ""}"></i>
+                                                </label>
+                                                <div class="col-sm-8">
+                                                            <select name="rq[${i}].MadeIn" model validation="required;range(0,1000000)" class="form-control form-control-sm">${madeInDetails.join('')}</select>
+                                                </div>
+                                        </div>
+                                    </div>
+                                </div>
+                           </td>
+                        </tr>`;
+
+            return combo;
+
+        },
+
+        _GetRowTemplate: function (detail, groupNumber, itemNumber, unitNumber) {
+            var self = this;
+            var d = detail;
+
+            var i = groupNumber
+            var j = itemNumber
+            var k = unitNumber
+
+            var strDescription = d.Description || "";
+            var strUnitDetails = d.UnitDetails || "";
+            var strSize = d.Size || "";
+            var strColor = d.Color || "";
+
+            var hasPackCode = d.HasPackCode ? 'has-packcode' : '';
+            var isAut = (self.AllowEditQuantity == true || detail.OrderNumber.indexOf("R") > 0) ? "" : "readonly";
+            var tr = `
+                    <tr>
+                        <th scope="row">${(j+1)}</th>
+                        <td>${d.Article}</td>
+                        <td>${strDescription}</td> 
+                        <td>${strUnitDetails}</td>
+                        <td>${strSize}</td>
+                        <td>${strColor}</td>
+                        <td>${d.QuantityRequested}</td>
+                        <td>
+
+                            <div class="form-inline">
+                                <div name="item-${j}" class="input-group input-group-sm ${hasPackCode}" data-packcode="${d.PackCode}" data-pack-quantity="${d.PackConfigQuantity}" data-index="${j}">
+                                                        
+                                    <input model name="rq[${i}].Quantities[${k}].OrderID" value="${d.OrderID}" type="hidden" />
+                                    <input model name="rq[${i}].Quantities[${k}].PrinterJobDetailID" value="${d.PrinterJobDetailID}" type="hidden" />
+                                    <input model name="rq[${i}].Quantities[${k}].Value" id="txt${k}" ${isAut} action="keyup:GoNextField;change:UpdateDiff" type="number" value="${d.Quantity}" validation="range(${d.MinAllowed},${d.MaxAllowed})" max="${d.MaxAllowed}" data-quantity-requested="${d.QuantityRequested}" class="form-control input-sm mr-1 user-entry" no-transform>
+
+                                    <small class="form-text text-muted">
+                                        <a class="btn btn-link ${hasPackCode}" id="lblH${k}" style="font-size: 11px;" href="#" action="SetMax" data-item="item-${j}" data-packcode="${d.PackCode}">@(g["Set Max"])(${d.MaxAllowed})</a>
+                                    </small>
+                                </div>
+                            </div>
+
+                        </td>
+                        <td><span name="extra-${j}">${(d.Quantity - d.QuantityRequested)}</span></td>
+
+                    </tr>`;
+
+            return tr;
+
+        },
+
+        Save: function () {
+
+            var self = this;
+            if (!self.model.ValidState()) {
+
+                var deffered = $.Deferred();
+
+                deffered.reject();
+
+                return deffered.promise();
+            };
+
+            //var data = self.GetData();
+
+            var arrayData = $('[name="quantity-wizard-frm"]').serializeArray();
+
+            return AppContext.Wizard.AlvaroMoreno_SaveQuantities(arrayData);
+
+        },
+
+
+        _solve: function () {
+            var self = this;
+
+            if (!self.model.ValidState()) {
+
+                var deffered = $.Deferred();
+
+                deffered.reject();
+
+                return deffered.promise();
+            };
+
+            var arrayData = $('[name="quantity-wizard-frm"]').serializeArray();
+
+                return AppContext.Wizard.AlvaroMoreno_SolveQuantities(arrayData);
+
+        },
+
+        SaveAndNext: function () {
+
+			var self = this;
+
+            var p = self._solve();
+
+            p.done(() => {
+
+                self.GetValidator().GetStep(self.WizardStep.Position + 1);
+
+            })
+
+        },
+
+        Back: function () {
+
+            this.GetValidator().GetStep(this.WizardStep.Position - 1);
+        },
+
+
+        // https://stackoverflow.com/questions/480735/select-all-contents-of-textbox-when-it-receives-focus-vanilla-js-or-jquery
+        // https://stackoverflow.com/questions/5379120/get-the-highlighted-selected-text
+        GoNextField: function (evt) {
+
+            var key = evt.keyCode ? evt.keyCode : evt.which;
+
+            if (key == 13) {
+
+                evt.preventDefault();
+
+                var currentPosition = $(evt.target).closest('.input-group').data('index')
+
+                //if ($(evt.target).closest('.input-group').hasClass('is-last')) {
+                //    return false;
+                //}
+
+                var nextField = $('[data-index="' + (parseInt(currentPosition + 1)) + '"]').find('.user-entry');
+
+                if (nextField.length == 1) {
+
+                    nextField.focus();
+                    var tmpStr = nextField.val();
+                    nextField.val('');
+                    nextField.val(tmpStr);
+                    nextField.get(0).select();
+                }
+
+            }
+
+            return true;
+        },
+
+        SetMax: function (evt) {
+
+            var self = this;
+
+            var lnk = $(evt.target)
+
+            var userEntry = lnk.closest('.input-group').find('.user-entry')
+
+            self._setMax(userEntry);
+
+
+        },
+
+        _setMax: function (field) {
+            var self = this;
+            //field.val(field.attr('max'));//AllowQuantityEdition
+            var request = field.attr('data-quantity-requested');
+            switch (self.AllowQuantityEdition) {
+                case 2:
+                    field.val(Math.ceil(request * (1.0 + parseFloat(self.elements.MaxQuantityPercentage.val()) / 100.0)));
+                    break;
+                case 1:
+                    field.val(Math.ceil(parseInt(self.elements.MaxQuantityPercentage.val()) + parseInt(request)));
+                    break;
+                default:
+                    field.val(request);
+                    break;
+            }
+            field.change();
+        },
+
+
+        SetMaxAll: function (evt) {
+
+            var self = this;
+            let _value = self.elements.MaxQuantityPercentage.val();
+            if (_value > 0 || _value < self.MaxQuantityPercentage) {
+                var allEntries = self.elements.TableContainer.find('.user-entry');
+
+                $.each(allEntries, (key, entry) => { self._setMax($(entry)); });
+            }
+        },
+
+        UpdateDiff: function (evt) {
+
+            var self = this;
+
+            var entry = $(evt.target);
+
+            var idx = entry.closest('.input-group').data('index')
+
+            var diff = entry.val()  -  entry.data('quantityRequested');
+
+            $('[name="extra-' + idx + '"]').text(diff);
+
+
+        },
+
+        GetValidator: function () {
+
+            var self = this;
+
+            var validator = new ValidatorHelper(self.OrderSelection);
+
+            validator.OnWizardCreated.Subscribe(this, this._validatorHelperOnCreateEvent)
+
+            return validator;
+
+        },
+
+        _validatorHelperOnCreateEvent: function (e) {
+            var self = this;
+
+            var wizard = e.wizardController;
+            var wizardStep = e.wizardStep
+
+            wizard.Show(self.ViewContainer);
+        },
+        // TODO: ShowStatus method and GoBCGoToStepToStep method, could be better in parent object, to reuse for all wizards views
+        ShowStatus: function() {
+            var self = this;
+            var breadCrumbs = new BreadCrumbsUI({
+                ContainerElm: this.elements.BreadcrumbContainer,
+	            Controller: self,
+                LinkClick: 'BCGoToStep',
+                Crumbs: $.map(self.AllSteps, (wzdStep) => {
+                    // Crumb Object {Text, Position, Href, State }
+                    return {
+                        Text: wzdStep.Name,
+                        Position: wzdStep.Position,
+                        Href: '#',
+                        State : self.WizardStep.ID == wzdStep.ID ? CrumbState.PROGRESS : ( wzdStep.IsCompleted ? CrumbState.COMPLETED :CrumbState.PENDING )
+                    } 
+                }),
+	            AutoRender: true,
+	            SizeCls: '', // not implemented
+	            AlignCls: '' // justify-content-center or justify-content-end
+            });
+
+        },
+
+        BCGoToStep: function (evt) {
+
+            var self = this;
+            var stepBtn = $(evt.target);
+            var step = stepBtn.data('position')
+            var wzdStepSelected = self.AllSteps.find((val) => val.Position == step)
+            var beforeStepSelected = self.AllSteps.find((val) => val.Position == step - 1)
+
+            if (!wzdStepSelected
+                || self.WizardStep.ID == wzdStepSelected.ID
+                || (wzdStepSelected.IsCompleted == false && beforeStepSelected && beforeStepSelected.IsCompleted == false)
+            ) { 
+                evt.preventDefault();
+                return;
+            }
+
+            self.GetValidator().GetStep(step);
+        }
+
+
+    };
+
+/// </script>
+

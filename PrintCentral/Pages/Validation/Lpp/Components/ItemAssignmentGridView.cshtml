@@ -1,0 +1,114 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@inject ICatalogRepository repo
+@inject ICatalogDataRepository repoData
+@using Newtonsoft.Json.Linq
+
+@{
+    Console.WriteLine("Cargando Vista Del ItemGridView");
+    Layout = null;
+}
+<viewform>
+
+
+
+    <nav class="navbar navbar-light bg-light mx-0 p-1 mt-2 border-top border-bottom" style="background-color:#bee5eb !important;">
+        <span class="btn btn-sm" style="cursor: auto;">
+            Order N° :  <span name="OrderNumber"></span>
+        </span>
+    </nav>
+
+    <viewrow>
+
+        <viewcolumn>
+            <viewrow>
+                <viewcolumn class="pt-3">
+                    <select model name="SizeSetID" action="change:ShowSetValues_Event" label="@g["Sizes Set"]" class="form-control form-control-sm" />
+                </viewcolumn>
+            </viewrow>
+            <viewrow>
+                <viewcolumn class="d-flex align-items-center">
+                    <div name="SizesToDisplay" class="">@g["No Sizes Selected"]</div>
+                </viewcolumn>
+            </viewrow>
+            <viewrow>
+                <viewcolumn>
+                    <div class="form-group d-none">
+                        <label style="margin-right:10px">@g["Add Articles to the List"]</label>
+                        <div name="ArticleFinderContainer" class="input-group input-group-sm">
+
+                            <select name="ArticleFinder" data-live-search="true" class="form-control custom-select-sm " no-transform></select>
+
+                            <div class="input-group-append">
+                                <button class="btn btn-primary" type="button" action="AddArticle"><span class="fa fa-plus"></span></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- grid  -->
+                    <div class="article-grid-container mt-2">
+                        <div class="toolbar-body" style="width:100%; margin-top:15px;">
+                            <span class="toolbar-grip"></span><a href="#" title="Remove" action="RemoveArticle" class="d-none"><span class="fa fa-trash"></span></a>
+                        </div>
+                        <div component="OrderGrid" name="Articles">
+
+                            <template>
+                                <column width="120" field="ArticleName">@g["Article"]</column>
+                                <column width="120" field="ArticleCode">@g["Article Code"]</column>
+                                <column width="120" field="ArticleType">@g["Article Type"]</column>
+                                <column width="120" field="RFID">@g["RFID"]</column>
+                            </template>
+
+                        </div>
+                    </div>
+                </viewcolumn>
+            </viewrow>
+            <!-- CERTIFICATIONS SECTIONS -->
+            <div name="CertificationSelected">
+                <nav class="navbar navbar-light bg-light mx-0 p-1 mt-2 border-top border-bottom mb-2" style="background-color:#bee5eb !important;">
+                    <span class="btn btn-sm" style="cursor: auto;">Certifications Section</span>
+                </nav>
+                <viewrow class="col-sm-12" style="padding-left: 0px;>">
+                    <div>
+                        <a href="#" class="btn btn-sm btn-primary" action="OpenCertificationManager">@g["Certifications Manager"]</a>
+                    </div>
+                </viewrow>
+                <viewrow class="col-sm-12" style="padding-left: 0px;>">
+                    <div>
+                        <input model name="CertificationNumber" label="@g["Certification Number"]" maxlength="60" readonly />
+                        <input model name="CertifyingCompany" label="@g["Certifying Company"]" maxlength="60" readonly />
+                    </div>
+                </viewrow>
+            </div>
+            <!-- FIN CERTIFICATIONS SECTIONS -->
+        </viewcolumn>
+
+
+
+
+
+        <viewcolumn>
+            <!-- carrusel of images  -->
+            <div name="article-carousel" id="articlesSelected" class="carousel slide mt-3 mx-auto" data-ride="carousel" style=" width:60%; min-height:150px;">
+                <ol name="CarrouselIndicator" class="carousel-indicators" style="bottom:-10px"></ol>
+
+                <div name="CarrouselContent" class="carousel-inner">
+                </div>
+
+                <a class="carousel-control-prev" href="#articlesSelected" role="button" data-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="sr-only">>@g["Previous"]</span>
+                </a>
+                <a class="carousel-control-next" href="#articlesSelected" role="button" data-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="sr-only">@g["Next"]</span>
+                </a>
+
+            </div>
+
+        </viewcolumn>
+
+    </viewrow>
+
+</viewform>

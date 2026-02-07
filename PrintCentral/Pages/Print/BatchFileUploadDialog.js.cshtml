@@ -1,0 +1,172 @@
+﻿@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+
+//# sourceURL=https://Pages/Print/BatchFileUploadDialog.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var BatchFileUploadDialog = function (catalogid) {
+		FormView.Extend(this, "@g["Import a batch print file"]", "/Print/BatchFileUploadDialog");
+		this.CatalogID = catalogid;
+	};
+
+	BatchFileUploadDialog.prototype = {
+        constructor: BatchFileUploadDialog,
+
+		OnLoad: function () {
+			var self = this;
+			this.elements.file.kendoUpload({
+				async: {
+					saveUrl: `/upload/batchfile`,
+					autoUpload: true
+				},
+				multiple: false,
+				success: function () { self.FileUploaded(); },
+				error: function () { AppContext.ShowError("@g["Error uploading file"]"); },
+				localization: {
+					select: '@g["Select File"]',
+					remove: '@g["Remove"]',
+					cancel: '@g["Cancel"]',
+					headerStatusUploading: "@g["Uploading..."]",
+					headerStatusUploaded: "@g["Done"]"
+				}
+			});
+			this.elements.ProgressBar.kendoProgressBar({
+				min: 0,
+				max: 100,
+				type: "percent",
+				complete: function () { self.DocumentProcessingComplete(); }
+			});
+			var pb = this.elements.ProgressBar.data("kendoProgressBar");
+			pb.value(0);
+		},
+
+		OnUnload: function () {
+		},
+
+		FileUploaded: function (fieldName, value) {
+			var self = this;
+			this.elements.FileSelectRow.hide();
+			this.elements.ProgressRow.show();
+			this.handle = setInterval(()=>self.GetProgress(1), 1000);
+		},
+
+		GetProgress: function (phase) {
+			var self = this;
+			AppContext.HttpGet("/upload/progress", (progress) => {
+				if (progress != null) {
+					var progressVal = phase == 1 ? progress.ReadProgress : progress.WriteProgress;
+					if (progressVal > 0) {
+						var pb = self.elements.ProgressBar.data("kendoProgressBar");
+						pb.value(progressVal);
+					}
+					else if (progress.Progress == -1) {
+						clearInterval(self.handle);
+						self.elements.FileSelectRow.show();
+						self.elements.ProgressRow.hide();
+						AppContext.ShowError("@g["Error communicating with server."]");
+					}
+				}
+			},
+			(error) => {
+				clearInterval(self.handle);
+				self.elements.FileSelectRow.show();
+				self.elements.ProgressRow.hide();
+				AppContext.ShowError("@g["Error communicating with server."]");
+			});
+		},
+
+		DocumentProcessingComplete: function () {
+			var self = this;
+			clearInterval(this.handle);
+			this.elements.ProgressRow.hide();
+			this.elements.DataDisplayRow.show();
+			AppContext.HttpGet("/upload/jobresult", function (result) {
+				if (result != null) {
+					self.JobResult = result;
+					if (self.JobResult.Errors.length > 0) {
+						self.elements.ErrorColumn.show();
+						self.elements.UploadErrors.LoadErrors(self.JobResult.Errors, self.elements.ResultsTable);
+					}
+					else {
+						self.elements.ErrorColumn.hide();
+						self.elements.btnAcceptData.show();
+						self.elements.UserMessage.css("display", "inline-block");
+						self.elements.TableContainer.attr("class", "col");
+					}
+					AppContext.HttpGet("/upload/importeddata", function (data) {
+						if (data != null) {
+							self.ImportedData = data;
+							self.page = 0;
+							self.ConfigureTable();
+						}
+					}, self.ShowApiError, true);
+				}
+				else AppContext.ShowError("@g["Could not process the file due to an unexpected error."]");
+			}, self.ShowApiError);
+		},
+
+		ConfigureTable: function () {
+			var data = this.ImportedData;
+			var tableColumns = [{ Text: "#", Width: 30 }];
+			for (var col of data.Cols) {
+				tableColumns.push({ Text: col.InputColumn, Field: col.InputColumn });
+			}
+			var tableData = [];
+			var start = this.page * 1000;
+			var limit = (this.page + 1) * 1000;
+			if (limit > data.Rows.length)
+				limit = data.Rows.length;
+			for (var row = start; row < limit; row++) {
+				tableData.push(data.Rows[row].Data);
+			}
+			if (data.Rows.length > 1000) {
+				this.elements.PrevPage.show();
+				this.elements.NextPage.show();
+				this.elements.TotalRows.text(`@g["Imported"] ${data.Rows.length} @g["rows"], @g["showing records"] ${start + 1} - ${limit}.`);
+			}
+			else {
+				this.elements.PrevPage.hide();
+				this.elements.NextPage.hide();
+				this.elements.TotalRows.text(`@g["Imported"] ${data.Rows.length} @g["rows"].`);
+			}
+			this.elements.ResultsTable.ConfigureColumns(tableColumns);
+			this.elements.ResultsTable.LoadData(tableData);
+		},
+
+		Previous: function () {
+			if (this.page > 0) {
+				this.page--;
+				this.ConfigureTable();
+			}
+		},
+
+		Next: function () {
+			if ((this.page + 1) * 1000 <= this.ImportedData.Rows.length) {
+				this.page++;
+				this.ConfigureTable();
+			}
+		},
+
+		CancelUpload: function (e) {
+			this.elements.btnCancel.prop("disabled", true);
+			this.elements.btnAcceptData.prop("disabled", true);
+			this.Close();
+		},
+
+		AcceptDataUpload: function (e) {
+			this.elements.btnCancel.prop("disabled", true);
+			this.elements.btnAcceptData.prop("disabled", true);
+			this.Close(this.ImportedData);
+		},
+
+		ShowApiError: function () {
+			AppContext.ShowError("@g["Error processing request"]");
+		}
+	};
+//</script>

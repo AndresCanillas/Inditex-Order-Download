@@ -1,0 +1,115 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/CompanyNode.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var CompanyNode = function (company, title) {
+		this.Company = company;
+		if (title == null)
+			TreeNode.Extend(this, "CompanyNode", company.ID, company.Name);
+		else
+			TreeNode.Extend(this, "CompanyNode", company.ID, title);
+		this.CanEdit = true;
+		this.menu = {
+			MenuWidth: "250px",
+			Options: [
+				{ Text: "@Html.Raw(g["Open"])", OnClick: this.OnDoubleClick }
+				@if (userData.Admin_Companies_CanRename)
+				{
+                @:, { Text: "@Html.Raw(g["Rename"])", OnClick: this.Rename }
+				}
+				@if (userData.Admin_Companies_CanDelete)
+				{
+				@:, { IsSeparator: true }
+				@:, { Text: "@Html.Raw(g["Delete"])", OnClick: this.Delete }
+				}
+			]
+		};
+	};
+
+	CompanyNode.prototype = {
+		constructor: CompanyNode,
+
+		loadDependencies: function (callback) {
+			AppContext.LoadJS(
+				"/Admin/CompanyView.js",
+				"/Admin/locations/LocationsRootNode.js",
+				"/Admin/Users/UserRootNode.js",
+				"/Admin/Brands/BrandsRootNode.js").then(() => callback());
+		},
+
+		GetContextMenu: function () {
+			return this.menu;
+		},
+
+		OnDoubleClick: function () {
+			var self = this;
+			this.loadDependencies(function () {
+				var view = new CompanyView(self.EntityID);
+				view.NodeID = self.NodeID;
+				view.OnSaved.Subscribe(self, function (data) { this.setText(data.Name); });
+				view.Show(self.getViewContainer());
+			});
+		},
+
+		@if (userData.Admin_Companies_CanRename)
+		{
+		<text>
+		Rename: function () {
+			this.BeginEdit();
+		},
+
+		OnEditEnding: function (value) {
+			return AppContext.Companies.Rename(this.EntityID, value);
+		},
+		</text>
+		}
+
+		@if (userData.Admin_Companies_CanDelete)
+		{
+		<text>
+		Delete: function () {
+			var self = this;
+			var confirm = new ConfirmDialog("@g["Delete company? IMPORTANT: This operation will also delete all records associated with this company."]");
+			confirm.ShowDialog(function (response) {
+				if (response) {
+					AppContext.Companies.Delete(self.EntityID, function (result) {
+						if (result.Success) {
+							self.Remove();
+						}
+					});
+				}
+			});
+		},
+		</text>
+		}
+
+		OnExpanded: function () {
+			var self = this;
+			this.loadDependencies(function () {
+				if (!self.IsLoaded) {
+					self.IsLoaded = true;
+					@if(userData.Admin_Locations_CanSee)
+					{
+						@:self.AddNode(new LocationsRootNode(self.EntityID));
+					}
+					@if(userData.Admin_Brands_CanSee)
+					{
+						@:self.AddNode(new BrandsRootNode(self.EntityID));
+					}
+					@if(userData.Admin_Users_CanSee)
+					{
+						@:self.AddNode(new UserRootNode(self.EntityID));
+					}
+				}
+			});
+        }
+	};
+//</script>

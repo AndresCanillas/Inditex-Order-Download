@@ -1,0 +1,390 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+
+//# sourceURL=https://Pages/Validation/Tempe/Shoes/SupportFilesWizard.js
+///<script>
+    var SupportFilesWizard = function (orderSelection, wizardStep, allSteps) {
+
+        this.OrderSelection = orderSelection;
+        this.WizardStep = wizardStep;
+        this.AllSteps = allSteps;
+        this.StoreName = 'OrderGroupFileStore';
+        this.CategoriesData;
+        this.HasSupportFiles = [];
+        this.Details = [];
+
+           AWizardBaseView.Extend(this, "Support Files Wizard", `/Validation/Tempe/Shoes/SupportFilesWizard`, wizardStep, allSteps);
+    }
+
+    SupportFilesWizard.prototype = {
+
+        constructor: SupportFilesWizard,
+
+        OnLoad: async function () {
+            var self = this;
+            self.model.WizardID = self.WizardStep.WizardID;
+            self.model.WizardStepID = self.WizardStep.ID;
+            self.ShowStatus();
+
+            AppContext.Wizard.GetOrdersDetails(self.OrderSelection).done((result) => {
+                self.Details = result.Data;
+
+                //other ways to distinct
+                //var disctintdetails = Array.from(new Set(item.Details.map(s => s.Article)));
+
+                // var arrayUniqueByKey2 = obj.Details.filter((a, i) => obj.Details.findIndex((s) => a.Article === s.Article) === i);
+
+                //var disctintdetails = Array.from(new Set(self.Details[0].Details.map(s => s.Article))).map(x => {
+                //    return {
+                //        Article: x,
+                //        Category: self.Details[0].Details.find(l => l.Article === x).IncludeComposition ? "Composition" : "Hangtag",
+                //        IsCompo: self.Details[0].Details.find(l => l.Article === x).IncludeComposition
+                //    };
+                //});
+
+                //add distinct Detatil to Order
+                self.Details.forEach((obj, idx) => {
+                    var arrayUniqueByArticle = [...new Map(obj.Details.map(item => [item["Article"], item])).values()];
+                    obj["DetailUnique"] = arrayUniqueByArticle;            
+                });
+
+                self.LoadCategories().then(() => {
+                    self.LoadOrderGroupFiles(self.Details);
+                });
+
+            });
+        },
+
+        SupportFilesValidation: function () {
+            var self = this;
+
+            try {
+
+                for (var i = 0; i < $('[name*="FileContainer"]').length; i++) {
+
+                    var ele = $('[name*="FileContainer"]')[i];
+                    var gfile = $(`[name="${$(ele).attr('name')}"] .gfile`).length;
+
+                    if (gfile == 0) {
+                        return false;
+                        break;
+                    }
+                }               
+            }
+            catch (err) {
+                return false;
+            }
+
+            return true;
+        },
+
+        _solve: function () {
+            var self = this;
+            return AppContext.Wizard.SolveSupportFiles(self.OrderSelection);
+        },
+
+        SaveAndNext: function () {
+
+            var self = this;
+
+            if (!self.SupportFilesValidation()) {
+                AppContext.ShowError("@g["You must attach at least 1 supporting document to continue"]");
+                return;
+            }
+
+            self._solve().done((responseSolve) => {
+
+                if (responseSolve.Success == false) {
+                    return;
+                }
+
+                self.GetValidator().GetStep(self.WizardStep.Position + 1);
+
+            }).fail(() => {
+
+            });
+        },
+
+        GetFileUploadUrl: function (fieldName, value) {
+            var self = this;
+            var idx = fieldName.substr(fieldName.indexOf("_") + 1, fieldName.indexOf("_"));
+            var ordergroupid = self.OrderSelection[idx].OrderGroupID;
+            var category = $("[name='" + fieldName + "']").data("category");
+
+            return `/supportfiles/upload/${ordergroupid}/${category}`;
+        },
+
+        KendoUpload__afterUpload: function (elementName, fileId, evt) {
+            var self = this;
+
+            if (!evt.files) {
+                return;
+            }
+
+            self.FindFile(fileId, elementName);
+
+            //savelog
+            AppContext.Wizard.CreateSupportFilesLog(self.OrderSelection);
+
+            AppContext.ShowSuccess("Support file uploaded successfully");
+
+           // $(`a[name='${fileId}'`).click();
+        },
+
+        LoadCategories: async function () {
+            var self = this;
+            var response = await AppContext.HttpGet(`/fsm/${this.StoreName}/categories`);
+            if (response.Success == true) {
+                self.CategoriesData = response.Data.filter(x => x != "Attachments" && x != "SupportFiles");
+            }
+        },
+
+        RenderCategories: async function (idx, fileId, category, idxOrder) {
+            var self = this;
+            var d1 = $.Deferred();
+            var html = "";
+
+            html = `<a href="#" name="${fileId}" data-category="${category}" action="LoadCategoryFiles" data-fileid="${fileId}" data-idx="${idx}"  data-idxOrder="${idxOrder}" style="text-decoration:underline !important; margin:5px;">${category}</a>`;
+    
+            var container = $(`div[name='rq[${idx}].CategoryContainer_${idxOrder}'`);
+            container.append(html);
+
+            await self.LoadCategoryFiles(category, fileId, idx, idxOrder).then(() => {
+                console.log(`${category} loaded for ${fileId} and idx ${idx}`);
+            });
+
+            d1.resolve();
+            return d1.promise();
+        },
+
+        LoadOrderGroupFiles: function (details) {
+            var self = this;
+            self.AddControls(details);
+        },
+
+        FindFile: async function (fileid, elementName) {
+            var self = this;
+            var prefix = elementName.substr(0, elementName.indexOf(".") + 1);
+            var idxOrder = elementName.substr(elementName.indexOf("_") + 1, elementName.indexOf("_"));
+
+            var response = await AppContext.HttpGet(`/fsm/${this.StoreName}/files/${fileid}`);
+            var category = $("[name='" + elementName + "']").data("category")
+
+            if (response.Success == true) {
+                this.elements[prefix + 'CategoryContainer_' + idxOrder].show();
+
+                if (self.CategoriesData != null && self.CategoriesData.length > 0)
+                    this.LoadCategoryFiles(category, fileid, elementName, idxOrder);
+            }
+            else {
+                this.elements[elementName.substr(0, elementName.indexOf(".") + 1) + 'CategoryContainer_' + idxOrder].hide();
+                this.elements[elementName.substr(0, elementName.indexOf(".") + 1) + 'FileContainer_' + idxOrder].hide();
+            }
+        },
+
+        LoadCategoryFiles: async function (e, fileid, elementName, idxOrder) {
+            var self = this;
+            var file_id = "";
+            var idx = "";
+            var category = "";
+            
+            if (typeof e === 'object') {
+                //when click fire
+                if (String.isString(e)) {
+                    category = e;
+                }
+                else {
+                    e.preventDefault();
+                    category = $(e.target).text();
+                }
+
+                file_id = e.target.attributes["data-fileid"].value;
+                idx = e.target.attributes["data-idx"].value;
+                idxOrder = e.target.attributes["data-idxOrder"].value;
+            } else {
+                
+                file_id = fileid;
+                category = e;
+
+                if (typeof elementName != 'number'){
+                    //when manual fire function on findfile
+                    idx = elementName.substr(elementName.indexOf("["), elementName.indexOf("]") - 1).replace("[", "").replace("]", "");
+                } else {
+                    //when manual fire function on load
+                    idx = elementName;
+                }          
+            }
+
+            var response = await AppContext.HttpGet(`/fsm/${this.StoreName}/files/${file_id}/${category}`);
+
+            if (response.Success == true) {
+                this.CreateDirectoryList(response.Data, "rq[" + idx + "]", file_id, category, idxOrder);
+            }
+        },
+
+        CreateDirectoryList: function (directoryFiles, elementName, fileid, category, idxOrder) {
+            var self = this;
+            var idx = elementName.substr(elementName.indexOf("["), elementName.indexOf("]") - 1).replace("[", "").replace("]", "");
+        
+            var html = `<div style="margin:8px;">
+                            <div style="display:inline-block; width:300px">File Name</div>
+                            <div style="display:inline-block; width:100px; text-align:right;">Size</div>
+                            <div style="display:inline-block; width:50px"></div>
+                            <div style="display:inline-block; width:150px">Date</div>
+                        </div>`;
+
+            for (var file of directoryFiles) {
+                var size = formatSize(file);
+                var date = file.CreateDate.toDate();
+                html = html + `
+                        <div style="margin:8px;">
+                            <div style="display:inline-block; width:300px"><a href="#" action="DownloadAttachment" data-fileid="${fileid}" data-id="${file.AttachmentID}" data-category="${category}" class="gfile" style="text-decoration:underline !important;">${file.FileName}</a></div>
+                            <div style="display:inline-block; width:100px; text-align:right;">${size.Size.toLocaleString()}</div>
+                            <div style="display:inline-block; width:50px">${size.Unit}</div>
+                            <div style="display:inline-block; width:150px">${date.toShortString()}</div>
+                            <div style="display:inline-block; width:50px"><a href="#" action="DeleteAttachment" data-fileid="${fileid}" data-fileid="${fileid}" title="Delete"><span data-id="${file.AttachmentID}" data-fileid="${fileid}" data-category="${category}" data-idx="${idx}" data-idxOrder="${idxOrder}" class="fa fa-trash" style="cursor:pointer; color:#a01d00;"></span></a></div>
+                        </div>`;
+            }
+
+            var elements = $(html);
+            AppContext.BindActions(elements, this);
+
+            var container = "";
+            container = ".FileContainer_" + idxOrder;
+
+
+            this.elements[elementName + container].empty();
+            this.elements[elementName + container].append(elements);
+            this.elements[elementName + container].show();
+
+            function formatSize(file) {
+                var unit = "Bytes"
+                var size = file.FileSize;
+                if (size > 9999999) {
+                    size = (size / 1048576).toFixed(2);
+                    unit = "MB";
+                }
+                else if (size > 9999) {
+                    size = (size / 1024).toFixed(2);
+                    unit = "KB";
+                }
+                return { Size: size, Unit: unit };
+            }
+        },
+
+        DownloadFile: async function (e) {
+            e && e.preventDefault();
+            window.open(`/fsm/${this.StoreName}/files/${this.model.FileID}/content`);
+        },
+
+        DownloadAttachment: function (e) {
+            e && e.preventDefault();
+
+            var attachmentid = e.target.attributes["data-id"].value;
+            var fileid = e.target.attributes["data-fileid"].value;
+            var category = e.target.attributes["data-category"].value;
+
+            if (!String.isNullOrEmpty(attachmentid))
+                window.open(`/fsm/${this.StoreName}/files/${fileid}/${category}/${attachmentid}`);
+        },
+
+        DeleteAttachment: function (e) {
+            e && e.preventDefault();
+            var attachmentid = e.target.attributes["data-id"].value;
+            var fileid = e.target.attributes["data-fileid"].value;
+            var category = e.target.attributes["data-category"].value;
+            var idx = e.target.attributes["data-idx"].value;
+            var idxOrder = e.target.attributes["data-idxOrder"].value;
+            var self = this;
+
+            var dlg = new ConfirmDialog("Delete attachment from file store?");
+            dlg.ShowDialog(async (result) => {
+                if (result != null) {
+                    if (!String.isNullOrEmpty(attachmentid)) {
+                        var response = await AppContext.HttpPost(`/fsm/${self.StoreName}/files/${fileid}/${category}/${attachmentid}/delete`);
+                        if (response.Success == true) {
+                            $(`a[data-idx=${idx}][data-idxorder="${idxOrder}"]`).click();
+                        }
+                    }
+                }
+            });
+        },
+
+        AddControls: async function (details) {
+
+            var self = this;
+            var $tbody = self.elements.TableContainer;
+
+            //orders
+            details.forEach((order, idxOrder) => {
+
+                var trGroup = `<div class="col-12">
+                                            <div class="row">
+                                                <div class="col-12">
+                                                    <div style="font-size:17px;background-color:#bee5eb;padding:8px">Upload Files - OrderNumber: ${order.OrderNumber}</div>
+                                                </div>
+                                            </div>`;
+
+                order.DetailUnique.forEach((det, idx) => {
+                    //exclude extras without label
+                    if (det.LabelID != null) {
+                        if (det.LabelTypeStr == "HangTag") {
+                            var category = det.IncludeComposition ? "Composition" : "Hangtag";
+                            trGroup += self.AddRows(idx, det.OrderGroupID, det.OrderNumber, category, idxOrder);  
+                        } 
+                    }
+                });
+
+                $tbody.append(trGroup);
+                self.TransformView($tbody);
+                trGroup += `</div>`;      
+            });
+
+
+            details.forEach((order, idxOrder) => {
+                order.DetailUnique.forEach((det, idx) => {
+                    if (det.LabelTypeStr == "CareLabel" || det.LabelTypeStr == "HangTag") {
+                        var category = det.IncludeComposition ? "Composition" : "Hangtag";
+                        self.RenderCategories(idx, order.OrderGroupID, category, idxOrder).then(() => {
+                        }); 
+                    }                                  
+                });
+            });
+
+            // bind model and antions inner tbody
+            AppContext.BindView($tbody, self).then(() => { });
+
+
+        },
+
+        AddRows: function (idx, ordergroupid, ordernumber, category, idxorder) {
+            var self = this;
+            var i = idx;
+      
+            var formContent = `              
+                    <div class="row">
+                        <div class="col-sm-6 col-md-6 col-lg-6 col-xl-6">
+                            <div style="font-size:17px;">${category}</div>
+                            <hr class="subtitle" />
+                            <viewform compact name="FileProperties_${idxorder}" style="margin-top:15px; margin-left:20px;">
+                                <input model name="rq[${i}].OrderGroup_${idxorder}" data-category="${category}" type="hidden" data-type="file" accept=".png,.jpg,.jpeg" />
+                                <div model name="rq[${i}].FileID_${idxorder}" style="display:none">${ordergroupid}</div>
+                            </viewform>
+                        </div>
+                        <div class="col-sm-6 col-md-6 col-lg-6 col-xl-6">
+                            <div style="font-size:17px;">Categories</div>
+                            <hr class="subtitle" />
+                            <div name="rq[${i}].CategoryContainer_${idxorder}"></div>
+                            <div name="rq[${i}].FileContainer_${idxorder}" style="margin-top:15px; font:normal 12px Consolas, Courier New; white-space:nowrap; overflow:auto; display:none;"></div>
+                        </div>
+                    </div> `;
+
+            return formContent;
+        }
+    }
+
+/// </script>

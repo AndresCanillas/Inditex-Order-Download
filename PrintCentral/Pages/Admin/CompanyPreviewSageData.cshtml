@@ -1,0 +1,54 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+	
+}
+<viewform>
+	<viewrow>
+
+		<viewcolumn>
+
+			<input model name="Reference" label="@g["Customer Number"]" type="text" />
+			<input model name="Name" label="@g["Name"]" />
+			<input model name="ShortDescription" label="@g["Short Description"]" />
+
+			<div class="form-subtitle">@g["Contact"]</div>
+			<hr class="subtitle" />
+			<input model name="MainContact" label="Email" />
+			@*<input model name="Email2" label="Email" />*@
+
+		</viewcolumn>
+
+		<viewcolumn>
+			<div class="form-subtitle">@g["Location"]</div>
+			<hr class="subtitle" />
+			<input model name="CountryCode" label="@g["Country"]" />
+			<input model name="Country" label="@g["Country Desc"]" />
+			<input model name="LangCode" label="@g["Language"]" />
+			<input model name="Lang" label="@g["Lang Desc"]" />
+		</viewcolumn>
+
+
+	</viewrow>
+	<viewrow>
+
+		<viewcolumn>
+			<div class="form-subtitle">@g["Addresses"]</div>
+			<hr class="subtitle" />
+			
+			<div name="AddressListContainer" class="list-container">
+
+			</div>
+
+		</viewcolumn>
+
+	</viewrow>
+
+	<viewfooter>
+		<button type="button" class="btn btn-primary" action="SyncFn">@g["Sync"]</button>
+		<button type="button" class="btn btn-secondary" action="Cancel">@g["Cancel"]</button>
+	</viewfooter>
+
+</viewform>

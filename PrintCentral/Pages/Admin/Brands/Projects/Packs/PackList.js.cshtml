@@ -1,0 +1,46 @@
+﻿@page
+@using Microsoft.AspNetCore.Mvc.Razor
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+	var isAdmin = User.IsAnyRole(Roles.SysAdmin, Roles.IDTCostumerService, Roles.IDTLabelDesign, Roles.IDTProdManager);
+}
+//# sourceURL=https://Pages/Admin/Brands/Projects/Packs/PackList.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var PackList = function (projectid) {
+		FormView.Extend(this, "@g["Packs"]", `/Admin/Brands/Projects/Packs/PackList`);
+		if (projectid == null)
+			this.ProjectID = @userData.SelectedProjectID;
+		else
+			this.ProjectID = projectid;
+	};
+
+
+	PackList.prototype = {
+		constructor: PackList,
+
+		OnLoad: function () {
+			this.elements.Packs.LoadItems({ ProjectID: this.ProjectID, ShowFilters: true, AddOption: true, OpenOption: true, DeleteOption: true });
+			this.elements.Packs.ItemSelected.Subscribe(this, this.OpenPack);
+		},
+
+		OnUnload: function () {
+			this.elements.Packs.ItemSelected.Unsubscribe(this, this.OpenPack);
+		},
+
+		OpenPack: function (e) {
+			var self = this;
+			AppContext.LoadJS("/Admin/Brands/Projects/Packs/PackView.js").then(() => {
+				var dlg = new PackView(e.item.ID, self.ProjectID);
+				dlg.ShowDialog();
+			});
+		}
+    };
+//</script>
+
+

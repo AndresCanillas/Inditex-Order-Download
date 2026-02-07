@@ -1,0 +1,38 @@
+﻿@page
+@inject ILocalizationService g
+@inject RequestLocalizationOptions langOptions
+@inject IUserData userData
+@{
+	Layout = null;
+	var editable = userData.Admin_Catalogs_CanEdit?"editable":"";
+}
+<viewcard>
+	<viewform>
+		<viewrow>
+			<viewcolumn>
+				@if (userData.Admin_Catalogs_CanEdit)
+				{
+					<div class="toolbar-body" style="width:100%">
+						<span class="toolbar-grip"></span>
+						<a href="#" title="@g["Add caption"]" action="AddCaption"><span class="fa fa-plus"></span></a>
+						<span class="toolbar-separator"></span>
+						<a href="#" title="@g["Remove caption"]" action="RemoveCaption"><span class="fa fa-trash"></span></a>
+					</div>
+				}
+				<div name="CaptionsTable" component="TableView" style="max-height:110px;">
+					<template>
+						<column width="100" field="Language" @editable map="@(Map.FromEnumerable(langOptions.SupportedUICultures, "Name", "Name"))">@g["Language"]</column>
+						<column width="100" field="Text" @editable>@g["Text"]</column>
+					</template>
+				</div>
+			</viewcolumn>
+		</viewrow>
+	</viewform>
+	<viewfooter>
+		@if (userData.Admin_Catalogs_CanEdit)
+		{
+			<a href="#" class="btn btn-primary" action="Save">@g["Save"]</a>
+		}
+		<a href="#" class="btn btn-secondary" action="Cancel">@g["Cancel"]</a>
+	</viewfooter>
+</viewcard>

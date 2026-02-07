@@ -1,0 +1,202 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/Projects/Labels/LabelView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+// <script>
+    var LabelView = function (labelid, projectid) {
+		FormView.Extend(this, "@g["Label"]", "/Admin/Brands/Projects/Labels/LabelView");
+		this.LabelID = labelid;
+		this.ProjectID = projectid;
+		this.enlarged = false;
+	};
+
+
+    LabelView.prototype = {
+        constructor: LabelView,
+
+		OnLoad: function () {
+			var self = this;
+			AppContext.Labels.GetByID(this.LabelID, (labelData) => {
+				var currentDate = new Date();
+				self.LoadData(labelData);
+
+				self.elements.LabelPreview.attr("src", `/labels/getpreview/${labelData.ID}?${currentDate.toTicks()}`);
+                self.model.Shared = labelData.ProjectID == null;
+
+                if (self.model.Shared) {
+                    this.elements.DisplayFields.hide();
+                }
+
+				self.SetDownloadLink(labelData.FileName);
+				
+			});
+		},
+
+		SetDownloadLink: function (filename) {
+			let self = this;
+			if (!filename) return;
+			
+			self.elements.downloadLink.prop("href", `/labels/download/${self.LabelID}`);
+			self.elements.downloadLink.removeClass('d-none');
+			self.elements.downloadLink.text(filename);
+
+		},
+
+		GetFileUploadUrl: function (fieldName, value) {
+			return `/labels/upload/${this.LabelID}`;
+		},
+
+		private_GetFileDownloadUrl: function (fieldName, value) {
+			return `/labels/download/${this.LabelID}`;
+		},
+
+		@if(userData.Admin_Labels_CanEdit)
+		{
+		<text>
+		SetPreview: function (e) {
+			var self = this;
+			e.preventDefault();
+			if (self.labelData == null) {
+				AppContext.HttpPost(`/labels/info/${self.LabelID}`, null, (result) => {
+					if (result.Success) {
+						self.labelData = result.Data;
+						self.ShowPreviewForm(self.labelData);
+					}
+				});
+			}
+			else self.ShowPreviewForm(self.labelData);
+		},
+
+		ShowPreviewForm: function (labelData) {
+			var self = this;
+			//if (labelData.IsDatabound) {
+				AppContext.LoadJS("/Admin/Brands/Projects/Labels/LabelPreview.js").then(() => {
+					var dlg = new LabelPreview(self.LabelID, self.ProjectID);
+					dlg.ShowDialog((r) => {
+						if (r === true)
+							self.UpdatePreview();
+					}, "70%");
+				});
+			//}
+			//else {
+			//	AppContext.LoadJS("/Common/Components/DynamicForm.js").then(() => {
+			//		AppContext.Labels.GetLabelInfo(self.LabelID, (result) => {
+			//			if (result.Success) {
+			//				var catDef = AppContext.Labels.CatalogFromLabelVariables(result.Data.Variables);
+			//				var data = null;
+			//				if (self.model.PreviewData != null && self.model.PreviewData.length > 0)
+			//					data = JSON.parse(self.model.PreviewData);
+			//				else
+			//					data = AppContext.Labels.CreateDefaultPreviewModel(result.Data.Variables);
+			//				var form = new DynamicForm(catDef, "Label Variables", data);
+			//				form.ShowDialog((data) => {
+			//					if (data != null) {
+			//						self.model.PreviewData = JSON.stringify(data);
+			//						AppContext.Labels.SetLabelPreviewWithVariables(self.LabelID, self.model.PreviewData, function (result) {
+			//							if (result.Success) {
+			//								self.UpdatePreview();
+			//							}
+			//						});
+			//					}
+			//				});
+			//			}
+			//		});
+			//	});
+			//}
+		},
+
+		Save: function (e) {
+			var self = this;
+			if (!this.model.ValidState()) return;
+			if (this.model.Shared) {
+				this.model.ProjectID = null;
+			}
+			else {
+				this.model.ProjectID = this.ProjectID;
+			}
+			var data = this.GetData();
+			AppContext.Labels.Update(data, function (result) {
+				if (result.Success) {
+					self.OnSaved.Raise(data);
+					if (self.dialog === true)
+						self.Close(data);
+				}
+			});
+		},
+		</text>
+		}
+
+
+		UpdatePreview: function () {
+			this.elements.LabelPreview.attr("src", `labels/getpreview/${this.LabelID}?${new Date().getTime()}`);
+			if (this.enlarged)
+				this.elements.LabelPreview.attr("class", "image-preview label-preview3");
+			else
+				this.elements.LabelPreview.attr("class", "image-preview label-preview2");
+		},
+
+		EnlargePreview: function (e) {
+			e.preventDefault();
+			this.enlarged = !this.enlarged;
+			if (this.enlarged)
+				this.elements.EnlargeBtn.text("@g["Restore"]");
+			else
+				this.elements.EnlargeBtn.text("@g["Enlarge"]");
+			this.UpdatePreview();
+		},
+
+		ManageMappings: function (e) {
+			e.preventDefault();
+			var self = this;
+			AppContext.LoadJS("/Admin/Brands/Projects/Labels/LabelMappings.js").then(() => {
+				var mappings = null;
+				if (self.model.Mappings != null && self.model.Mappings.length > 0)
+					mappings = JSON.parse(self.model.Mappings);
+				var dlg = new LabelMappings(self.LabelID, self.ProjectID, mappings);
+				dlg.ShowDialog((data) => {
+					if (data != null) {
+						self.model.Mappings = JSON.stringify(data);
+					}
+				});
+			});
+        },
+
+		SetDisplayFields: function (e) {
+			e.preventDefault();
+            var self = this;
+            AppContext.LoadJS("/Admin/Brands/Projects/Labels/SetFieldsView.js").then(() => {
+                var view = new SetFieldsView(self.model.data);
+                view.ShowDialog(null, "60%");
+            });
+        },
+
+        SetComparerField: function (e) {
+            e.preventDefault();
+            var self = this;
+            AppContext.LoadJS("/Admin/Brands/Projects/Labels/SetComparerFieldView.js").then(() => {
+                var view = new SetComparerFieldView(self.model.data);
+                view.ShowDialog(null, "60%");
+            });
+        },
+
+        KendoUpload__afterUpload: function (fieldName, fileID, evt) {
+            var self = this;
+            if (!evt.files) {
+                return;
+            }
+
+            self.model["FileName"] = evt.files[0].name;
+			self.model["Rows"] = evt.response.Data.Rows;
+			self.model["Cols"] = evt.response.Data.Columns;
+			self.model["IsValid"] = false;
+
+		    self.SetDownloadLink(evt.files[0].name);
+        }
+	};
+//</script>

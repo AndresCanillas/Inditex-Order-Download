@@ -1,0 +1,23 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/Projects/Articles/ArticleDialog.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var ArticleDialog = function () {
+        FormView.Extend(this, "@g["New Article"]", "/Admin/Brands/Projects/Articles/ArticleDialog");
+    };
+
+    ArticleDialog.prototype = {
+		constructor: ArticleDialog,
+
+		OnLoad: function () {
+
+		}
+    };
+//</script>

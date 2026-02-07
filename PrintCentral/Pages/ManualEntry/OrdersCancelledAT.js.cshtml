@@ -1,0 +1,335 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages/ManualEntry/OrdersCancelledAT.js
+///<reference path="/js/jquery-3.0.0.min.js" />
+///<reference path="/js/Kendo.all.min.js" />
+///<reference path="/js/AppContext.js" />
+///<reference path="/js/AppContext.AppDomain.js" />
+
+// <script>
+
+             var OrderEntryView = function (options) {
+
+               if (!options) {
+                   options = {};
+               }
+
+               //this.options = OrderEntryView.GetDefaults(options);
+
+                console.log("OrdersCancelledAT - Ctor")
+
+                  FormView.Extend(this, "@g["Cancelled / Held Orders"]", `/ManualEntry/OrdersCancelledAT`);
+
+                  
+                  // this.Options = options;
+                  // this.CompanyId = null;
+                  // this.OrderId = 0;
+                  // this.ProjectId = 0;
+                  // this.OrderSections;
+
+                  // this.pdfFile = null;
+                  // this.jsonData = null;
+                  // this.modalManager = null;
+
+
+              };
+
+
+           // public static method
+                  OrderEntryView.GetDefaults = function (options) {
+
+               return $.extend({
+                   Title: '@g["Custom Report"]',
+                   Filter: {},
+                   EnableStorageFilter: true,
+               }, options);
+           };
+
+
+                   OrderEntryView.prototype = {
+                             constructor: OrderEntryView,
+
+               OnLoad: async function () {
+                   var self = this;
+                   console.log("OnLoad ");
+                   await  self.LoadOrdersData();
+                   self.initializePage();
+               },
+
+               LoadOrdersData : async  function ()
+               {
+                   let self = this;
+                    var response = await AppContext.HttpGet("fileordermanager/getsytemchangedorders");
+                    console.log(response)
+                    if (response.Success) 
+                    {
+                        self.ordersData = response.Data
+
+                    }
+                   // self.ordersData = [
+                   //        { OrderNumber: 'ORD-2024-001', ArticleName: 'ATLL44',  BatchNumber: 'BTH-240801', ActionID: 'eliminada', CreatedDate: '2024-08-15' },
+                   //        { OrderNumber: 'ORD-2024-002', ArticleName: 'ATLL44', BatchNumber: 'BTH-240802', ActionID: 'retenida', CreatedDate: '2024-08-14' },
+                   //        { OrderNumber: 'ORD-2024-003', ArticleName: 'ATLL44', BatchNumber: 'BTH-240803', ActionID: 'repeticion-no-permitida', CreatedDate: '2024-08-13' },
+                   //        { OrderNumber: 'ORD-2024-004', ArticleName: 'ATLL44', BatchNumber: 'BTH-240804', ActionID: 'eliminada', CreatedDate: '2024-08-12' },
+                   //        { OrderNumber: 'ORD-2024-005', ArticleName: 'ATLL44', BatchNumber: 'BTH-240805', ActionID: 'retenida', CreatedDate: '2024-08-11' },
+                   //        { OrderNumber: 'ORD-2024-006', ArticleName: 'ATLL44', BatchNumber: 'BTH-240806', ActionID: 'eliminada', CreatedDate: '2024-08-10' },
+                   //        { OrderNumber: 'ORD-2024-007', ArticleName: 'ATLL44', BatchNumber: 'BTH-240807', ActionID: 'repeticion-no-permitida', CreatedDate: '2024-08-09' },
+                   //        { OrderNumber: 'ORD-2024-008', ArticleName: 'ATLL44', BatchNumber: 'BTH-240808', ActionID: 'retenida', CreatedDate: '2024-08-08' },
+                   //        { OrderNumber: 'ORD-2024-009', ArticleName: 'ATLL44', BatchNumber: 'BTH-240809', ActionID: 'eliminada', CreatedDate: '2024-08-07' },
+                   //        { OrderNumber: 'ORD-2024-010', ArticleName: 'ATLL44', BatchNumber: 'BTH-240810', ActionID: 'eliminada', CreatedDate: '2024-08-06' },
+                   //        { OrderNumber: 'ORD-2024-011',ArticleName: 'ATLL44', BatchNumber: 'BTH-240811', ActionID: 'retenida', CreatedDate: '2024-08-05' },
+                   //        { OrderNumber: 'ORD-2024-012', ArticleName: 'ATLL44', BatchNumber: 'BTH-240812', ActionID: 'repeticion-no-permitida', CreatedDate: '2024-08-04' },
+                   //        { OrderNumber: 'ORD-2024-013',ArticleName: 'ATLL44', BatchNumber: 'BTH-240813', ActionID: 'eliminada', CreatedDate: '2024-08-03' },
+                   //        { OrderNumber: 'ORD-2024-014', ArticleName: 'ATLL44', BatchNumber: 'BTH-240814', ActionID: 'retenida', CreatedDate: '2024-08-02' },
+                   //        { OrderNumber: 'ORD-2024-015',ArticleName: 'ATLL44', BatchNumber: 'BTH-240815', ActionID: 'eliminada', CreatedDate: '2024-08-01' },
+                   //        // Más datos simulados...
+                   //        { OrderNumber: 'ORD-2024-016',ArticleName: 'ATLL44', BatchNumber: 'BTH-240816', ActionID: 'eliminada', CreatedDate: '2024-07-31' },
+                   //        { OrderNumber: 'ORD-2024-017', ArticleName: 'ATLL44', BatchNumber: 'BTH-240817', ActionID: 'retenida', CreatedDate: '2024-07-30' },
+                   //        { OrderNumber: 'ORD-2024-018', ArticleName: 'ATLL44', BatchNumber: 'BTH-240818', ActionID: 'repeticion-no-permitida', CreatedDate: '2024-07-29' },
+                   //        { OrderNumber: 'ORD-2024-019',ArticleName: 'ATLL44', BatchNumber: 'BTH-240819', ActionID: 'eliminada', CreatedDate: '2024-07-28' },
+                   //        { OrderNumber: 'ORD-2024-020',ArticleName: 'ATLL44', BatchNumber: 'BTH-240820', ActionID: 'retenida', CreatedDate: '2024-07-27' }
+                   //    ];
+
+                      self.filteredData = [...self.ordersData];
+                      self.currentPage = 1
+                      self.recordsPerPage = 15 
+                      self.currentSort = { column: 3, direction: 'desc' };
+
+               },
+
+               initializePage: function () 
+               {
+                  let self  = this; 
+
+                  window.applyFilters = (btn) => self.applyFilters(btn);
+                  window.changePage = (direction) => self.changePage(direction); 
+                  window.sortTable = (field) => self.sortTable(field);
+                  self.filterDataByDate(); // Eliminar registros de más de 6 meses
+                  self.updateDashboard();
+                  self.sortData(); // Aplicar ordenamiento por defecto
+                  self.displayTable();
+                  self.updatePagination();
+               }, 
+
+         filterDataByDate : function() {
+            let self = this 
+            const sixMonthsAgo = new Date();
+            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 36);
+
+            self.filteredData = self.ordersData.filter(order => {
+                const orderDate = new Date(order.CreatedDate);
+                return orderDate >= sixMonthsAgo;
+            });
+        },
+         updateDashboard : function() {
+            let self =this 
+            const stats = {
+                '0': 0,
+                '1': 0,
+                '2': 0,
+                total: self.filteredData.length
+            };
+
+            self.filteredData.forEach(order => {
+                stats[order.ActionID]++;
+            });
+
+            document.getElementById('eliminatedCount').textContent = stats['0'];
+            document.getElementById('retainedCount').textContent = stats['1'];
+            document.getElementById('notAllowedCount').textContent = stats['1'];
+            document.getElementById('totalCount').textContent = stats.total;
+        },
+        
+        getStatusBadge: function(ActionID) {
+            const statusMap = {
+                '0': { class: 'status-eliminada', text: '@g["Cancelled"]' },
+                '1': { class: 'status-retenida', text: '@g["Stopped / Repeatition not allowed"]' },
+                '2': { class: 'status-no-permitida', text: 'Repetición No Permitida' }
+            };
+
+            const status = statusMap[ActionID];
+            return `<span class="status-badge ${status.class}">${status.text}</span>`;
+        }, 
+
+        formatDate: function(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+        }, 
+        displayTable: function()  {
+            let self = this
+            const tbody = document.getElementById('ordersTableBody');
+            const startIndex = (self.currentPage - 1) * self.recordsPerPage;
+            const endIndex = startIndex + self.recordsPerPage;
+            const pageData = self.filteredData.slice(startIndex, endIndex);
+
+            if (pageData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="no-data">No se encontraron órdenes canceladas</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = pageData.map(order => `
+                <tr>
+                    <td><strong>${order.OrderNumber}</strong></td>
+                    <td>${order.ArticleName}</td>
+                    <td>${order.BatchNumber}</td>
+                    <td>${self.getStatusBadge(order.ActionID)}</td>
+                    <td>${self.formatDate(order.CreatedDate)}</td>
+                </tr>
+            `).join('');
+        }, 
+        applyFilters: function() {
+            let self = this
+            const orderFilter = document.getElementById('orderFilter').value.toLowerCase();
+            const batchFilter = document.getElementById('batchFilter').value.toLowerCase();
+            const ActionIDFilter = document.getElementById('actionFilter').value;
+            const dateFilter = document.getElementById('dateFilter').value;
+
+            self.filteredData = self.ordersData.filter(order => {
+                // Filtro de fecha (últimos 6 meses)
+                const sixMonthsAgo = new Date();
+                sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 36);
+                const orderDate = new Date(order.CreatedDate);
+
+                if (orderDate < sixMonthsAgo) return false;
+
+                let dateToFilter = new Date (dateFilter)
+                 
+                // Aplicar filtros
+                const matchesOrder = !orderFilter || order.OrderNumber.toLowerCase().includes(orderFilter);
+                const matchesBatch = !batchFilter || order.BatchNumber.toLowerCase().includes(batchFilter);
+                const matchesActionID = !ActionIDFilter || order.ActionID == ActionIDFilter;
+                const matchesDate = !dateFilter || (orderDate.getFullYear () === dateToFilter.getFullYear() &&
+                                                    orderDate.getMonth () === dateToFilter.getMonth() &&
+                                                    orderDate.getDate() === dateToFilter.getDate()
+
+                );
+
+                return matchesOrder && matchesBatch && matchesActionID && matchesDate;
+            });
+
+            self.currentPage = 1;
+            self.updateDashboard();
+            self.sortData();
+            self.displayTable();
+            self.updatePagination();
+        },
+
+         clearFilters: function () {
+            let self = this
+            document.getElementById('orderFilter').value = '';
+            document.getElementById('batchFilter').value = '';
+            document.getElementById('ActionIDFilter').value = '';
+            document.getElementById('dateFilter').value = '';
+
+            self.filterDataByDate();
+            self.currentPage = 1;
+            self.updateDashboard();
+            self.sortData();
+            self.displayTable();
+            self.updatePagination();
+        }, 
+        sortTable: function (column) {
+            let self = this
+            if (self.currentSort.column === column) {
+                self.currentSort.direction = self.currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                self.currentSort.column = column;
+                self.currentSort.direction = 'asc';
+            }
+
+            self.sortData();
+            self.displayTable();
+        }, 
+         sortData: function () {
+            let self = this
+            const columns = ['OrderNumber', 'ArticleName' ,'BatchNumber', 'ActionID', 'CreatedDate'];
+            const column = columns[self.currentSort.column];
+
+            self.filteredData.sort((a, b) => {
+                let valueA = a[column];
+                let valueB = b[column];
+
+                if (column === 'CreatedDate') {
+                    valueA = new Date(valueA);
+                    valueB = new Date(valueB);
+                }
+
+                if (valueA < valueB) return self.currentSort.direction === 'asc' ? -1 : 1;
+                if (valueA > valueB) return self.currentSort.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }, 
+        changePage: function (direction) {
+            let self = this
+            const totalPages = Math.ceil(self.filteredData.length / self.recordsPerPage);
+
+            if (direction === 'prev' && self.currentPage > 1) {
+                self.currentPage--;
+            } else if (direction === 'next' && self.currentPage < totalPages) {
+                self.currentPage++;
+            } else if (typeof direction === 'number') {
+                self.currentPage = direction;
+            }
+
+            self.displayTable();
+            self.updatePagination();
+        }, 
+         updatePagination: function () {
+             let self = this
+            const totalPages = Math.ceil(self.filteredData.length / self.recordsPerPage);
+            const startRecord = (self.currentPage - 1) * self.recordsPerPage + 1;
+            const endRecord = Math.min(self.currentPage * self.recordsPerPage, self.filteredData.length);
+
+            document.getElementById('recordsInfo').textContent =
+                `Mostrando ${startRecord}-${endRecord} de ${self.filteredData.length} registros`;
+
+            const pageNumbers = document.getElementById('pageNumbers');
+            let paginationHTML = '';
+
+            for (let i = Math.max(1, self.currentPage - 2); i <= Math.min(totalPages, self.currentPage + 2); i++) {
+                paginationHTML += `<button class="page-btn ${i === self.currentPage ? 'active' : ''}"
+                                   onclick="changePage(${i})">${i}</button>`;
+            }
+
+            pageNumbers.innerHTML = paginationHTML;
+        }, 
+
+        exportData: function()  {
+            let self = this
+            const csvContent = "data:text/csv;charset=utf-8,"
+                + "Número de Orden,Número de Lote,Acción Realizada,Fecha de Acción\n"
+                + self.filteredData.map(row =>
+                    `${row.OrderNumber},${row.BatchNumber},${row.ActionID},${row.date}`
+                ).join('\n');
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', 'ordenes_canceladas.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }, 
+                  OnShow: function () {
+                      let self = this;
+                     console.log("OnShow")
+                  },
+                  OnHide: function () {
+                      let self = this;
+
+                  },
+
+                  InitializeView: function () {
+                      let self = this;
+                  },
+
+           };
+       //</script>

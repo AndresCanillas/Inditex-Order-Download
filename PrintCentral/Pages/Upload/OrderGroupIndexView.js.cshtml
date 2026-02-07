@@ -1,0 +1,2115 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@inject IAutomatedProcessManager apm
+@using Service.Contracts.WF
+
+@{
+    Layout = null;
+    var OrderStates = Enum.GetNames(typeof(OrderStatus));
+    var OrderProcessingWF = apm.GetWorkflowAsync("Order Processing").GetAwaiter().GetResult();
+}
+//# sourceURL=https://Pages/Upload/OrderGroupIndexView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+/// <reference path="/js/AppContext.AppDomain.js" />
+//<script>
+    var OrderGroupIndexView = function (options) {
+
+        if (!options) {
+            options = {};
+        }
+
+        this.options = OrderGroupIndexView.GetDefaults(options);
+
+        this.Orders = null;
+        //this.CanShowDetails = false;
+        this.CurrentSelectedRow = null;
+        this.CurrentChecked = {};
+        this.CurrentPage = 1;
+        this.PageSize = 100;
+
+        this.Storage = new ClientStorage('OrderGroupIndexView_@(userData.Id)', localStorage);
+        this.DisabledFieldEvents = true;
+
+        this.IsFilterRunning = false;
+        this.CurrentFilterRequestPromise = null;
+        this.FilterQueue = [];
+        
+        let keys = this.Storage.Keys();
+
+        if (options.Filter === undefined && keys && keys.length) {
+	
+            let self = this;
+            let filter = {};
+            keys.forEach(_key => filter [_key] = self.Storage.GetItem(_key));
+
+
+            this.options.Filter = filter;
+        }
+
+        FormView.Extend(this, this.options.Title, "/Upload/OrderGroupIndexView");
+
+
+	};
+    // public static method
+    OrderGroupIndexView.GetDefaults = function (options) {
+
+        return $.extend({
+            Title: '@g["Orders"]',
+            Filter: {},
+            EnableStorageFilter: true,
+        }, options);
+    };
+
+
+	OrderGroupIndexView.prototype = {
+		constructor: OrderGroupIndexView,
+
+		OnLoad: function () {
+            var self = this;
+
+			AppContext.AppEventListener.Subscribe(this, this.HandleNotifications);
+
+            AppContext.LoadJS('/Common/js/OrderUtils.js','/Common/js/ValidatorHelper.js', '/Upload/OrderDetailView.js', '/Upload/OrderLogView.js').then(() => {
+                // subscribe to reconfigure context menu in gridview
+                self.GetGrid().BeforeShowContextMenu.Subscribe(self, self.ConfigureRowContextMenu)
+
+                //Remove previous actions
+                $('.toolbar-body .dynamic-actions').remove();
+                self.GetGrid().RowClick.Subscribe(self, self.GridRowClick);
+
+                self.AddToolbarActions();
+                self.LoadData(self.options.Filter);
+                if (self.elements.OrderDate.val().length < 1) {
+                    self.model.OrderDate = self.model.DefaultDate;
+                }
+                self.FilterOrders();
+                self.DisabledFieldEvents = false;
+			})
+        },
+
+        OnUnload: function () {
+            AppContext.AppEventListener.Unsubscribe(this, this.HandleNotifications);
+
+		},
+
+        HandleNotifications: function (e) {
+            var self = this;
+
+            if (e.EventName === "OrderEntityEvent" &&
+                e.EntityName === "Order") {
+
+
+                if (e.Operation == 1) {
+                    this.HandleOrderUpdate(e.Entity);
+                }
+
+                // update counter to notify de user
+                //if (e.Operation == 0 && self.CurrentPage == 1) {
+                //    self.FilterOrders();//.then(() => { self.ResetScrollbar(); });;
+                //}
+            }
+		},
+
+        HandleOrderUpdate: function (order) {
+            var self = this;
+
+            var rowIdx = this.elements.OrderTable.Rows.DataSource.IndexOf(p => p.OrderID == order.ID);
+
+            if (rowIdx < 0) {
+                return;
+            }
+
+            var rowData = self.elements.OrderTable.Rows.Get(rowIdx);
+            rowData.OrderStatus = order.OrderStatus;
+            rowData.OrderStatusText = OrderUtils.GetOrderStatusText(order.OrderStatus);
+			rowData.IsInConflict = order.IsInConflict;
+			rowData.IsBilled = order.IsBilled;
+            rowData.IsStopped = order.IsStopped;
+            rowData.SageReference = order.SageReference;
+            rowData.ProjectPrefix = order.ProjectPrefix;
+            rowData.SyncWithSage = order.SyncWithSage;
+            rowData.InvoiceStatus = order.InvoiceStatus;
+            rowData.DeliveryStatus = order.DeliveryStatus;
+            rowData.SageStatus = order.SageStatus;
+            rowData.CreditStatus = order.CreditStatus;
+            self.elements.OrderTable.Rows.Update(rowIdx, rowData);
+
+            self.DisableHeaderMenu();
+
+            var keys = Object.keys(self.CurrentChecked);
+            for (var key of keys) {
+                // buscar que existe seleccionada almenos 1 que no sea grupo
+                if (self.CurrentChecked[key].Selected) {
+                    self.AppendToolbarActions(self.CurrentChecked[key].rowIdx);
+                    break;
+                }
+            }
+
+
+        },
+
+        GetOrderStatusText: function (status) {
+            switch (status) {
+                case 0:
+                    return "@OrderStatus.None.GetText()";
+                case 1:
+                    return "@OrderStatus.Received.GetText()";
+                case 2:
+                    return "@OrderStatus.Processed.GetText()";
+                case 3:
+                    return "@OrderStatus.Printing.GetText()";
+                case 6:
+                    return "@OrderStatus.Completed.GetText()";
+                case 7:
+                    return "@OrderStatus.Cancelled.GetText()";
+                case 20:
+                    return "@OrderStatus.InFlow.GetText()";
+                case 30:
+                    return "@OrderStatus.Validated.GetText()";
+                case 31:
+                   return "@OrderStatus.CompoAuditNeeded.GetText()";
+                case 40:
+                    return "@OrderStatus.Billed.GetText()";
+                case 50:
+                    return "@OrderStatus.ProdReady.GetText()";
+                default:
+                    return "@g["Unknown status"]";
+			}
+		},
+
+        GridRowClick: function (rowClickEvent) {
+
+            var self = this;
+
+            // borrar la seleccion y agregar la fila seleccionada
+            var keys = Object.keys(self.CurrentChecked);
+            for (var i = 0; i < keys.length; i++) {
+                self.CurrentChecked[keys[i]].Selected = false;
+
+                var ordersArticles = $(`[data-order-group-id="${self.CurrentChecked[keys[i]].OrderGroupID}"]`);
+                ordersArticles.prop('checked', false);
+
+                $(`input:checkbox[value="${self.CurrentChecked[keys[i]].OrderGroupID}"]`).prop('checked', false);
+            }
+
+            // obtener el checkbox y disparar el evento click
+            var rowData = rowClickEvent.rowData;
+            if (rowData.IsGroup) {
+                $(`input:checkbox[value="${rowData.OrderGroupID}"][data-row-idx="${rowClickEvent.rowIndex}"]`).trigger('click')
+            } else {
+                $(`input:checkbox[value="${rowData.OrderID}"][data-row-idx="${rowClickEvent.rowIndex}"]`).trigger('click')
+            }
+        },
+
+        AddToolbarActions: function() {
+            var self = this;
+            var actions = [
+                `<a href="#" title="@g["Get Order Report"]" action="GetCSVReport" class="report"><span class="fa fa-fw fa-file-excel-o"></span></a>`,
+                `<a href="#" title="@g["Get Delivery Report"]" action="GetDeliveryReport" class="report"><span class="fa fa-fw fa-truck"></span></a>`,
+                //`<a href="#" title="@g["Get Order PDF"]" action="GetOrderPDF" class="report"><span class="fa fa-fw fa-file-pdf-o"></span></a>`
+            ]
+
+            OrderUtils.CommonActions.forEach((item, idx) => {
+                if (item.Action == ActionType.Separator) {
+                    actions.push('<span class="toolbar-grip"></span>');
+                } else {
+                    var fnName = Object.getOwnPropertyNames(ActionType)[item.Action];
+                    actions.push(`<a class="order-action" href="#" title="${item.Text}" action="${fnName}"><span class="fa fa-fw ${item.Icon}"></span></a>`)
+                }
+            });
+
+            self.elements.GridOrderToolbar.html(actions.join(''));
+            AppContext.BindActions(self.elements.GridOrderToolbar, self);
+
+            self.EnableOrDisableToolbarActions();
+        },
+
+        EnableOrDisableToolbarActions: function () {
+
+            var self = this;
+
+            var selection = self.GetSelectedGroups();
+
+            var toolbar = $(".toolbar-body a.order-action");
+            var dynamicToolbar = $(".toolbar-body a.dynamic-actions");
+
+            toolbar.attr("data-disabled", "true").addClass("toolbar-disabled");
+            dynamicToolbar.attr("data-disabled", "true").addClass("toolbar-disabled");
+
+            let deleteBtn = $('.toolbar-body a.order-action[action="Delete"]');
+
+            if (selection.length == 1 && selection[0].Orders.length == 1) {
+                //var checkbox = $(`input:checkbox.form-check-input[value=${selection[0].Orders[0]}]`);
+                //var rowData = self.GetGrid().Rows.Get(checkbox.data('rowIdx'));
+
+               toolbar.attr("data-disabled", "false").removeClass("toolbar-disabled");
+
+                //if (rowData.OrderStatus == OrderStatus.Cancelled) {
+                //    toolbar.find(`[action="Delete"]`).prop('disabled', true)
+                //} else {
+                //    toolbar.find(`[action="Delete"]`).prop('disabled', false)
+                //}
+            } else {
+                toolbar.attr("data-disabled", "true").addClass("toolbar-disabled");
+            }
+
+            // delete action enable by group
+            if (selection.length > 0) {
+                deleteBtn.prop('disabled', false);
+                deleteBtn.attr("data-disabled", "false");
+                deleteBtn.removeClass("toolbar-disabled");
+            }else {
+                deleteBtn.prop('disabled', true);
+                deleteBtn.attr("data-disabled", "true");
+                deleteBtn.addClass("toolbar-disabled");
+            }
+        },
+
+        SetFilter: function () {
+
+            var self = this;
+            // filter template
+            //var filter = {
+            //    CompanyID = self.model.CompanyID,
+            //    ProductionType = self.model.ProductionType,
+            //    OrderStatus = self.model.OrderStatus,
+            //    OrderNumber = self.model.OrderNumber,
+            //    OrderDate = self.model.OrderDate,
+            //    InConflict = self.model.InConflict,
+            //    IsBilled = self.model.IsBilled,
+            //    IsStopped = self.model.IsStopped,
+            //    CurrentPage = self.CurrentPage,
+            //    PageSize = self.PageSize,
+            //    ProjectID = self.model.ProjectID
+            //}
+            self.LoadData(self.options.Filter);
+
+        },
+
+        HasMinimunChangeOrderNumber: function (evt) {
+
+            if (this.elements.OrderNumber.val().length >= 3) {
+                this.FilterChanged()
+            }
+
+            return true;
+
+        },
+
+        HasMinimunChangeOrderDate: function () {
+            if (this.elements.OrderDate.val().length >= 10) {
+                this.FilterChanged();
+            }
+
+            return true;
+        },
+
+        CompanyChanged: function (evt) {
+            
+            var self = this;
+            var combo = self.elements["ProjectID"][0]  // document.getElementById("ProjectCombo")
+            combo.innerHTML=''
+
+            var projectList = document.getElementById("ProjectList")
+
+            var filter = self.GetData();
+
+            for (i = 0; i < projectList.options.length; i++) {
+                var opts = projectList.options[i].text.split(";")
+
+                if (i == 0 || filter.CompanyID == opts[1] || filter.CompanyID == "0") {
+                    var option = document.createElement("option");
+                    option.text = opts[0];
+                    option.value = projectList.options[i].value;
+                    if (option.value==filter.ProjectID) {
+                        option.selected = true;
+                    }
+                    combo.add(option)
+                }
+            }
+
+            self.model.ProjectID = 0
+        },
+
+        FilterChanged: function (evt) {
+            
+            var self = this;
+
+            if (self.DisabledFieldEvents) {
+                evt.preventDefault();
+                return false;
+            }
+
+            self.CurrentPage = 1;
+
+            var filter = self.GetData();
+
+            filter.CurrentPage = self.CurrentPage;
+            filter.PageSize = self.PageSize;
+            if (self.options.EnableStorageFilter) {
+
+                var endOfDay = new Date();
+                endOfDay.setHours(23, 59, 59, 999);
+
+                var nextYear = new Date();
+                nextYear.setFullYear(nextYear.getFullYear() + 1);
+
+                var keys = Object.keys(filter);
+
+                keys.forEach(_key => {
+
+                    var expireOn = nextYear
+                    if (_key == 'OrderDateTo')
+                        expireOn = endOfDay
+
+                    self.Storage.SetItem(_key, filter[_key], expireOn.valueOf());
+                })
+
+                
+            }
+
+            
+
+            self.FilterOrders().then(() => { self.ResetScrollbar(); });
+
+        },
+
+
+        FilterOrders: function (e) {
+			
+            let self = this;
+
+            self.FilterQueue.push(self.GetData());
+
+            if (self.IsFilterRunning) {
+                console.log('filter abort');
+                self.CurrentFilterRequestPromise.abort();
+
+            }
+
+            self.IsFilterRunning = true;
+            
+            var filter = self.FilterQueue.pop();// get last
+                
+            self.FilterQueue = [];
+
+            self.CurrentFilterRequestPromise =  self._FilterOrders(filter)
+
+            self.CurrentFilterRequestPromise.always(() => { self.IsFilterRunning = false; 
+                console.log('filter end');
+            });
+            
+
+            // if (self.FilterQueue.length > 0)
+            //     self.FilterOrders(e);
+            return self.CurrentFilterRequestPromise;
+        },
+
+        _FilterOrders: function (filter) { 
+        
+            var self = this;
+            //var filter = self.GetData();
+
+
+            // Dates for JSON.stringify are converted to ISO, avoid to use time
+            filter["OrderDate"] = kendo.toString(self.model.OrderDate, 'yyyy-MM-dd') + " 00:00:00"
+            filter["OrderDateTo"] = kendo.toString(self.model.OrderDateTo, 'yyyy-MM-dd') + " 23:59:59"
+
+            filter.CurrentPage = self.CurrentPage;
+            filter.PageSize = self.PageSize;
+
+
+            return AppContext.Orders.GetOrderGroups(filter)
+                .done((response) => {
+                    if (response.Success) {
+                        self.elements.OrderTable.Rows.LoadData(response.Data.Records, true);
+                        new Paginator({
+                            ContainerElm: self.elements.PaginationContainer,
+                            Controller: self,
+                            PageSize: response.Data.Filter.PageSize,
+                            CurrentPage: response.Data.Filter.CurrentPage,
+                            TotalRecords: response.Data.Filter.TotalRecords,
+                            AlignCls: 'justify-content-center'
+                        }).Render();
+
+                        self.CurrentChecked = {}; // clean old selection
+
+                        //$('[data-toggle="tooltip"]').tooltip() // update tooltips
+
+				    }
+                })
+
+        },
+
+        GetCSVReport: function (e) {
+            var self = this;
+            var filter = self.GetData();
+
+            // Dates for JSON.stringify are converted to ISO, avoid to use time
+            filter['OrderDate'] = kendo.toString(self.model.OrderDate, 'yyyy-MM-dd') + ' 00:00:00';
+            filter['OrderDateTo'] = kendo.toString(self.model.OrderDateTo, 'yyyy-MM-dd') + ' 23:59:59';
+
+            filter.CurrentPage = 0;
+            filter.PageSize = 1000000;
+
+            // Max date range 6months -> 180 days -> Use 181 days to avoid user errors
+            var maxRange = 184*24*60*60*1000;
+            var d1 = new Date(filter['OrderDate']).valueOf();
+            var d2 = new Date(filter['OrderDateTo']).valueOf();
+
+            filter['CSV'] = true;
+
+            // if ((d2 - d1) > maxRange) {
+            //     AppContext.ShowError('@g["Please Try Again, the max date range is 180 days (6 months) "]');
+            //     return;
+            // }
+
+            // disable report button
+            return AppContext.Orders.GetFileCSVReport(filter)
+                .done(res => {
+
+                    if ($('iframe[name="downloadCSVReport"]').length)
+                        $('iframe[name="downloadCSVReport"]').remove();
+
+                    $('body').append(`<iframe name="downloadCSVReport" width="0" height="0" tabindex="-1" title="empty" class="hidden" src="/fsm/TempStore/files/${res.Data}/content">`)
+
+
+                })
+        },
+
+        GetDeliveryReport: function (e) {
+            var self = this;
+            var filter = self.GetData();
+
+            let deliverybutton = $('#deliveryreportbtn'); //$('.toolbar-body a.report[action="GetDeliveryReport"]');
+            deliverybutton.prop('disabled', true);
+            deliverybutton.attr("data-disabled", "true");
+            deliverybutton.addClass("toolbar-disabled");
+
+            AppContext.ShowProcessing();
+
+            // Dates for JSON.stringify are converted to ISO, avoid to use time
+            filter['OrderDate'] = kendo.toString(self.model.OrderDate, 'yyyy-MM-dd') + ' 00:00:00';
+            filter['OrderDateTo'] = kendo.toString(self.model.OrderDateTo, 'yyyy-MM-dd') + ' 23:59:59';
+
+            filter.CurrentPage = 0;
+            filter.PageSize = 1000000;
+
+            filter['CSV'] = true;
+
+            return AppContext.Orders.GetDeliveryReport(filter)
+            .done(res => {
+
+                if ($('iframe[name="downloadCSVReport"]').length)
+                    $('iframe[name="downloadCSVReport"]').remove();
+
+                $('body').append(`<iframe name="downloadCSVReport" width="0" height="0" tabindex="-1" title="empty" class="hidden" src="/fsm/TempStore/files/${res.Data}/content">`)
+
+            }).always(() => {
+                AppContext.HideProcessing();
+                deliverybutton.prop('disabled', false);
+                deliverybutton.attr("data-disabled", "false");
+                deliverybutton.removeClass("toolbar-disabled");
+            })
+        },
+
+		DownloadPreview: function (e) {
+			var idx = this.elements.OrderTable.SelectedIndex;
+			if (idx >= 0) {
+				var rowData = this.elements.OrderTable.data[idx];
+				window.open(`/orders/getpdfpreview/${rowData.OrderID}`);
+			}
+        },
+
+        GridViewFlagsRender: function (value, rowIdx, colIdx, dataType, rowData) {
+            var billed = '';
+            var inConflict = '';
+            var stoped = '';
+            var workflow = '';
+            var HasError = '';
+            var delivery = '';
+
+            @*
+                // dont show this flag
+                if (rowData['IsBilled'] == true || rowData['IsBilled'] == 1) {
+                billed = '<span class="badge badge-secondary">@g["Billed"]</span>';
+            }*@
+            if (rowData['IsInConflict']) {
+                inConflict = '<span class="badge badge-danger">@g["In Conflict"]</span>';
+            }
+            if (rowData['IsStopped']) {
+                stoped = '<span class="badge badge-warning">@g["Stopped"]</span>';
+            }
+            if (!rowData['WFItemID']) {
+                workflow = '<span class="badge badge-info">#</span>';
+            }
+            if (rowData['DeliveryNoteStatusText']) {
+                      delivery = `<span class="badge badge-info">${rowData['DeliveryNoteStatusText']}</span>`;
+            }
+            if (rowData['ExceptionMessage']!=null) {
+                HasError = `<i class="fa fa-exclamation-triangle text-warning" aria-hidden="true" data-toggle="tooltip" data-placement="top" title="${rowData['ExceptionMessage']}"}></i>`;
+            }
+
+                  return [billed, inConflict, stoped, workflow, delivery, HasError].join('');
+        },
+
+        GridViewActionsRender: function (value, rowIdx, colIdx, dataType, rowData) {
+            var actions = OrderUtils.GetMenuActions(rowData)
+            if (actions.length < 1) {
+                return '';
+            }
+
+            var defaultAction = actions.find(action => action.IsDefault == true)
+            if (!defaultAction) {
+                defaultAction = actions[0];
+            }
+
+            var fnName = Object.getOwnPropertyNames(ActionType)[defaultAction.Action];
+            var buttonAction = `<a href="#" class="badge badge-link"  data-id="${rowData["OrderID"]}" action="${fnName}">${defaultAction.Text}</a>`
+
+            return buttonAction;
+        },
+
+
+        GridViewStatusRender: function (value, rowIdx, colIdx, dataType, data) {
+            var clickable = ''
+            var action = ''
+            var badgeCss = 'secondary'
+            var statusText = this.GetOrderStatusText(data.OrderStatus);
+
+            var IsNewOrder = [OrderStatus.Received, OrderStatus.Processed];
+            var IsInflow = [OrderStatus.InFlow]
+            var IsValidatedOrder = [OrderStatus.Validated, OrderStatus.Billed, OrderStatus.ProdReady, OrderStatus.Printing, OrderStatus.Completed]// validated, billed, prodready, printing, completed
+            var IsCanceled = [OrderStatus.Cancelled]
+            var IsCompleted = [OrderStatus.Completed]
+
+
+            if (IsNewOrder.indexOf(data.OrderStatus) >= 0) {
+                badgeCss = 'secondary';
+            }
+
+
+            if (IsInflow.indexOf(data.OrderStatus) >= 0) {
+                badgeCss = 'warning'; // waiting for user interaction
+                statusText = `${statusText} (${data.ValidationProgress}%)`;
+
+                if (data.ValidationProgress > 0) {
+                    badgeCss = 'info'
+                }
+
+            }
+
+            if (IsValidatedOrder.indexOf(data.OrderStatus) >= 0) {
+                badgeCss = 'primary'
+            }
+
+            if (IsCompleted.indexOf(data.OrderStatus) >= 0) {
+                badgeCss = 'success'
+            }
+
+            if (IsCanceled.indexOf(data.OrderStatus) >= 0) {
+                badgeCss = 'light'
+            }
+
+            return `<span class="badge badge-${badgeCss} ${clickable}" data-status-id="${data.OrderStatus}"  ${action}>${statusText}</span>`;
+        },
+
+        GridViewBillToRender: function (value, rowIdx, colIdx, dataType, data) {
+            var text = `[${data.BillToCode}] - ${data.BillTo}`;
+            return `<span title="${text}">${text}</span>`;
+        },
+
+        GridViewSentToRender: function (value, rowIdx, colIdx, dataType, data) {
+            var text = `[${data.SendToCode}] - ${data.SendTo}`
+            return `<span title="${text}">${text}</span>`;
+        },
+
+        RenderSelectBox: function (value, rowIdx, colIdx, dataType, data) {
+            var self = this;
+
+            /*if (data.IsItem) {
+                return '';
+            }*/
+
+            var checked = '';
+
+            if (self.CurrentChecked[rowIdx] && self.CurrentChecked[rowIdx].Selected) {
+                checked = 'checked="checked"';
+            }
+
+            if (data.IsGroup) {
+                return `<div class="form-check pull-right" title="${data.OrderGroupID}">
+                    <input class="form-check-input" type="checkbox" ${checked} value="${data.OrderGroupID}" name="OrderGroup[${rowIdx}]" action="CheckboxSelectOrder" data-is-group="1" data-row-idx="${rowIdx}">
+                    </div>`
+            }
+
+            return `<div class="form-check pull-right" title="${data.OrderID}">
+                    <input class="form-check-input" type="checkbox" ${checked} value="${data.OrderID}" name="OrderId[${rowIdx}]" action="CheckboxSelectOrder" data-order-group-id="${data.OrderGroupID}" data-is-group="0" data-row-idx="${rowIdx}">
+                    </div>`
+        },
+
+        RenderOrderNumber: function (value, rowIdx, colIdx, dataType, data) {
+            if (data.IsGroup) {
+                return data.OrderNumber;
+            }
+
+            var expression = new RegExp("-([0-9])+[DR]$");
+            if (expression.test(value) || data.Source == @((int)DocumentSource.Repetition)) {
+                return `<span class="badge badge-secondary">${data.OrderNumber}</span>`;
+            }
+
+          expression = new RegExp(/^\d{1,2}[DR]-\d{6}-\d$/);
+            if (expression.test(value)) {
+                return `<span class="badge badge-secondary">${data.OrderNumber}</span>`;
+            }
+
+            return '';
+        },
+
+        RenderProviderClientReference: function (value, rowIdx, colIdx, dataType, data) {
+            if (data.IsGroup) {
+                return value && value.length ? value : '';
+            }
+
+            return '';
+        },
+
+        RenderArticleName: function (value, rowIdx, colIdx, dataType, data) {
+            if (data.IsGroup) {
+                var project = []
+                var sendto = [];
+                var billto = [];
+
+                @if(userData.IsIDT)
+                {
+                    <text>
+                project.push(data.CompanyName)
+                    </text>
+                }
+
+                project.push(data.Brand);
+                project.push(data.Project);
+
+                if (data.SendTo) {
+                    sendto.push('<b>@g["Send To"]</b>');
+                    sendto.push(data.SendTo);
+                }
+
+                if (data.BillTo) {
+                    billto.push('<b>@g["Bill to"]</b>');
+                    billto.push(data.BillTo);
+                }
+
+                var projectInfo = project.join('&nbsp;<i class="fa fa-fw fa-chevron-right"></i>&nbsp;');
+                var shippingTo = sendto.join(':&nbsp;');
+                var invoiceTo = billto.join(':&nbsp;');
+
+                return projectInfo + '<div class="order-vendor-info">' + [shippingTo, invoiceTo].join(' - ') + '</div>';
+            }
+
+            let pack = data.PackCode != null && data.PackCode.length > 1 ? `  <em style="font-size:8px;">(${data.PackCode})</em>` : '';
+
+            return value + pack;
+        },
+
+        RenderArticleCode: function (value, rowIdx, colIdx, dataType, data) {
+            if (data.IsGroup) {
+                return '';
+            }
+            
+            return value;
+        },
+
+        RenderStatusAndFlags: function (value, rowIdx, colIdx, dataType, data) {
+            if (data.IsGroup) {
+                return '';
+            }
+            var status = this.GridViewStatusRender(value, rowIdx, colIdx, dataType, data)
+            var flags = this.GridViewFlagsRender(value, rowIdx, colIdx, dataType, data);
+            return [status, flags].join('&nbsp;')
+        },
+
+        RenderQuantityRequested: function (value, rowIdx, colIdx, dataType, data) {
+            if (data.IsGroup) {
+                return '';
+            }
+
+            var rowData = data.AggregatedQuantity > 0 ? data.AggregatedQuantity + " / " + value : value;
+
+            return `<div class="text-right pr-1">${rowData}</div>`;
+        },
+
+        RenderQuantityConfirmed: function (value, rowIdx, colIdx, dataType, data) {
+            if (data.IsGroup) {
+                return '';
+            }
+            return value;
+        },
+               
+        RenderSource: function (value, rowIdx, colIdx, dataType, data) {
+            if (data.IsGroup) {
+                return '';
+            }
+            var ret = ''
+            if (value == 1) {
+                ret = "Web"
+            }
+            if (value == 2) {
+                ret = "FTP"
+            }
+            if (value == 3) {
+                ret = "API"
+            }
+            if (value == 4) {
+                ret = "Validation"
+            }
+            if (value == 5) {
+                ret = "Repetition"
+            }
+            return ret;
+        },
+
+        RenderUserName: function (value, rowIdx, colIdx, dataType, data) {
+            if (data.IsGroup) {
+                return '';
+            }
+            return value;
+        },
+
+        RenderOrdeDate: function (value, rowIdx, colIdx, dataType, data) {
+            if (data.IsGroup) {
+                return '';
+            }
+            var d = new Date(value);
+            return d.toLocaleString();
+        },
+
+        RenderOrderDueDate: function (value, rowIdx, colIdx, dataType, data) {
+            if (data.IsGroup || !value) {
+                return '';
+            }
+
+            var d = new Date(value);
+            return d.toLocaleDateString();
+        },
+
+        RenderValidationDate: function (value, rowIdx, colIdx, dataType, data) {
+            if (data.IsGroup || !value) {
+                return '';
+            }
+
+            var d = new Date(value);
+            return d.toLocaleDateString();
+        },
+
+        RenderActions: function (value, rowIdx, colIdx, dataType, data) {
+            if (data.IsGroup) {
+                return ''
+            }
+            return this.GridViewActionsRender(value, rowIdx, colIdx, dataType, data);
+        },
+
+        RenderSageReference: function (value, rowIdx, colIdx, dataType, data) {
+            if (data.IsGroup) {
+                return ''
+            }
+
+            if (!data.SageReference)
+                return '';
+
+            return data.SageReference;
+        },
+
+        RenderSageFlagsText: function (value, rowIdx, colIdx, dataType, data) {
+            if (data.IsGroup) {
+
+                return '';
+
+            }
+
+            var flags = []
+
+            if (!data.SageReference)
+                return '';
+
+            var invoiceText = this.GetSageInvoiceText(data.InvoiceStatus);
+            var DeliveryText = this.GetSageDeliveryText(data.DeliveryStatus);
+            var SageStatusText = this.GetSageOrderStatusText(data.SageStatus);
+            var CreditStatusText = this.GetSageCreditStatusText(data.CreditStatus);
+
+
+            if (data.SageStatus < 3 /* SageOrderStatus.NotFound */) {
+
+                if (data.InvoiceStatus == 3) {
+                    flags.push(`<span class="badge badge-info">${invoiceText}</span>`);
+                }
+
+                if (data.InvoiceStatus == 2) {
+                    flags.push(`<span class="badge badge-warning">${invoiceText}</span>`);
+                }
+
+                if (data.DeliveryStatus == 2) {
+                    color = 'warning';
+                    flags.push(`<span class="badge badge-warning">${DeliveryText}</span>`);
+                }
+
+                if (data.DeliveryStatus == 3) {
+                    flags.push(`<span class="badge badge-info">${DeliveryText}</span>`);
+                }
+
+                if (data.CreditStatus != 1) {
+                    flags.push(`<span class="badge badge-danger">${CreditStatusText}</span>`);
+                }
+
+                if (data.SageStatus == 2) {
+                    flags.push(`<span class="badge badge-info">${SageStatusText}</span>`);
+                }
+            } else {
+                flags.push(`<span class="badge badge-danger">${SageStatusText}</span>`);
+            }
+
+            return flags.join('');
+
+        },
+
+        RenderFactoryCode: function (value, rowIdx, colIdx, dataType, data) {
+            if (data.IsGroup) {
+                return '';
+            }
+
+            var locationName = data.LocationName ? data.LocationName : ''
+
+            if (!value) {
+                return '';
+            }
+
+            return `<span>${value}  </span><i class="fa fa-question-circle text-info" aria-hidden="true" data-toggle="tooltip" data-placement="top" title="${locationName}"></i>`;
+        },
+
+        RenderMDReference: function (value, rowIdx, colIdx, dataType, data) {
+            if (data.IsGroup) {
+                return '@g["MD Ref: "]' + (data.MDOrderNumber ? data.MDOrderNumber : '');
+            }
+
+            value = value ? value : '';
+
+            return value;
+        },
+
+        GridViewSetRowCssClass: function (rowIdx, data) {
+            if (!data.IsGroup) {
+                return '';
+            }
+            return 'order-group';
+        },
+
+        ChangeDueDate: function () {
+            var self = this;
+            var grid = self.GetGrid();
+            var rowData = grid.Rows.Get(grid.Rows.SelectedIndex);
+
+
+            AppContext.LoadJS('/Upload/ConfirmDialogs/ConfirmChangeDueDate.js').then(function () {
+                var dueDateView = new ConfirmChangeDueDate(rowData, false);
+
+                dueDateView.ShowDialog(function (response) {
+                    // Edit GridView to update selected row
+                    self.FilterOrders();
+                });
+            });
+        },
+
+        ChangeState: function (/*Empty*/) {
+            var self = this;
+            var grid = self.GetGrid();
+            var rowData = grid.Rows.Get(grid.Rows.SelectedIndex);
+
+            var availableStates = rowData.NextStates;
+
+            if ($.isArray(availableStates) && availableStates.length < 1) {
+                AppContext.ShowError('@g["Cannot change State for this order"]');
+                return;
+            }
+
+            AppContext.LoadJS('/Admin/Orders/ChangeOrderStatusView.js').then(function () {
+                var changeView = new ChangeOrderStatusView(rowData, false);
+                changeView.ShowDialog(function (response) {
+                    // Edit GridView to update selected row
+                    self.FilterOrders();
+                });
+            });
+        },
+
+
+        ShowArticleDetails: function (e) {
+            var self = this;
+            var target = $(e.target);
+            var detailView = new OrderDetailView(target.attr('data-id'));
+            detailView.ShowDialog(null);
+        },
+
+        CheckboxSelectOrder: function (e) {
+            var self = this;
+            var elm = $(e.currentTarget);
+            var idx = elm.data('rowIdx');
+
+            var toSelectRow = self.GetGrid().Rows.Get(idx);
+
+            // current Selection
+            var keys = Object.keys(self.CurrentChecked)
+            // looking for first Selected
+            var firstSelected = null;
+
+            for (var i = 0; i < keys.length; i++) {
+                if (self.CurrentChecked[keys[i]].Selected) {
+
+                     var firstSelected = self.GetGrid().Rows.Get(keys[i])
+
+                    break;
+                }
+            }
+
+            if (firstSelected && ((firstSelected.ProjectID != toSelectRow.ProjectID) || (firstSelected.SendToCompanyID != toSelectRow.SendToCompanyID))) {
+                e.preventDefault();
+                return false;
+            }
+
+            if (toSelectRow.IsGroup) {
+                var ordersArticles = $(`[data-order-group-id="${toSelectRow.OrderGroupID}"]`);
+                ordersArticles.prop('checked', elm.prop('checked'));
+                ordersArticles.each((index, value) => {
+                    var subRow = self.GetGrid().Rows.Get($(value).data('rowIdx'))
+                    var subIdx = $(value).data('rowIdx');
+                    self.CurrentChecked[subIdx] = { Selected: elm.prop('checked'), OrderID: subRow.OrderID, OrderGroupID: subRow.OrderGroupID, rowIdx: subIdx };
+                });
+
+            } else {
+
+                self.CurrentChecked[idx] = { Selected: elm.prop('checked'), OrderID: toSelectRow.OrderID, OrderGroupID: toSelectRow.OrderGroupID, rowIdx: idx };
+
+                //if (toSelectRow.PackCode || toSelectRow.PackCode.length > 0) {
+                //    // current belong to a PACK, select all rows inner the same pack
+                //    // TODO: find a better way to filter grid data
+                //    var groupItems = self.GetGrid().Rows.DataSource.filter(r => r.OrderGroupID == toSelectRow.OrderGroupID)
+                //    //var packItems = groupItems.filter(r => r.PackCode == toSelectRow.PackCode).map(row => row.OrderID)
+
+                //    var checkboxesBelongToTheGroup = $(`input:checkbox[data-order-group-id="${toSelectRow.OrderGroupID}"]`);
+
+                //    //jquery each, mark as selected checkbox for the same PackCode inner Group
+                //    checkboxesBelongToTheGroup.each((idx, el) => {
+                //        var chk = $(el)
+                //        var rowItem = groupItems.find(f => f.PackCode == toSelectRow.PackCode && f.OrderID == chk.val());
+
+                //        if (rowItem && chk.prop('checked') == false) {
+                //            chk.prop('checked', true)
+                //            var subIdx = chk.data('rowIdx')
+                //            self.CurrentChecked[subIdx] = { Selected: true, OrderID: chk.val(), OrderGroupID: toSelectRow.OrderGroupID, rowIdx: subIdx };
+                //        }
+                //    })
+                //}
+
+
+                // if all childrens are checked, check the parent checkbox too
+                var allChecked = true
+                var allChecks = $(`[data-order-group-id="${toSelectRow.OrderGroupID}"]`)
+
+                for (var i = 0; i < allChecks.length; i++) {
+                    var checkEl = $(allChecks.get(i));
+                    if (checkEl.prop('checked') == false) {
+                        allChecked = false;
+                        break;
+                    }
+                }
+
+                $(`input:checkbox[value="${elm.data('orderGroupId')}"][data-is-group="1"]`).prop('checked', allChecked);
+            }
+
+            // enable or disabled menu options after selection
+            self.DisableHeaderMenu(elm[0], toSelectRow);
+
+            var keys = Object.keys(self.CurrentChecked);
+            for (var key of keys) {
+                // buscar que existe seleccionada almenos 1 que no sea grupo
+                if (self.CurrentChecked[key].Selected) {
+                    self.AppendToolbarActions(self.CurrentChecked[key].rowIdx);
+                    break;
+                }
+            }
+
+            return true;
+        },
+
+        ValidateRowStateBeforeSelected: function (e) {
+            var self = this
+            var toSelectRow = e.rowData;
+
+            if (toSelectRow.IsGroup)
+                e.preventDefault();
+
+            // verificar que todas las ordenes sean del mismo grupo
+            var rows = self.GetGrid().Rows.GetSelected();
+            if (rows.length < 1) {
+                return true;
+            }
+
+            if (e.addSelection && rows[0].OrderGroupID != toSelectRow.OrderGroupID) {
+                e.preventDefault();
+            }
+        },
+
+        ConfigureRowContextMenu: function (e) {
+            // to cancel display contextmenu use e.preventDefault();
+            var self = this;
+            var menu = e.ContextMenu;
+            var options = []
+            var rowData = self.GetCurrentRow();
+            var rows = self.GetSelectedRowData();
+
+            // si el rigth click no esta en la seleccion, modificar la seleccion
+
+            var found = rows.find((r) => {
+                return rowData.OrderID != 0 && r.OrderID != 0 && rowData.OrderID == r.OrderID;
+            });
+
+            if (found == undefined) {
+                // borrar la seleccion y agregar la nueva
+                var keys = Object.keys(self.CurrentChecked);
+                for (var i = 0; i < keys.length; i++) {
+                    self.CurrentChecked[keys[i]].Selected = false;
+
+                    var ordersArticles = $(`[data-order-group-id="${self.CurrentChecked[keys[i]].OrderGroupID}"]`);
+                    ordersArticles.prop('checked', false);
+
+                    $(`input:checkbox[value="${self.CurrentChecked[keys[i]].OrderGroupID}"]`).prop('checked', false);
+                }
+
+                if (rowData.IsGroup) {
+                    $(`input:checkbox[value="${rowData.OrderGroupID}"]`).trigger('click');
+                }
+
+                if (!rowData.IsGroup /*&& !rowData.IsItem*/) {
+                    $(`input:checkbox[value="${rowData.OrderID}"]`).trigger('click');
+                }
+            }
+
+            if (rowData.IsGroup) {
+                options = self._ConfigureGroupContextMenu(e);
+            }
+            /*else if (rowData.IsItem) {
+                options = []
+            }*/
+            else {
+                options = self._ConfigureItemsContextMenu(e);
+            }
+
+            if (options.length < 1) {
+                e.preventDefault();
+            }
+
+            menu.Options = options;
+        },
+
+        AppendToolbarActions: function (index) {
+            var self = this;
+            //Remove previous actions
+            $('.toolbar-body .dynamic-actions').remove();
+
+            // Get current row clicked
+            var row = index && typeof index == "number" ? self.GetGrid().Rows.Get(index) : self.GetCurrentRow();
+            var options = [];
+            if (row.IsGroup) {
+                options = self.AppendToolBarGroupActions();
+            }
+            else if (row.IsItem) {
+                options = [];
+
+            }
+            else {
+                options = self.AppendToolBarItemActions();
+            }
+
+            if (options) {
+                self.elements.GridOrderToolbar[0].innerHTML += '<span class="toolbar-grip dynamic-actions"></span>';
+                options.forEach((item, idx) => {
+                    var fnName = Object.getOwnPropertyNames(ActionType)[item.Action];
+                    self.elements.GridOrderToolbar[0].innerHTML += `<a href="#" title="${item.Text}" action="${fnName}" class="dynamic-actions"><span class="fa fa-fw ${item.Icon}"></span></a>`;
+                });
+
+                AppContext.BindActions(self.elements.GridOrderToolbar, self);
+            }
+        },
+
+        _ConfigureGroupContextMenu: function (e) {
+            var self = this;
+            var options = [];
+            var row = self.GetCurrentRow();
+
+            var actions = OrderUtils.GetGroupMenuActions(row);
+            actions.forEach((item, idx) => {
+                var op = {}
+                if (item.Action == ActionType.Separator) {
+                    op.IsSeparator = true;
+                }
+                else {
+                    op.Text = item.Text;
+                    var fnName = Object.getOwnPropertyNames(ActionType)[item.Action];
+                    var handler = self[fnName];
+                    if (handler)
+                        op.OnClick = handler;
+                }
+                options.push(op);
+            });
+            return options;
+        },
+
+        AppendToolBarGroupActions: function () {
+            var self = this;
+            var row = self.GetCurrentRow();
+            var actions = OrderUtils.GetGroupMenuActions(row);
+            return actions.filter(function (action, index, arr) { return action.Action != ActionType.Separator; });
+        },
+
+        _ConfigureItemsContextMenu: function (e) {
+            var self = this;
+            var menu = e.ContextMenu;
+            var options = [];
+            var rows = self.GetSelectedRowData();
+
+
+
+            if (rows.length > 0) {
+                var actions = OrderUtils.GetSelectionActions(rows)
+                actions.forEach((item, idx) => {
+                    var op = {}
+                    if (item.Action == ActionType.Separator) {
+                        op.IsSeparator = true;
+                    }
+                    else {
+                        op.Text = item.Text;
+                        var fnName = Object.getOwnPropertyNames(ActionType)[item.Action];
+                        var handler = self[fnName];
+                        if (handler)
+                            op.OnClick = handler;
+                    }
+                    options.push(op);
+                });
+            }
+
+            return options;
+        },
+
+
+        AppendToolBarItemActions: function () {
+            var self = this;
+            var rows = self.GetSelectedRowData();
+            if (rows.length < 1) {
+                var row = self.GetCurrentRow();
+                rows.push(row);
+            }
+
+            if (rows.length > 0) {
+                var actions = OrderUtils.GetSelectionActions(rows);
+            }
+
+            return actions.filter(function (action, index, arr) { return action.Action != ActionType.Separator; });
+        },
+
+        GetGrid: function () { return this.elements.OrderTable; },
+
+        GetCurrentRow: function () { return this.GetGrid().Rows.Get(this.GetGrid().Rows.SelectedIndex); },
+
+        GetGridToolbar: function () { return this.elements.GridOrderToolbar },
+
+        GetCurrentChecked: function () {
+            var self = this;
+            $(self.elements.OrderTable.Element).find('checkbox:checked')
+
+        },
+
+
+        // return rows data checked
+        GetSelectedRowData: function() {
+            var self = this;
+            var rowsChecked = [];
+            var keys = Object.keys(self.CurrentChecked);
+            for (var i = 0; i < keys.length; i++) {
+                var positionKey = keys[i];
+                var item = self.CurrentChecked[positionKey];
+                var row = self.GetGrid().Rows.Get(positionKey)
+                if (item.Selected == false || row.IsGroup == true) {
+                    continue;
+                }
+
+                rowsChecked.push(self.GetGrid().Rows.Get(positionKey));
+            }
+            return rowsChecked;
+        },
+
+        // return only checked rows
+        GetSelectedGroups: function () {
+            var self = this;
+            var selection = [];
+            var currentSelection = null;
+            var keys = Object.keys(self.CurrentChecked);
+            for (var i = 0; i < keys.length; i++) {
+                var positionKey = keys[i];
+                var item = self.CurrentChecked[positionKey];
+                if (item.Selected == false) {
+                    continue;
+                }
+
+                var row = self.GetGrid().Rows.Get(positionKey)
+                if (row.IsGroup) {
+                    continue
+                }
+
+                if (currentSelection == null || currentSelection.OrderGroupID != row.OrderGroupID) {
+                    currentSelection = {
+                        OrderNumber: row.OrderNumber,
+                        OrderGroupID: row.OrderGroupID,
+                        ProjectID: row.ProjectID,
+                        Orders: [],
+                        Details: [],
+                        AllowRepeatedOrders : row.AllowRepeatedOrders
+                    }
+                    selection.push(currentSelection);
+                }
+                currentSelection.Orders.push(row.OrderID);
+            }
+            return selection;
+        },
+
+        // return selection checked or selected in OrderGrid
+        GetSelection: function () {
+            var self = this;
+            var selection = self.GetSelectedGroups();
+
+            var row = self.GetCurrentRow();
+
+            if (row && row.IsGroup == false) {
+
+                var grp = selection.find(fl => fl.OrderGroupID == row.OrderGroupID);
+
+                if (grp) {
+                    // if the group already added, only add current row if now in OrderList
+                    if (grp.Orders.indexOf(row.OrderID) == -1) {
+                        grp.Orders.push(row.OrderID)
+                    }
+                } else {
+                    // if the group not existe, add group with the current orders 
+                    selection.push({
+                        OrderNumber: row.OrderNumber,
+                        OrderGroupID: row.OrderGroupID,
+                        ProjectID: row.ProjectID,
+                        Orders: [row.OrderID],
+                        Details: [],
+                        AllowRepeatedOrders : row.AllowRepeatedOrders
+                    });
+                }
+
+            }
+
+            return selection;
+        },
+
+
+        // #region Order Actions
+        Validate: function (e) {
+            var self = this;
+            var countDifferences = 0;
+            var ordersChanged = false;
+            var validatorHandler;
+
+            var selectionInitial = self.GetSelection();
+
+            self.SelectGroupByPackCode();
+
+            var selection = self.GetSelection();
+
+            ordersChanged = JSON.stringify(selectionInitial) != JSON.stringify(selection)
+            /*const a = [1, 2, 3];
+            a === a; // true  Not Working*/
+            //for (var i = 0; i < selection.length; i++) {
+            //    JSON.stringify(selectionInitial[i].Orders) === JSON.stringify(selection[i].Orders) ? 0 : countDifferences++;
+            //}
+
+            //if (countDifferences > 0)
+            //    ordersChanged = true;
+
+
+            var message = `<div class="card-body" style="max-height:75vh; overflow:auto;">
+                           <div class="row">
+                              <div class="col-sm-12" style="margin-bottom: 10px;">
+                                 <div>@g["The validation process will start for the selected orders"]</div>
+                              </div>
+                           </div>
+                           <div class="row">
+                              <div class="col-sm-12" style="margin-bottom: 10px;">
+                                 <div name="OrdersChanged" class="alert alert-warning" role="alert">
+                                    @g["All orders related by pack will be validated"]
+                                 </div>
+                              </div>
+                           </div>
+                        </div>`;
+
+
+            let fn = () => {
+                validatorHandler = new ValidatorHelper(selection);
+
+                validatorHandler.OnWizardCreated.Subscribe((e) => {
+                    var wizard = e.wizardController;
+                    var wizardStep = e.wizardStep
+                    wizard.Show(self.ViewContainer);
+                })
+
+                validatorHandler.Continue();
+            }
+
+
+            if (ordersChanged) {
+
+                var confirm = new ConfirmDialog(message, 'Apply', 'Cancel');
+                confirm.ShowDialog((result) => {
+
+                    if (!result) {
+
+                    } else {
+
+                        fn();
+                    }
+                    return;
+                });
+            } else {
+
+                fn()
+            }
+
+
+        },
+
+        Stop: function () {
+            var self = this;
+            var selection = self.GetSelection();
+
+            AppContext.LoadJS('/Admin/Orders/ConfirmStopOrderView.js').then(() => {
+                var confirm = new ConfirmStopOrderView(selection);
+                confirm.ShowDialog((dialogResponse) => {
+                    if (dialogResponse == undefined || dialogResponse['Success'] != true) {
+                        return;
+                    }
+                    //self.FilterOrders();
+                }, "60%")
+            })
+        },
+
+        Continue: function () {
+            var self = this;
+            var selection = self.GetSelection()
+
+            AppContext.LoadJS('/Admin/Orders/ConfirmContinueOrderView.js').then(() => {
+                var confirm = new ConfirmContinueOrderView(selection);
+                confirm.ShowDialog((dialogResponse) => {
+                    if (dialogResponse == undefined || dialogResponse['Success'] != true) {
+                        return;
+                    }
+                    //self.FilterOrders();
+                }, "60%")
+            })
+        },
+
+        Cancel: function () { console.log('order action'); },
+
+        SolveConflict: function () {
+            var self = this;
+            var rowData = self.GetSelectedRowData();
+            rowData = rowData[0]; // conflict option is  availabe when only one(1) row is selected
+
+            AppContext.LoadJS('/Upload/ConflictResolverView.js').then(() => {
+                var cf = new ConflictResolverView(rowData);
+                cf.Show(self.ViewContainer);
+            });
+        },
+
+        PrintPackage: function () {
+			var self = this;
+            var currentRow = self.GetCurrentRow();
+            AppContext.HttpPost(`/orders/actions/printpackage/${currentRow.OrderID}`);
+        },
+
+        //DraftInvoiceDoc: function () { console.log('order action'); },
+
+        DownloadPreview: function () {
+            var self = this;
+            var selection = self.GetSelectedGroups()[0];
+            var currentRow = self.GetCurrentRow();
+            AppContext.Orders.OpenDocumentPreview(selection.Orders[0], currentRow.ArticleCode);
+        },
+
+        DownloadProdSheet: function () {
+            var self = this;
+            var selection = self.GetSelectedGroups()[0];
+            var currentRow = self.GetCurrentRow();
+            AppContext.Orders.OpenProdSheet(selection.Orders[0], currentRow.ArticleCode);
+        },
+
+        CreateOrderDetail: function () {
+            var self = this;
+            var selection = self.GetSelectedGroups()[0];
+            var currentRow = self.GetCurrentRow();
+            AppContext.Orders.CreateOrderDetail(selection.Orders[0], currentRow.ArticleCode);
+        },
+
+        GetOrderDetail: function () {
+            var self = this;
+            var selection = self.GetSelectedGroups()[0];
+            var currentRow = self.GetCurrentRow();
+            AppContext.Orders.GetOrderDetail(selection.Orders[0], currentRow.ArticleCode);
+        },
+
+		UpdateDocuments: function () {
+            var selection = this.GetSelectedGroups()[0];
+			AppContext.HttpPost("/orders/actions/updatedocuments", { OrderID: selection.Orders[0] }, null, null, true, true);
+		},
+
+		SendNotifications: function () { console.log('order action'); },
+
+        Repeat: function (e) {
+            self = this;
+            var selection = self.GetSelection();
+            let nonRepeatableOrder  = selection.find (x=> !x.AllowRepeatedOrders);
+            if (nonRepeatableOrder)  
+            {
+                // AppContext.ShowError("@g["There are non repeatable orders in the selection"]")
+                      AppContext.ShowError(`The ${nonRepeatableOrder.OrderNumber} order does not allow repetitions.`)
+                return; 
+            }
+            AppContext.LoadJS('@Url.Content("~/Upload/ConfirmRepeatOrder.js")').then(() => {
+                var confirmRepeat = new ConfirmRepeatOrder(-1);
+                confirmRepeat.ShowDialog(function (dialogResult) {
+                    if (dialogResult && dialogResult.Confirm) {
+                        var orderList = [];
+                        var cloneRequest = [];
+
+                        selection.forEach(function (item) {
+                            orderList.push(...item.Orders);
+                        });
+
+                        orderList.forEach(function (i) {
+                            var index = self.elements.OrderTable.Rows.DataSource.IndexOf(p => p.OrderID === i);
+                            var row = self.GetGrid().Rows.Get(index);
+                            cloneRequest.push({
+                                IsBillable: dialogResult.IsBillable ? true:false,
+                                OrderId: i,
+                                ArticleCode: row.ArticleCode
+                            });
+                        });
+
+                        AppContext.Orders.CloneByGroup(cloneRequest)
+                            .done((response) => {
+                                if (response.Success == false)
+                                    return;
+
+                                self.CurrentChecked = {};
+                                self.FilterOrders();
+                            });
+                    }
+                });
+            });
+        },
+
+        Derive: function (e) {
+            var self = this;
+            var rowData = self.GetCurrentRow();
+            var orderGroup = self.elements.OrderTable.Rows.DataSource.find(p => p.OrderGroupID === rowData.OrderGroupID && p.OrderID === 0);
+            if (orderGroup)
+                rowData.CompanyID = orderGroup.CompanyID;
+
+            AppContext.LoadJS('Upload/ConfirmDialogs/ConfirmDeriveOrderView.js').then(() => {
+                var confirm = new ConfirmDeriveOrderView(rowData);
+                confirm.ShowDialog((dialogResponse) => {
+                    if (dialogResponse == undefined || dialogResponse['Success'] != true) {
+                        return;
+                    }
+
+                    self.CurrentChecked = {};
+                    self.FilterOrders();
+                }, '60%');
+            });
+        },
+             
+        ChangeFactory: function () {
+            self = this;
+
+            var locationID = 1;
+            var selection = self.GetSelection();
+            // get location from current selection
+            var rowDataSelected = self.GetSelectedRowData();
+
+            if (rowDataSelected && rowDataSelected.length > 0) {
+                locationID = rowDataSelected[0].LocationID;
+            }
+
+            AppContext.LoadJS("/Print/AssignFactoryDialog.js").then(() => {
+                var dialog = new AssignFactoryDialog(locationID, true);
+                dialog.ShowDialog(function (dialogResult) {
+                    if (dialogResult) {
+                        var UpdateLocationRequest = {};
+                        UpdateLocationRequest.Orders = [];
+                        UpdateLocationRequest.LocationId = dialogResult.LocationID;
+
+                        selection.forEach(function (item) {
+                            UpdateLocationRequest.Orders.push(...item.Orders);
+                        });
+
+                        AppContext.Orders.MoveByGroup(UpdateLocationRequest)
+                            .done((response) => {
+                                if (response.Success == false) {
+                                    return;
+                                }
+                                self.FilterOrders();
+                            });
+                    }
+                });
+            });
+        },
+
+        ChangeProductionType: function () {
+            var self = this;
+            var rowData = self.GetCurrentRow();
+            AppContext.LoadJS('@Url.Content("~/Upload/ConfirmDialogs/ConfirmChangeProductionTypeView.js")').then(() => {
+                var confirm = new ConfirmChangeProductionTypeView({ Order: rowData });
+                confirm.ShowDialog((dialogResponse) => {
+                    if (dialogResponse == undefined || dialogResponse['Success'] != true) {
+                        return;
+                    }
+                    self.FilterOrders();
+                });
+            })
+        },
+
+        GetLog: function () {
+            var self = this;
+            var currentGroup = self.GetSelectedGroups()[0];
+            var currentRow = self.GetCurrentRow()
+
+            if (currentRow && currentRow.IsGroup == true) {
+                    var logView = new OrderLogView(currentRow.OrderGroupID, true);
+                    logView.ShowDialog(null, '75%');
+            }
+            else if (currentGroup) {
+                var orderId = currentGroup.Orders.find(order => order);
+                var logView = new OrderLogView(orderId);
+                logView.ShowDialog(null, '75%');
+            }
+            else {
+                AppContext.ShowError('@g["Select an Item to show Log"]');
+            }
+        },
+
+        Details: function () {
+            var self = this;
+            var currentGroup = this.GetSelectedGroups()[0];
+            if (currentGroup) {
+                //var orderId = currentGroup.Orders.find(order => order);
+                var detailView = new OrderDetailView(currentGroup.OrderGroupID);
+                detailView.ShowDialog(null, '75%');
+            }
+            else {
+                AppContext.ShowError('@g["Select a group to show details"]');
+            }
+        },
+
+        EntryFile: function () {
+            var currentGroup = this.GetSelectedGroups()[0];
+            if (currentGroup) {
+                var orderId = currentGroup.Orders.find(order => order);
+                window.open(`/orders/getorderfile/${orderId}`);
+            }
+        },
+
+        Invoice: function () { console.log('order action'); },
+
+        Delete: function () {
+            var self = this;
+            AppContext.LoadJS('@Url.Content("~/Upload/ConfirmCancelOrder.js")').then(() => {
+                var confirmCancelDialog = new ConfirmCancelOrder();
+                confirmCancelDialog.ShowDialog(function (dialogResult) {
+                    if (dialogResult && dialogResult.Confirm) {
+
+                        var selection = self.GetSelection();
+
+                        var rqPost = {
+                            Selection: selection,
+                            OrderStatus: @((int)OrderStatus.Cancelled),
+                            ResetEvent: false,
+                            Comments: dialogResult.Comments
+                        };
+                        AppContext.Orders.ChangeStatusByBroup(rqPost)
+                            .done((response) => {
+                                if (!response.Success) {
+                                    AppContext.ShowError(response.Message)
+                                    return;
+                                }else if (response.Data && response.Data.length < 1) {
+                                    AppContext.ShowSuccess(response.Message)
+                                }
+                                else /*if (response.Data && response.Data.length > 1)*/ {
+                                    AppContext.ShowWarning(response.Message)
+                                }
+
+                            });
+
+                        //var currentGroup = self.GetSelectedGroups()[0];
+                        //if (currentGroup) {
+                        //    var orderId = currentGroup.Orders.find(order => order);
+                        //    var status = OrderStatus.Cancelled;
+                        //    AppContext.Orders.ChangeStatus({ OrderID: orderId, OrderStatus: status, Comments: dialogResult.Comments })
+                        //        .done((response) => {
+                        //            if (!response.Success) {
+                        //                //AppContext.ShowError(response.Message)
+                        //                return;
+                        //            }
+                        //        });
+                        //}
+
+
+                    }
+                });
+            });
+        },
+
+        DisableHeaderMenu: function (currentChecked, toSelectedRow) {
+            var self = this;
+            /*var isChecked = currentChecked.checked;
+            var value = parseInt(currentChecked.value);
+            var isSingleRow = (!toSelectedRow.IsGroup && !toSelectedRow.IsItem);
+            var selection = self.GetSelectedGroups();
+            var orders = [];
+
+            selection.forEach(function (item) {
+                item.Orders.forEach(function (i) {
+                    orders.push(i);
+                });
+            });
+
+            if (isChecked && !orders.includes(value) && isSingleRow) {
+                orders.push(value);
+            }
+            else {
+                const index = orders.indexOf(value);
+                if (index > -1) {
+                    orders.splice(index, 1);
+                }
+            }*/
+
+            self.EnableOrDisableToolbarActions();
+        },
+
+        SetAsValidated: function () {
+            var self = this;
+            var selection = self.GetSelection()
+
+            AppContext.LoadJS('/Upload/ConfirmValidateAsItView.js').then(() => {
+                var confirm = new ConfirmValidateAsItView(selection);
+                confirm.ShowDialog((dialogResponse) => {
+                    if (dialogResponse == undefined || dialogResponse['Success'] != true) {
+                        return;
+                    }
+                    //self.FilterOrders();
+                }, "60%")
+            })
+        },
+
+        ResetValidation: function (e) {
+            var self = this;
+            var ordersChanged = false;
+
+            var selectionInitial = self.GetSelection();
+
+            self.SelectGroupByPackCode();
+
+            var selection = self.GetSelection();
+
+
+            var countDifferences = 0;
+
+
+            /*const a = [1, 2, 3];
+            a === a; // true  Not Working*/
+            for (var i = 0; i < selection.length; i++) {
+                JSON.stringify(selectionInitial[i].Orders) === JSON.stringify(selection[i].Orders) ? 0 : countDifferences++;
+            }
+
+            if (countDifferences > 0)
+                ordersChanged = true;
+
+            AppContext.LoadJS('/Upload/ConfirmResetValidationView.js').then(() => {
+                var confirm = new ConfirmResetValidationView(selection, ordersChanged);
+                confirm.ShowDialog((dialogResponse) => {
+                    if (dialogResponse == undefined || dialogResponse['Success'] != true) {
+                        return;
+                    }
+                    self.FilterOrders();
+                }, '60%')
+            })
+        },
+
+        ChangeProvider: function (a, b, c) {
+            var self = this;
+            var rowData = self.GetCurrentRow(); // get group
+
+            if (rowData.IsGroup == false) {
+                AppContext.ShowError("Only can change provider for entire order");
+                return;
+            }
+
+            // check orders inner group are not validated
+            var selection = self.GetSelection();
+            let canChangeProviders = true;
+
+            selection.forEach(sel => { 
+            
+                // check if some order already validated
+                canChangeProviders = !sel.Orders.some(orderID => {
+                    var rowIdx = self.GetGrid().Rows.DataSource.IndexOf(p => p.OrderID == orderID);
+                    var rowData = self.elements.OrderTable.Rows.Get(rowIdx);
+
+                    return rowData.OrderStatus != @((int)OrderStatus.InFlow); // break loop -> short circuit
+                });
+
+            });
+
+            @if (!userData.IsIDT)
+            {
+                <text>
+
+                if (!canChangeProviders) {
+                    AppContext.ShowInfo('@g["Provider or Vendor change is not available for this Order, it contains validated items, conctact with your Customer Service"]')
+                    return;
+                }
+                </text>
+            }
+
+
+            AppContext.LoadJS('Upload/ConfirmDialogs/ConfirmChangeProviderView.js').then(() => {
+                var confirm = new ConfirmChangeProviderView({ OrderGroup: rowData });
+                confirm.ShowDialog((dialogResponse) => {
+                    if (dialogResponse == undefined || dialogResponse['Success'] != true) {
+                        return;
+                    }
+                    self.FilterOrders();
+                }, '60%');
+            });
+
+        },
+
+        CustomerProductionSheet: function () {
+            var self = this;
+            var selection = self.GetSelectedRowData()
+
+            var url = '/orders/actions/getproductionsheet/';
+            window.open(url + selection[0].OrderID);
+
+        },
+
+
+		DownloadPrintPackage: function (e) {
+			var factoryid = parseInt(this.model.FactoryID, 10);
+            var status = parseInt(this.model.OrderStatus, 10);
+
+			if (factoryid === 0) {
+				AppContext.ShowError("@g["You must select a factory from the filters in order to execute this command."]");
+				return;
+			}
+			if (status !== 50 && status !== 3) {
+				AppContext.ShowError("@g["You must select only orders ready to print in order to execute this command."]");
+				return;
+			}
+			var orders = this.elements.OrderTable.Rows.DataSource.where(p => p.OrderStatus == 50 || p.OrderStatus == 3);
+			if (orders.length == 0)
+				AppContext.ShowError("@g["None of the orders shown in the grid are ready to print."]")
+			else if (orders.length > 50)
+				AppContext.ShowError("@g["Too many orders are shown, cannot download more than 50 orders at once."]")
+			else {
+				var orderids = orders.Join((o) => o.OrderID, ".");
+				var confirm = new ConfirmDialog("@g["Download print package for all selected orders?"]");
+                confirm.ShowDialog(function (result) {
+					if (result) {
+						window.open(`/orders/getprintpackages/${factoryid}/${orderids}`);
+					}
+				});
+			}
+		},
+        // #endregion Order Actions
+
+
+        GoToPage: function (e, x, y) {
+            var self = this;
+            var selectedPage = $(e.currentTarget).data('position');
+            self.CurrentPage = selectedPage
+            // reset scroll position
+            self.FilterOrders().then(() => { self.ResetScrollbar(); });
+        },
+
+        ResetScrollbar: function () {
+            var me = this;
+            $(me.elements.OrderTable.Element).animate({ scrollTop: 0 }, 250);
+
+        },
+
+
+        GetSageInvoiceText: function (status) {
+            switch (status) {
+                case 1:
+                    return "@g["No Invoiced"]";
+                case 2:
+                    return "@g["Partial Invoiced"]";
+                case 3:
+                    return "@g["Invoiced"]";
+                default:
+                    return "@g["Unknow Invoiced"]";
+
+            }
+        },
+
+        GetSageDeliveryText: function (status) {
+            switch (status) {
+                case 1:
+                    return "@g["No Shipped"]";
+                case 2:
+                    return "@g["Partial Shipped"]";
+                case 3:
+                    return "@g["Shipped"]";
+                default:
+                    return "@g["Unknow Delivery"]";
+
+            }
+        },
+
+        GetSageOrderStatusText: function (status) {
+            switch (status) {
+                case 1:
+                    return "@g["Open"]";
+                case 2:
+                    return "@g["Closed"]";
+                case 3:
+                    return "@g["Not Found"]";
+                default:
+                    return "@g["Unknow Status"]";
+
+            }
+        },
+
+        GetSageCreditStatusText: function (status) {
+            switch (status) {
+                case 1:
+                    return "@g["Ok"]";
+                case 2:
+                    return "@g["Locked"]";
+                case 3:
+                    return "@g["Limit Exceeded"]";
+                case 4:
+                    return "@g["Prepayment not Deposited"]";
+                default:
+                    return "@g["Unknow Credit"]";
+
+            }
+        },
+        SelectGroupByPackCode: function () {
+
+            var self = this;
+
+            var selection = self.GetSelection();
+            //var selectedRowData = self.GetSelectedRowData();
+
+            selection.forEach(sel => {
+
+                sel.Orders.forEach(orderID => {
+
+                    var rowIdx = self.GetGrid().Rows.DataSource.IndexOf(p => p.OrderID == orderID);
+                    var rowData = self.elements.OrderTable.Rows.Get(rowIdx);
+                    self.MarkRowsWithSamePackCode(rowData);
+                });
+
+            });
+
+           },
+
+        MarkRowsWithSamePackCode: function (toSelectRow) {
+            var self = this;
+
+            if (toSelectRow.PackCode) {
+
+                if (toSelectRow.PackCode || toSelectRow.PackCode.length > 0) {
+                    // current belong to a PACK, select all rows inner the same pack
+                    // TODO: find a better way to filter grid data
+                    var groupItems = self.GetGrid().Rows.DataSource.filter(r => r.OrderGroupID == toSelectRow.OrderGroupID && r.OrderNumber == toSelectRow.OrderNumber && r.LocationID == toSelectRow.LocationID && r.IsGroup == false)
+                    //var packItems = groupItems.filter(r => r.PackCode == toSelectRow.PackCode).map(row => row.OrderID)
+
+                    var checkboxesBelongToTheGroup = $(`input:checkbox[data-order-group-id="${toSelectRow.OrderGroupID}"]`);
+
+                    //jquery each, mark as selected checkbox for the same PackCode inner Group
+                    checkboxesBelongToTheGroup.each((idx, el) => {
+                        var chk = $(el)
+                        var rowItem = groupItems.find(f => f.PackCode == toSelectRow.PackCode && f.OrderID == chk.val());
+
+                        if (rowItem && chk.prop('checked') == false) {
+                            chk.prop('checked', true)
+                            var subIdx = chk.data('rowIdx')
+                            self.CurrentChecked[subIdx] = { Selected: true, OrderID: chk.val(), OrderGroupID: toSelectRow.OrderGroupID, rowIdx: subIdx };
+                        }
+                    })
+
+                }
+            }
+
+        },
+
+        ShowItemLog: async function (e) {
+            var self = this;
+            var row = self.GetCurrentRow();
+			await AppContext.LoadJS("/Admin/WF/ItemLogDialog.js");
+
+            var dlg = new ItemLogDialog(@OrderProcessingWF.WorkflowID , row.WFItemID);
+			dlg.ShowDialog(null, "70%");
+		},
+
+        SetOrderPriority: async function (e) {
+            var self = this;
+            var row = self.GetCurrentRow();
+            var result = await AppContext.HttpGet(`/wf/${@OrderProcessingWF.WorkflowID}/${row.WFItemID}`);
+
+            await AppContext.LoadJS("/Admin/WF/ItemPriorityDialog.js");
+
+            var dlg = new ItemPriorityDialog(result.Data.ItemPriority);
+            dlg.ShowDialog(async (data) => {
+				if (data != null) {
+					data.Items = [];
+					var rows = self.GetSelectedRowData();
+					for (var row of rows) {
+						data.Items.push(row.WFItemID);
+					}
+					var result = await AppContext.HttpPost(`/wf/${@OrderProcessingWF.WorkflowID}/changepriority`, data);
+                    self.FilterOrders();
+				}
+			},"20%");
+        },
+              AuditComposition: async function (e) {
+          let self = this;
+          let row = self.GetCurrentRow();
+          console.log(row);
+
+          AppContext.HttpPost(`/compositionaudit/isvaliduser/${row.OrderID}`, null, async (result) => {
+              if (result.Success) {
+                  AppContext.HttpPost(`/compositionaudit/getorderstatus/${row.OrderID}`, null, async (Data) => {
+                      if (Data.Success) {
+                          if (Data.Data.OpenForm) {
+                              let ErrorObject = {};
+                              if (!Data.Data.EnabledAudit) {
+                                  ErrorObject = {
+                                      ContactMessage: Data.Data.ContactMessage,
+                                      AuditDate: Data.Data.AuditDate,
+                                      Errors: Data.Data.Errors
+                                  };
+                              }
+                              await AppContext.LoadJS("/Validation/Common/AuditCompoView.js");
+                              let orderSelection = {
+                                  OrderID: row.OrderID,
+                                  ProjectID: row.ProjectID,
+                                  ArticleCode: row.ArticleCode,
+                                  ErrorObject: ErrorObject,
+                                  EnabledAudit: Data.Data.EnabledAudit
+                              };
+                              let dlg = new AuditCompoView(orderSelection);
+                              dlg.ShowDialog(async (data) => {
+                                  // aquí código para manejar la respuesta del diálogo
+                              }, "60%");
+                          }
+                      }
+                  });
+              }
+          });
+      },
+
+        ShowShippingAddress: async function (e) 
+        {
+            let self = this 
+            let row = self.GetCurrentRow()
+            await AppContext.LoadJS("/Validation/Common/ShippingAddressView.js")
+            let orders = []
+            orderSelection = {
+              OrderNumber : row.OrderNumber,
+              OrderGroupID : row.OrderGroupID,
+              Orders : [row.OrderID],
+              Details : [],
+              ShippingAddressID : 1,
+              WizardStepPosition : 0,
+              SendToCompanyID : row.SendToCompanyID,
+          
+              ProjectID : row.ProjectID
+          }
+             orders.push (orderSelection);
+
+             let dlg = new ShippingAddressView(orders)
+             dlg.ShowDialog(async (data) => {
+
+                      
+                  },"80%");
+
+        },
+
+        ShowDelivery: function()
+        {   var self = this;
+            var selection = self.GetSelectedGroups()[0];
+            if (selection && selection.Orders.length > 0) {
+                AppContext.LoadJS('/Delivery/DeliveryView.js').then(() => {
+                    var deliveryView = new DeliveryView(selection.Orders[0]);
+                    deliveryView.ShowDialog(null, '85%');
+                });
+            } else {
+                AppContext.ShowError('@g["Select an order to show delivery"]');
+            }
+        },
+
+        UncheckSelectOrders: function () {
+
+        },
+
+        GetOrderPDF: function () {
+            var self = this;
+            var currentRow = self.GetCurrentRow()
+
+            //window.open(`/orders/getorderpdf/${currentRow.OrderGroupID}/${currentRow.OrderNumber}`);
+            AppContext.Orders.GetOrderPdf(currentRow.OrderGroupID,currentRow.OrderNumber)
+                .done((response) => {
+                    if(response.Success){
+                              const pdfData = response.Data.ContentBase64;
+                              const mimeType = response.Data.MimeType || "application/pdf";
+
+                              // 1. Decodificar Base64 → Uint8Array
+                              const byteCharacters = atob(pdfData);
+                              const byteNumbers = new Array(byteCharacters.length);
+                              for (let i = 0; i < byteCharacters.length; i++) {
+                                  byteNumbers[i] = byteCharacters.charCodeAt(i);
+                              }
+                              const byteArray = new Uint8Array(byteNumbers);
+
+                              // 2. Crear Blob
+                              const blob = new Blob([byteArray], { type: mimeType });
+
+                              // 3. Crear URL temporal
+                              const fileURL = URL.createObjectURL(blob);
+
+                              // 4. Abrir en nueva pestaña
+                              window.open(fileURL, "_blank");
+                    }
+                    else
+                          AppContext.ShowError('@g["PDF not found"]');
+                })
+
+        }
+    };
+
+//  </script>

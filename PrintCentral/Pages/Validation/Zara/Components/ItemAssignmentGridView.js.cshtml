@@ -1,0 +1,359 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+
+//# sourceURL=https://Pages/Validation/Zara/Components/ItemAssignmentGridView.js
+/// <script>
+/**
+ * Seletion = {
+ * Details:[],
+ * OrderGroupID:int,
+ * Orders:[],
+ * ProjectID: int
+ * }
+ * }
+ * @@param selection
+ */
+var ItemAssignmentGridView = function () {
+
+    this.ArticleList = [];
+    this.SelectedArticles = [];
+    this.PackArticles = [];
+    this.OrderDetails = [];
+    this.Catalogs = [];
+    this.ProductFields = [];
+    this.exists = false;
+
+    FormView.Extend(this, "@g["Assign Items"]", `@Url.Content("~/Validation/Zara/Components/ItemAssignmentGridView")`);
+
+    this.OnLoaded.Subscribe(() => { console.log('Gridview Loaded') })
+}
+
+ItemAssignmentGridView.prototype = {
+
+    constructor: ItemAssignmentGridView,
+
+    OnLoad: function () {
+
+        var self = this;
+
+    },
+
+    LoadDataComponent: function (selection) {
+
+        var self = this;
+
+        self.elements.Images.UploadSuccessEvent.Subscribe(self, self.UploadSuccessAction)
+
+        AppContext.Wizard.GetGroupItemsAssigned({ selection: [selection], productfields: ['Image'],GetAllArticles: true }).done((details) => {
+            if (details.Data.length > 0) {
+
+                details.Data.forEach((sel, idx, arr) => {
+
+                    let orderDetails = [...new Map(sel.Details.map((item) => [item["ArticleCode"], item])).values()];
+
+                    if (!orderDetails)
+                        return false;
+
+                    const LabelsRequiringImageCatalog = self.Catalogs.find(f => f.Name == 'LabelsRequiringImage').Data;
+                    self.exists = orderDetails.some(orderArticle => LabelsRequiringImageCatalog.map(labelsRequiringImage => labelsRequiringImage.ArticleCode.toLowerCase()).includes(orderArticle.ArticleCode.toLowerCase()));
+                    
+                    if(!self.exists)
+                        $('div[name="ImagesContainer"]').hide();
+
+                    if (orderDetails) {
+                                orderDetails.forEach((art, idx, arr) => {
+
+                                    var found = self.Labels.find(f => f.ID == art.ArticleID);
+                                    let item = {};
+
+                                     if (found) {
+                                            item = {
+                                                ArticleID: found.ID,
+                                                ArticleName: found.Name,
+                                                ArticleCode: found.ArticleCode,
+                                                ArticleType: found.LabelType,
+                                                RFID: found.EncodeRFID,
+                                                LabelID: found.LabelID,
+                                                PackCode: art.PackCode,
+                                                IsItem: false
+                                            }
+                                           
+                                        }
+                                        else {
+                                            item = {
+                                                ArticleID: art.ArticleID,
+                                                ArticleName: art.Description,
+                                                ArticleCode: art.ArticleCode,
+                                                PackCode: art.PackCode,
+                                                OrderGroupID: art.OrderGroupID,
+                                                OrderID: art.OrderID,
+                                                PrinterJobID: art.PrinterJobID,
+                                                PrinterJobDetailID: art.PrinterJobDetailID,
+                                                IsItem: true
+                                            };
+                                            
+                                        }
+
+                                    self.elements.Articles.Rows.Add(item);
+
+                                    self.SelectedArticles.push(item);
+                                });
+                    }
+
+                    let labelArticle = orderDetails.filter(f => !f.IsItem).first();
+
+                    if(labelArticle) {
+                        let productData = labelArticle.ProductData;
+                        self.LoadData(productData);
+                        let image = (!productData['Image'] || productData['Image'].length === 0) ? '__NO_IMAGE_SET__' : productData['Image'];
+                        self.elements.Images.LoadItems({ ProjectID: self.ProjectID, ShowFilters: false, AddOption: true, OpenOption: false, DeleteOption: false, FileName: image });
+                    }
+                    
+                });
+            }
+        });
+
+    },
+    UploadSuccessAction: function (e) {
+
+                    // remove the current images
+
+                    let self = this;
+                    let imagesCmp = self.elements.Images;
+                    let newFile = e.Data.FileName;
+
+                    if (imagesCmp.dataSource == null || imagesCmp.dataSource.length > 0) {
+                        let toRemove = imagesCmp.dataSource.filter(i => i.FileName != newFile);
+                        toRemove.forEach(i => imagesCmp._DeleteItemByName(i.FileName));
+                    }
+
+                    self.model.Image = newFile;
+                    self.SaveImage(newFile);
+     },
+     SaveImage: function (filename) {
+
+                    let self = this;
+
+                    self.ChangeProductFieldImage(filename);
+
+                    let orderSelection = [];
+                    orderSelection[0] = self.Selection;
+                           
+                    let promise = AppContext.Wizard.SaveAssigmentItems({
+                        selection: orderSelection,
+                        productfields: []
+                    })
+                        .then((rq) => {
+
+
+                            AppContext.Wizard.GetOrdersDataAssigment(orderSelection).done((result) => {
+                                //self._UpdateSelection(result)
+                            });
+                            if(rq.Success)
+                                AppContext.ShowSuccess("@g["Image Saved!"]");
+                            else 
+                                AppContext.ShowError("@g["Failed Image Saved!"]")
+                        })
+
+                    return promise;
+
+    },
+    ChangeProductFieldImage: function (filename){
+
+                    let self = this;
+
+                     let productFields = [
+                        { Name: 'Image', Value: filename }
+                     ];
+
+                     if(filename.length == 0)
+                          $('div[name="FileErrorMessage"]').show();
+                     else
+                        $('div[name="FileErrorMessage"]').hide();
+
+                     self.Selection.ProductFields = [...productFields];
+                     self.Selection.SelectedArticles = self.GetSelectedArticles();
+   },
+   IsValid: function () {
+                    let self = this;
+
+                    if(self.exists){
+                        if (self.model.Image.length == 0){
+                            $('div[name="FileErrorMessage"]').show();
+                            return false;
+                      }
+                    }
+                    return true;
+   },
+   
+    GetSelectedArticles: function () {
+
+                    let self = this;
+                    // set triman logo for every article, is a monoprix rule,
+                    // every article can contain differentes triman logo -> TODO: check this rule
+
+                    return $.extend([], self.SelectedArticles)
+   },
+
+
+    Initialize: function (selection,labels, catalogs, projectID) {
+        // fill ArticleFinder compo
+        // load previously selected articles
+
+        let self = this;
+
+        self.Selection = selection;
+        self.Labels = labels;
+        self.LoadDataComponent(selection);
+        self.Catalogs = catalogs;
+        self.ProjectID = projectID;
+        self.elements.OrderNumber.text(selection.OrderNumber);
+    },
+
+                GetProductFields: function () {
+
+                    let self = this;
+
+                    let productFields = [];
+
+                    productFields.push({ Name: 'Image', Value: self.model.Image });
+                    return productFields;
+            },
+
+
+    //#region ImageCards Preview
+    RemoveArticle: function (e) {
+        e.preventDefault();
+        var self = this;
+        var idx = this.elements.Articles.Rows.SelectedIndex;
+
+        if (idx >= 0 && self.elements.Articles.Rows.Count > 0) {
+
+            var ArticleId = self.elements.Articles.Rows.Get(idx).ArticleID;
+
+            self.elements.Articles.Rows.Remove(idx);
+
+            const index = self.SelectedArticles.findIndex(object => {
+                return object.ArticleID == ArticleId;
+            });
+
+            self.RemoveArticleAndPreview(ArticleId, index);
+        }
+    },
+     HasItems: function () {
+                    var self = this;
+
+                    return self.elements.Articles.Rows.Count > 0
+      },
+    RemoveArticleAndPreview(articleid, index) {
+        var self = this;
+        self.SelectedArticles.splice(index, 1);
+        //delete image
+        self.RemoveImageCards();
+        self.CreateImagesCards();
+    },
+
+    CreateImagesCards: function () {
+
+        var self = this;
+        var k = 0;
+
+        for (var i = 0; i < self.SelectedArticles.length; i++) {
+
+            self._AddImage(self.SelectedArticles[i], i);
+        }
+
+        $('.carousel-item', self.elements.CarrouselContent).first().addClass('active');
+        $('> li', self.elements.CarrouselIndicator).first().addClass('active');
+        $('#articlesSelected').carousel();
+
+    },
+
+    RemoveImageCards: function () {
+        var self = this;
+        self.elements.CarrouselContent.html("");
+        self.elements.CarrouselIndicator.html("");
+    },
+
+    _AddImage: function (detail, position) {
+
+        var self = this;
+        var url = "";
+
+        var srcAttr = 'scr';
+
+        var classActive = '';
+
+        var description = '<p>&nbsp;</p>';
+
+        //bylabel
+        // http://localhost/labels/getpreview/3715
+
+        // byarticle
+        // http://localhost/articles/getfixedpreview/15311
+        if (detail.LabelID == null) {
+            url = `/articles/getpreview/${detail.ArticleID}`
+        } else {
+            //
+            url = `/labels/getpreview/${detail.LabelID}`
+        }
+
+        if (position == 0) {
+            srcAttr = 'src';
+            classActive = 'active';
+        }
+
+        $(`<div class="carousel-item text-center" data-ArticleCode="${detail.ArticleCode}">
+                <a data-gallery="photoviewer" href="${url}" data-title="${detail.ArticleCode}" data-position="${position}">
+                    <img src="${url}" style="height: 350px;">
+                </a>
+                <div class="carousel-caption d-none d-md-block" style="color: black;text-shadow: 4px 4px 4px #ADADAD; position: static">
+                    <h5>${detail.ArticleCode}</h5>
+                    ${detail.ArticleName}
+                    <br>
+                </div>
+            </div>`).appendTo(self.elements.CarrouselContent)
+        //.appendTo('.carousel-inner');
+        $('<li data-target="#articlesSelected" data-slide-to="' + position + '"></li>').appendTo(self.elements.CarrouselIndicator)
+        //.appendTo('.carousel-indicators')
+
+        },
+
+    StartViewer: function () {
+
+        $('[data-gallery=photoviewer]').click(function (e) {
+
+            e.preventDefault();
+
+            var items = [],
+            // get index of element clicked
+            options = {
+                index: $(this).data("position"),
+                resizable: false,
+                initMaximized: true,
+                title: true,
+                headerToolbar: ['close'],
+                footerToolbar: ['zoomIn', 'zoomOut', 'actualSize', 'rotateRight', 'prev', 'next', 'close']
+            };
+
+            // looping to create images array
+            $('[data-gallery=photoviewer]').each(function () {
+                let src = $(this).attr('href');
+                items.push({
+                    src: src,
+                    title: $(this).attr('data-title')
+                });
+            });
+
+            new PhotoViewer(items, options);
+
+        });
+    },
+    //#endregion ImageCards Preview
+};
+/// </script>
+

@@ -1,0 +1,37 @@
+﻿@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+
+//# sourceURL=https://Pages/Admin/InLay/InLayList.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+// <script>
+    var InLayList = function () {
+        FormView.Extend(this, "@g["InLay"]", `/Admin/InLay/InLayList`);
+    };
+
+    InLayList.prototype = {
+        constructor: InLayList,
+        OnLoad: function () {
+            //this.elements.InLays.LoadItems({ ShowFilters: true, AddOption: true, OpenOption: true, DeleteOption: true });
+            //this.elements.InLays.ItemSelected.Subscribe(this, this.OpenItem);
+        },
+
+        OnUnload: function () {
+            //this.elements.InLays.ItemSelected.Unsubscribe(this, this.OpenItem);
+        },
+
+        OpenItem: function (e) {
+            AppContext.LoadJS("/Admin/InLay/InLayView.js").then(() => {
+                var dlg = new InLayView(e.item);
+                dlg.ShowDialog((data) => {
+                    if (data)
+                        e.item.Description = data.Description
+                }, "550px");
+            });
+        }
+    }
+///</script>

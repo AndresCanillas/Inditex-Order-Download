@@ -1,0 +1,46 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Common/ConfirmDialog.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var ConfirmDialog = function (text, okText, cancelText, viewPath, countries) {
+
+        if (!okText) okText = '@g["Confirm"]';
+        if (!cancelText) cancelText = '@g["Cancel"]';
+        if (!viewPath) viewPath = '/common/ConfirmDialog';
+
+        FormView.Extend(this, "@g["Confirmation"]", viewPath);
+        this.Text = text;
+        this.OkText = okText;
+        this.CancelText = cancelText;
+        this.Countries = countries;
+        this.viewPath = viewPath;
+	};
+
+	ConfirmDialog.prototype = {
+		constructor: ConfirmDialog,
+
+		OnLoad: function () {
+
+            this.elements.OkText.text(this.OkText);
+            this.elements.CancelText.text(this.CancelText);
+
+            if(!this.viewPath.includes("/Validation/Common/Components/ConfirmReviewDialogView"))
+                this.elements.Message.html(this.Text);
+
+            if(this.Countries === undefined || this.Countries === null)
+                return;
+
+            if(Object.keys(this.Countries).length > 0){
+                this.elements.Countries.text(this?.Countries?.join(","));
+                document.querySelector('[name="messageCountries"]').style.display = "inline";
+            }
+        }
+	};
+//</script>

@@ -1,0 +1,55 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages//Admin/Dashboards/Articles/ConfirmInitialDate.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+/// <reference path="/js/AppContext.AppDomain.js" />
+
+//<script>
+      var ConfirmInitialDate = function (options) {
+          FormView.Extend(this, "@g["Change Date"]", `/Admin/Dashboards/Articles/ConfirmInitialDate`);
+        
+        this.Data = options;
+        this.Accepted = false;        
+    };
+
+      ConfirmInitialDate.prototype = {
+          constructor: ConfirmInitialDate,
+
+        onShow: function () {
+        },
+        ClickConfirm: function () {
+            var self = this;
+            self.EnableSubmit();
+        },
+        OnLoad: function () {
+            const date = new Date();
+            this.elements.InitialDate[0].value = kendo.toString(kendo.parseDate(date), 'dd/MM/yyyy');
+            this.EnableSubmit();
+        },
+        EnableSubmit: function () {
+            var self = this;
+            var btn = self.elements.SubmitButton;
+            self.Accepted = self.elements.Confirm.prop('checked');
+
+            if (self.IsEnableSubmit()) {
+                btn.removeClass('disabled')
+            } else {
+                btn.addClass('disabled')
+            }
+        },
+        IsEnableSubmit: function () {
+            return this.Accepted;
+        },
+
+        Save: async function () {
+            var self = this;
+              self.Close(kendo.toString(self.model.InitialDate,'yyyy-MM-dd hh:mm'));
+        }
+    };
+//</script>

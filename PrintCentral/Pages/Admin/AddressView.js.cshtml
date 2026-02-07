@@ -1,0 +1,180 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/AddressView.js
+///<reference path="/js/jquery-3.0.0.min.js" />
+///<reference path="/js/Kendo.all.min.js" />
+///<reference path="/js/AppContext.js" />
+
+//<script>
+    var AddressView = function (addressid, companyid, parent) {
+        FormView.Extend(this, "@g["Address"]", `/Admin/AddressView?companyid=${companyid}&addressid=${addressid}`);
+		this.AddressID = addressid;
+        this.CompanyID = companyid;
+        this.ParentView = parent;
+        this.IsReadOnly = false;
+
+	};
+
+
+    AddressView.prototype = {
+        constructor: AddressView,
+
+		OnLoad: function () {
+            var self = this;
+
+            if (parseInt(self.AddressID) > 0) {
+                AppContext.Addresses.GetByID(self.AddressID, (data) => {
+                    self.LoadData(data);
+                });
+            }
+
+            if (self.IsReadOnly) {
+                self.AsReadOnly();
+                self.DisableAllActions();
+            }
+        },
+
+        ReturnLastView: function (data) {
+            var self = this;
+
+            if (self.ParentView) {
+
+                self.ParentView.Show(self.ViewContainer) // this call unload event
+
+            } else {
+
+                if (data) {
+                    self.Close(data);  // this method work for views and dialogs
+                } else {
+					this.Cancel();
+                }
+            }
+        },
+
+        SetDefaultAddress: function (e) {
+
+            if (parseInt(this.AddressID) > 0) {
+                AppContext.Addresses.SetDefaultAddress(this.CompanyID, this.AddressID, e.target.checked);
+            }
+        },
+
+		Save: function (e) {
+            var self = this;
+            if (self.IsReadOnly || !this.model.ValidState()) return;
+			var data = this.GetData();
+            return AppContext.Addresses.Update(data, function (result) {
+				if (result.Success) {
+                    self.OnSaved.Raise(data);
+                    if (self.dialog == true) {
+                        self.Close(data);
+                    }
+				}
+			});
+        },
+
+
+
+
+        AsReadOnly: function (readonly) {
+            var self = this;
+
+            if (readonly == undefined) {
+                readonly = true;
+            }
+
+            self.IsReadOnly = readonly;
+
+            for (var fieldName in self.model.data) {
+
+                if (fieldName == 'SageRef' || fieldName == 'SageProvinceCode') continue;
+
+                self.elements[fieldName].prop('readonly', self.IsReadOnly)
+                self.elements[fieldName].prop('disabled', self.IsReadOnly)
+
+                if (self.IsReadOnly)
+                {
+                    self.elements[fieldName].addClass('disabled')
+                }
+                else
+                {
+                    self.elements[fieldName].removeClass('disabled')
+                }
+
+            }
+
+
+
+        },
+
+        DisableAllActions: function () {
+            var self = this;
+
+            var availableActions = self.elements.AvailableActions.find('.user-action')
+
+            $.each(availableActions, (idx, action) => {
+
+                if ($(action).hasClass('d-none') == false)
+                    $(action).addClass('d-none')
+
+                $(action).prop('disabled', true)
+
+            })
+
+            var footer = self.elements.AvailableActions.closest('.row')
+
+            if (footer.hasClass('d-none') == false)
+                footer.addClass('d-none')
+
+
+        },
+
+        EnableAllActions: function () {
+            var self = this;
+
+            var availableActions = self.elements.AvailableActions.find('.user-action')
+
+            $.each(availableActions, (idx, action) => {
+
+                    $(action).removeClass('d-none')
+
+            })
+
+            var footer = self.elements.AvailableActions.closest('.row')
+            footer.removeClass('d-none')
+        },
+
+        AllowAction: function (actionName) {
+            var self = this;
+
+            if(self.elements[actionName])
+                self.elements[actionName].removeClass('d-none');
+        },
+
+
+        AddNew: function () {
+            var self = this;
+            self.AsReadOnly(false)
+
+            self.LoadData({
+                ID: '',
+                Name: '',
+                AddressLine1: '',
+                AddressLine2: '',
+                ZipCode: '',
+                Country: '',
+                StateOrProvince: '',
+                CityOrTown: '',
+                Notes: '',
+                Default: 0,
+            })
+        },
+
+        DefaultItem: function (e) {
+            AppContext.Addresses.SetDefaultAddress(this.CompanyID, e.item.ID, !e.item.Default);
+        }
+	};
+//</script>

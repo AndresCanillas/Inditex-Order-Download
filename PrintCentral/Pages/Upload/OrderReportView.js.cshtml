@@ -1,0 +1,474 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+    var OrderStates = Enum.GetNames(typeof(OrderStatus));
+
+}
+//# sourceURL=https://Pages/Upload/OrderReportView.js
+//# sourceURL=~/Pages/Common/js/ValidatorHelper.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+/// <reference path="/js/AppContext.AppDomain.js" />
+//  <script>
+	var OrderReportView = function () {
+		FormView.Extend(this, "@g["Orders"]", "/Upload/OrderReportView");
+        this.Orders = null;
+        this.CanShowDetails = false;
+        this.CurrentSelectedRow = null;
+	};
+
+
+	OrderReportView.prototype = {
+		constructor: OrderReportView,
+
+		OnLoad: function () {
+            var self = this;
+
+            // load dependencies first
+
+            AppContext.LoadJS('/Common/js/OrderUtils.js','/Common/js/ValidatorHelper.js', '/Upload/OrderDetailView.js', '/Upload/OrderLogView.js').then(() => {
+
+                self.CanShowDetails = true; 
+
+                $(".toolbar-body a").attr("data-disabled", "true").addClass("toolbar-disabled");
+
+                self.elements.OrderTable.OnSelectedChanged = function (e) { self.RowSelected(e); }
+
+                // subscribe to reconfigure context menu in gridview
+                self.elements.OrderTable.BeforeShowContextMenu.Subscribe(self, self.ConfigureRowContextMenu)
+
+                //self.elements.OrderTable.OnSelectedChanged = function (e) { self.GridViewBeforeCellEditHandler(e);}
+
+                self.AddToolbarActions();
+
+                self.FilterOrders();
+
+                var grid = this.elements.OrderTable;
+                grid.RowClick.Subscribe(this, (e) => {
+                    if (this.AssignRef)
+                        this.Assign(e);
+                    else
+                        this.GetSelected(e);
+                });
+			});
+
+        },
+
+        AddToolbarActions: function() {
+
+            var self = this;
+
+            var actions = []
+
+            OrderUtils.CommonActions.forEach((item, idx) => {
+                
+                if (item.Action == ActionType.Separator) {
+                    actions.push('<span class="toolbar-grip"></span>');
+                } else {
+
+                    var fnName = Object.getOwnPropertyNames(ActionType)[item.Action];
+
+                    actions.push(`<a href="#" title="${item.Text}" action="${fnName}"><span class="fa fa-fw ${item.Icon}"></span></a>`)
+                }
+
+            });
+
+
+            self.elements.GridOrderToolbar.html(actions.join(''));
+
+            AppContext.BindActions(self.elements.GridOrderToolbar, self);
+
+        },
+
+		FilterOrders: function (e) {
+			var self = this;
+            var filter = {};
+			filter.CompanyID = self.model.CompanyID;
+			filter.ProductionType = self.model.ProductionType;
+			filter.OrderStatus = self.model.OrderStatus;
+			filter.OrderNumber = self.model.OrderNumber;
+            filter.OrderDate = self.model.OrderDate;
+            filter.InConflict = self.model.InConflict;
+            filter.IsBilled = self.model.IsBilled;
+            filter.IsStopped = self.model.IsStopped;
+			AppContext.HttpPost("/orders/getreport", filter, function (response) {
+				if (response.Success) {
+					self.elements.OrderTable.Rows.LoadData(response.Data);
+				}
+			},null, true, '@g["Orders are loaded"]');
+		},
+
+		RowSelected: function (e) {
+			if (this.elements.OrderTable.SelectedIndex >= 0)
+				$(".toolbar-body a").attr("data-disabled", "false").removeClass("toolbar-disabled");
+			else
+				$(".toolbar-body a").attr("data-disabled", "true").addClass("toolbar-disabled");
+        },
+
+        GetSelected: function (e) {
+            var grid = this.elements.OrderTable;
+            var index = grid.Rows.SelectedIndex;
+            if (index >= 0) {
+                this.CurrentSelectedRow = grid.Rows.Get(index);
+            }
+        },
+
+		DownloadFile: function (e) {
+			var idx = this.elements.OrderTable.SelectedIndex;
+			if (idx >= 0) {
+				var rowData = this.elements.OrderTable.data[idx];
+				window.open(`/orders/getorderfile/${rowData.OrderID}`);
+			}
+		},
+
+		DownloadPreview: function (e) {
+			var idx = this.elements.OrderTable.SelectedIndex;
+			if (idx >= 0) {
+				var rowData = this.elements.OrderTable.data[idx];
+				window.open(`/orders/getpdfpreview/${rowData.OrderID}`);
+			}
+        },
+
+        GridViewFlagsRender: function (value, rowIdx, colIdx, dataType, rowData) {
+
+            var billed = '';
+            var inConflict = '';
+            var stoped = '';
+
+            if (rowData['IsBilled'] == true || rowData['IsBilled'] == 1) {
+                billed = '<span class="badge badge-secondary">@g["Billed"]</span>';
+            }
+
+            if (rowData['IsInConflict']) {
+                inConflict = '<span class="badge badge-danger">@g["In Conflict"]</span>';
+            }
+
+            if (rowData['IsStopped']) {
+                stoped = '<span class="badge badge-warning">@g["Stopped"]</span>';
+            }
+
+            return [billed, inConflict, stoped].join('');
+        },
+
+        GridViewActionsRender: function (value, rowIdx, colIdx, dataType, rowData) {
+
+            var details = '<i class="fa fa-shopping-cart" aria-hidden="true" action="ShowArticleDetails" data-id="' + rowData["OrderID"] + '"></i>'
+
+            return [details].join('');
+
+        },
+
+
+        GridViewStatusRender: function (value, rowIdx, colIdx, dataType, data) {
+
+            var clickable = ''
+            var action = ''
+            var badgeCss = 'info'
+
+            @*@if (userData.IsSysAdmin)
+            {
+            <text>
+            clickable = 'clickable';
+            action = `data-id="${data.OrderID}" action="ChangeOrderStatus"`;
+
+            </text>
+            }*@
+
+            if (data.OrderStatus == OrderStatus.InFlow) {
+                badgeCss = 'warning'; // waiting for user interaction
+                value = `${value} (${data.ValidationProgress})`;
+            }
+
+            // TODO:  differen color for states
+
+            return `<span class="badge badge-${badgeCss} ${clickable}"  ${action}>${value}</span>`;
+
+            @*return `<button type="button" class="btn btn-sm btn-primary" data-id="${data.OrderID}" action="ChangeOrderStatus" >${value}</button>`*@
+
+        },
+
+        GridViewBillToRender: function (value, rowIdx, colIdx, dataType, data) {
+
+            var text = `[${data.BillToCode}] - ${data.BillTo}`;
+
+            return `<span title="${text}">${text}</span>`;
+        },
+
+        GridViewSentToRender: function (value, rowIdx, colIdx, dataType, data) {
+
+            var text = `[${data.SendToCode}] - ${data.SendTo}`
+
+            return `<span title="${text}">${text}</span>`;
+        },
+
+        
+        ChangeState: function (/*Empty*/) {
+
+            var self = this;
+
+            var grid = self.GetGrid();
+
+            var rowData = grid.Rows.Get(grid.Rows.SelectedIndex);
+
+            var availableStates = rowData.NextStates;
+
+
+            // has available states to change  manually ?
+            // Array.isArray
+            // < 1, current state is include in list
+            // best way is disable option before, when context menu is displayed
+            // TODO: check requirement
+            if ($.isArray(availableStates) && availableStates.length < 1) {
+
+                AppContext.ShowError('@g["Cannot change State for this order"]');
+
+                return;
+            }
+
+            AppContext.LoadJS('/Admin/Orders/ChangeOrderStatusView.js').then(function () {
+
+                var changeView = new ChangeOrderStatusView(rowData);
+                changeView.ShowDialog(function (response) {
+
+                    // Edit GridView to update selected row
+
+                });
+            });
+        },
+       
+
+		// #region Default Actions in Cell
+        ShowArticleDetails: function (e) {
+
+            var self = this;
+
+            var target = $(e.target);
+
+            var detailView = new OrderDetailView(target.attr('data-id'));
+
+            detailView.ShowDialog(null);
+
+        },
+		// #endregion Actions
+
+        //GridViewBeforeCellEditHandler: function (e) {
+        //    console.log('BeforeCellEdit', e);
+        //}
+
+        ConfigureRowContextMenu: function(e) {
+
+            // cancel display contextmenu use e.preventDefault();
+
+            var self = this;
+
+			var grid = self.GetGrid();
+            // e.ContextMenu
+
+            var menu = e.ContextMenu;
+
+            // original options
+            // var old = $.extend({}, menu.Options);
+
+            // order status inflow
+
+            var actions = OrderUtils.GetMenuActions(self.GetCurrentRow())
+
+            var options = []
+
+            actions.forEach((item, idx) => {
+                var op = {}
+
+                if (item.Action == ActionType.Separator) {
+                    op.IsSeparator = true;
+                } else {
+                    op.Text = item.Text;
+                    
+                    var fnName = Object.getOwnPropertyNames(ActionType)[item.Action];
+                    var handler = self[fnName];
+                    if (handler)
+                        op.OnClick = handler;
+                    
+                }
+
+                options.push(op);
+
+                
+
+            });
+
+            if (options.length < 1) {
+                e.preventDefault();
+            }
+
+            menu.Options = options;
+        },
+
+
+        GetGrid: function () { return this.elements.OrderTable; },
+
+        GetCurrentRow: function () { return this.GetGrid().Rows.Get(this.GetGrid().Rows.SelectedIndex); },
+
+        GetGridToolbar: function () { return this.elements.GridOrderToolbar },
+        
+
+         // #endregion ContextMenu
+
+        // #region Order Actions 
+        Validate: function () {
+
+            var self = this;
+
+            var rowData = self.GetCurrentRow();
+
+            var validatorHandler = new ValidatorHelper(rowData);
+
+            validatorHandler.OnWizardCreated.Subscribe((e) => {
+
+                var wizard = e.wizardController;
+                var wizardStep = e.wizardStep
+
+                wizard.Show(self.ViewContainer);
+
+            })
+
+            validatorHandler.Continue();
+
+
+
+        },
+        Stop: function () {
+            var self = this;
+
+            var rowData = self.GetCurrentRow();
+
+            var rowIdx = self.GetGrid().Rows.SelectedIndex
+
+            AppContext.LoadJS('/Admin/Orders/ConfirmStopOrderView.js').then(() => {
+
+                var confirm = new ConfirmStopOrderView(rowData);
+
+                confirm.ShowDialog((dialogResponse) => {
+
+                    if (dialogResponse == undefined || dialogResponse['Success'] != true) {
+
+                        return;
+                    }
+
+                    // update row
+                    rowData.IsStopped = true;
+
+                    self.GetGrid().Rows.Update(rowIdx, rowData);
+
+                }, "60%")
+
+            })
+
+        },
+        Continue: function () {
+            var self = this;
+
+            var rowData = self.GetCurrentRow();
+
+            var rowIdx = self.GetGrid().Rows.SelectedIndex
+
+            AppContext.LoadJS('/Admin/Orders/ConfirmContinueOrderView.js').then(() => {
+
+                var confirm = new ConfirmContinueOrderView(rowData);
+
+                confirm.ShowDialog((dialogResponse) => {
+
+                    if (dialogResponse == undefined || dialogResponse['Success'] != true) {
+
+                        return;
+                    }
+
+                    // update row
+                    rowData.IsStopped = false;
+
+                    self.GetGrid().Rows.Update(rowIdx, rowData);
+
+                }, "60%")
+
+            })
+        },
+        Cancel: function () { console.log('order action'); },
+        
+        SolveConflict: function () {
+            var self = this;
+
+            var rowData = self.GetCurrentRow();
+
+            AppContext.LoadJS('/Upload/ConflictResolverView.js').then(() => {
+
+                var cf = new ConflictResolverView(rowData);
+
+                cf.Show(self.ViewContainer);
+
+            });
+
+
+		},
+
+		PrintPackage: function () {
+            var self = this;
+			var rowData = self.GetCurrentRow();
+			AppContext.HttpPost(`/orders/actions/printpackage/${rowData.OrderID}`);
+		},
+
+		DrafInvoiceDoc: function () { console.log('order action'); },
+
+        DownloadPreview: function () {
+            var self = this;
+
+            var row = self.GetCurrentRow();
+
+            AppContext.Orders.OpenDocumentPreview(row.OrderID);
+        },
+		DownloadProdSheet: function () { console.log('order action'); },
+
+		UpdateDocuments: function () {
+            var rowData = this.GetCurrentRow();
+			AppContext.HttpPost("/orders/actions/updatedocuments", { OrderID: rowData.OrderID }, null, null, true, true);
+		},
+
+		SendNotifications: function () { console.log('order action'); },
+
+        Repeat: function (e) {
+            self = this;
+            AppContext.Orders.Clone(self.CurrentSelectedRow.OrderID, function (result) {
+                if (result.Success) {
+                }
+            });
+        },
+        Log: function () {
+
+            var self = this;
+
+            var logView = new OrderLogView(self.CurrentSelectedRow.OrderID);
+
+            logView.ShowDialog(null, '75%');
+
+        },
+        Details: function () {
+
+            var self = this;
+
+            var detailView = new OrderDetailView(self.CurrentSelectedRow.OrderID);
+
+            detailView.ShowDialog(null, '75%');
+
+        },
+        EntryFile: function () { console.log('order action'); },
+        Invoice: function () { console.log('order action'); },
+        Delete: function () { console.log('order action'); },
+        // #endregion Order Actions 
+
+    };
+
+
+    
+
+//  </script>

@@ -1,0 +1,326 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+
+	/**
+		*  project images list - used generic name
+		*/
+}
+//# sourceURL=https://Validation/Brownie/Components/ImageListView.js
+///<reference path="/js/jquery-3.0.0.min.js" />
+///<reference path="/js/Kendo.all.min.js" />
+///<reference path="/js/AppContext.js" />
+
+//<script>
+	var ImageListView = function () {
+
+    this.options = {};
+    this.ProjectID = null;
+	this.ShowFilters = null;
+	this.ShowNewOption = null;
+	this.ShowOpenOption = null;
+	this.ShowDeleteOption = null;
+    this.ShowFileName = null;// string with the name of the file
+
+
+	FormView.Extend(this);
+    this.Content = $(`
+		<inlineform name="FilterForm" style="display:none; margin-bottom:10px;">
+			<input type="text" model name="FilterText" label="@g["Search"]:" action="change:ApplyFilters" /> <span style="cursor:pointer;" class="fa fa-search" action="ApplyFilters" ></span>
+		</inlineform>
+		<div name="FileDropArea" style="margin-bottom:10px;"></div>
+		<div name="ListContainer"></div>`);
+	this.dataSource = null;
+    this.ItemSelected = new AppEvent();
+    this.UploadSuccessEvent = new AppEvent();
+
+
+
+	};
+
+
+
+    ImageListView.prototype = {
+        constructor: ImageListView,
+
+
+
+        OnLoad: function () {
+            AppContext.AppEventListener.Subscribe(this, this.HandleNotifications);
+        },
+
+		OnUnload: function () {
+			AppContext.AppEventListener.Unsubscribe(this, this.HandleNotifications);
+			this.ItemSelected.Dispose();
+            this.UploadSuccessEvent.Dispose();
+		},
+
+		HandleNotifications: function (e) {
+			if (e.EventName === "EntityEvent") {
+				if (e.EntityName === "ProjectImage") {
+
+					if (e.Operation === 2)
+						this.HandleDeleteNotification(e.Entity);
+					if (e.Operation === 1)
+						this.HandleUpdateNotification(e.Entity);
+				}
+			}
+		},
+
+		HandleDeleteNotification(entity) {
+			let card = this.ViewContainer.find(`[data-entityid='${entity.ID}']`);
+			if (card.length === 1) {
+				card.off();
+				card.remove();
+			}
+		},
+
+		HandleUpdateNotification(entity) {
+			this.UpdateCard(entity);
+		},
+
+		ApplyFilters: function (e) {
+			let self = this;
+			let cards = self.elements.ListContainer.find("[data-entityid]");
+			let searchText = self.model.FilterText.toLowerCase();
+			$.each(cards, function (index, card) {
+				card = $(card);
+				let displayElm = card.find("em[data-display='1']");
+				let displayText = displayElm.text().toLowerCase();
+				if (displayText.includes(searchText))
+					card.show();
+				else
+					card.hide();
+			});
+		},
+
+		LoadItems: function (setup,showOnlyOneimage = false,imageName = "") {
+		    let self = this;
+
+		    if (setup == null) setup = { };
+
+            self.ProjectID = setup.ProjectID ?? @userData.SelectedProjectID;
+		    self.ShowFilters = setup.ShowFilters == true;
+		    self.ShowNewOption = setup.AddOption == true;
+		    self.ShowOpenOption = setup.OpenOption == true;
+		    self.ShowDeleteOption = setup.DeleteOption == true;
+            self.ShowFileName = setup.FileName ?? null;
+
+			    if (self.ShowFilters)
+				    self.elements.FilterForm.show();
+			    else
+				    self.elements.FilterForm.hide();
+			    self.SaveUrl = `/images/uploadimage/${this.ProjectID}`;
+
+
+            let url = `/images/getbyproject/${self.ProjectID}`;
+
+            if (self.ShowFileName)
+                url = `/images/getbyproject/${self.ProjectID}/filterby/${self.ShowFileName}`;
+             
+            AppContext.HttpGet(url).then((data) => {
+			    self.dataSource = data;
+			    self.elements.ListContainer.empty();
+				
+			    if (self.ShowNewOption) self.CreateNewCard();
+				
+			    if (data != null) {
+				    for (let i = 0; i < data.length; i++) {
+					    self.CreateItemCard(data[i]);
+				    }
+			    }
+		    });
+		},
+
+		CreateNewCard: function () {
+			let self = this;
+			let html = $(`<input name="files" type="file" accept=".png,.gif,.jpg,.tif,.tiff,.svg,.bmp,.tif" style="margin-bottom:10px;"  validation="required"/>`);
+			AppContext.BindActions(html, self);
+	        self.elements.FileDropArea.append(html);
+			html.kendoUpload({
+				async: {
+					saveUrl: `/images/uploadimage/${self.ProjectID}`,
+					autoUpload: true
+				},
+				multiple: false,
+				  upload: function (e) {
+					  // Modificar el nombre del archivo antes de subirlo
+					  e.data = e.data || {};
+					  e.files.forEach(function (file) {
+						  let extension = file.extension || '';
+						  let timestamp = new Date().getTime();
+						  let newFileName = `image_${timestamp}${extension}`;
+						  e.data.NewFileName = newFileName;
+					  });
+				  },
+				success: function (e) {
+					if (!e.response.success) {
+						e.preventDefault();
+						AppContext.ShowError(e.response.message);
+					}
+					
+					self.dataSource.push(e.response.Data);
+					self.CreateItemCard(e.response.Data);
+
+                    self.UploadSuccessEvent.Raise({ target: self, Data: e.response.Data });
+					
+				},
+				error: function () { AppContext.ShowError("@g["Error uploading file"]"); },
+				localization: {
+					select: '@g["Upload Image"]',
+					remove: '@g["Remove"]',
+					cancel: '@g["Cancel"]',
+					headerStatusUploading: "@g["Uploading..."]",
+					headerStatusUploaded: "@g["Done"]"
+				}
+			});
+
+		},
+	@if (userData.Admin_Projects_CanDeleteImages)
+		{
+		<text>
+		DeleteItem: function (e) {
+			let self = this;
+			let card = $(e.target.parentNode);
+			let filename = card.attr("data-entityid");
+			let confirm = new ConfirmDialog("@g["Delete Image? IMPORTANT: This operation cannot be undone."]");
+			confirm.ShowDialog(function (response) {
+                if (!response) return;
+                AppContext.HttpPost(`/images/delete/${self.ProjectID}/${filename}`).then((result) => {
+                    if (!result.Success) return;
+                    card.off();
+                    card.remove();
+                    let idx = self.dataSource.findIndex(function (e) { return e.FileName == filename; });
+                    self.dataSource.splice(idx, 1);
+
+                });
+			});
+		},
+
+		</text>
+	}
+
+        _DeleteItemByName: async function (filename) {
+        
+            let self = this;
+            // looking for the card with the filename
+            let card = $(`.image-card[data-entityid="${filename}"]`);
+
+            return AppContext.HttpPost(`/images/delete/${self.ProjectID}/${filename}`).then((result) => {
+                if (!result.Success) return;
+                card.off();
+                card.remove();
+                let idx = self.dataSource.findIndex(function (e) { return e.FileName == filename; });
+                self.dataSource.splice(idx, 1);
+
+            });
+        },
+        
+
+	CreateItemCard: function (data) {
+		if (data.FileName == null)
+			return;
+		let self = this;
+		const openAction = self.ShowOpenOption ? " action=\"OpenClicked\"" : " style='cursor:default;'";
+        let deleteAction = "";
+
+
+		@if (userData.Admin_Projects_CanDeleteImages)
+		    {
+		    @:deleteAction = this.ShowDeleteOption ? '<div class="ti ti-close image-card-delete" action=DeleteItem></div>' : "";
+		    }
+			
+		    let displayName = data.FileName;
+		    if (displayName.length > 30)
+			    displayName = displayName.substring(0, 30) + "...";
+
+		    let html = $(`
+		    <div class="image-card" data-entityid="${data.FileName}"${openAction}>
+			    ${deleteAction}
+			    <div style="display: table-cell; vertical-align: middle; text-align:center; width:200px; height:150px;">
+				    <img src="/images/getthumbnail/${self.ProjectID}/${data.FileName}?${new Date().getTime()}" style="max-width:140px; max-height:140px; object-fit:contain;" />
+			    </div>
+			    <div>
+				    <div style="float:right">
+                                <a action="Download" href="/images/getimage/${self.ProjectID}/${data.FileName}" download target="_blank"><i class="fa fa-download fa-fw" style="color:black;" title="@g["Download"]"></i></a>
+				    </div>
+				    <span style="font-size: 12px"><em data-display="1">${displayName}</em></span>
+				    <span style="font-size: 12px">&nbsp;(<em name="FileSize">${data.HumanSize}</em> )</span>
+			    </div>
+		    </div>`);
+		    AppContext.BindActions(html, self);
+		    self.elements.ListContainer.append(html);
+        },
+
+        OpenClicked: function (e) {
+	        let self = this;
+	        e.preventDefault();
+	        let cardElm = $(e.target).closest("[data-entityid]");
+	        let filename = cardElm.attr("data-entityid");
+            let cardData = self.dataSource.first(p => p.FileName == filename);
+            self.ItemSelected.Raise({ target: self, item: cardData });
+        },
+
+        UpdateCard: function (data) {
+			let idx = this.dataSource.findIndex(p => p.ID == data.ID);
+			if (idx < 0)  return;
+            this.dataSource[idx] = data;
+            let card = this.ViewContainer.find(`[data-entityid='${data.ID}']`);
+
+            card.find('[name="Name"]').text(data.Name);
+
+
+            card.find('[name="FileExtension"]').text(data.Extension);
+            card.find('[name="FileSize"]').text(data.HumanSize);
+
+            card.find(".item-preview").attr("src", `images/getpreview/${data.ID}/preview_256x256?${new Date().getTime()}`)
+
+
+            // TODO: use css ellipsis
+            let description = data.Description;
+            let descriptionTitle = ""; // only show tittle for long text
+
+            if (description.length > 60) {
+                descriptionTitle = description;
+                description = description.substring(0, 30)
+            }
+            card.find('[name="Comments"]')
+            .attr('title', descriptionTitle)
+            .text(description);
+
+
+            // TODO: use css ellipsis
+            let displayName = data.UserMetaData ? data.UserMetaData.Name : "";
+            let displayNameTitle = ""; // only show tittle for long text
+
+            if (displayName.length > 30) {
+            displayNameTitle = displayName;
+            displayName = displayName.substring(0, 30)
+            }
+
+            card.find('[name="FileName"]')
+            .attr('title', displayNameTitle)
+            .text(displayName);
+
+
+            // TODO: use css ellipsis
+            let comments = data.Description ? data.Description : "";
+            let commentsTitle = ""; // only show tittle for long text
+
+            if (comments.length > 60) {
+                commentsTitle = comments;
+                comments = comments.substring(0, 60)
+            }
+
+            card.find('[name="Comments"]').text(data.comments).attr('title', commentsTitle)
+		    
+	    },
+
+        Download: function (e) {
+            e.stopPropagation();
+        }
+    };
+
+//</script>

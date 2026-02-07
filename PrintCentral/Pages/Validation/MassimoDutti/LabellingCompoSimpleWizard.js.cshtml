@@ -1,0 +1,91 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+    var labelType = (int)WebLink.Contracts.Models.LabelType.CareLabel;
+
+}
+//# sourceURL=https://Pages/Validation/Zara/LabellingCompoSimpleWizard.js
+///<script>
+
+/**
+* @@param orderSelection
+* @@param wizardStep
+* @@param allSteps
+*/
+/*
+order selection is array of orders selected from OrderGroupIndexView
+[{ OrderGroupID: 1, OrderNumber: '8545', Details: [], Orders: [OrderId, OrderID, ....], WizardStepPosition: 0  }]
+*/
+
+var LabellingCompoSimpleWizard = function (orderSelection, wizardStep, allSteps) {
+
+    let options = {
+
+        ApplyAlltext: '@g["Apply All"]',
+        ApplyText: '@g["Apply"]',
+        ArticleTitleText: '@g["Article"]',
+        AssignText: '@g["Assign"]',
+        CancelText: '@g["Cancel"]',
+        CopyText: '@g["Copy"]',
+        CopySuccessText: '@g["Successfully copied!"]',
+        CopyWarningText: '@g["No items have been copied."]',
+        OrderNumberTitleText: '@g["Order N°"]',
+        OverrideQuestionText: '@g["Do you want to copy the composition only empty elements in this Order?"]',
+        PasteText: '@g["Paste"]',
+        Title: '@g["Define Compostion"]',
+        WithoutLabelText: '@g["Without Label"]',
+
+        //ViewUrl: '/Validation/Common/LabellingCompoSimpleWizard',
+        DefineCompositionViewUrl: '/Validation/MassimoDutti/DefineCompositionView.js',
+        ConfirmDialogTemplate: '/Validation/Common/Components/OverrideCompositionConfirmDialog',
+
+        AllowEmptyCareInstructions: true,
+        LabelType: @labelType // LabelType.CareLabel = 2
+    }
+
+    ACompoWizardView.Extend(this, options, orderSelection, wizardStep, allSteps)
+    ExtendObj(this, LabellingCompoSimpleWizard.prototype);
+
+
+}
+
+LabellingCompoSimpleWizard.prototype = {
+
+    constructor: LabellingCompoSimpleWizard,
+
+    _PasteDefinition: function (targetUnit, targetGroup) {
+        var self = this;
+        // already exist CompoArticle -> replace, not exist, add new one
+        var found = self.CompoDefined.findIndex((e) => e.Index == targetUnit && e.GroupIdx == targetGroup);
+        if (found >= 0) {
+         if (self.CompoDefined[found].DataObject.ArticleCode == self.CopyData.DataObject.ArticleCode)
+         {
+            self.CompoDefined[found].DataObject.ArticleCode = self.CopyData.DataObject.ArticleCode;
+            self.CompoDefined[found].DataObject.ArticleID = self.CopyData.DataObject.ArticleID;
+            self.CompoDefined[found].DataObject.TargetArticle = self.CopyData.DataObject.TargetArticle;
+            self.CompoDefined[found].DataObject.Sections = JSON.parse(JSON.stringify(self.CopyData.DataObject.Sections));
+            self.CompoDefined[found].DataObject.CareInstructions = $.extend([], self.CopyData.DataObject.CareInstructions);
+            self.CompoDefined[found].DataObject.WrTemplate = self.CopyData.DataObject.WrTemplate;
+            self.CompoDefined[found].DataObject.Type = self.CopyData.DataObject.Type;
+            self.CompoDefined[found].DataObject.Required = self.CopyData.DataObject.Required;
+            self.CompoDefined[found].DataObject.ClonedFrom = self.CopyData.DataObject.ID
+            }else {
+
+              AppContext.ShowError('@g["Can't paste composition. Copied article is diferent than target article "]')
+              throw '@g["Can't paste composition. Copied article is diferent than target article "]';
+              return ;
+                   }
+        } else {
+            throw '@g["Error:No composition found."]';
+        }
+
+        $(`.compo-filled[data-item="${targetUnit}"][data-group="${targetGroup}"]`, self.FormSelector).removeClass('no').addClass('yes').addClass('pending');
+
+    },
+
+};
+
+/// </script>
+

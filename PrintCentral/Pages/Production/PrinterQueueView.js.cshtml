@@ -1,0 +1,419 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Production/PrinterQueueView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var PrinterQueueView = function (printerid) {
+		FormView.Extend(this, "@g["Printer Queue"]", "/Production/PrinterQueueView");
+		this.PrinterID = printerid;
+		this.disableExtras = false;
+	};
+
+
+	PrinterQueueView.prototype = {
+		constructor: PrinterQueueView,
+
+		OnLoad: function () {
+			var self = this;
+			var events = new AppContext.PrinterJobEvents(this, this.HandlePrinterJobEvent);
+            events.Listen();
+			this.OnUnloaded.Subscribe(this, function () { events.Dispose(); });
+			this.elements.JobsTable.OnSelectedChanged = function (e) { self.RowSelected(e); }
+			this.elements.JobDetailsTable.OnSelectedChanged = function (e) { self.LoadExtrasOptions(e); }
+			this.ViewContainer.find(".toolbar-body a:not([always-enabled])").attr("data-disabled", "true").addClass("toolbar-disabled");
+            AppContext.HttpGet(`/PrinterJobs/GetPrinterJobs/${self.PrinterID}`, function (result) {
+				self.Jobs = result;
+				self.elements.JobsTable.LoadData(result);
+				if (result.length > 0)
+					self.elements.JobsTable.SelectRow(0);
+			});
+			AppContext.Printers.GetByID(this.PrinterID, function (data) {
+				if (data) {
+					self.model.ID = self.PrinterID;
+					self.elements.Name.text(data.Name);
+					self.elements.DeviceID.text(data.DeviceID);
+				}
+			});
+			AppContext.Printers.GetStates(function (data) {
+				var st = data.find(function (v) { return v.ID == self.PrinterID; });
+				if (st != null)
+					self.HandlePrinterStatus(st);
+			});
+
+			var currentPrintedValue = 0;
+			this.beforeEditHandler = (e) => {
+				currentPrintedValue = e.data.Printed;
+			};
+			this.afterEditHandler = (e) => {
+				if (currentPrintedValue != e.data.Printed)
+					AppContext.PrinterJobs.SetDetailProgress(e.data.ID, e.data.Printed);
+			};
+			this.elements.JobDetailsTable.BeforeRowEdit.Subscribe(this, this.beforeEditHandler);
+			this.elements.JobDetailsTable.AfterRowEdit.Subscribe(this, this.afterEditHandler);
+		},
+
+		OnUnload: function () {
+			this.elements.JobDetailsTable.BeforeRowEdit.Unsubscribe(this, this.beforeEditHandler);
+			this.elements.JobDetailsTable.AfterRowEdit.Unsubscribe(this, this.afterEditHandler);
+		},
+
+		GetSelectedJob: function () {
+			if (this.elements.JobsTable.SelectedIndex >= 0) {
+				var rowIdx = this.elements.JobsTable.SelectedIndex;
+				var job = this.Jobs[rowIdx];
+				return job;
+			}
+			else return null;
+		},
+
+		RowSelected: function (e) {
+			var self = this;
+			var job = this.GetSelectedJob();
+            if (job !== null) {
+				this.ViewContainer.find(".toolbar-body a:not([always-enabled])").attr("data-disabled", "false").removeClass("toolbar-disabled");
+                this.LoadData(job);
+				AppContext.PrinterJobs.GetJobDetails(job.JobID, true, function (result) {
+					if (result != null) {
+						self.ExpandProductData(result);
+						self.elements.JobDetails.show();
+						self.elements.JobDetailsTable.LoadData(result);
+						var printingSet = false;
+						$.each(result, function (index, item) {
+							if (item.Printed - item.Extras >= item.Quantity)
+								self.elements.JobDetailsTable.SetCellHtml(index, 0, "<span class='ti ti-check'></span>");
+							else if (!printingSet) {
+								printingSet = true;
+								self.elements.JobDetailsTable.SetCellHtml(index, 0, "<span class='ti ti-printer'></span>");
+								self.elements.JobDetailsTable.HighlightRow(index);
+								self.elements.JobDetailsTable.EnsureCellVisible(index - 1, 0);
+							}
+						});
+					}
+				});
+			}
+			else {
+				this.ViewContainer.find(".toolbar-body a:not([always-enabled])").attr("data-disabled", "true").addClass("toolbar-disabled");
+				this.elements.JobDetails.hide();
+			}
+		},
+
+		ExpandProductData: function (rows) {
+			for (var r of rows) {
+				var productData = JSON.parse(r.ProductData);
+				delete productData.ID;
+				Object.assign(r, productData);
+			}
+		},
+
+		PrintSample: function (e) {
+			var job = this.GetSelectedJob();
+			if (job !== null) {
+				var productid = this.elements.JobDetailsTable.data[0].ProductDataID;
+				AppContext.PrinterJobs.PrintSample(job.ProjectID, this.PrinterID, job.ArticleID, job.OrderID, productid);
+			}
+		},
+
+		PreviewLabel: function (e) {
+			var self = this;
+			var job = this.GetSelectedJob();
+			if (job !== null) {
+				AppContext.LoadJS("/Common/LabelPreviewDialog.js").then(() => {
+					var dialog = new LabelPreviewDialog(job.LabelID);
+					dialog.ShowDialog();
+				});
+			}
+		},
+
+		PrinterSettings: function (e) {
+			var job = this.GetSelectedJob();
+            if (job != null)
+                this.OpenPrinterSettings(job.ProjectID, job.ArticleID, job.OrderID, this.elements.JobsTable.data[0].ProductDataID);
+			else {
+				var self = this;
+				AppContext.LoadJS("/production/SelectArticleDialog.js").then(() => {
+					var artDlg = new SelectArticleDialog();
+					artDlg.ShowDialog((data) => {
+						if (data != null)
+							self.OpenPrinterSettings(data.ProjectID, data.ArticleID, job.OrderID, data.ProductDataID);
+					}, "70%");
+				});
+			}
+		},
+
+		OpenPrinterSettings: function (projectid, articleid, orderid, productid) {
+			var self = this;
+			AppContext.LoadJS("/production/PrinterSettingsDialog.js").then(() => {
+				var dialog = new PrinterSettingsDialog(projectid, self.PrinterID, articleid, orderid, productid);
+				dialog.ShowDialog(function () { });
+			});
+		},
+
+		StartJob: function (e) {
+			var job = this.GetSelectedJob();
+			AppContext.PrinterJobs.StartJob(job.JobID);
+		},
+
+		PauseJob: function (e) {
+			var job = this.GetSelectedJob();
+			AppContext.PrinterJobs.PauseJob(job.JobID);
+		},
+
+		CancelJob: function (e) {
+			var job = this.GetSelectedJob();
+			var dlg = new ConfirmDialog("@g["Delete currently selected job? IMPORTANT: If this job is from an ongoing order, that order will be incomplete."]");
+			dlg.ShowDialog(function (response) {
+				if (response)
+					AppContext.PrinterJobs.CancelJob(job.JobID);
+			});
+		},
+
+		ChangePrinter: function (e) {
+			var self = this;
+			var job = this.GetSelectedJob();
+			var rowIdx = this.elements.JobsTable.SelectedIndex;
+			AppContext.LoadJS("/common/SelectPrinterDialog.js").then(() => {
+				var dlg = new SelectPrinterDialog();
+				dlg.ShowDialog(function (result) {
+					if (result && result.PrinterID != job.AssignedPrinter) {
+						AppContext.PrinterJobs.AssignPrinter(job.JobID, result.PrinterID, function (response) {
+							if (response.Success) {
+								self.elements.JobsTable.DeleteRow(rowIdx);
+							}
+						});
+					}
+				});
+			});
+		},
+
+		LoadExtrasOptions: function (e) {
+			var idx = this.elements.JobDetailsTable.SelectedIndex;
+			if (idx >= 0) {
+				this.model.NewRowBarcode = this.elements.JobDetailsTable.GetSelectedData().Barcode;
+			}
+		},
+
+		AddExtrasInDetail: function (e) {
+			var self = this;
+			var idx = this.elements.JobDetailsTable.SelectedIndex;
+			if (idx >= 0) {
+				var job = this.GetSelectedJob();
+				var detail = this.elements.JobDetailsTable.data[idx];
+				AppContext.LoadJS("/production/AskQuantityDialog.js").then(() => {
+					var dlg = new AskQuantityDialog(detail.Barcode);
+					dlg.ShowDialog(function (result) {
+						if (result && result.Quantity > 0) {
+							AppContext.VariableData.GetByID(job.ProjectID, detail.ProductDataID, function (productData) {
+								AppContext.PrinterJobs.AddExtras(job.JobID, detail.ID, result.Quantity, function (result) { });
+							});
+						}
+					});
+				});
+			}
+		},
+
+		AddExtra2: function (e) {
+			this.ExtraKeyUp({ keyCode: 13 });
+		},
+
+		ExtraKeyUp: function (e) {
+			var self = this;
+			if (e.keyCode == 13 && !this.disableExtras && !self.model.NewRowQuantity.isNullOrEmpty()) {
+				this.disableExtras = true;
+				var idx = this.elements.JobDetailsTable.SelectedIndex;
+				if (idx >= 0) {
+					var job = this.GetSelectedJob();
+					var detail = this.elements.JobDetailsTable.data[idx];
+					AppContext.PrinterJobs.AddExtras(job.JobID, detail.ID, self.model.NewRowQuantity, function (result) {
+						if (result.Success)
+							self.model.NewRowQuantity = "";
+						self.disableExtras = false;
+					});
+				}
+			}
+		},
+
+		HandlePrinterJobEvent: function (type, data) {
+			var self = this;
+			switch (type) {
+				case 1:
+					this.HandleJobCreated(data);
+					break;
+				case 2:
+					this.HandleJobStatusUpdate(data);
+					break;
+				case 3:
+					this.HandleJobDetailUpdate(data);
+					break;
+				case 4:
+					this.HandleJobError(data);
+					break;
+				case 5:
+					this.HandleLocationChanged(data);
+					break;
+				case 6:
+					this.HandlePrinterChanged(data);
+					break;
+				case 7:
+					this.HandlePrinterStatus(data);
+					break;
+				case 8:
+					var st = data.find(function (v) { return v.ID == self.PrinterID; });
+					if (st != null)
+						this.HandlePrinterStatus(st);
+					break;
+				case 9:
+					this.HandleExtrasAdded(data);
+					break;
+			}
+		},
+
+		HandleJobCreated: function (data) {
+			console.log("job Created");
+		},
+
+		HandleJobStatusUpdate: function (data) {
+			var self = this;
+			if (data.ID == this.model.JobID) {
+				this.model.Status = data.Status;
+			}
+			var rowIdx = this.elements.JobsTable.data.findIndex(function (r) { return r.JobID == data.ID });
+			if (rowIdx >= 0) {
+				this.elements.JobsTable.data[rowIdx].Status = data.Status;
+				this.elements.JobsTable.data[rowIdx].Printed = data.Printed;
+				this.elements.JobsTable.UpdateRow(rowIdx);
+				if (data.Status == 6) {
+					setTimeout(function () { self.elements.JobsTable.DeleteRow(rowIdx); }, 1000);
+				}
+			}
+		},
+
+		HandleJobDetailUpdate: function (data) {
+			var rowidx = this.elements.JobDetailsTable.data.findIndex(function (d) { return d.ID == data.ID; });
+			if (rowidx >= 0) {
+				var rowData = this.elements.JobDetailsTable.data[rowidx];
+				rowData.Quantity = data.Quantity;
+				rowData.Printed = data.Printed;
+				rowData.Errors = data.Errors;
+				rowData.Extras = data.Extras;
+				this.elements.JobDetailsTable.UpdateRow(rowidx, rowData);
+				this.elements.JobDetailsTable.HighlightRow(rowidx);
+				var printed = 0, errors = 0, extras = 0;
+				$.each(this.elements.JobDetailsTable.data, function (index, item) {
+					printed += item.Printed;
+					errors += item.Errors;
+					extras += item.Extras;
+				});
+				this.model.Printed = printed;
+				this.model.Errors = errors;
+				this.model.Extras = extras;
+				if (data.Printed - data.Extras >= data.Quantity) {
+					this.elements.JobDetailsTable.SetCellHtml(rowidx, 0, "<span class='ti ti-check'></span>");
+					this.elements.JobDetailsTable.EnsureCellVisible(rowidx - 1, 0);
+				}
+				else
+					this.elements.JobDetailsTable.SetCellHtml(rowidx, 0, "<span class='ti ti-printer'></span>");
+				rowidx = this.elements.JobsTable.data.findIndex(function (r) { return r.JobID == data.PrinterJob.ID });
+				if (rowidx >= 0) {
+					this.elements.JobsTable.data[rowidx].Printed = this.model.Printed;
+					this.elements.JobsTable.UpdateRow(rowidx);
+				}
+			}
+		},
+
+		HandleJobError: function (data) {
+			var job = this.GetSelectedJob();
+			if (job !== null && data.Job.ID == job.JobID) {
+				AppContext.ShowError(data.Message);
+			}
+		},
+
+		HandleLocationChanged: function (data) {
+			console.log("job location changed");
+		},
+
+		HandlePrinterChanged: function (data) {
+			console.log("job printer changed");
+		},
+
+		HandleExtrasAdded: function (data) {
+			var job = this.GetSelectedJob();
+			if (data.PrinterJobID == job.JobID) {
+				var rowidx = this.elements.JobDetailsTable.data.findIndex(function (v) { return v.ID == data.ID });
+				if (rowidx >= 0) {
+					var rowData = this.elements.JobDetailsTable.data[rowidx];
+					this.model.Extras += (data.Extras - rowData.Extras);
+					rowData.Extras = data.Extras;
+					this.elements.JobDetailsTable.UpdateRow(rowidx, rowData);
+				}
+				else
+					this.RowSelected();
+			}
+		},
+
+		HandlePrinterStatus: function (data) {
+			if (data.ID == this.PrinterID) {
+				this.UpdateBadge("Connected", data.FL & 1);
+				this.UpdateBadge("Paused", data.FL & 4);
+				this.UpdateBadge("PaperOut", data.FL & 8);
+				this.UpdateBadge("RibbonOut", data.FL & 16);
+				this.UpdateBadge("HeadOpen", data.FL & 32);
+			}
+		},
+
+		UpdateBadge: function (badgeName, condition) {
+			var badge = this.elements[badgeName];
+			if (badgeName == "Connected") {
+				if (condition > 0) {
+					badge.addClass("badge-success");
+					badge.removeClass("badge-danger");
+					badge.text("Online");
+				}
+				else {
+					badge.addClass("badge-danger");
+					badge.removeClass("badge-success");
+					badge.text("Offline");
+				}
+			}
+			else {
+				if (condition > 0) {
+					badge.addClass("badge-warning");
+					badge.removeClass("badge-secondary");
+				}
+				else {
+					badge.addClass("badge-secondary");
+					badge.removeClass("badge-warning");
+				}
+			}
+		},
+
+		ResetProgress: function (e) {
+			var job = this.GetSelectedJob();
+			if (job != null) {
+				var dlg = new ConfirmDialog("@g["Reset progress of the currently selected job?"]");
+				dlg.ShowDialog(function (response) {
+					if (response)
+						AppContext.PrinterJobs.ResetJob(job.JobID);
+				});
+			}
+		},
+
+        SortPrinterQueue: function (e) {
+            var self = this;
+            var job = this.GetSelectedJob();
+            if (job != null) {
+				AppContext.LoadJS("/Production/JobSortDialog.js").then(() => {
+					var dialog = new JobSortDialog(job.JobID);
+                    dialog.ShowDialog(function (e) {
+                        self.RowSelected();
+                    }, "90%");
+                });
+            }
+        }
+	};
+//</script>

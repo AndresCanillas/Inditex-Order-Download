@@ -1,0 +1,118 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+
+
+}
+//# sourceURL=https://Pages/Validation/Scalpers/LabellingCompoSimpleWizard.js
+/// <script>
+
+/**
+ * Scalpers Version
+ * @@param orderSelection
+ * @@param wizardStep
+ * @@param allSteps
+ */
+/*
+order selection is array of orders selected from OrderGroupIndexView
+[{ OrderGroupID: 1, OrderNumber: '8545', Details: [], Orders: [OrderId, OrderID, ....], WizardStepPosition: 0  }]
+ */
+
+var LabellingCompoSimpleWizard = function (orderSelection, wizardStep, allSteps) {
+
+    let options = {
+
+        ApplyAlltext: '@g["Apply All"]',
+        ApplyText: '@g["Apply"]',
+        ArticleTitleText: '@g["Article"]',
+        AssignText: '@g["Assign"]',
+        CancelText: '@g["Cancel"]',
+        CopyText: '@g["Copy"]',
+        CopySuccessText: '@g["Successfully copied!"]',
+        CopyWarningText: '@g["No items have been copied."]',
+        OrderNumberTitleText: '@g["Order N°"]',
+        OverrideQuestionText: '@g["Do you want to copy the composition only empty elements in this Order?"]',
+        PasteText: '@g["Paste"]',
+        Title: '@g["Define Compostion"]',
+        WithoutLabelText: '@g["Without Label"]',
+
+        //ViewUrl: '/Validation/Common/LabellingCompoSimpleWizard',
+        DefineCompositionViewUrl: '/Validation/Scalpers/DefineCompositionView.js',
+        ConfirmDialogTemplate: '/Validation/Common/Components/OverrideCompositionConfirmDialog',
+
+        AllowEmptyCareInstructions: true,
+        LabelType: @((int)LabelType.CareLabel), // LabelType.CareLabel = 2
+    }
+
+    ACompoWizardView.Extend(this, options, orderSelection, wizardStep, allSteps)
+    ExtendObj(this, LabellingCompoSimpleWizard.prototype);
+
+}
+
+LabellingCompoSimpleWizard.prototype = {
+    constructor: LabellingCompoSimpleWizard,
+
+    OnLoad: function () {
+
+        let self = this;
+
+        //AppContext.LoadJS('/Validation/Scalpers/js/ScalpersData.js').then(() => {
+        AppContext.LoadJS('/js/Wizards/ScalpersDeeply/ScalpersDeeplyData.js').then(() => {
+
+            AppContext.Projects.GetByID(self.GetProjectID()).done((result) => {
+                self.ProjectData = result;
+            });
+
+            self.model.WizardID = self.WizardStep.WizardID;
+            self.model.WizardStepID = self.WizardStep.ID;
+
+            self.ShowStatus();
+            self.GetCompoArticles().done(() => {
+
+                self.LoadArticles(); // get compo article details
+            })
+
+
+            $('#modal-image').on('load', function () {
+                console.log('load a new image')
+            })
+
+        });
+
+    },
+
+
+    // override method
+    GetCompoArticles: function () {
+
+        let self = this;
+
+        return AppContext.Articles.GetArticlesWithLabels(ScalpersDeeply.Articles, self.GetProjectID()).then((result) => {
+
+            ScalpersDeeply.UpdateArticles(result);
+
+        }).then(() => {
+
+                AppContext.Wizard.GetArticlesByLabelType({ Selection: self.OrderSelection, LabelType: self.options.LabelType })
+                    .done((response) => {
+
+                        if (!response.Success) return;
+
+
+                        //$.extend(Scalpers.Articles, response.Data);
+
+                        self.CompoArticles = response.Data;
+
+                        //self.OptionsTpl = self._FillComboTpl();
+
+                        //self.FillCombo("ArticleID", self.CompoArticles);//remove
+                    })
+
+        })
+    }
+}
+
+/// </script>
+

@@ -1,0 +1,49 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+<viewcard>
+	<viewform>
+		<input model name="ID" type="hidden" />
+		<input model name="CompanyID" type="hidden" />
+		<input model name="ProjectID" type="hidden" />
+		<viewrow>
+            <viewcolumn>
+                <viewtitle>@g["Available Orders"]</viewtitle>
+                <inlineform margin-bottom:10px;">
+                    <input model name="FindByNumber" label="@g["Order N°"]:" action="keypress:HandleOrdersKeyDown" />
+                </inlineform>
+                <div component="GridView" name="OrdersGrid" style="max-height:300px; margin-top:20px;">
+                    <template>
+                        <column width="150" field="OrderNumber">@g["Order N°"]</column>
+                        <column width="120" field="OrderDate" type="Date">@g["Date"]</column>
+                    </template>
+                </div>
+            </viewcolumn>
+            <viewcolumn>
+                <viewtitle>@g["Order Details"]</viewtitle>
+                <inlineform margin-bottom:10px;">
+                    <input model name="FindByCode" label="@g["Article code"]:" action="keypress:HandleArticlesKeyPress" />
+                </inlineform>
+                <div component="GridView" name="DetailsGrid" style="max-height:300px; margin-top:20px;">
+                    <template>
+                        <column width="50" field="ProductDataID">@g["DataID"]</column>
+                        <column width="140" field="ArticleCode">@g["Article"]</column>
+                        <column width="50" field="Quantity" editable>@g["Qty"]</column>
+                    </template>
+                </div>
+            </viewcolumn>
+			<viewcolumn style="">
+				<viewtitle>@g["Preview"]</viewtitle>
+				<div class="form-group row">
+					<img name="LabelPreview" class="image-preview label-preview3" />
+				</div>
+			</viewcolumn>
+		</viewrow>
+	</viewform>
+	<viewfooter>
+		<a href="#" class="btn btn-primary" action="SetPreview">@g["Save"]</a>
+		<a href="#" class="btn btn-secondary" action="Cancel">@g["Cancel"]</a>
+	</viewfooter>
+</viewcard>

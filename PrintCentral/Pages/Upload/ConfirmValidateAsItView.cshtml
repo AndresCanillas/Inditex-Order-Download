@@ -1,0 +1,68 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+
+    <viewcard>
+
+        <viewrow>
+            <viewcolumn>
+
+                <div>@g["Selected orders will be marked as Validated, please check posible side effects"]</div>
+
+            </viewcolumn>
+        </viewrow>
+
+        <viewrow>
+
+            <viewcolumn name="EffectsContainer">
+
+                <div name="EffectStatus_Stop" class="effect-status">
+                    <h5 class="">@g["Considerations to execute this action"]</h5>
+                    <ul>
+                        <li> @g["The probable delivery date will be calculated after validation"] </li>
+                        <li> @g["This process can be reversed if the printing process has not started"]</li>
+                        <li> @g["You will be responsible for printing costs in case of \"data error\" on labels"] </li>
+                    </ul>
+
+                </div>
+
+            </viewcolumn>
+
+        </viewrow>
+        <viewfooter>
+
+            <viewrow>
+
+                <viewcolumn>
+                    <inlineform class="form-inline">
+
+                        <a href="#" class="btn btn-secondary btn-sm" action="Cancel">@g["Cancel"]</a>
+
+                    </inlineform>
+                </viewcolumn>
+
+                <viewcolumn>
+
+                    <inlineform class="form-inline pull-right">
+
+                        @*<input model name="Confirm" action="ClickConfirm" label="@g["Confirm action?"]" type="checkbox" />*@
+
+                        <div class="form-check mt-1 mr-sm-3">
+                            <input model name="Confirm" class="form-check-input" type="checkbox" id="__inlineFormCheck" no-transform action="click:ClickConfirm">
+                            <label class="form-check-label" for="__inlineFormCheck">
+                                @g["Confirm action?"]
+                            </label>
+                        </div>
+
+                        <a href="#" name="SubmitButton" class="btn btn-sm btn-primary" action="Save">@g["Validate"]</a>
+
+                    </inlineform>
+                </viewcolumn>
+
+            </viewrow>
+        </viewfooter>
+
+    </viewcard>

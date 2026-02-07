@@ -1,0 +1,53 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+	var isAdmin = userData.IsIDT && User.IsAnyRole(Roles.SysAdmin, Roles.IDTLabelDesign, Roles.IDTProdManager);
+}
+
+<style>
+    .container-textarea {
+        width:100%
+    }
+
+    .no-max-width {
+        max-width: 100% !important;
+    }
+</style>
+<h3>Made In</h3>
+<hr />
+<div class="container-textarea mt-4" id="textareas-madein-container">
+
+</div>
+<h3>Composition </h3>
+<hr />
+<div class="container-textarea mt-4" id="textareas-container">
+
+</div>
+<h3>Additionals</h3>
+<hr />
+<div class="container-textarea mt-4" id="textareas-additionals-container">
+
+</div>
+
+<h3>Full Composition</h3> 
+<div class="container-textarea mt-4" id="textareas-fullcomposition-container">
+</div>
+
+<h3>Full Additional</h3>
+<div class="container-textarea mt-4" id="textareas-fulladditional-container">
+</div>
+<div name="footer" >
+    <viewfooter>
+        <viewform>
+            <input model name="SelectedID" data-type="Int" type="hidden" />
+            <input model name="SelectedText" type="hidden" />
+        </viewform>
+        @if (isAdmin)
+        {
+        <button type="button" class="btn btn-primary" action="UpdateCompo">@g["Save Composition"]</button>
+        }
+        <button type="button" class="btn btn-secondary" action="Cancel">@g["Close"]</button>
+    </viewfooter>
+</div>

@@ -1,0 +1,57 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/ProfileView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var ProfileView = function () {
+		FormView.Extend(this, "@g["User Profile"]", "/ProfileView");
+	};
+
+
+	ProfileView.prototype = {
+		constructor: ProfileView,
+
+		OnLoad: function () {
+
+		},
+
+		ChangePasswordChanged: function (e) {
+			var disabled = !e.target.checked;
+			this.elements.OriginalPassword.prop("disabled", disabled);
+			this.elements.NewPassword.prop("disabled", disabled);
+			this.elements.PasswordConfirmation.prop("disabled", disabled);
+			if (disabled)
+				this.model.ClearErrors();
+		},
+
+		Save: function (e) {
+			var self = this;
+			if (!this.model.ValidState()) return;
+			if (this.model.ChangePassword) {
+				if (this.model.OriginalPassword.length === 0)
+					return this.model.SetError("OriginalPassword", "@g["Field cannot be empty"]");
+				if (this.model.NewPassword.length === 0)
+					return this.model.SetError("NewPassword", "@g["Field cannot be empty"]");
+				if (this.model.NewPassword !== this.model.PasswordConfirmation)
+					return this.model.SetError("PasswordConfirmation", "@g["Password confirmation does not match"]");
+			}
+			this.elements.SaveBtn.prop("disabled", true);
+			var callback = function (result) {
+				self.elements.SaveBtn.prop("disabled", false);
+				if (result.Success) {
+					self.model.ChangePassword = false;
+					self.model.OriginalPassword = "";
+					self.model.NewPassword = "";
+					self.model.PasswordConfirmation = "";
+				}
+			}
+			AppContext.HttpPost("/users/updateprofile", this.GetData(), callback, callback);
+		}
+	};
+//</script>

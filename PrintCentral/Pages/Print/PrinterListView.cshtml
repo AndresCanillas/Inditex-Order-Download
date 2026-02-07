@@ -1,0 +1,36 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@inject ICompanyRepository companyRepo
+@inject ILocationRepository locationRepo
+@{
+	Layout = null;
+	List<ICompany> companies = null;
+	if (userData.CanSeeCompanyFilter)
+	{
+		companies = companyRepo.GetList();
+	}
+}
+<viewcard>
+	<viewrow>
+		<viewcolumn>
+			<viewform>
+				@if (userData.CanSeeCompanyFilter)
+				{
+					<select model name="CompanyID" label="@g["Company"]:" action="change:LoadLocations" options="@(OptionList.FromEnumerable(companies, "ID", "Name", userData.SelectedCompanyID))" />
+				}
+				else
+				{
+					<input model name="CompanyID" type="hidden" value="@userData.SelectedCompanyID" />
+				}
+				<select model name="LocationID" label="@g["Location"]:" action="change:LoadPrinters" />
+			</viewform>
+		</viewcolumn>
+		<viewcolumn></viewcolumn>
+	</viewrow>
+	<viewrow>
+		<viewcolumn>
+			<div name="PrinterContainer"></div>
+		</viewcolumn>
+	</viewrow>
+</viewcard>

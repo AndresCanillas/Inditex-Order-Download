@@ -1,0 +1,42 @@
+﻿@page
+@using Microsoft.AspNetCore.Mvc.Razor
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Fonts/FontList.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+// <script>
+	var FontList = function () {
+		FormView.Extend(this, "@g["Fonts"]", `/Admin/Fonts/FontList`);
+	};
+
+
+	FontList.prototype = {
+		constructor: FontList,
+
+		OnLoad: function () {
+			this.elements.Fonts.LoadItems({ ShowFilters: true, AddOption: true, OpenOption: true, DeleteOption: true });
+			this.elements.Fonts.ItemSelected.Subscribe(this, this.OpenItem);
+		},
+
+		OnUnload: function () {
+			this.elements.Fonts.ItemSelected.Unsubscribe(this, this.OpenItem);
+		},
+
+        OpenItem: function (e) {
+            AppContext.LoadJS("/Admin/Fonts/FontView.js").then(() => {
+				var dlg = new FontView(e.item);
+				dlg.ShowDialog((data) => {
+					if (data)
+						e.item.Description = data.Description
+				}, "550px");
+			});
+		}
+    };
+//</script>
+
+

@@ -1,0 +1,153 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/FileStores/FSStoreView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var FSStoreView = function (storeName) {
+		FormView.Extend(this, storeName, `/Admin/FileStores/FSStoreView`);
+		this.StoreName = storeName;
+	};
+
+	FSStoreView.prototype = {
+		constructor: FSStoreView,
+
+		OnLoad: async function () {
+			var response = await AppContext.HttpGet(`/fsm/${this.StoreName}/categories`);
+			if (response.Success == true) {
+				this.categories = response.Data;
+				this.LoadCategories(response.Data);
+			}
+		},
+
+		OnUnload: function () {
+		},
+
+		FindFile: async function (e) {
+			e && e.preventDefault();
+			var response = await AppContext.HttpGet(`/fsm/${this.StoreName}/files/${this.model.FileID}`);
+			if (response.Success == true) {
+				this.model.FileName = response.Data.FileName;
+				this.model.FileSize = response.Data.FileSize;
+				this.model.CreateDate = response.Data.CreateDate;
+				this.model.UpdateDate = response.Data.UpdateDate;
+				this.elements.FileProperties.show();
+				this.elements.CategoryContainer.show();
+				if (this.categories != null && this.categories.length > 0)
+					this.LoadCategoryFiles(this.categories[0]);
+			}
+			else {
+				this.elements.FileProperties.hide();
+				this.elements.CategoryContainer.hide();
+				this.elements.FileContainer.hide();
+			}
+		},
+
+		LoadCategories: function (categories) {
+			var html = "";
+			for (var categoryName of categories) {
+				html = html + `<a href="#" action="LoadCategoryFiles" style="text-decoration:underline !important; margin:5px;">${categoryName}</a>`;
+			}
+			var elements = $(html);
+			AppContext.BindActions(elements, this);
+			this.elements.CategoryContainer.append(elements);
+		},
+
+		LoadCategoryFiles: async function (e) {
+			if (e == null)
+				return;
+
+			if (String.isString(e)) {
+				this.Category = e;
+			}
+			else {
+				e.preventDefault();
+				this.Category = $(e.target).text();
+			}
+
+			var response = await AppContext.HttpGet(`/fsm/${this.StoreName}/files/${this.model.FileID}/${this.Category}`);
+			if (response.Success == true) {
+				this.CreateDirectoryList(response.Data);
+			}
+		},
+
+		CreateDirectoryList: function (directoryFiles) {
+			var html = `<div style="margin:8px;">
+							<div style="display:inline-block; width:300px">File Name</div>
+							<div style="display:inline-block; width:100px; text-align:right;">Size</div>
+							<div style="display:inline-block; width:50px"></div>
+							<div style="display:inline-block; width:150px">Date</div>
+						</div>`;
+
+			for (var file of directoryFiles) {
+				var size = formatSize(file);
+				var date = file.CreateDate.toDate();
+				html = html + `
+						<div style="margin:8px;">
+							<div style="display:inline-block; width:300px"><a href="#" action="DownloadAttachment" data-id="${file.AttachmentID}" style="text-decoration:underline !important;">${file.FileName}</a></div>
+							<div style="display:inline-block; width:100px; text-align:right;">${size.Size.toLocaleString()}</div>
+							<div style="display:inline-block; width:50px">${size.Unit}</div>
+							<div style="display:inline-block; width:150px">${date.toShortString()}</div>
+							<div style="display:inline-block; width:50px"><a href="#" action="DeleteAttachment" data-id="${file.AttachmentID}" title="Delete"><span data-id="${file.AttachmentID}" class="fa fa-trash" style="cursor:pointer; color:#a01d00;"></span></a></div>
+						</div>`;
+			}
+
+			var elements = $(html);
+			AppContext.BindActions(elements, this);
+			this.elements.FileContainer.empty();
+			this.elements.FileContainer.append(elements);
+			this.elements.FileContainer.show();
+
+			function formatSize(file) {
+				var unit = "Bytes"
+				var size = file.FileSize;
+				if (size > 9999999) {
+					size = (size / 1048576).toFixed(2);
+					unit = "MB";
+				}
+				else if (size > 9999) {
+					size = (size / 1024).toFixed(2);
+					unit = "KB";
+				}
+				return { Size: size, Unit: unit };
+			}
+		},
+
+		DownloadFile: async function (e) {
+			e && e.preventDefault();
+			window.open(`/fsm/${this.StoreName}/files/${this.model.FileID}/content`);
+		},
+
+		DownloadAttachment: function (e) {
+			e && e.preventDefault();
+
+			var attachmentid = e.target.attributes["data-id"].value;
+			if (!String.isNullOrEmpty(attachmentid))
+				window.open(`/fsm/${this.StoreName}/files/${this.model.FileID}/${this.Category}/${attachmentid}`);
+		},
+
+		DeleteAttachment: function (e) {
+			e && e.preventDefault();
+			var attachmentid = e.target.attributes["data-id"].value;
+			var self = this;
+
+			var dlg = new ConfirmDialog("Delete attachment from file store?");
+			dlg.ShowDialog(async (result) => {
+				if (result != null) {
+					if (!String.isNullOrEmpty(attachmentid)) {
+						var response = await AppContext.HttpPost(`/fsm/${self.StoreName}/files/${self.model.FileID}/${self.Category}/${attachmentid}/delete`);
+						if (response.Success == true) {
+							self.LoadCategoryFiles(self.Category);
+						}
+					}
+				}
+			});
+		}
+	};
+//</script>

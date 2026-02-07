@@ -1,0 +1,74 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData  userData
+@inject IOrderRepository  orderRepo
+@inject IProjectRepository projectRepo
+@inject IAddressRepository addRepo
+@inject IEventQueue events
+@{
+    Layout = null;
+
+    //int id = -1;
+
+    //IAddress defaultAddress = new Address();
+    //var orderInfo = new OrderInfoDTO();
+    //IProject project = new Project();
+
+
+}
+
+    <viewform>
+        
+        <input model name="AddressID" value="" type="hidden" validation="required;numeric" readonly data-type="int" />
+        
+        <viewcard>
+
+            @* Seleccionador de productos *@
+@*             <viewrow>
+
+                <viewcolumn>
+
+                    <div name="BreadcrumbContainer"></div>
+
+                    <div class="btn-group mr-2" role="group" aria-label="Second group">
+                        <a href="#" class="btn btn-sm btn-link" name="AddresListBtn" action="ShowAddressList">@g["Select Other Address"] (<span class="fa fa-fw fa-search"></span>)</a>
+                        <a href="#" class="btn btn-sm btn-link" name="AddNewBtn" action="AddNew">@g["Add New"] (<span class="fa fa-fw fa-plus"></span>)</a>
+
+                        <a href="#" class="btn btn-sm btn-link disabled" name="EditBtn" action="Edit">@g["Edit"] (<span class="fa fa-fw fa-edit"></span>)</a>
+
+                    </div>
+
+                    <div name="NoAddressSelected" class="alert alert-warning invisible" role="alert" style="height: 28px;    padding: 5px;    line-height: 1;">
+                        @g["Please, create or select a delivery address to continue"]
+                    </div>
+
+                </viewcolumn>
+
+            </viewrow> *@
+
+            <viewrow>
+
+                <viewcolumn>
+
+                    <div name="AddressContainer"></div>
+
+                </viewcolumn>
+
+            </viewrow>
+
+
+            <viewfooter>
+
+                <div class="row justify-content-end" name="AvailableActions">
+                    <div class="col-4 text-center">
+                        <a href="#" class="btn btn-sm btn-outline-primary" action="Close"> <span class="fa fa-fw fa-save" aria-hidden="true"></span> @g["Close"]</a>
+                    </div>
+
+                </div>
+
+            </viewfooter>
+
+        </viewcard>
+
+
+    </viewform>

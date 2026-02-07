@@ -1,0 +1,64 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+<div class="card">
+	<div class="card-body" style="padding-top:10px;">
+		<div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel" style="width:100%; min-height:450px;">
+			<ol class="carousel-indicators">
+				<li data-target="#carouselExampleIndicators" data-slide-to="0" class="active"></li>
+				<li data-target="#carouselExampleIndicators" data-slide-to="1"></li>
+				<li data-target="#carouselExampleIndicators" data-slide-to="2"></li>
+				<li data-target="#carouselExampleIndicators" data-slide-to="3"></li>
+			</ol>
+			<div class="carousel-inner">
+				<div class="carousel-item active sd-slidecontent">
+					<h5 align="center">@g["Here are some of the changes introduced in the last update."]</h5>
+					<hr />
+					<div style="float:left; max-width:60%; padding:20px 5% 20px 5%;">
+						<p>@g["Using the Printers option from the printing menu, you can see all printers associated with your company as well as their state (online/offline)."]</p>
+						<p>@g["Also, you can quickly navigate to the queue of each printer from this screen."]</p>
+					</div>
+					<img src="~/images/Slide1.png" alt="@g["Slide One"]" style="max-width:40%; vertical-align:middle" />
+				</div>
+				<div class="carousel-item sd-slidecontent">
+					<h5 align="center">@g["Here are some of the changes introduced in the last update."]</h5>
+					<hr />
+					<div style="float:left; max-width:60%; padding:20px 5% 20px 5%;">
+						<p>@g["Jobs assigned to a printer are now persistent, allowing you to pause/resume them at any time. Jobs will still be there even if the printer goes offline."]</p>
+						<p>@g["We have also added many new options like the ability to adjust printer settings, print samples, move jobs between printers or cancel jobs."]</p>
+					</div>
+					<img src="~/images/Slide2.png" alt="@g["Slide Two"]" style="max-width:40%; vertical-align:middle" />
+				</div>
+				<div class="carousel-item sd-slidecontent">
+					<h5 align="center">@g["Here are some of the changes introduced in the last update."]</h5>
+					<hr />
+					<div style="float:left; max-width:60%; padding:20px 5% 20px 5%;">
+						<p>@g["New administrative functions, including the articles catalog, locations and users."]</p>
+						<p>@g["You can control who can change the configuration of the system or have access to specific options through the assignment of roles."]</p>
+					</div>
+					<img src="~/images/Slide3.png" alt="@g["Slide Three"]" style="max-width:40%; vertical-align:middle" />
+				</div>
+				<div class="carousel-item sd-slidecontent">
+					<h5 align="center">@g["Here are some of the changes introduced in the last update."]</h5>
+					<hr />
+					<div style="float:left; max-width:60%; padding:20px 5% 20px 5%;">
+						<p>@g["Automation options, send orders to be printed in any of our factories either through FTP or the new Web API."]</p>
+						<p>@g["You can create your own FTP account in the administration screen for your company. Once your account is created, just upload files programmatically and have them processed in minutes."]</p>
+						<p>@g["Or upload orders through our Web API and receive immediate confirmation from the server."] @g["Download C# Sample Project"] <a href="/code/WebApiDemo.zip">@g["HERE"]</a></p>
+					</div>
+					<img src="~/images/Slide4.png" alt="@g["Slide Four"]" style="max-width:40%; vertical-align:middle" />
+				</div>
+			</div>
+			<a class="carousel-control-prev" href="#carouselExampleIndicators" role="button" data-slide="prev">
+				<span class="carousel-control-prev-icon" aria-hidden="true"></span>
+				<span class="sr-only">Previous</span>
+			</a>
+			<a class="carousel-control-next" href="#carouselExampleIndicators" role="button" data-slide="next">
+				<span class="carousel-control-next-icon" aria-hidden="true"></span>
+				<span class="sr-only">Next</span>
+			</a>
+		</div>
+	</div>
+</div>

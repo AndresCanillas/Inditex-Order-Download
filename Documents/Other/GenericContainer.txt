@@ -1,0 +1,190 @@
+Actual relational database representation.
+--------------------------------------------------
+
+The definition of the catalogs (its fields and other properties such as type, length, etc) is stored in the following table:
+
+Catalogs
+	ID		int, PK, identity
+	CompanyID	int, FK -> Companies(ID)
+	Name		string(30)			- Friendly Name of the catalog (allows spaces for instance)
+	IsLocked	bool				- If true, indicates that the catalog cannot be deleted/renamed
+	IsSystem	bool				- If true, indicates that the catalog was defined by the system and cannot be deleted, this is only the case for ProductData, Orders and OrderDetail
+	TableName	string(30)			- The name of the table that stores the catalog data, this is only used if IsSystem is true
+	Definition	string(MAX)			- Stores a JSON containing information about all the fields in the catalog and their properties.
+	CreatedBy	- Basic tracking of the user that created/updated the record
+	CreatedDate
+	UpdatedBy
+	UpdatedDate
+
+The "Definition" field stores a list of objects of type ColumnDef serialized as JSON. The ColumnDef class itself has the following structure:
+
+public class ColumnDef
+{
+	public string Name {get;set;}		// The name of the field
+	public bool IsKey {get;set;}		// Indicates if field is part of the primary key
+	public bool IsLocked {get;set;}		// Indicates if the field cannot be renamed/deleted
+	public bool IsSystem {get;set;}		// Indicates if the field was defined by the system or not, if IsSystem is true it means that this column is permanently locked and cannot be edited by users.
+	public ColumnType Type {get;set;}	// Supported Types: Ref, Int, Long, Decimal, Bool, Date, String, Image
+	public int CatalogID {get;set;}		// Only if Type is Ref, this is the ID of the catalog this field is referencing (for lookups)
+	public int Length {get;set;}		// Only if Int, Long, Decimal or String, its the maximum number of characters that can be stored in the field. Some specific max lengths need to be enforced for Int, Long and Decimal, only String can have an arbitrary length, altough the maximum allowed length for a string field is 1,000. Image type does not have any specific Length restriction, instead you can restrict the image size in pixels (width and height), also the system will refuse to upload images that weight more than 1MB (although this limit is configurable).
+	public int Decimals {get;set;}		// Only if Decimal, default is 2
+	public int? MinValue {get;set;}		// Only if Int, Long or Decimal, If left as null system will not validate lower value range
+	public int? MaxValue {get;set;}		// Only if Int, Long or Decimal, If left as null system will not validate upper value range
+	public DateTime? MinDate {get;set;}	// Only if Date, If left as null system will not validate lower date range
+	public DateTime? MaxDate {get;set;}	// Only if Date, If left as null system will not validate upper date range
+	public int? MaxWidth {get;set;}		// Only if Image, valid range is [1,1000], default 500
+	public int? MaxHeight {get;set;}	// Only if Image, valid range is [1,1000], default 500
+	public string ValidChars {get;set;}
+	public string Regex {get;set;}
+	public List<TransformFunction> Functions {get;set;}
+	public bool CanBeEmpty{get;set;}	// Assumed to be false by default, indicates if this field can be left empty or not.
+}
+
+Some catalogs are system defined and locked, meaning that they exist for each company by default and cannot be renamed/deleted, such is the case of
+	- ProductData
+	- Orders and
+	- OrderDetails
+
+Likewise, some fields within these three system defined catalogs are marked as locked, and they too cannot be renamed/deleted, or any of its properties changed.
+
+The three system catalogs are stored in actual physical tables, these tables have the following definitions. 
+
+VariableData
+	* ID		int, PK, identity
+	  CompanyID	int, FK -> Companies(ID)
+	* Barcode		string(20)			- We have a unique Index filtered by companyID of this column (unless the company uses a code for their products, this usually ends up beging the EAN13 of the article)
+	  CatalogData	string(MAX)			- Stores all other properties defined in the product data catalog as JSON
+	  CreatedBy							- Basic tracking of the user that created/updated the record
+	  CreatedDate
+	  UpdatedBy
+	  UpdatedDate
+
+Orders
+	* ID			int, PK, identity, locked
+	  CompanyID		int, FK
+	* OrderNumber	string(16), locked	- Unique index filtered by companyid
+	* OrderDate		DateTime, locked	- Date in which we received the order
+	  DueDate		DateTime			- Date in which this order should be delivered (NULL until the order is ready for printing and the print jobs are actually created)
+	  UserName							- User that uploaded the file (only meaningful for WEBUI or WEBAPI)
+	  Source							- Source of the order (WEBUI, FTP, WEBAPI)
+	  ProductionType					- Indicates if the order will be printed by us or by the customer (if they have Zebra printers)
+	  Quantity							- The total number of labels to print (not necesarily how many articles were in the order as some products in the order migth not be labels)
+	  OrderStatus						- Indicates the status of the order: received => processed => waiting for complementary data => ready for printing => printing => preparing delivery => picked up by carrier => completed)
+	  ConfirmedByMD						- Indicates if the order has been processed by MD (billing was completed)
+	  LocationID	int, FK				- The location (factory) where the order will be printed
+	  BillTo		string(30)			- The company code we are going to bill for this order
+	  SendTo		string(30)			- The company code that references the client that will receive this order (initially the main location of the company is taken as delivery address, but this can be changed freely)
+	  DeliveryLocationID int, FK		- The actual delivery address (reference to the locationID or address this order should be delivered to).
+	  Carrier		string(50)			- The carrier used to deliver the order to its detination address
+	  Guide			string(25)			- The guide number or tracking number supplied by the carrier
+	  CatalogData	string(MAX)			- Stores all other properties defined by the user for the Orders catalog as JSON
+	  CreatedBy							- Basic tracking of the user that created/updated the record
+	  CreatedDate
+	  UpdatedBy
+	  UpdatedDate
+
+OrderDetail
+	* ID			int, PK, identity, locked
+	* OrderID		int, FK to Orders, locked
+	* ArticleCode	string(20), locked		- This lets us know which article will be printed (Article = Label+Material).
+	* Barcode		string(20), locked		- This is the code used to identify the data of the product (usually an EAN13)
+	* Quantity		int, locked				- This is the number of labels (copies) to print.
+	  CatalogData	string(MAX)				- Stores all other properties defined by the user for the OrderDetail catalog as JSON
+	  ArticleID		int						- This field is invisible to the user... Is used by the system to not have to lookup articles by code, instead we can go directly to the correct record using this ID. Dont forget, Article means which label to print, not which product data (this might be confusing).
+	  ProductDataID	int						- This field is invisible to the user... Is used by the system to not have to lookup product data by code, instead we can go directly to the correct record using this ID.
+	  CreatedBy							- Basic tracking of the user that created/updated the record
+	  CreatedDate
+	  UpdatedBy
+	  UpdatedDate
+
+NOTES:	- Fields marked with * are part of the catalog definition and marked as physical/locked. This means that users can see these fields when editing the system catalogs.
+		- All other columns (the ones not marked with *) are invisible, from the perspective of users it is as if the fields did not exits, these invisible fields are used
+		  internally to control production.
+		- Invisible fields cannot be referenced in any way by using the catalogs system, for instance to build web formularies, or create mappings.
+
+
+
+
+
+Other user defined catalogs (or satellites)
+---------------------------------------------------
+
+Other catalogs can be defined, examples: Fibers, Languages, Colors, Icons, etc. However these do not exits by default and must be "created" and configured for each company 
+according to the specific requirements of that company. The definition of user defined catalogs is stored in the Catalogs table just as with the other predefined catalogs.
+
+However, unlike system defined catalogs that have their own physical tables, satellite tables are not stored on their own tables. Instead the data of satellite tables is
+stored in a single table called: CatalogData.
+
+Here is its structure:
+
+CatalogData
+	ID				int, PK, identity			- Is the ID of each row
+	CatalogID		int, FK						- Is the ID of the catalog the row belongs to
+	CatalogData		string(MAX)					- Stores all properties defined by the user (for the catalog in question) as JSON
+	CreatedBy									- Basic tracking of the user that created/updated the record
+	CreatedDate
+	UpdatedBy
+	UpdatedDate
+
+
+
+
+
+
+
+Catalogs from the point of view of end users
+---------------------------------------------------
+
+From the point of view of end users, there will always be at least 3 catalogs:
+	- ProductData
+	- Orders
+	- OrderDetail
+
+Users will be able to:
+
+	- Add new fields to any catalog (system defined or satellite).
+	- Edit the properties of any field of any catalog (so long as the field is not locked, i.e. is not system defined).
+	- Delete any fields that are no longer needed (again as long as the field is not system defined).
+	- Add new satellite catalogs (Example: Fibers, Colors, Translations, Icons, and so on).
+	- Edit the fields of satellite catalogs.
+	- Delete satellite catalogs.
+
+
+NOTE: The system needs to be properly setup (specially the mappings) to ensure correct operation. Deleting fields and or Catalogs might cause previusly
+	  defined mappings to not work anymore. Ensuring that the configuration actually works and that all system elements are setup in a consistent way is
+	  the responsability of the person making the configuration changes, not necesarily the developers.
+
+
+Where is TXT1,TXT2,TXT3, etc??
+----------------------------------------------
+By default ProductData will look like this to END users:
+
+ProductData		(locked, meaning the catalog cannot be renamed/deleted)
+	* ID			int, PK, identity
+	* Barcode		string(30), locked (locked meaning this field cannot be renamed/deleted) 
+	  TXT1			string(30) locked
+	  TXT2			string(30) locked
+	  TXT3			string(30) locked
+	  Size			string(10)
+	  Color			string(30)
+	  Price			string(10)
+	  Currency		string(5)
+
+NOTES:	Again * means the field is locked and cannot be touched by users.
+
+Similarly any user defined fields for the other system catalogs (order and orderdetail) will be stored in the corresponding CatalogData field for those tables.
+
+Lastly, data for any user defined catalog (satellite) will be stored as JSON in CatalogData.
+
+
+
+
+
+Functions:
+	FixedOptions		Allows to provide a fixed set of options (comma delimited pairs like "value1=caption1,value2=caption2,..."). The value stored in the field HAS to be one of the defined values. When showing this in a UI the options will be represented as a combo box.
+	Trim				Allows to remove spaces at the begging and end of a string
+	Truncate			Allows to automatically trucate data before putting it in the field. Normally if the data being stored in the field is bigger than the defined field length you get an error, with this function the data is tructated automatically and no error is generated.
+	Upper				Allows to automatically convert string to Uper case version
+	Lower				Allows to automatically convert string to Lower case version
+
+

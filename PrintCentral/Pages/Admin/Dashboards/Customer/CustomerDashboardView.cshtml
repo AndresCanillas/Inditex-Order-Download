@@ -1,0 +1,32 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData u
+@{
+    Layout = null;
+
+    if (u.IsSysAdmin)
+    {
+        <select id="DashboardType" name="DashboardType" label="@g["Dashboard Type"]:" action="change:DashboardTypeChanged" style="max-width:200px;" data-type="int">
+            <option selected value="0">@g["General View"]</option>
+            <option value="1">@g["Customer View"]</option>
+        </select>
+    }
+}
+
+<div style="margin-top:10px">
+
+    @{
+        if (u.IsSysAdmin)
+        {
+            <div name="General" id="General">
+                <div component="CustomerDashboardGeneralView" controller="/Admin/Dashboards/Customer/CustomerDashboardGeneralView.js" />
+            </div>
+        }
+    }
+
+    <div name="Customer">
+        <div component="CustomerDashboardUserFilteredView" controller="/Admin/Dashboards/Customer/CustomerDashboardUserFilteredView.js" />
+    </div>
+</div>
+
+

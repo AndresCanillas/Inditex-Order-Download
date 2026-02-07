@@ -1,0 +1,110 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@inject IOrderRepository orderRepo
+@inject IProjectRepository projectRepo
+@inject IEventQueue events
+@{
+    Layout = null;
+}
+<form name="quantity-wizard-frm" method="post" onsubmit="return false;">
+    <viewform>
+
+        <viewcard>
+
+            <viewrow>
+                <viewcolumn>
+                    <div name="BreadcrumbContainer">
+                        @*<ul class="breadcrumb centered">
+
+                                <li><a class="completed" href="#"> Paso 1</a></li>
+                                <li><a class="completed" href="#"> Paso 2</a></li>
+                                <li><a class="" href="#"> Paso 3</a></li>
+                                <li><a class="pending" href="#"> Paso 4</a></li>
+
+                            </ul>*@
+                    </div>
+
+                </viewcolumn>
+            </viewrow>
+
+            <viewrow>
+                <viewcolumn>
+
+
+                    <div class="table-responsive" name="TableContainer">
+                        <table class="table table-sm table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th scope="col">#</th>
+                                    <th scope="col">@g["Article"]</th>
+                                    <th scope="col">@g["Article Desc."]</th>
+                                    <th scope="col">@g["Unit Desc."]</th>
+                                    <th scope="col">@g["Size"]</th>
+                                    <th scope="col">@g["Color"]</th>
+                                    <th scope="col">@g["Quantity Requested"]</th>
+                                    <th scope="col">@g["Quantity Confirmed"]</th>
+                                    <th scope="col">@g["Differential"]</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </viewcolumn>
+            </viewrow>
+
+
+            <viewrow>
+                <viewcolumn>
+                    <div class="form-group row" style="margin-bottom:5px;" id="divQuantity">
+                        <label class="col-sm col-form-label">Quantity threshold (%):</label>
+                        <input model class="form-control-sm" action="keyup:HandleValueKeyPress;blur:focusout;change:onChanged" style="width:80px;" name="MaxQuantityPercentage" label="@g["Quantity threshold"] (%):" type="number" validation="regex(^([1-9]?[0-9]|100)$)" value="" />
+                        <a class="btn btn-link" href="#" name="btnSetMaxAll" action="SetMaxAll">@($"{g["Set Max"]}({g["All"]})")</a>
+                    </div>
+                    <div id="divQuantityPer">
+                        <div class="form-group row p-0" style="margin-bottom:5px;" id="divQuantityBoth">
+                            <label class="col-sm col-form-label">Fixed value</label>
+                            <input class="form-control-sm" action="keyup:HandleValueKeyPressQuantity;blur:focusoutQuantity;change:onChangedQuantity" style="width:80px;" name="MaxQuantityBoth" type="number" value="" />
+                            <a class="btn btn-link" href="#" name="btnSetMaxQuantity" action="SetMaxAllByQuantity">@($"{g["Set Max"]}({g["All"]})")</a>
+                        </div>
+
+                        <div class="form-group row p-10" style="margin-bottom:5px;" id="divPercentageBoth">
+                            <label class="col-sm col-form-label">Quantity thershold(%)</label>
+                            <input class="form-control-sm" action="keyup:HandleValueKeyPressPercentage;blur:focusoutPercentage;change:onChangedPercentage" style="width:80px;" name="MaxPercentatgeBoth" type="number" validation="regex(^([1-9]?[0-9]|100)$)" value="" />
+                            <a class="btn btn-link" href="#" name="btnSetMaxQuantityPerc" action="SetMaxAllByPercentage">@($"{g["Set % Max"]}({g["All"]})")</a>
+                        </div>
+                    </div>
+                    <div name="downloadPreview">
+                        <a class="btn btn-link p-0" href="#" action="DownloadAllPreviews">@g["Download Preview"]</a>
+                    </div>
+                </viewcolumn>
+            </viewrow>
+
+            <viewrow>
+                <viewcolumn>
+                    <div name="QwProgresListContainer" class="d-none">
+                        <h5>@g["File List"]</h5>
+                        <ul name="QwProgresList" class="list-group qw-pending-download">
+                        </ul>
+                    </div>
+                </viewcolumn>
+            </viewrow>
+
+            <viewfooter>
+
+                <div class="row justify-content-end" name="AvailableActions">
+                    <div class="col-4 text-center">
+                        <a href="#" class="btn btn-sm btn-outline-primary" action="Save" autofocus> <span class="fa fa-fw fa-save" aria-hidden="true"></span> @g["Save"]</a>
+                    </div>
+                    <div class="col-4 text-right">
+                        <a href="#" class="btn btn-sm btn-primary" action="SaveAndNext">@g["Save And Next"] <span class="fa fa-fw fa-chevron-right" aria-hidden="true"></span></a>
+                    </div>
+                </div>
+
+            </viewfooter>
+
+        </viewcard>
+    </viewform>
+</form>

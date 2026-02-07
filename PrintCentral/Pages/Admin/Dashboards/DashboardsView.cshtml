@@ -1,0 +1,61 @@
+﻿@page
+@using Service.Contracts.WF;
+@inject ILocalizationService g
+@inject IUserData u
+@{
+	Layout = null;
+}
+<link href="/css/wf.css" rel="stylesheet">
+<viewcard>
+	<viewrow>
+		<viewcolumn>
+			<div>
+			@{
+				if (u.IsSysAdmin || u.UserRoles.Contains("IDTCommercial"))
+				{
+					<div name="tabCustomer" class="tab-item active" action="CustomerServiceClick">@g["Customer Service"]</div>
+				}
+
+				if (u.IsSysAdmin || u.UserRoles.Contains("IDTCommercial"))
+				{
+					<div name="tabArticles" class="tab-item active" action="ArticlesClick">@g["Articles"]</div>
+				}
+
+				if (u.IsSysAdmin || u.UserRoles.Contains("IDTLabelDesign"))
+				{
+					<div name="tabArticlesArtifacts" class="tab-item active" action="ArticlesArtifactClick">@g["Articles and artifacts"]</div>
+				}
+	
+			}
+			</div>
+			<hr class="subtitle" />
+		</viewcolumn>
+	</viewrow>
+	<viewrow>
+		<viewcolumn>
+			@{
+				if (u.IsSysAdmin || u.UserRoles.Contains("IDTCommercial"))
+				{
+					<div name="Customers">
+						<div component="CustomerDashboardView" controller="/Admin/Dashboards/Customer/CustomerDashboardView.js"/>
+					</div>
+				}
+
+				if (u.IsSysAdmin || u.UserRoles.Contains("IDTCommercial"))
+				{
+					<div name="Articles">
+						<div component="ArticlesDashboardView" controller="/Admin/Dashboards/Articles/ArticlesDashboardView.js" />
+					</div>
+				}
+
+				if (u.IsSysAdmin || u.UserRoles.Contains("IDTLabelDesign"))
+				{
+					<div name="ArticlesArtifacts">
+						<div component="ArticlesArtifactsDashboardView" controller="/Admin/Dashboards/ArticlesArtifacts/ArticlesArtifactsDashboardView.js" />
+					</div>
+				}
+			}
+		</viewcolumn>
+	</viewrow>
+</viewcard>
+

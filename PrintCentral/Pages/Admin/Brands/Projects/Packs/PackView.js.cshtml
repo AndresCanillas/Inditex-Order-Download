@@ -1,0 +1,254 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/Projects/Packs/PackView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var PackView = function (packid, projectid) {
+		FormView.Extend(this, "@g["Pack"]", `/Admin/Brands/Projects/Packs/PackView?pid=${projectid}`);
+		this.PackID = packid;
+		this.ProjectID = projectid;
+	};
+
+
+    PackView.prototype = {
+        constructor: PackView,
+
+		@if(userData.Admin_Packs_CanEdit)
+		{
+		<text>
+		Save: function (e) {
+			var self = this;
+			if (!this.model.ValidState()) return;
+			var data = this.GetData();
+			AppContext.Packs.Update(data, function (result) {
+				if (result.Success) {
+					self.OnSaved.Raise(data);
+					if (self.dialog === true)
+						self.Close(data);
+				}
+			});
+		},
+
+        ShowPreview: function (e) {
+			e.preventDefault();
+            var idx = this.elements.ArticlesGrid.Rows.SelectedIndex;
+            if (idx >= 0) {
+                var articleId = this.elements.ArticlesGrid.Rows.DataSource[idx].ArticleID;
+				AppContext.LoadJS("/Common/ArticlePreviewDialog.js").then(() => {
+                    var dlg = new ArticlePreviewDialog(articleId);
+					dlg.ShowDialog(null, "60%");
+				});
+			}
+		},
+
+		HandleKeyPress: function (e) {
+			if (e.keyCode === 13)
+				this.AddToPack();
+		},
+
+        AddToPack: function (e) {
+			var self = this;
+			var articleid = this.GetArticleID();
+			if (articleid == null)
+				return AppContext.ShowError("@g["You need to select an article first."]");
+            if (this.elements.ArticlesGrid.Rows.DataSource.first(x => x.ArticleID == articleid))
+				return AppContext.ShowInfo("@g["That article is already part of the pack."]")
+
+            AppContext.Packs.AddArticleToPack(self.PackID, articleid, function (result) {
+				if (result.Success) {
+                    self.elements.ArticlesGrid.Rows.Add(result.Data);
+                    self.elements.ArticleToAdd.val('');                    
+				}
+			});
+		},
+
+		GetArticleID: function () {
+			var articlecode = this.model.ArticleToAdd;
+			var list = this.elements.ArticleToAdd[0].list;
+			for (var i = 0; i < list.options.length; i++) {
+				if (articlecode == list.options[i].value) {
+					this.elements.ArticleToAdd[0].setCustomValidity("");
+					return parseInt(list.options[i].attributes["articleid"].value);
+				}
+			}
+			this.elements.ArticleToAdd[0].setCustomValidity("Invalid article ID");
+			return null;
+		},
+
+        RemoveFromPack: function () {
+            var self = this;
+            var idx = this.elements.ArticlesGrid.Rows.SelectedIndex;
+            if (idx >= 0) {
+				var confirm = new ConfirmDialog("@g["Delete selected Article from this Project?"]");
+				confirm.ShowDialog(function (response) {
+                    if (response) {
+
+                        var idx = self.elements.ArticlesGrid.Rows.SelectedIndex;
+                        var selectedArticle = self.elements.ArticlesGrid.Rows.DataSource[idx];
+                        var id = [2, 3].includes(selectedArticle.Type) ? selectedArticle.ID : 0;
+                        AppContext.Packs.RemoveArticleFromPack(self.model.data.ID, selectedArticle.ArticleID, id, function (response) {
+                            if (response.Success) {
+                                self.elements.ArticlesGrid.Rows.Remove(idx);
+                            }
+                        });
+					}
+				});
+			}
+		},
+
+        SaveRow: function (rowIndex, packId, articleId, quantity, id) {
+			return new Promise((resolve, reject) => {
+				if (rowIndex >= 0) {
+                    var grid = this.elements.ArticlesGrid;
+					if (grid.Rows.IsEdited(rowIndex)) {
+                        AppContext.Packs.UpdatePackArticle(packId, articleId, quantity, id, (result) => {
+							if (result.Success) {
+								grid.Rows.IsEdited(rowIndex, false);
+								var updatedData = JSON.parse(result.Data);
+								grid.Rows.Update(rowIndex, updatedData);
+								resolve();
+							}
+							else {
+								if (result.Data != null) {
+									var header = grid.Headers.Find(result.Data);
+									if (header != null)
+										grid.Rows.SetError(rowIndex, header.Index, "", result.Message);
+								}
+								reject();
+							}
+						});
+					}
+					else resolve();
+				} else resolve();
+			});
+		},
+		</text>
+		}
+
+
+		OnLoad: function () {
+			var self = this;
+			AppContext.Packs.GetByID(this.PackID, (data) => { self.LoadData(data); });
+            AppContext.Articles.GetByPackID(this.PackID, (data) => {
+                
+                this.SetMapData(data);
+                this.elements.ArticlesGrid.Rows.LoadData(data);
+                this.HideAllTypes();
+            });
+
+            var grid = this.elements.ArticlesGrid;
+            grid.Rows.BeforeSelectedChanged.Subscribe(this, (e) => {
+                if (e.rowData) {
+                    this.SaveRow(e.rowIndex, self.model.data.ID, e.rowData.ArticleID, e.rowData.Quantity, e.rowData.ID);
+                }
+            });
+        },
+
+        TypeChanged: function (e) {
+            this.HideAllTypes();
+            var selected = parseInt(this.model.Type);
+            if (selected === 1)
+                this.elements.ByArticleElement.show();
+            else if (selected === 2)
+                this.elements.ByDataElement.show();
+            else if (selected === 3)
+                this.elements.ByPluginElement.show();                
+
+        },
+
+        HideAllTypes: function () {
+            this.elements.ByArticleElement.hide();
+            this.elements.ByDataElement.hide();
+            this.elements.ByPluginElement.hide();
+        },
+
+        AddArticleByData: function ( e ) {
+            this.SaveMapping(0);
+        },
+
+        AddArticleByPlugin: function (e) {
+            var self = this;
+
+            if (self.model.PluginName == "")
+                return;
+
+            var data = {
+                PackID: self.PackID,
+                ProjectID: self.ProjectID,
+                PluginName: self.model.PluginName
+            };
+
+            AppContext.Packs.AddArticleByPlugin(data, function (result) {
+                if (result.Success) {
+                    self.elements.ArticlesGrid.Rows.Add(result.Data);
+                }
+            });
+        },
+
+        SetMapData: function ( data ) {
+            for ( var d of data ) {
+                if (d.Type === 2) {
+                    var mapping = JSON.parse( d.Mapping );
+                    d.Mapping = '';
+                    mapping.forEach(x => { d.Mapping += `${ x.Key }=${ x.Value }, ` })
+                    d.Mapping = d.Mapping.slice(0, -2);
+                }
+            }
+        },
+
+        EditMapping: function ( e ) {
+            var selected = this.elements.ArticlesGrid.Rows.GetSelected();
+
+            if ( selected.length != 0 ) {
+                var row = selected[0];
+
+                if (row.Type === 2 && row.ID != 0) {
+                    this.SaveMapping(row.ID);
+                }
+            }     
+        },
+
+        SaveMapping(id) {
+            var self = this;
+
+            AppContext.LoadJS("/Admin/Brands/Projects/Packs/ArticleByDataDialog.js").then(() => {
+                let dialog = new ArticleByDataDialog(this.ProjectID, this.PackID, id);
+                dialog.ShowDialog(function (dlgData) {
+
+                    if (dlgData && dlgData.Definition.length > 0) {
+                        let definition = JSON.stringify(dlgData.Definition);
+                        let field = dlgData.Field;
+                        
+                        var data = {
+                            ID: id,
+                            PackID: self.PackID,
+                            ProjectID: self.ProjectID,
+                            Field: field,
+                            Mapping: definition,
+                            AllowEmptyValues: dlgData.AllowEmptyValues
+                        };
+
+                        AppContext.Packs.AddArticleByData(data, function (result) {
+                            if (result.Success) {
+                                self.SetMapData([result.Data]);
+                                var idx = self.elements.ArticlesGrid.Rows.SelectedIndex;
+
+                                if (idx != -1 && id != 0)
+                                    self.elements.ArticlesGrid.Rows.Update(idx, result.Data);
+                                else
+                                    self.elements.ArticlesGrid.Rows.Add(result.Data);
+                            }
+                        });
+                    }
+                });
+            });
+        }
+	};
+//</script>

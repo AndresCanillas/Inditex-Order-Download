@@ -1,0 +1,182 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Locations/HolidaysView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var HolidaysView = function () {
+		FormView.Extend(this, null, `/Admin/Locations/HolidaysView`);
+	};
+
+    HolidaysView.prototype = {
+		constructor: HolidaysView,
+
+		OnLoad: function () {
+			this.model.CustomValidation.Subscribe(this, this.customValidations);
+			this.elements.Holidays.Rows.BeforeSelectedChanged.Subscribe(this, this.BeforeSelectedChange);
+			this.elements.Holidays.Rows.AfterSelectedChanged.Subscribe(this, this.ShowSelectedRow);
+		},
+
+		OnUnload: function () {
+			this.model.CustomValidation.Unsubscribe(this.customValidations);
+			this.elements.Holidays.Rows.BeforeSelectedChanged.Unsubscribe(this.BeforeSelectedChange);
+			this.elements.Holidays.Rows.AfterSelectedChanged.Subscribe(this, this.ShowSelectedRow);
+		},
+
+		SetHolidays: function (holidays, weekdays, cutofftime) {
+			for (var d of holidays) {
+				var monthName = this.getMonthName(d.Month);
+				d.Date = `${monthName} ${d.Day}`;
+			}
+			this.elements.Holidays.Rows.LoadData(holidays);
+			this.model.WeekDay1 = (1 & weekdays) != 0;
+			this.model.WeekDay2 = (2 & weekdays) != 0;
+			this.model.WeekDay3 = (4 & weekdays) != 0;
+			this.model.WeekDay4 = (8 & weekdays) != 0;
+			this.model.WeekDay5 = (16 & weekdays) != 0;
+			this.model.WeekDay6 = (32 & weekdays) != 0;
+			this.model.WeekDay7 = (64 & weekdays) != 0;
+			this.model.CutoffTime = cutofftime;
+		},
+
+		GetHolidays: function () {
+			var result = {};
+			var holidays = [];
+			for (var d of this.elements.Holidays.Rows.DataSource) {
+				holidays.push({
+					Name: d.Name,
+					Month: d.Month,
+					Day: d.Day
+				});
+			}
+			var weekdays = 0;
+			if (this.model.WeekDay1) weekdays += 1;
+			if (this.model.WeekDay2) weekdays += 2;
+			if (this.model.WeekDay3) weekdays += 4;
+			if (this.model.WeekDay4) weekdays += 8;
+			if (this.model.WeekDay5) weekdays += 16;
+			if (this.model.WeekDay6) weekdays += 32;
+			if (this.model.WeekDay7) weekdays += 64;
+
+			result.Holidays = JSON.stringify(holidays);
+			result.WeekDays = weekdays;
+			result.CutoffTime = this.model.CutoffTime;
+			return result;
+		},
+
+		AddHoliday: function () {
+			this.elements.Holidays.Rows.Add({ Name: "", Month: 1, Day: 1, Date: `${this.getMonthName(1)} 1` });
+			this.elements.Holidays.Rows.Select(this.elements.Holidays.Rows.Count - 1, true);
+			this.elements.Name.focus();
+		},
+
+		RemoveHoliday: function () {
+			var self = this;
+			if (this.RowData == null) return;
+			var confirm = new ConfirmDialog("@g["Delete selected holiday?"]");
+			confirm.ShowDialog(function (response) {
+				if (response) {
+					self.elements.Holidays.Rows.Remove(self.elements.Holidays.Rows.SelectedIndex);
+					self.Edited = false;
+					self.elements.Name.prop("disabled", true);
+					self.elements.Month.prop("disabled", true);
+					self.elements.Day.prop("disabled", true);
+					self.elements.btnSave.addClass("disabled");
+					self.model.Name = "";
+					self.model.Month = 1;
+					self.model.Day = "";
+				}
+			});
+		},
+
+		BeforeSelectedChange: function (e) {
+			if (e.rowIndex >= 0) {
+				this.SaveCurrentRow();
+			}
+		},
+
+		SaveCurrentRow: function ()
+		{
+			if (this.Edited === true && this.model.ValidState()) {
+				this.Edited = false;
+				this.elements.btnSave.addClass("disabled");
+				this.elements.Holidays.Rows.Update(
+					this.elements.Holidays.Rows.SelectedIndex, {
+					Name: this.model.Name,
+					Month: this.model.Month,
+					Day: this.model.Day,
+					Date: `${this.getMonthName(this.model.Month)} ${this.model.Day}`
+				});
+			}
+		},
+
+		ShowSelectedRow: function (e) {
+			if (e.rowIndex >= 0) {
+				this.elements.Name.prop("disabled", false);
+				this.elements.Month.prop("disabled", false);
+				this.elements.Day.prop("disabled", false);
+				this.model.Name = e.rowData.Name;
+				this.model.Month = e.rowData.Month;
+				this.model.Day = e.rowData.Day;
+				this.RowData = e.rowData;
+			}
+			else {
+				this.elements.Name.prop("disabled", true);
+				this.elements.Month.prop("disabled", true);
+				this.elements.Day.prop("disabled", true);
+			}
+			this.elements.btnSave.addClass("disabled");
+			this.Edited = false;
+		},
+
+		MonthChanged: function (e) {
+			if (this.RowData != null && this.model.Month != this.RowData.Month) {
+				this.MarkAsEdited(e);
+			}
+		},
+
+		MarkAsEdited: function (e) {
+			if (this.model.ValidState()) {
+				this.Edited = true;
+				this.elements.btnSave.removeClass("disabled");
+			}
+		},
+
+		getMonthName: function (m) {
+			var months = [null, "@g["January"]", "@g["February"]", "@g["March"]", "@g["April"]", "@g["May"]", "@g["June"]",
+				"@g["July"]", "@g["August"]", "@g["September"]", "@g["October"]", "@g["November"]", "@g["December"]"];
+			return months[m];
+		},
+
+		customValidations: function (e)
+		{
+			var isDayDisabled = this.elements.Day.prop('disabled');
+			if (!isDayDisabled) {
+				var monthDays = [0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+				var maxDays = monthDays[this.model.Month];
+				if (this.model.Day < 1 || this.model.Day > maxDays) {
+					this.model.SetError("Day", "@g["Invalid month day"]");
+					e.preventDefault();
+				}
+			}
+			var cutoffTokens = this.model.CutoffTime.split(":");
+			if (cutoffTokens.length != 2) {
+				this.model.SetError("CutoffTime", "@g["Invalid cutoff time"]");
+				e.preventDefault();
+			}
+			else {
+				var hh = parseInt(cutoffTokens[0]);
+				var mm = parseInt(cutoffTokens[1]);
+				if (hh < 0 || hh > 23 || mm < 0 || mm > 59) {
+					this.model.SetError("CutoffTime", "@g["Invalid cutoff time"]");
+					e.preventDefault();
+				}
+			}
+		}
+	};
+//</script>

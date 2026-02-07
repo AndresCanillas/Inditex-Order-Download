@@ -1,0 +1,154 @@
+﻿@page
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/WF/ItemLogDialog.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var ItemLogDialog = function (workflowid, itemid) {
+		FormView.Extend(this, "Item Log <b>"+itemid+"</b>", `/Admin/WF/ItemLogDialog`);
+		this.WorkflowID = workflowid;
+		this.ItemID = itemid;
+	};
+
+	ItemLogDialog.prototype = {
+		constructor: ItemLogDialog,
+
+		OnLoad: async function () {
+			var response = await AppContext.HttpGet(`/wf/${this.WorkflowID}/${this.ItemID}/log`);
+			if (response.Success) {
+				this.LoadItemLog(response.Data);
+			}
+		},
+
+		OnUnload: function () {
+		},
+
+		LoadItemLog: function (data) {
+			for (var row of data) {
+				switch (row.EntryType) {
+					case 0:
+						this.AddTaskHistory(row);
+						break;
+					case 1:
+						this.AddMessage(row);
+						break;
+					case 2:
+						this.AddWarning(row);
+						break;
+					case 3:
+						this.AddError(row);
+						break;
+				}
+			}
+		},
+
+		AddTaskHistory: function (row) {
+			var html;
+			if (row.ExceptionMessage != null) {
+				html = $(`
+				<div class="ItemLog Error">
+					<div style="float:left; width:35%"><span class="fa fa-clock-o"></span>${row.TaskName}</div>
+					<div style="float:left; width:40%">
+						<span class="badge badge-danger">Exception</span>
+						<span class="badge badge-secondary">${row.ExceptionType}</span>
+						<span class="badge badge-secondary">${row.Status}</span>
+					</div>
+					<div style="float:left; width:25%; text-align:right;">${row.Date.toDate().toShortString()}</div>
+					<div>Status Reason: ${row.StatusReason ? row.StatusReason : ''}</div>
+					<div><a href="#" action="ToggleExceptionDetails" data-logheader="${row.EntryID}"><u>Message: ${row.Message ? row.Message : ''}</u></a></div>
+					<div data-logdetail="${row.EntryID}" style="display:none; margin-top:10px;">
+						<pre style="font:normal 10pt consolas;">${row.ExceptionMessage}
+Stack Trace:
+${row.ExceptionStackTrace}</pre>
+					</div>
+					<div>
+						<span class="badge badge-secondary">Retry Count: ${row.RetryCount}</span>
+						<span class="badge badge-secondary">Execution Time: ${row.ExecutionTime}ms</span>
+					</div>
+				</div>`);
+			}
+			else {
+				var statusBadge
+				if (row.Success)
+					statusBadge = `<span class="badge badge-success">${row.Status}</span>`;
+				else
+					statusBadge = `<span class="badge badge-warning">${row.Status}</span>`;
+				html = $(`
+				<div class="ItemLog History">
+					<div style="float:left; width:35%"><span class="fa fa-clock-o"></span>${row.TaskName}</div>
+					<div style="float:left; width:40%">
+						${statusBadge}
+						<span class="badge badge-secondary">RouteCode: ${row.RouteCode ? row.RouteCode : 'NA'}</span>
+					</div>
+					<div style="float:left; width:25%; text-align:right;">${row.Date.toDate().toShortString()}</div>
+					<div>Status Reason: ${row.StatusReason ? row.StatusReason : ''}</div>
+					<div>Message: ${row.Message ? row.Message : ''}</div>
+					<div>
+						<span class="badge badge-secondary">Retry Count: ${row.RetryCount}</span>
+						<span class="badge badge-secondary">Execution Time: ${row.ExecutionTime}ms</span>
+					</div>
+				</div>`);
+			}
+			AppContext.BindActions(html, this);
+			this.elements.LogContainer.append(html);
+		},
+
+		AddMessage: function (row) {
+			var tname = "User Action";
+			if (row.TaskName != null)
+				tname = row.TaskName;
+
+			var html = $(`
+			<div class="ItemLog Message">
+				<div style="float:left; width:75%"><span class="fa fa-info-circle"></span>${tname}</div>
+				<div style="float:left; width:25%; text-align:right;">${row.Date.toDate().toShortString()}</div>
+				<div>${row.Message}</div>
+			</div>`);
+			AppContext.BindActions(html, this);
+			this.elements.LogContainer.append(html);
+		},
+
+		AddWarning: function (row) {
+			var tname = "User Action";
+			if (row.TaskName != null)
+				tname = row.TaskName;
+
+			var html = $(`
+			<div class="ItemLog Warning">
+				<div style="float:left; width:75%"><span class="fa fa-warning"></span>${tname}</div>
+				<div style="float:left; width:25%; text-align:right;">${row.Date.toDate().toShortString()}</div>
+				<div>${row.Message}</div>
+			</div>`);
+			AppContext.BindActions(html, this);
+			this.elements.LogContainer.append(html);
+		},
+
+		AddError: function (row) {
+			var html = $(`
+				<div class="ItemLog Error">
+					<div style="float:left; width:35%"><span class="fa fa-bug"></span>${row.TaskName}</div>
+					<div style="float:left; width:40%"><span class="badge badge-danger">Exception</span><span class="badge badge-secondary">${row.ExceptionType}</span></div>
+					<div style="float:left; width:25%; text-align:right;">${row.Date.toDate().toShortString()}</div>
+					<div><a href="#" action="ToggleExceptionDetails" data-logheader="${row.EntryID}"><u>${row.Message}</u></a></div>
+					<div data-logdetail="${row.EntryID}" style="display:none; margin-top:10px;">
+						<pre style="font:normal 10pt consolas;">Exception Message: ${row.ExceptionMessage}
+Stack Trace:
+${row.ExceptionStackTrace}</pre>
+					</div>
+				</div>`);
+			AppContext.BindActions(html, this);
+			this.elements.LogContainer.append(html);
+		},
+
+		ToggleExceptionDetails: function (e) {
+			e && e.preventDefault();
+			var entryid = e.currentTarget.attributes["data-logheader"].value;
+			var details = this.ViewContainer.find(`[data-logdetail='${entryid}']`);
+			details.toggle();
+		}
+	};
+//</script>

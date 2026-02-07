@@ -1,0 +1,102 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+
+    Layout = null;
+
+    var defaultDate = DateTime.Now.AddDays(-30).ToString("yyyy-MM-dd");
+    var defaultFromDate = DateTime.Now.AddDays(-30).ToString("yyyy-MM-dd");
+    var defaltToDate = DateTime.Now.ToString("yyyy-MM-dd");
+    var OrderStatusOptions = Enum.GetValues(typeof(OrderStatus)).Cast<OrderStatus>().Select(s => new
+    {
+        Name = g[s.GetText()],
+        Value = (int)s
+    }).ToList();
+
+    var reportTypeOptions = Enum.GetValues(typeof(ReportType)).Cast<ReportType>().Select(r => new
+    {
+        Name = g[r.ToString()],
+        Value = (int)r
+    }).ToList();
+
+}
+<viewcard>
+    <viewform>
+        <viewrow>
+            <viewcolumn>
+
+                <inlineform>
+                    <input model name="ProjectID" value="@userData.SelectedProjectID" data-type="int" type="hidden" no-transform />
+
+                    <input model name="CompanyID" type="hidden" value="@userData.SelectedCompanyID" />
+
+                    <input type="text" model name="OrderNumber" label="@g["Order Nº"]:" action="change:FilterChanged;keyup:HasMinimunChangeOrderNumber" style="min-width:90px;max-width:100px;" autocomplete="off" />
+
+                    <input type="text" model name="ProviderClientReference" label="@g["Provider"]:" action="change:FilterChanged" style="min-width:90px;max-width:100px;" autocomplete="off" />
+
+                    <input type="text" model name="ArticleCode" label="@g["Article Code"]:" action="change:FilterChanged" style="min-width:90px;max-width:100px;" autocomplete="off" />
+
+                    <input type="hidden" model name="DefaultDate" value="@defaultDate" />
+                    <input model name="OrderDate" label="@g["From"]:" data-type="Date" action="change:FilterChanged;keyup:HasMinimunChangeOrderDate" value="" style="min-width:100px;max-width:130px;" />
+                    <input model name="OrderDateTo" label="@g["To"]:" data-type="Date" action="change:FilterChanged;keyup:HasMinimunChangeOrderDate" value="" style="min-width:100px;max-width:130px;" />
+                </inlineform>
+            </viewcolumn>
+        </viewrow>
+
+        <viewrow>
+            <viewcolumn>
+                <inlineform>
+                    <select model name="OrderStatus" label="@g["Status"]:" action="change:FilterChanged" style="max-width:200px;" options="@(OptionList.FromEnumerable( OrderStatusOptions, "Value", "Name", (int)OrderStatus.None))"></select>
+                    <select model name="ReportType" label="@g["Report Type"]:" action="change:FilterChanged" style="max-width:200px;" options="@(OptionList.FromEnumerable( reportTypeOptions, "Value", "Name", (int)ReportType.Detailed))"></select>
+                </inlineform>
+            </viewcolumn>
+
+        </viewrow>
+
+        <viewrow>
+
+            <viewcolumn>
+
+                <div name="GridOrderToolbar" class="toolbar-body" style="width:100%">
+                    <a href="#" title="@g["Get Order Report"]" action="GetCSVReport"><span class="fa fa-fw fa-file-excel-o"></span></a>
+                    <span class="toolbar-grip"></span>
+                    @*
+        <span class="toolbar-grip"></span>
+        <a href="#" title="@g["Download Order File"]" action="DownloadFile"><span class="fa fa-download"></span></a>
+        <a href="#" title="@g["Download Order Preview"]" action="DownloadPreview"><span class="fa fa-file-pdf-o"></span></a>
+
+
+        <a href="#" title="@g["Download Order Preview"]" action="DownloadPreview"><span class="fa fa-file-pdf-o"></span>XXXX</a>
+                    *@
+                </div>
+                <div component="OrderGrid" class="" name="OrderCustomReport" style="width:100%; height:auto;" rowcssclass="GridViewSetRowCssClass">
+                    @*<template>
+                <column width="80" field="OrderNumber" render="RenderOrderNumber">@g["Order N°"]</column>
+                <column width="80" field="ClientReference">@g["Client N°"]</column>
+                <column width="80" field="SendTo">@g["Client"]</column>
+                <!-- <column width="200" field="ArticleName" render="RenderArticleName">@g["Article Name"]</column>-->
+                <column width="80" field="ArticleCode" render="RenderArticleCode">@g["Article Code"]</column>
+                <column width="100" field="Quantity" render="RenderQuantityRequested">@g["Quantity"]</column>
+                <column width="180" field="OrderStatusText" render="RenderStatusAndFlags">@g["Status"]</column>
+                <column width="120" field="CreatedDate" render="RenderOrdeDate">@g["Received On"]</column>
+                <column width="120" field="OrderDueDate" render="RenderOrderDueDate">@g["Due Date"]</column>
+                <column width="120" field="ValidatedDate" render="RenderValidatedDate">@g["Validated"]</column>
+                <!-- some columns are added ondemand -->
+            </template>*@
+                </div>
+
+            </viewcolumn>
+
+        </viewrow>
+        <viewrow>
+
+            <viewcolumn>
+                <div name="PaginationContainer"></div>
+            </viewcolumn>
+
+        </viewrow>
+
+    </viewform>
+ 
+</viewcard>

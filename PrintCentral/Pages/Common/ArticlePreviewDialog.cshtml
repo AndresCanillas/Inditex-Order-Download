@@ -1,0 +1,32 @@
+﻿@page
+@inject ILocalizationService g
+@inject IArticleRepository repo
+@{
+	int articleid = Convert.ToInt32(Request.Query["id"]);
+	var article = repo.GetByID(articleid);
+	var rnd = new Random();
+}
+	<viewrow>
+		<div class="col-sm-12 col-lg-4" style="min-height:250px">
+			<div class="preview-container" style="margin:auto;">
+				@if (article.LabelID.HasValue)
+				{
+					<img name="LabelPreview" class="image-preview label-preview" src="/labels/getpreview/@article.LabelID.Value?@rnd.Next(0, 100000)" />
+				}
+				else
+				{
+					<img name="LabelPreview" class="image-preview article-preview" src="/articles/getpreview/@article.ID?@rnd.Next(0, 100000)" />
+				}
+			</div>
+		</div>
+		<div class="col-sm-12 col-lg-8">
+			<viewform>
+				<input model name="Name" label="@g["Name"]:" type="text" readonly="readonly" value="@article.Name" />
+				<textarea model name="Name" label="@g["Description"]:" type="text" readonly="readonly">@article.Description</textarea>
+				<input model name="Name" label="@g["Article Code"]:" type="text" readonly="readonly" value="@article.ArticleCode" />
+			</viewform>
+		</div>
+	</viewrow>
+<viewfooter>
+	<button type="button" class="btn btn-primary" action="Ok">@g["OK"]</button>
+</viewfooter>

@@ -1,0 +1,58 @@
+﻿@page
+@inject ILocalizationService g
+@inject IPrinterRepository repo
+@{
+	Layout = null;
+	int printerid;
+	int articleid;
+	IPrinterSettings data;
+	string pid = Request.Query["PID"];
+	string aid = Request.Query["AID"];
+	var speeds = new[] { new { Value = "2" }, new { Value = "3" }, new { Value = "4" }, new { Value = "5" }, new { Value = "6" } };
+	var darkness = new[] { new { Value = "10" }, new { Value = "11" }, new { Value = "12" }, new { Value = "13" }, new { Value = "14" }, new { Value = "15" }, new { Value = "16" }, new { Value = "17" }, new { Value = "18" }, new { Value = "19" }, new { Value = "20" }, new { Value = "21" }, new { Value = "22" }, new { Value = "23" }, new { Value = "24" }, new { Value = "25" } };
+	if (!Int32.TryParse(pid, out printerid))
+	{
+		return;
+	}
+	if (!Int32.TryParse(aid, out articleid))
+	{
+		return;
+	}
+	data = repo.GetSettings(printerid, articleid);
+	List<SelectListItem> cutbehaviors = new List<SelectListItem>()
+	{
+		new SelectListItem(){ Text = g["Cut each label"], Value = "0", Selected = data.CutBehavior == CutBehavior.EachLabel },
+		new SelectListItem(){ Text = g["Cut when a different bar code is printed"], Value = "1", Selected = data.CutBehavior == CutBehavior.EachBarcode },
+		new SelectListItem(){ Text = g["Cut based on stop fields"], Value = "2", Selected = data.CutBehavior == CutBehavior.EachStop }
+	};
+}
+<viewform>
+	<viewrow>
+		<viewcolumn>
+			<input model name="ID" type="hidden" value="@data.ID" />
+			<input model name="PrinterID" type="hidden" value="@data.PrinterID" />
+			<input model name="ArticleID" type="hidden" value="@data.ArticleID" />
+			<input model name="ID" type="hidden" value="@data.ID" />
+			<input model name="XOffset" label="@g["Offset X"] (mm):" validation="required;numeric;maxlen(6)" type="text" value="@data.XOffset" />
+			<input model name="YOffset" label="@g["Offset Y"] (mm):" validation="required;numeric;maxlen(6)" type="text" value="@data.YOffset" />
+			<select model name="Speed" label="@g["Speed"]:" validation="required" options="@OptionList.FromEnumerable(speeds, "Value", "Value", data.Speed.ToString())" />
+			<select model name="Darkness" label="@g["Darkness"]:" validation="required" options="@OptionList.FromEnumerable(darkness, "Value", "Value", data.Darkness.ToString())" />
+			<input model name="Rotated" label="@g["Rotated"]?" type="checkbox" checked="@data.Rotated" value="@data.Rotated" />
+			<input model name="ChangeOrientation" label="@g["Change orientation?"]" type="checkbox" checked="@data.ChangeOrientation" value="@data.ChangeOrientation" />
+			<input model name="PauseOnError" label="@g["Pause on error?"]" type="checkbox" checked="@data.PauseOnError" value="@data.PauseOnError" />
+			<input model name="EnableCut" label="@g["Enable Cutter?"]" action="change:EnableCutChange" type="checkbox" checked="@data.EnableCut" value="@data.EnableCut" />
+			<select model name="CutBehavior" label="@g["Cut behavior"]:" action="change:CutBehaviorChange">
+				@foreach (var elm in cutbehaviors)
+				{
+					<option value="@elm.Value" @(elm.Selected ? "selected" : "")>@elm.Text</option>
+				}
+			</select>
+			<input model name="ResumeAfterCut" label="@g["Resume printing after cut?"]" type="checkbox" checked="@data.ResumeAfterCut" value="@data.ResumeAfterCut" />
+		</viewcolumn>
+	</viewrow>
+	<viewfooter>
+		<button type="button" class="btn btn-primary" action="Save">@g["Save"]</button>
+		<button type="button" class="btn btn-primary" action="PrintSample">@g["Print Sample"]</button>
+		<button type="button" class="btn btn-secondary" action="Cancel">@g["Cancel"]</button>
+	</viewfooter>
+</viewform>

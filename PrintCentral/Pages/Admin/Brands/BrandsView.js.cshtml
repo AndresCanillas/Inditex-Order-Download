@@ -1,0 +1,90 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/BrandsView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var BrandsView = function (brandid) {
+        FormView.Extend(this, "@g["Brand"]", `/Admin/Brands/BrandsView?brandid=${brandid}`);
+		this.BrandID = brandid;
+		this.data = null;
+	};
+
+    BrandsView.prototype = {
+        constructor: BrandsView,
+
+        OnLoad: function () {
+            var self = this;
+			self.UpdateFolder();
+			@if (userData.Admin_Brands_CanEditLogo)
+			{
+			@:this.elements.Icon[0].SetImage(this.BrandID);
+			}
+		},
+
+		@if (userData.Admin_Brands_CanEditLogo)
+		{
+		<text>
+		GetImageDownloadUrl: function (field, val) {
+			return `/brands/geticon/${val}`;
+		},
+
+		GetImageUploadUrl: function (field, val) {
+			return `/brands/uploadicon/${val}`;
+		},
+		</text>
+		}
+
+
+		@if (userData.Admin_Brands_CanEdit)
+		{
+		<text>
+		Save: function (e) {
+			var self = this;
+			if (!this.model.ValidState()) return;
+			var data = this.GetData();
+			AppContext.Brands.Update(data, function (result) {
+				if (result.Success) {
+					self.OnSaved.Raise(data);
+					if (self.dialog === true)
+						self.Close(data);
+				}
+			});
+		},
+		</text>
+		}
+
+
+		@if (userData.Admin_Brands_CanEditRFIDSettings)
+		{
+		<text>
+        RFIDConfig: function (e) {
+			var self = this;
+			AppContext.LoadJS("/Admin/RfidConfig/RfidConfigView.js").then(() => {
+				var view = new RfidConfigView(self.model.RFIDConfigID);
+				view.ShowDialog((data) => {
+					if (data != null) {
+						self.model.RFIDConfigID = data.ID;
+						if (self.model.ID != null && self.model.ID != 0)
+							AppContext.Brands.AssignRFIDConfig(self.model.ID, data.ID);
+					}
+				}, "60%");
+			});
+		},
+		</text>
+		}
+
+        UpdateFolder: function () {
+			if (this.model.EnableFTPFolder)
+				this.elements.FTPFolder.attr("readonly", false);
+			else
+				this.elements.FTPFolder.attr("readonly", true);
+		}
+	};
+//</script>

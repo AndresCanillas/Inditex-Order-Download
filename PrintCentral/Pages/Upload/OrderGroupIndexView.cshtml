@@ -1,0 +1,234 @@
+﻿@page
+@inject ILocalizationService g
+@inject ICompanyRepository repo
+@inject IUserData  userData
+@inject ICompanyProvider providerRepo
+@inject ILocationRepository fabricRepo
+@inject IProjectRepository projectRepo
+@inject IBrandRepository brandRepo
+@{
+    Layout = null;
+
+    //var showCompanyFilter = userData.SelectedCompanyID == 1 && userData.IsIDT;
+    var showCompanyFilter = true;
+    var isIDT = userData.IsIDT;
+    var isAdmin = User.IsInRole(Roles.SysAdmin);
+    var defaultDate = DateTime.Now.AddDays(-30).ToString("yyyy-MM-dd");
+    List<ICompany> companies = new List<ICompany>();
+    List<ILocation> fabrics = new List<ILocation>();
+    List<IProject> projects = new List<IProject>();
+
+    var OrderStatusOptions = Enum.GetValues(typeof(OrderStatus)).Cast<OrderStatus>().Select(s => new
+    {
+        Name = g[s.GetText()],
+        Value = (int)s
+    }).ToList();
+
+    DeliveryStatus[] ValidDeliveryStatuses = { DeliveryStatus.PartiallyShipped, DeliveryStatus.Delivered };
+
+    var DeliveryStatusOptions = ValidDeliveryStatuses
+    .Select(s => new
+    {
+        Name = g[s.GetText()],
+        Value = (int)s
+    }).Append(new
+    {
+        Name = g["All"],
+        Value = (int)-1
+    }
+    ).Append(new
+    {
+        Name = g["Not set"],
+        Value = (int)0
+    }).OrderBy(r => r.Value). 
+    ToList();
+      
+
+    var ConflictOptions = Enum.GetValues(typeof(ConflictFilter)).Cast<ConflictFilter>().Select(s => new
+    {
+        Name = g[s.GetText()],
+        Value = (int)s
+    }).ToList();
+
+    var StopOptions = Enum.GetValues(typeof(StopFilter)).Cast<StopFilter>().Select(s => new
+    {
+        Name = g[s.GetText()],
+        Value = (int)s
+    }).ToList();
+
+    var BillOptions = Enum.GetValues(typeof(BilledFilter)).Cast<BilledFilter>().Select(s => new
+    {
+        Name = g[s.GetText()],
+        Value = (int)s
+    }).ToList();
+
+    var projectsFound = projectRepo.GetList();
+    var brands = brandRepo.GetAllByID(projectsFound.Select(s => s.BrandID));
+
+
+    projects = projectsFound.Join(brands, pr => pr.BrandID, br => br.ID, (p, b) => new
+    {
+        Project = p,
+        Brand = b
+
+    })
+    .Where(w => w.Project.Hidden == false)
+    .Select(s => new Project()
+    {
+        ID = s.Project.ID,
+        Name = string.Format("{0}/{1};{2}", s.Brand.Name, s.Project.Name, s.Brand.CompanyID)
+    
+    })
+   
+    .OrderBy(r => r.Name)
+    .ToList<IProject>();
+
+    // foreach (Project project in projects)
+    // {
+    //     var brand = (Brand)brandRepo.GetByID(project.BrandID);
+    //     project.Name = project.Name +"-"+brand.Name+";"+brand.CompanyID;
+    // }
+
+    //if (userData.IsSysAdmin || userData.IsIDTAdminRoles || userData.IsIDT)
+    if (userData.IsIDT)
+    {
+        if (userData.IsSysAdmin || userData.IsIDTAdminRoles) {
+            companies = repo.GetList();
+            fabrics = fabricRepo.GetByCompanyID(1).Select(s => new Location() { ID = s.ID, Name = $"[{s.FactoryCode}] - {s.Name}" }).ToList<ILocation>();
+        }
+        if (userData.IsIDTExternal)
+        {// external user only can see orders related with his factory
+            companies = repo.GetListForExternalManager(userData.LocationID).ToList();
+            fabrics = fabrics.Where(w => w.ID == userData.LocationID).ToList();
+        }
+    }
+    else
+    {
+        companies = repo.GetForOwnerOrProvider(userData.SelectedCompanyID).ToList();
+        fabrics = fabricRepo.GetFactoriesInUseFor(userData).ToList();
+    }
+
+
+}
+
+<viewcard>
+    <viewrow>
+        <viewcolumn style="margin:0px;">
+            <inlineform>
+                @if (showCompanyFilter)
+                {
+                    <select model name="CompanyID" label="@g["Company"]:" action="change:CompanyChanged" options="@(OptionList.FromEnumerable(companies, "ID", "Name", null, g["All"]))" style="max-width:200px;"></select>
+                }
+                else
+                {
+                    <div class="form-group" style="margin-right:10px;">
+                        <label style="margin-right:10px;">@companies.Find(c => c.ID.Equals(userData.SelectedCompanyID)).Name</label>
+                    </div>
+                    <input model name="CompanyID" type="hidden" value="@userData.SelectedCompanyID" />
+                }
+
+                <input type="text" model name="OrderNumber" label="@g["Order Nº"]:" action="change:FilterChanged;keyup:HasMinimunChangeOrderNumber" style="min-width:90px;max-width:100px;" autocomplete="off" />
+
+                <input type="text" model name="ProviderClientReference" label="@g["Provider"]:" action="change:FilterChanged" style="min-width:90px;max-width:100px;" autocomplete="off" />
+
+                <input type="text" model name="ArticleCode" label="@g["Article Code"]:" action="change:FilterChanged" style="min-width:90px;max-width:100px;" autocomplete="off" />
+
+                <input type="hidden" model name="DefaultDate" value="@defaultDate" />
+                <input model name="OrderDate" label="@g["From"]:" data-type="Date" action="change:FilterChanged;keyup:HasMinimunChangeOrderDate" value="" style="min-width:100px;max-width:130px;" />
+                <input model name="OrderDateTo" label="@g["To"]:" data-type="Date" action="change:FilterChanged;keyup:HasMinimunChangeOrderDate" value="" style="min-width:100px;max-width:130px;" />
+            </inlineform>
+        </viewcolumn>
+    </viewrow>
+    <viewrow>
+        <viewcolumn>
+            <inlineform>
+
+                <datalist id="ProjectList" options="@(OptionList.FromEnumerable(projects,"ID", "Name",null, g["All"]))"></datalist>
+
+                <select id="ProjectCombo" model name="ProjectID" label="@g["Project"]:" action="change:FilterChanged"
+                options="@(OptionList.FromEnumerable(projects,"ID", "Name", null, g["All"]))"
+                style="max-width:120px;"></select>
+ 
+                <select model name="OrderStatus" label="@g["Status"]:" action="change:FilterChanged" style="max-width:200px;" options="@(OptionList.FromEnumerable( OrderStatusOptions, "Value", "Name", (int)OrderStatus.None))"></select>
+           
+                <select model name="ProductionType" label="@g["Production"]:" action="change:FilterChanged" style="max-width:200px;" data-type="int">
+                    <option selected value="0">@g["All"]</option>
+                    <option value="1">IDT</option>
+                    <option value="2">@g["Local"]</option>
+                </select>
+            
+                @if (userData.IsIDT)
+                {
+                <select model name="IsBilled" label="@g["Sent to SAGE"]:" action="change:FilterChanged" style="max-width:200px;" data-type="int" options="@(OptionList.FromEnumerable(BillOptions, "Value", "Name", (int)BilledFilter.Ignore))"></select>
+                }
+                <select model name="IsStopped" label="@g["Running/Hold"]:" action="change:FilterChanged" style="max-width:200px;" data-type="int" options="@(OptionList.FromEnumerable( StopOptions, "Value", "Name", (int)StopFilter.Ignore))"></select>
+            
+                <select model name="InConflict" label="@g["In Conflict"]:" action="change:FilterChanged" style="max-width:200px;" data-type="int" options="@(OptionList.FromEnumerable( ConflictOptions, "Value", "Name", (int)ConflictFilter.Ignore))"></select>
+            
+                <select model name="FactoryID" label="@g["Factory"]:" data-type="int" action="change:FilterChanged" options="@(OptionList.FromEnumerable(fabrics, "ID", "Name", null, g["All"]))" style="max-width:200px;"></select>
+
+                <select model name="DeliveryStatus" label="@g["Delivery"]:" data-type="int" action="change:FilterChanged" options="@(OptionList.FromEnumerable(DeliveryStatusOptions, "Value", "Name"))"></select>
+            </inlineform>
+        </viewcolumn>
+    </viewrow>
+    <viewrow>
+
+        <viewcolumn>
+            <div name="PaginationContainer"></div>
+        </viewcolumn>
+
+    </viewrow>
+    <viewrow>
+        <viewcolumn>
+            <div class="order-groups-grid">
+                <div name="GridOrderToolbar" class="toolbar-body" style="width:100%">
+                    @*
+            <span class="toolbar-grip"></span>
+            <a href="#" title="@g["Download Order File"]" action="DownloadFile"><span class="fa fa-download"></span></a>
+            <a href="#" title="@g["Download Order Preview"]" action="DownloadPreview"><span class="fa fa-file-pdf-o"></span></a>
+
+
+            <a href="#" title="@g["Download Order Preview"]" action="DownloadPreview"><span class="fa fa-file-pdf-o"></span>XXXX</a>
+	           *@
+                </div>
+                <div component="OrderGrid" class="" name="OrderTable" style="width:100%; height:calc(100% - 40px);" rowcssclass="GridViewSetRowCssClass">
+                    <template>
+                        <column width="20" field="Selected" render="RenderSelectBox"></column>
+                        <column width="80" field="OrderNumber" render="RenderOrderNumber">@g["Order N°"]</column>
+                        <column width="80" field="ProviderClientReference" render="RenderProviderClientReference">@g["Client N°"]</column>
+                        <column width="200" field="ArticleName" render="RenderArticleName">@g["Article"]</column>
+                        <column width="80" field="ArticleCode" render="RenderArticleCode">@g["Article Code"]</column>
+                        <column width="100" field="Quantity" render="RenderQuantityRequested">@g["Quantity"]</column>
+                        <column width="180" field="OrderStatusText" render="RenderStatusAndFlags">@g["Status"]</column>
+                        <column width="120" field="Actions" render="RenderActions">@g["Actions"]</column>
+                        @if (userData.IsIDT)
+                        {
+                            <column width="120" field="MDOrderNumber" render="RenderMDReference">@g["MD Ref."]</column>
+                            <column width="120" field="SageReference" render="RenderSageReference">@g["Sage Reference"]</column>
+                            <column width="180" field="SageFlagsText" render="RenderSageFlagsText">@g["Sage Flags"]</column>
+
+                        }
+                        <column width="80" field="FactoryCode" render="RenderFactoryCode">@g["Factory"]</column>
+                        @*<column width="100" field="QuantityConfirmed" render="RenderQuantityConfirmed">@g["Qty. Confirmed"]</column>*@
+                        <column width="150" field="UserName" render="RenderUserName">@g["User"]</column>
+                        <column width="55" field="Source" render="RenderSource">@g["Source"]</column>
+                        <column width="120" field="OrderDate" render="RenderOrdeDate">@g["Received On"]</column>
+                        <column width="120" field="OrderDueDate" render="RenderOrderDueDate">@g["Due Date"]</column>
+                        <column width="120" field="ValidationDate" render="RenderValidationDate">@g["Validation Date"]</column>
+                        <!-- Contextual Menu  -->
+                        <menu>
+                            @* set options on demand in controller *@
+                        </menu>
+                    </template>
+                </div>
+            </div>
+        </viewcolumn>
+    </viewrow>
+    <viewrow>
+
+        <viewcolumn>
+            <div name="PaginationContainer"></div>
+        </viewcolumn>
+
+    </viewrow>
+</viewcard>

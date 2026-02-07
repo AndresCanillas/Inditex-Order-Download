@@ -1,0 +1,41 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+	var uilang = CultureInfo.CurrentUICulture.Name;
+}
+//# sourceURL=https://Pages/Common/Components/DynamicForm.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var DynamicForm = function (definition, title, data) {
+		FormView.Extend(this, title);
+		this.CatalogDef = definition;
+		this.Data = data;
+		this.Content = AppContext.CatalogForm(definition, "@uilang");
+		this.Content += `
+		<viewfooter>
+			<button type="button" class="btn btn-primary" action="Save">@g["OK"]</button>
+			<button type="button" class="btn btn-secondary" action="Cancel">@g["Cancel"]</button>
+		</viewfooter>`;
+	};
+
+	DynamicForm.prototype = {
+        constructor: DynamicForm,
+
+		OnLoad: function () {
+			if(this.Data != null) this.LoadData(this.Data);
+		},
+
+		OnUnload: function () {
+		},
+
+		Save: function () {
+			if (!this.model.ValidState()) return;
+			var rowData = this.GetData();
+			this.Ok(rowData);
+		}
+	};
+//</script>

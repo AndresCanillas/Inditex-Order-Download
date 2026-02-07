@@ -1,0 +1,29 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+<viewcard>
+    <viewform>
+        <viewrow>
+            <viewcolumn>
+                <input model name="ProjectID" type="hidden" />
+                <div model name="FileName" label="@g["File Name"]" />
+                <textarea model name="Description" label="@g["Description"]"></textarea>
+                <div model name="HumanSize" label="@g["Size"]:"></div>
+                <div model name="CreateUser" label="@g["Create User"]:"></div>
+                <div model name="CreateDate" label="@g["Create Date"]:" data-type="Date"></div>
+                <div model name="UpdateUser" label="@g["Update User"]:"></div>
+                <div model name="UpdateDate" label="@g["Update Date"]:" data-type="Date"></div>
+            </viewcolumn>
+        </viewrow>
+        <viewfooter class="clearfix">
+            <a href="#" class="btn btn-secondary float-right" action="Cancel">@g["Cancel"]</a>
+            @if (userData.Admin_Projects_CanAddImages)
+            {
+                <a href="#" class="btn btn-primary float-right" action="Save">@g["Save"]</a>
+            }
+        </viewfooter>
+    </viewform>
+</viewcard>

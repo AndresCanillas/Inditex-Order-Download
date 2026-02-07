@@ -1,0 +1,101 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData  userData
+@inject ICompanyRepository repo
+@inject ILocationRepository fabricRepo
+@{
+	Layout = null;
+	List<ICompany> companies = new List<ICompany>();
+	List<Location> fabrics = new List<Location>();
+	//var showAdminFields = User.IsAnyRole(Roles.SysAdmin);
+
+	var notificationStatusOptions = Enum.GetValues(typeof(NotificationType)).Cast<NotificationType>().Select(s => new
+	{
+		Name = g[s.GetText()],
+		Value = (int)s
+	}).ToList();
+
+	var sortOptions = new List<object>()
+{
+		new { Name = g["Last Updated"], Value = "1" },
+		new { Name = g["By Register Date"], Value = "2" }
+	};
+
+	if (userData.IsIDT)
+	{
+		companies = repo.GetList();
+		fabrics = fabricRepo.GetByCompanyID(1)
+			.Where(w => userData.IsSysAdmin || w.ID == userData.LocationID)
+			.Select(s => new Location() { ID = s.ID, Name = $"[{s.FactoryCode}] - {s.Name}" }).ToList();
+
+	}
+	else
+	{
+		companies = repo.GetForOwnerOrProvider(userData.SelectedCompanyID).ToList();
+	}
+}
+<viewcard>
+
+	<viewrow style="margin-top:20px;">
+		<viewcolumn>
+			<inlineform style="padding-left:10%">
+
+				@if (userData.IsIDT)
+				{
+					<select model name="Type" label="@g["Notification Type"]:" options="@(OptionList.FromEnumerable(notificationStatusOptions, "Value", "Name"))" action="change:FilterChanged" class="form-control" />
+				}
+				else
+				{
+					<input model name="Type" type="hidden" value="0" />
+				}
+				<input model name="From" data-type="Date" label="@g["From"]:" value="@DateTime.Now.AddDays(-14).ToString("yyyy-MM-ddTHH:mm:ssZ")" action="change:FilterChanged" class="form-control" />
+				<input model name="To" data-type="Date" label="@g["To"]:" value="@DateTime.Now.AddDays(-14).ToString("yyyy-MM-ddTHH:mm:ssZ")" action="change:FilterChanged" class="form-control" />
+
+
+				
+
+			</inlineform>
+		</viewcolumn>
+	</viewrow>
+	<viewrow>
+		<viewcolumn>
+			<inlineform style="padding-left:10%">
+				@if (userData.IsIDT)
+				{
+					<select model name="FactoryID" label="@g["Factory"]:" data-type="int" action="change:FilterChanged" options="@(OptionList.FromEnumerable(fabrics, "ID", "Name", null, g["All"]))" style="max-width:200px;"></select>
+				}
+
+				<select model name="CompanyID" label="@g["Company"]:" action="change:FilterChanged" options="@(OptionList.FromEnumerable(companies, "ID", "Name", null, g["All"]))" style="max-width:200px;"></select>
+
+				<select model name="SortDirection" label="@g["Sort By"]:" options="@(OptionList.FromEnumerable(sortOptions, "Value", "Name"))" action="change:FilterChanged" class="form-control" />
+
+			</inlineform>
+		</viewcolumn>
+	</viewrow>
+
+	<viewrow>
+
+		<viewcolumn>
+			<br />
+			<div name="PaginationContainerTop"></div>
+		</viewcolumn>
+
+	</viewrow>
+
+	<viewrow>
+		<div style="width:10%;"></div>
+		<div style="width:80%;">
+			<div name="NotificationContainer" style="margin-top:20px;">
+			</div>
+		</div>
+	</viewrow>
+
+	<viewrow>
+
+		<viewcolumn>
+			<br />
+			<div name="PaginationContainerBottom"></div>
+		</viewcolumn>
+
+	</viewrow>
+</viewcard>

@@ -1,0 +1,152 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData  userData
+
+@{
+    Layout = null;
+}
+<viewrow>
+    <viewcolumn>
+        <viewform>
+            <input model name="ID" type="hidden" />
+            <div class="form-group">
+                <viewrow>
+                    <div class="col-md-10 mb-2">
+                        <div class="form-group row">
+                            <label class="col-sm col-form-label">@g["Company"]:</label>
+                            <div class="col-sm">
+                                <div name="ProviderListContainer" class="input-group input-group-sm">
+                                    <select model name="ProviderCompanyID" data-live-search="true" class="form-control custom-select-sm" no-transform></select>
+                                    <div class="input-group-append">
+                                        <div class="mt-1 ml-3">
+                                            <a name="BtnAddCompany" style="invisible" href="#" title="@g["Add"]" action="click:AddCompany"><span class="fa fa-plus mr-1" style="color:green;"></span></a>
+                                            <a name="BtnEditCompany" href="#" title="@g["Edit"]" action="click:EditCompany"><span class="fa fa-pencil ml-1 mr-1"></span></a>
+                                            @if (userData.IsSysAdmin)
+                                            {
+                                                <a href="#" title="@g["Remove"]" action="click:RemoveCompany"><span class="fa fa-trash ml-1"></span></a>
+                                            }
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </viewrow>
+            </div>
+            <input model name="CompanyName" type="hidden" />
+            <div model name="CompanyCode" label="@g["Company Code"]:"></div>
+
+            <input model name="ClientReference" label="@g["Client Reference"]:" type="text" validation="required;regex(^[\w\d\-\_]+$);maxlen(10)" />
+            <select model name="DefaultProductionLocation" label="@g["Default Production Location"]:" action="change:SetLocationName" validation="required" />
+
+            <input model name="LocationName" type="hidden" />
+
+            <textarea model name="Instructions" label="@g["Instructions"]:" validation="maxlen(2000)"></textarea>
+            <input model name="SLADays" label="@g["SLA (Days)"]:" validation="required;regex(^\d+);numeric;maxlen(2)" type="text" />
+
+            
+
+            <div name="ArticleDetailContainer">
+                <viewrow>
+                    <viewcolumn>
+                        <div class="">
+                            <h5 class="border-bottom">
+                                @g["Invoice article detailed"]
+                                <span class="text float-right ">
+                                    <a href="#collapseWashingRules" class="text-muted clearfix  collapse-compo collapsed" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseWashingRules">
+                                        <i class="c-open fa fa-fw fa-minus-square-o"></i>
+                                        <i class="c-close fa fa-fw fa-plus-square-o"></i>
+                                    </a>
+                                </span>
+                            </h5>
+                        </div>
+                    </viewcolumn>
+                </viewrow>
+                <div id="collapseWashingRules" class="collapse" data-toggle="collapse">
+                    <div class="form-group">
+                        <viewrow>
+                            <div class="col-md-10 mb-2">
+                                <div class="form-group row">
+                                    <label class="col-sm col-form-label">@g["Project"]:</label>
+                                    <div class="col-sm">
+                                        <div class="input-group input-group-sm">
+                                            <select model searchable name="CompanyProjectID" label="@g["Project"]:" class="form-control" action="change:UpdateArticlesInfo" no-transform value=""></select>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </viewrow>
+
+                        <viewrow>
+                            <div class="col-md-10 mb-2">
+                                <div class="form-group row">
+                                    <label class="col-sm col-form-label">@g["Article"]:</label>
+                                    <div class="col-sm">
+
+     
+                                        <div class="input-group input-group-sm">
+                                            
+                                            
+                                            <select name="CompanyArticleID"
+                                                    data-live-search="true" 
+                                                    model
+                                                    multiple
+                                                    class="form-control custom-select-sm " 
+                                                    no-transform></select>
+@*                                            <select 
+                                                    data-live-search="true" 
+                                                    searchable 
+                                                    multiple 
+                                                    model 
+                                                    filter="true" 
+                                                    name="CompanyArticleID" 
+                                                    label="@g["Article"]:" 
+                                                    class="form-control custom-select-sm " 
+                                                    no-transform>
+                                            </select>*@
+
+
+                                            <div class="input-group-append">
+                                                <div class="mt-1 ml-3">
+                                                    <a href="#" title="@g["Add"]" action="click:AddArticle"><span class="fa fa-plus mr-1" style="color:green;"></span></a>
+                                                    <a href="#" title="@g["Remove"]" action="click:RemoveArticle"><span class="fa fa-trash ml-1"></span></a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </viewrow>
+                    </div>
+
+                    <div class="form-group">
+                        <viewrow>
+                            <div class="col-md-10 mb-2">
+                                <div class="form-group row">
+                                    <label class="col-sm col-form-label">@g["Articles selected"]:</label>
+                                    <div class="col-sm">
+                                        <div class="input-group input-group-sm">
+                                            <div component="TableView" class="" name="ProviderArticleTable" style="width:83%; height:calc(80% - 100px);" rowcssclass="GridViewSetRowCssClass">
+                                                <template>
+                                                    <column width="300" field="Article">@g["Article"]</column>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </viewrow>
+                    </div>
+
+                </div>
+            </div>
+
+        </viewform>
+    </viewcolumn>
+</viewrow>
+<viewfooter>
+    <button type="button" class="btn btn-primary" action="Ok">@g["OK"]</button>
+    <button type="button" class="btn btn-secondary" action="click:OnCancel">@g["Cancel"]</button>
+</viewfooter>

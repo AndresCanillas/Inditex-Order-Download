@@ -1,0 +1,201 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Common/Components/CatalogsListView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var CatalogsListView = function () {
+		FormView.Extend(this);
+		this.Content = $('<div name="ListContainer"></div>');
+		this.dataSource = null;
+		this.ItemSelected = new AppEvent();
+	};
+
+	CatalogsListView.prototype = {
+        constructor: CatalogsListView,
+
+		OnLoad: function () {
+			AppContext.AppEventListener.Subscribe(this, this.HandleNotifications);
+		},
+
+		OnUnload: function () {
+			AppContext.AppEventListener.Unsubscribe(this, this.HandleNotifications);
+			this.ItemSelected.Dispose();
+		},
+
+		HandleNotifications: function (e) {
+			if (e.EventName === "EntityEvent") {
+				if (e.EntityName === "Catalog") {
+					if(e.Operation === 2)
+						this.HandleDeleteNotification(e.Entity);
+					if (e.Operation === 1)
+						this.HandleUpdateNotification(e.Entity);
+				}
+			}
+		},
+
+		HandleDeleteNotification(entity) {
+			var card = this.ViewContainer.find(`[data-entityid='${entity.ID}']`);
+			if (card.length === 1) {
+				card.off();
+				card.remove();
+			}
+		},
+
+		HandleUpdateNotification(entity) {
+			this.UpdateCard(entity);
+		},
+
+        LoadItems: function (setup) {
+			if (setup == null) setup = { ProjectID: 0 };
+			if (setup.ProjectID == null)
+				setup.ProjectID = 0;
+			this.ProjectID = setup.ProjectID;
+			this.ShowNewOption = setup.AddOption == true;
+			this.ShowOpenOption = setup.OpenOption == true;
+            this.ShowDeleteOption = setup.DeleteOption == true;
+            this.ShowHidden = setup.ShowHidden == true;
+            var self = this;
+            @if (userData.IsIDTAdminRoles)
+            {
+                @:self.ShowHidden = true;
+            }
+            AppContext.Catalogs.GetByProjectIDWithRoles(this.ProjectID, function(data) {
+                self.dataSource = data;
+				self.elements.ListContainer.empty();
+				@if (userData.Admin_Catalogs_CanAdd)
+				{
+					@:if(self.ShowNewOption) self.CreateNewCard();
+				}
+				if (data != null) {
+					for (var i = 0; i < data.length; i++) {
+						if (data[i].IsHidden && !self.ShowHidden) continue;
+						if (data[i].CatalogType == 1) 
+						{
+								  self.CreateItemCard(data[i]); // Lookup catalog 
+						}else {
+							@{
+								@if (userData.IsSysAdmin || userData.UserRoles.Any(u => u.Equals("CompanyAdmin")))
+								{
+									@:self.CreateItemCard(data[i]);
+								}	
+							}
+								
+
+						}
+					
+					}
+				}
+			});
+		},
+
+		@if(userData.Admin_Catalogs_CanAdd)
+		{
+		<text>
+		CreateNewCard: function () {
+			var self = this;
+			var html = $(`
+			<div class="new-item-card catalog-card">
+				<div style="padding-top:10px;">
+					<div class="btn btn-outline-secondary btn-sm" action="CreateItem" style="display:block; margin:auto; width:140px;"><span class="fa fa-plus"></span>&nbsp;&nbsp;@g["New Catalog"]</div>
+				</div>
+			</div>`);
+			AppContext.BindActions(html, this);
+	        self.elements.ListContainer.append(html);
+		},
+
+        CreateItem: function (e) {
+			var self = this;
+            AppContext.LoadJS("/common/AskNameDialog.js").then(() => {
+				var dialog = new AskNameDialog("@g["New Catalog"]");
+				dialog.ShowDialog(function (dlgData) {
+					if (dlgData) {
+						dlgData.ProjectID = self.ProjectID;
+						dlgData.Comments = "";
+                        AppContext.Catalogs.Insert(dlgData, function (result) {
+							if (result.Success) {
+								self.CreateItemCard(result.Data);
+								self.dataSource.push(result.Data);
+								var card = self.ViewContainer.find(`[data-entityid='${result.Data.ID}']`);
+                                self.ItemSelected.Raise({ target: self, item: result.Data });
+							}
+						});
+					}
+				});
+			})
+		},
+		</text>
+		}
+
+
+		@if(userData.Admin_Catalogs_CanDelete)
+		{
+		<text>
+		DeleteItem: function (e) {
+			var self = this;
+			var card = $(e.target.parentNode);
+			var id = card.attr("data-entityid");
+			var confirm = new ConfirmDialog("@g["Delete Catalog? IMPORTANT: This operation cannot be undone."]");
+			confirm.ShowDialog(function (response) {
+				if (response) {
+					AppContext.Catalogs.Delete(id, function (result) {
+						if (result.Success) {
+							card.off();
+							card.remove();
+                            var idx = self.dataSource.findIndex(function (e) { return e.ID == id; });
+                            self.dataSource.splice(idx, 1);
+						}
+					});
+				}
+			});
+		},
+		</text>
+		}
+
+		CreateItemCard: function (data) {
+			var self = this;
+			var openAction = this.ShowOpenOption ? " action=OpenClicked" : " style='cursor:default;'";
+			@if (userData.Admin_Catalogs_CanDelete)
+			{
+			@:var deleteAction = this.ShowDeleteOption ? '<span class="ti ti-close card-right card-close" action=DeleteItem></span>' : "";
+			}
+			else
+			{
+			@:var deleteAction = "";
+			}
+			var html = $(`
+	        <div class="item-card catalog-card" data-entityid="${data.ID}"${openAction}>
+				<span class="ti ti-layout-grid3"></span>${deleteAction}
+				<div style="cursor:pointer;" name="Name">${data.Name}</div>
+				<div style="cursor:pointer;" name="Desc">${data.Description || ""}</div>
+	        </div>`);
+			AppContext.BindActions(html, this);
+		    self.elements.ListContainer.append(html);
+        },
+
+        OpenClicked: function (e) {
+			var self = this;
+			e.preventDefault();
+			var cardElm = $(e.target).closest("[data-entityid]");
+			var id = cardElm.attr("data-entityid");
+			var cardData = this.dataSource.first(p => p.ID == id);
+			this.ItemSelected.Raise({ target: this, item: cardData });
+		},
+
+		UpdateCard: function (data) {
+			var idx = this.dataSource.findIndex(p => p.ID == data.ID);
+			if (idx >= 0) {
+				this.dataSource[idx] = data;
+				var card = this.ViewContainer.find(`[data-entityid='${data.ID}']`);
+				card.find("[name='Name']").text(data.Name);
+				card.find("[name='Desc']").text(data.Description);
+			}
+		}
+	};
+//</script>

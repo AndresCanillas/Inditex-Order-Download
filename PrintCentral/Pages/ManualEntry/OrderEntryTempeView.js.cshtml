@@ -1,0 +1,2125 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages/ManualEntry/OrderEntryTempeView.js
+///<reference path="/js/jquery-3.0.0.min.js" />
+///<reference path="/js/Kendo.all.min.js" />
+///<reference path="/js/AppContext.js" />
+///<reference path="/js/AppContext.AppDomain.js" />
+
+// <script>
+    var OrderEntryView = function (options) {
+
+        if (!options) {
+            options = {};
+        }
+
+        //this.options = OrderEntryView.GetDefaults(options);
+
+        console.log("OrderEntryMD- Ctor")
+
+        FormView.Extend(this, "@g["Manual Entry"]", `/ManualEntry/OrderEntryTempeView`);
+
+           this.Options = options;
+           this.CompanyId = null;
+           this.OrderId = 0;
+           this.ProjectId = 0;
+           this.OrderSections;
+           this.Articles = null;
+           this.Packs = null;
+           this.Providers = null;
+           this.FormSelector = '[name="dataentry-frm"]';
+           this.SectionsCatalog = null;
+           this.SectionData = null;
+           this.SubSectionsCatalog = null;
+           this.SubSectionData = null;
+           this.MadeInCatalog = null;
+           this.MadeInData = null;
+           this.SizesSetCatalog = null;
+           this.SizesSetData = null;
+           this.OrderStatus = null;
+           this.OrderData = null;
+           this.SizesCatalog = null;
+           this.SizesData = null;
+           this.SectionCatalogName = "OrderSections";
+           this.MadeInCatalogName = "MadeIn";
+           this.SizesSetCatalogName = "SizesSet";
+           this.SubSectionCatalogName = "OrderSubSections";
+           this.SizesCatalogName = "Sizes";
+           this.InditexExtractedSizes = [];
+           this.chinasize = false;
+           this.BarcodesInditex = [];
+           this.BarcodesPrintEntry = [];
+           this.Languages = [{ "Culture": "es-ES", "Lang": "Spanish" }, { "Culture": "ca-ES", "Lang": "Catalan" }, { "Culture": "en-US", "Lang": "English" }, { "Culture": "fr-FR", "Lang": "French" }, { "Culture": "tr-TR", "Lang": "Turkish" }];
+           this.Step = 0;
+           this.DataAllSteps = [];
+           this.ARTICLE_CODE = '000000'
+        this.OrderSelection = [];
+           this.OnWizardCreated = new AppEvent();
+       };
+
+
+    // public static method
+       OrderEntryView.GetDefaults = function (options) {
+
+        return $.extend({
+            Title: '@g["Custom Report"]',
+            Filter: {},
+            EnableStorageFilter: true,
+        }, options);
+    };
+
+
+       OrderEntryView.prototype = {
+        constructor: OrderEntryView,
+        
+		OnLoad: function () {
+            var self = this;
+            console.log("OnLoad - OrderEntry");
+            self.PrepareNewOrder();
+        },
+
+           CleanVariables: function () {
+
+               let self  = this 
+               
+               self.CompanyId = null;
+               self.OrderId = 0;
+               self.ProjectId = 0;
+               self.OrderSections;
+               self.Articles = null;
+               self.Packs = null;
+               self.Providers = null;
+               self.FormSelector = '[name="dataentry-frm"]';
+               self.SectionsCatalog = null;
+               self.SectionData = null;
+               self.SubSectionsCatalog = null;
+               self.SubSectionData = null;
+               self.SizesSetCatalog = null;
+               self.SizesSetData = null;
+               self.OrderStatus = null;
+               self.OrderData = null;
+               self.SizesCatalog = null;
+               self.SizesData = null;
+               self.SectionCatalogName = "OrderSections";
+               self.MadeInCatalogName = "MadeIn";
+               self.SizesSetCatalogName = "SizesSet";
+               self.SubSectionCatalogName = "OrderSubSections";
+               self.SizesCatalogName = "Sizes";
+               self.InditexExtractedSizes = [];
+               self.chinasize = false;
+               self.BarcodesInditex = [];
+               self.BarcodesPrintEntry = [];
+               self.Languages = [{ "Culture": "es-ES", "Lang": "Spanish" }, { "Culture": "ca-ES", "Lang": "Catalan" }, { "Culture": "en-US", "Lang": "English" }, { "Culture": "fr-FR", "Lang": "French" }, { "Culture": "tr-TR", "Lang": "Turkish" }];
+               self.Step = 0;
+               self.DataAllSteps = [];
+               self.OrderSelection = [];
+           },
+           SetOptions: function (options) {
+               this.Options = options;
+           },
+           OnShow: function () {
+               var self = this;
+              
+           },
+           OnHide: function () {
+               var self = this;
+               self.ClearPage();
+               self.GetGrid().AfterCellEdit.Unsubscribe(self, self.HandleCellEdit);
+               // self.GetGridJson().RowDoubleClick.Unsubscribe(self, self.LoadExtractedSizes);
+           },
+           InitializeView: function () {
+               var self = this;
+               self.LoadCompanies(); 
+               self.GetGrid().AfterCellEdit.Subscribe(self, self.HandleCellEdit);
+           },
+           ClearPage: function () {
+               var self = this;
+
+               //raise Clear Methods (Combos)
+               // self.model.BrandID = -1;
+               // self.model.SeasonID =-1; 
+               
+               
+               self.model.ProviderCompanyID =-1; 
+
+               //fields
+               self.model.OrderNumber = "";
+               
+               
+               self.DeliveryDate = "@DateTime.Now.ToString("yyyy-MM-dd")";
+               self.model.ArticleQuality1 = "";
+               self.model.ArticleQuality2 = "";
+
+               //hiddens
+               self.model.ID = 0;
+               self.model.Status = "";
+               // self.model.CompanyID = "";
+               self.model.CreatedDate = "1900-01-01";
+               self.model.ProviderCompanyID = "";
+               self.model.OrderJsonData = "";
+
+               //grids
+                $(self.elements.ArticleList).empty();
+                self.elements.ArticlesGrid.Rows.Clear();
+                self.elements.ArticleToAdd.val('');
+
+               // self.GetGridJson().Headers.Clear();
+               // self.GetGridJson().Rows.Clear();
+
+               self.GetChinaGrid().Headers.Clear();
+               self.GetChinaGrid().Rows.Clear();
+               self.elements.instructions.hide();
+
+               // self.GetGrid().Headers.Clear();
+               self.GetGrid().Rows.Clear();
+           },
+           ShowStep: function (functioname) {
+               let self = this;
+               console.log(`Step ${functioname}-${self.Step}`);
+               self.Step++;
+
+           },
+
+           LoadCompanies: async function () { 
+               var self = this; 
+               self.ShowStep("Load Companies")
+               self.model.CompanyID = self.Options.CompanyID
+           },
+           CompanyChanged : function () 
+           {
+               let self = this; 
+               console.log("Company changed"); 
+               self.CompanyId = self.Options.CompanyID;
+               self.LoadBrands(); 
+           },
+
+           LoadBrands: async function () {
+               var self = this;
+               self.ShowStep("LoadBrands")
+               var brands;
+               var defaultValue = { ID: -1, Name: '@Html.Raw(g["Select an Option"])' };
+               brands = await AppContext.HttpGet(`/brands/getbycompanyid/${self.Options.CompanyID}`);
+
+               let filterBrands = brands.filter((brand) => brand.ID == self.Options.BrandID) 
+               // self.BarcodesInditex = []
+               // $('div[name="extractedsizes"]').hide();
+               brands.unshift(defaultValue);
+               self.FillComboBox(self.elements.BrandID, filterBrands, "ID", "Name", true);
+               self.model.BrandID = self.Options.BrandID;
+
+           },
+
+           LoadSeasons: async function () {
+               var self = this;
+               var brandid = self.elements.BrandID.val();
+               var showAll = false;
+               var seasons = [];
+               self.ShowStep("LoadSeason")
+               if (brandid != "-1") {
+                   projects = await AppContext.HttpGet(`/projects/getbybrand/${brandid}/${showAll}`);
+                   
+
+                   if (projects.length > 0) {
+                       let filteredProjects = projects.filter(p=> p.ID == self.Options.ProjectID)
+                       filteredProjects.forEach((o) => {
+                           seasons.push(o);
+                       });
+
+                       // var defaultValue = { ID: -1, Name: '@Html.Raw(g["Select an Option"])' };
+                       // seasons.unshift(defaultValue);
+                   }
+
+                   self.FillComboBox(self.elements.SeasonID, seasons, "ID", "Name", true);
+                   self.model.SeasonID = self.Options.ProjectID;
+
+               } else {
+                   self.ClearDependecyCombosByBrand();
+               }
+           },
+           NewOrder: function (e) { 
+               e.preventDefault() 
+               let self = this
+               self.PrepareNewOrder()
+               
+           }, 
+
+           PrepareNewOrder: function ()
+           {
+               let self = this 
+               self.DisableCombos(false)
+               self.ClearPage();
+
+               self.InitializeView();
+               // self.GetGridJson().Headers.Clear();
+               // self.GetGridJson().Rows.Clear();
+               $('div[name="extractedsizes"]').hide();
+               self.BarcodesInditex = []
+               self.RemoveOverlay()
+
+               
+           }, 
+
+           PrepareNewOrderPromise: function () {
+
+               let self = this
+               return new Promise ((resolve, reject )=> {
+                   try {
+                       self.DisableCombos(false)
+                       self.ClearPage();
+
+                       self.InitializeView();
+                       self.RemoveOverlay()
+                       resolve('OK')
+
+                   }catch (error){
+                       reject (error)
+                   }
+               })
+              // self.DisableCombos(true)
+               self.ShowStep("NewOrder")
+           },
+
+
+           DisableCombos: function (disabled) { 
+               let d = document 
+               let self = this 
+
+               let combos = d.querySelectorAll(".combodisabled") 
+               if (combos){
+                   combos.forEach(combo => { 
+                       combo.disabled = disabled; 
+                   })
+
+               }
+           
+           }, 
+           
+           // LoadSizeSets: function () {
+           //     var self = this;
+           //     var section = self.elements.SectionID.val();
+           //     var sectiontxt = self.elements.SectionID.find('option:selected').text();
+           //     self.ShowStep("LoadSizeSet")
+           //     if (section != "-1" && self.Options.ProjectID > 0) {
+
+           //         //self.ShowOverlay();
+
+           //         $.when(
+           //             AppContext.HttpPost(`/catalogs/getbyname/${self.Options.ProjectID}`, self.SizesSetCatalogName, null)
+           //         ).fail(function () {
+           //             self.RemoveOverlay();
+           //         }).then(function (sizessetCatalog) {
+           //             self.SizesSetCatalog = sizessetCatalog.Data;
+
+           //             if (self.SizesSetCatalog != null) {
+           //                 $.when(
+           //                     AppContext.HttpGet(`/catalogdata/getbycatalog/${self.SizesSetCatalog.CatalogID}`),
+           //                     AppContext.HttpGet(`/catalogdata/getsubset/${self.SectionsCatalog.CatalogID}/${section}/${self.SubSectionCatalogName}`)
+           //                 ).fail(function () {
+           //                     self.RemoveOverlay();
+           //                 }).then(function (sizessetData, subsectionData) {
+
+           //                     var result = JSON.parse(sizessetData[0]);
+           //                     self.SizesSetData = result.filter(x => x.Section == sectiontxt);
+           //                     self.GetAllSizes();
+
+
+           //                     let resultSubSection = JSON.parse(subsectionData[0]);
+           //                     self.SubSectionData = resultSubSection;
+           //                     self.FillSubSectionCombo();
+
+           //                     self.RemoveOverlay();
+           //                   //  self.DisableCombos(true)
+           //                 });
+           //             }
+           //             else {
+           //               //  self.DisableCombos(true)
+           //                 self.RemoveOverlay();
+           //                 AppContext.ShowError("@g["This project does not have the correct configuration"]");
+           //             }
+           //         });
+
+           //     } else {
+           //         self.ClearDependecyCombosBySection();
+           //         self.RemoveOverlay();
+           //     }
+           // },
+
+           // GetAllSizes: async function () {
+           //     var self = this;
+           //     var result = null;
+           //     let colorsize = [];
+           //     let barcodesPrintEntry = [];
+           //     let europeanInditexSizes = [];
+           //     let suitableSizeSet = []
+           //     self.ShowStep("GetAllSizes")
+
+
+           //     const distinctSizes = self.BarcodesInditex.map(d => d.Size)
+           //     const uniqueSizes = [... new Set(distinctSizes)]
+           //     uniqueSizes.forEach((barcode, index) => {
+           //         europeanInditexSizes.push(barcode);
+           //     });
+           //     let SizeSetCopy = self.SizesSetData;
+           //     self.SizesSetData = [];
+           //     console.log("SizeSetCopy", SizeSetCopy)
+           //     for (const item of SizeSetCopy) {
+           //         let catalogid = self.SizesSetCatalog.CatalogID;
+
+           //         try {
+           //             const response = await AppContext.HttpGet(`/catalogdata/getsubset/${catalogid}/${item.ID}/${self.SizesCatalogName}`);
+           //             let sizes = JSON.parse(response);
+           //             let europeanSizes = [];
+           //             sizes.forEach((size, index) => {
+           //                 europeanSizes.push(size.EUROPA);
+           //             });
+
+           //             if (self.AreInditexBarcodeIncludedInSizes(europeanInditexSizes, europeanSizes)) {
+           //                 let sizeFound = self.SizesSetData.find(s=>s.ID == item.ID)
+           //                 if (!sizeFound)
+           //                 {
+           //                     self.SizesSetData.push(item);
+           //                 }
+                           
+
+           //             }
+           //         } catch (error) {
+           //             self.RemoveOverlay();
+           //             console.error(error);
+           //         }
+           //     }
+           //     self.FillSizeSetCombo();
+           //     self.RemoveOverlay();
+           // },
+
+
+           // SizeLodadedOk: function () {
+           //     console.log("Size set load ok")
+           // },
+           // CantLoadSizes: function () {
+           //     console.log("Cant load sizes")
+           // },
+
+           // AreInditexBarcodeIncludedInSizes: function (InditexEurpeanSizes, PrintEntrySizes) {
+           //     let isIncluded = true
+           //     InditexEurpeanSizes.forEach((barcode, index) => {
+           //         if (!PrintEntrySizes.find(s => s == barcode.trim())) {
+           //             isIncluded = false;
+           //         }
+           //     })
+           //     return isIncluded
+           // },
+
+           // FillSizeSetCombo: function () {
+           //     var self = this;
+           //     var Data = null;
+           //     var section = self.elements.SectionID.val();
+           //     var defaultValue = JSON.parse(`{"ID": -1,"${self.GetLanguage()}":"@Html.Raw(g["Select an Option"])"}`);
+           //     self.ShowStep("FillSizeSetCombo")
+           //     Data = self.SizesSetData;
+           //     existsDefaultValue = Data.find (d=>d.ID == -1) 
+           //     if (!existsDefaultValue) {
+
+           //        // Data.unshift({defaultValue});
+           //     }
+           //     if (self.OrderId != 0 && self.OrderData.SectionID == section) {
+           //         self.FillComboBox(self.elements.SizeSetID, Data, "ID", self.GetLanguage(), false);
+           //         //self.model.SizeSetID = self.OrderData.SizeSetID;
+           //         self.model.SizeSetID = self.GetSuitableSizeSet(Data);
+               
+           //     } else {
+           //         self.FillComboBox(self.elements.SizeSetID, Data, "ID", self.GetLanguage(), true);
+           //     }
+           // },
+
+           GetLanguage: function () {
+               var self = this;
+               var langfield = self.Languages.filter(x => x.Culture == $("input[name='LangUser']").val());
+              // return langfield[0].Lang;
+              return 'English'
+           },
+
+           // GetSuitableSizeSet: function (data) {
+           //     let self = this 
+           //     let sizeSet = data.find(size => `${self.OrderData.SectionName[0].toUpperCase()}: ${size.Name.toString().toUpperCase().trim()}` == self.OrderData.SizeSetName.toUpperCase().trim()) 
+           //     return sizeSet?.ID  ?? -1 
+
+           //     // if (sizeSet) {
+           //     //     return sizeSet.ID
+           //     // } else {
+           //     //     return -1 
+           //     // }
+           // },
+
+           LoadCatalogs: function () {
+               var self = this;
+               var projectid = self.elements.SeasonID.val();
+               self.ShowStep("LoadCatalogs")
+               if (projectid != "-1") {
+                   self.LoadDataCatalogs(projectid).done(() => {
+                       self.SetCatalogsByProject();
+
+                       if (self.OrderId != 0) {
+                           self.SetOrderComboData();
+                       }
+                   })
+               } else {
+                   self.ClearDependecyCombosBySeason();
+               }
+           },
+
+           LoadDataCatalogs: function (projectid) {
+               var self = this;
+               var d1 = $.Deferred();
+               self.ShowStep("LoadDataCatalogs")
+               self.ProjectId = self.Options.ProjectID
+             //  self.ShowOverlay();
+
+               $.when(
+                   // AppContext.HttpPost(`/catalogs/getbyname/${self.ProjectId}`, self.SectionCatalogName, null),
+                   // AppContext.HttpPost(`/catalogs/getbyname/${self.ProjectId}`, self.MadeInCatalogName, null),
+                   AppContext.HttpGet(`/articles/getbyprojectid/${self.ProjectId}`),
+                   AppContext.HttpGet(`/providers/getbycompanyid/${self.CompanyId}`),
+                   AppContext.HttpGet(`/packs/getbyprojectid/${self.ProjectId}`)
+               ).fail(function () {
+                   self.RemoveOverlay();
+                   d1.reject();
+                   console.log('fail to get catalogs')
+               }).then(function (articlesData, providersData, packsData) {
+
+                   // self.SectionsCatalog = sectionsCatalog[0].Data;
+                   // self.MadeInCatalog = MadeInCatalog[0].Data;
+                   // self.Articles = articlesData[0].filter(x => x.ProjectID != null &&
+                   //     (x.Name == 'INSIDE_SIZE_MANUAL' || x.Name == 'INSIDE_NOSIZE_MANUAL'))
+
+                   self.Articles = articlesData[0].filter(x => x.ProjectID != null && x.EnableAddItems)
+                   self.Providers = providersData[0];
+
+                   //Packs
+                   self.Packs = packsData[0].filter(x => x.ProjectID != null);
+                   //update Articles
+                   for (var pack of self.Packs) {
+                       self.Articles.push({
+                           "ID": pack.ID,
+                           "ProjectID": pack.ProjectID,
+                           "Name": pack.Name,
+                           "Description": pack.Description,
+                           "ArticleCode": pack.PackCode,
+                           "BillingCode": pack.PackCode,
+                           "LabelID": null,
+                           "Instructions": null,
+                           "CategoryID": null,
+                           "PackCode": pack.PackCode
+                       });
+                   }
+
+                   d1.resolve();
+
+                   //Set Section and MadeIn catalogs
+                   // if (self.SectionsCatalog != null && self.MadeInCatalog != null) {
+                   //     $.when(
+                   //         AppContext.HttpGet(`/catalogdata/getbycatalog/${self.SectionsCatalog.CatalogID}`),
+                   //         AppContext.HttpGet(`/catalogdata/getbycatalog/${self.MadeInCatalog.CatalogID}`),
+                   //     ).fail(function () {
+                   //         self.RemoveOverlay();
+                   //         console.log('fail to get data')
+                   //         d1.reject();
+                   //     }).then(function (sectionData, MadeInData) {
+                   //         var SectionTemp = JSON.parse(sectionData[0]);
+                   //         self.SectionData = SectionTemp.filter(x => x.IsActive != false);
+                   //         self.MadeInData = JSON.parse(MadeInData[0]);
+                   //         d1.resolve();
+                   //         self.RemoveOverlay();
+                   //     });
+                   // }
+                   // else {
+                   //     self.RemoveOverlay();
+                   //     AppContext.ShowError("@g["This project does not have the correct configuration"]");
+                   //     self.ClearDependecyCombosBySeason();
+                   //     d1.reject();
+                   // }
+               });
+
+               return d1.promise();
+           },
+
+           RefreshProvider: function (e) {
+               e.preventDefault();
+               var self = this;
+               var Data = null;
+               self.ShowStep("RefreshProvider")
+               if (self.CompanyId == 0)
+                   return;
+
+               var d1 = $.Deferred();
+        //       self.ShowOverlay();
+
+               $.when(
+                   AppContext.HttpGet(`/providers/getbycompanyid/${self.CompanyId}`)
+               ).fail(function () {
+                   self.RemoveOverlay();
+                   d1.reject();
+                   console.log('fail to get catalogs')
+               }).then(function (providersData) {
+
+                   self.Providers = providersData[0];
+
+                   Data = self.Providers;
+                   var defaultValueProvider = { ClientReference: -1, CompanyName: '@Html.Raw(g["Select an Option"])' };
+                   Data.unshift(defaultValueProvider);
+                   self.FillComboBox(self.elements.ProviderReference, Data, "ClientReference", "CompanyName", true);
+
+                   d1.resolve();
+                   self.RemoveOverlay();
+               });
+
+               return d1.promise();
+           },
+
+           SetCatalogsByProject: function () {
+               try {
+                   var self = this;
+                   var Data = null;
+                   self.ShowStep("SetCatalogsByProject")
+                   // Data = self.MadeInData;
+                   // var defaultValueMadeIn = { ID: -1, ELEMENT: '@Html.Raw(g["Select an Option"])' };
+                   // Data.unshift(defaultValueMadeIn);
+                   // self.FillComboBox(self.elements.MarketOriginID, Data, "ID", "ELEMENT", true);
+
+                   Data = self.Providers;
+                   var defaultValueProvider = { ClientReference: -1, CompanyName: '@Html.Raw(g["Select an Option"])' };
+                   Data.unshift(defaultValueProvider);
+                   self.FillComboBox(self.elements.ProviderReference, Data, "ClientReference", "CompanyName", true);
+
+                   // var defaultValue = { ID: -1, Name: '@Html.Raw(g["Select an Option"])' };
+                   // Data = self.SectionData;
+                   // Data.unshift(defaultValue);
+
+                   // if (self.OrderId != 0) {
+                   //     self.FillComboBox(self.elements.SectionID, Data, "ID", "Name", false);
+                   // } else {
+                   //     self.FillComboBox(self.elements.SectionID, Data, "ID", "Name", true);
+                   // }
+
+                   //articles
+                   $(self.elements.ArticleList).empty();
+                   self.elements.ArticlesGrid.Rows.Clear();
+                   self.elements.ArticleToAdd.val('');
+
+                   for (var article of self.Articles) {
+                       $(self.elements.ArticleList).append("<option value='" + article.ArticleCode
+                           + "'  articleid='" + article.ID
+                           + "' articlename='" + article.Name
+                           + "' labelid='" + article.LabelID
+                           + "' packcode='" + article.PackCode + "' >" + article.Name + "</option>");
+                   }
+
+               } catch (ex) {
+                   AppContext.ShowError("@g["An error occurred when file the catalogs"]");
+                   self.RemoveOverlay();
+               }
+           },
+
+           SetProviderCompanyID: function () {
+               var self = this;
+               self.ShowStep("SetProviderCompanyID")
+               
+               if (self.Providers) {
+                   var found = self.Providers.find((f) => f.ClientReference == self.elements.ProviderReference.val())
+
+                   if (found)
+                       self.model.ProviderCompanyID = found.ProviderCompanyID;
+               }
+           },
+
+           ClearDependecyCombosByBrand: function () {
+               var self = this;
+               var Data = [];
+
+               var defaultValue = { ID: -1, Name: '@Html.Raw(g["Select an Option"])' };
+               Data.unshift(defaultValue);
+               self.FillComboBox(self.elements.SeasonID, Data, "ID", "Name", true);
+           },
+
+           ClearDependecyCombosBySeason: function () {
+               var self = this;
+               var Data = [];
+
+               var defaultValueProvider = { ClientReference: -1, CompanyName: '@Html.Raw(g["Select an Option"])' };
+               Data = [];
+               Data.unshift(defaultValueProvider);
+               self.FillComboBox(self.elements.ProviderReference, Data, "ClientReference", "CompanyName", true);
+
+               // var defaultValueMadeIn = { ID: -1, ELEMENT: '@Html.Raw(g["Select an Option"])' };
+               // Data = [];
+               // Data.unshift(defaultValueMadeIn);
+               // self.FillComboBox(self.elements.MarketOriginID, Data, "ID", "ELEMENT", true);
+
+               // var defaultValue = { ID: -1, Name: '@Html.Raw(g["Select an Option"])' };
+               // Data = [];
+               // Data.unshift(defaultValue);
+               // self.FillComboBox(self.elements.SectionID, Data, "ID", "Name", true);
+
+               $(self.elements.ArticleList).empty();
+               self.elements.ArticlesGrid.Rows.Clear();
+               self.elements.ArticleToAdd.val('');
+           },
+
+           ClearDependecyCombosBySection: function () {
+               var self = this;
+               var Data = [];
+
+               // var defaultValue = { ID: -1, Name: '@Html.Raw(g["Select an Option"])' };
+               // Data.unshift(defaultValue);
+               // self.FillComboBox(self.elements.SizeSetID, Data, "ID", "Name", true);
+
+               // Data = [];
+               // Data.unshift(defaultValue);
+               // self.FillComboBox(self.elements.SubSectionID, Data, "ID", "Name", true);
+           },
+
+           //#region Articles
+
+           GetArticle: function () {
+               var articlecode = this.model.ArticleToAdd;
+               var list = this.elements.ArticleToAdd[0].list;
+               for (var i = 0; i < list.options.length; i++) {
+                   if (articlecode == list.options[i].value) {
+                       this.elements.ArticleToAdd[0].setCustomValidity("");
+                       return {
+                           ArticleID: parseInt(list.options[i].attributes["articleid"].value)
+                           , Name: list.options[i].attributes["articlename"].value
+                           , ArticleCode: list.options[i].value
+                           , LabelID: list.options[i].attributes["labelid"].value == "null" ? null : list.options[i].attributes["labelid"].value
+                           , PackCode: list.options[i].attributes["packcode"].value == "null" ? null : list.options[i].attributes["packcode"].value
+                       };
+                   }
+               }
+               this.elements.ArticleToAdd[0].setCustomValidity("@g["Invalid article ID"]");
+               return null;
+           },
+
+           AddArticle: async function (e) {
+               var self = this;
+               var result = this.GetArticle();
+               if (result == null)
+                   return AppContext.ShowError("@g["You need to select an article first."]");
+               if (this.elements.ArticlesGrid.Rows.DataSource.first(x => x.ArticleID == result.ArticleID))
+                   return AppContext.ShowInfo("@g["That article is already part of the order."]")
+
+               self.elements.ArticlesGrid.Rows.Add(result);
+               self.elements.ArticleToAdd.val('');
+
+               //var articledetail = await AppContext.HttpPost(`/articles/addarticletoorder/${result.ArticleID}/${self.OrderId}`,null);
+           },
+
+           RefreshArticle: function (e) {
+               e.preventDefault();
+               var self = this;
+
+               if (self.ProjectId == 0)
+                   return;
+
+               var d1 = $.Deferred();
+       //        self.ShowOverlay();
+
+               $.when(
+                   AppContext.HttpGet(`/articles/getbyprojectid/${self.ProjectId}`),
+                   AppContext.HttpGet(`/packs/getbyprojectid/${self.ProjectId}`)
+               ).fail(function () {
+                   self.RemoveOverlay();
+                   d1.reject();
+                   console.log('fail to get catalogs')
+               }).then(function (articlesData, packsData) {
+
+                   self.Articles = articlesData.Data.filter(x => x.ProjectID != null);
+
+                   //Packs
+                   self.Packs = packsData.Data.filter(x => x.ProjectID != null);
+                   //update Articles
+                   for (var pack of self.Packs) {
+                       self.Articles.push({
+                           "ID": pack.ID,
+                           "ProjectID": pack.ProjectID,
+                           "Name": pack.Name,
+                           "Description": pack.Description,
+                           "ArticleCode": pack.PackCode,
+                           "BillingCode": pack.PackCode,
+                           "LabelID": null,
+                           "Instructions": null,
+                           "CategoryID": null,
+                           "PackCode": pack.PackCode
+                       });
+                   }
+
+                   $(self.elements.ArticleList).empty();
+                   self.elements.ArticleToAdd.val('');
+
+                   for (var article of self.Articles) {
+                       $(self.elements.ArticleList).append("<option value='" + article.ArticleCode
+                           + "'  articleid='" + article.ID
+                           + "' articlename='" + article.Name
+                           + "' labelid='" + article.LabelID
+                           + "' packcode='" + article.PackCode + "' >" + article.Name + "</option>");
+                   }
+
+                   d1.resolve();
+                   self.RemoveOverlay();
+               });
+
+               return d1.promise();
+           },
+
+           RemoveArticle: function (e) {
+               e.preventDefault();
+               var self = this;
+               var idx = this.elements.ArticlesGrid.Rows.SelectedIndex;
+               if (idx >= 0) {
+                   self.elements.ArticlesGrid.Rows.Remove(idx);
+               }
+           },
+
+           HandleKeyPress: function (e) {
+
+           },
+           //#endregion
+
+
+
+           //#region Save
+
+           SaveOrder: function (e) {
+               e.preventDefault();
+               var self = this;
+               //self.elements.btnSave.addClass('disabled');
+
+               if (self.model.ValidState()) {
+                   var status = 10;
+                   
+                   self._solve(status);
+               } else {
+                   AppContext.ShowError("@g["Save Error"]");
+                   //self.elements.btnSave.removeClass('disabled');
+               }
+
+           },
+
+           GetJsonSizes: function () {
+               let self = this 
+               let array = self.GetGrid().Rows.DataSource 
+               let sizeArray = array.reduce((result, currentItem) => {
+                   
+                   let existingColor = result.find(item => item.ColorCode === currentItem.ColorCode);
+
+                   if (existingColor) {
+                   
+                       let existingSize = existingColor.Sizes.find(sizeItem => sizeItem.Size === currentItem.Size);
+
+                       if (existingSize) {
+                   
+                           existingSize.Quantity += parseInt (currentItem.Quantity);
+                       } else {
+                   
+                           existingColor.Sizes.push({ Size: currentItem.Size, Quantity: parseInt (currentItem.Quantity) });
+                       }
+                   } else {
+                   
+                       result.push({
+                           ColorCode: currentItem.ColorCode,
+                           Sizes: [{ Size: currentItem.Size, Quantity: parseInt( currentItem.Quantity )}]
+                       });
+                   }
+
+                   return result;
+               }, []);
+               return JSON.stringify(sizeArray)
+           }, 
+
+
+           _solve: async function (status) {
+               var self = this;
+               var arrayData = null;
+               var arrArticles = [];
+               var sizes = null;
+               var chinasizes = null;
+               var jsonSizes = "";
+
+               //set Status
+               self.model.Status = status;
+
+               //get Articles
+               self.elements.ArticlesGrid.Rows.Each(function (rowIdx, rowData) {
+                   arrArticles.push({ OrderID: 0, ArticleID: rowData.ArticleID, IsNew: true, ArticleCode: rowData.ArticleCode, LabelID: rowData.LabelID, PackCode: rowData.PackCode });
+               });
+               //get Sizes
+               sizes = JSON.parse(JSON.stringify(self.GetGrid().Rows.DataSource));
+               chinasizes = self.GetChinaGrid().Rows.DataSource;
+
+
+
+               // if (self.GetGrid().ValidState()) {
+               //     sizes.forEach((x) => {
+               //         for (prop in x) {
+               //             if (prop != "ColorCode" && prop != "TotalColor") {
+
+               //                 if (chinasizes.length > 0) {
+               //                     if (x[prop] != "-" && x[prop] != "0") {
+               //                         //se une la talla china personalizada si existe
+               //                         if (chinasizes[0][prop] != "")
+               //                             x[prop] = x[prop] + "|" + chinasizes[0][prop];
+               //                     }
+               //                 }
+
+               //             }
+               //         }
+               //     })
+               //     jsonSizes = JSON.stringify(sizes);
+               // } else {
+               //     AppContext.ShowError("@g["An error occurred in the size grid"]");
+               //     return;
+               // }
+
+               jsonSizes = self.GetJsonSizes() 
+               //get alldata
+               arrayData = self.GetData();
+               arrayData.CompanyID = self.CompanyId;
+               arrayData.RowJsonData = jsonSizes;  //Grid de Tallas en JSON
+               arrayData.Articles = arrArticles;
+               arrayData.SectionID = 0; 
+               arrayData.SubSectionID = 0;
+               arrayData.SizeSetID=0;
+               arrayData.MarketOriginID = 0; 
+               arrayData.AdditonalTagsPercentage = 0; 
+               //arrayData.ProviderCompanyID = 0; 
+               arrayData.ManualEntryService = "TEMPE";
+               self.ShowOverlay(); 
+               var result = await AppContext.HttpPost(`/manualorderentry/save`, arrayData, null);
+            
+
+               if (result.Success) {
+                   // self.model.ID = result.Data.ID;
+                   // self.model.CreatedDate = result.Data.CreatedDate;
+                   // self.model.CreatedBy = result.Data.CreatedBy;
+                   self.RemoveOverlay()
+                   self.ClearPage(); 
+                   console.log ("Result Saving", result)
+                   // setTimeout (()=>{
+                   //     self.OrderSavedHandler(self.elements.OrderNumber.val(), arrayData.SeasonID)
+                   // }
+                   // ,15000)
+
+                   //self.OrderSavedHandler2(result.Data, arrayData.SeasonID, self.elements.OrderNumber.val());
+
+                   // if (result.Data.Status == @((int)OrderStatus.Completed)) {
+                   //     var selfViewCurrentContainer = self.ViewContainer;
+                   //     var view = await AppContext.ViewManager.Load("/DataEntry/OrderList.js");
+                   //     view.Show(selfViewCurrentContainer);
+                   // }
+
+                   //self.elements.btnSave.removeClass('disabled');
+               } else {
+                   //Do Something
+                   
+                   self.RemoveOverlay() 
+                   //self.elements.btnSave.removeClass('disabled');
+               }
+           },
+
+           ParseWizardStep: function (wizardStep) {
+
+               var self = this;
+               var wizardController = null;
+               var promise = null;
+
+               if (!wizardStep) {
+                   // go to orderreport
+                   wizardStep = { Type: -1, Url: '/' };
+               }
+
+               for (var i = 0; i < self.OrderSelection.length; i++) {
+                   self.OrderSelection[i].WizardStepPosition = wizardStep.Position
+               }
+
+
+
+
+               switch (wizardStep.Type) {
+
+                   //case 5:
+
+                   //    promise = AppContext.LoadJS(wizardStep.Url).then(() => {
+                   //        wizardController = new SetArticlesToOrderWizard(self.OrderSelection, wizardStep, self.DataAllSteps);
+                   //    })
+
+                   //    break;
+
+                   case @((int)WizardStepType.ItemAssignment):
+
+                       promise = AppContext.LoadJS(wizardStep.Url).then(() => {
+                           wizardController = new ItemAssignmentWizard(self.OrderSelection, wizardStep, self.DataAllSteps);
+                       })
+
+                       break;
+
+
+                   case 10:
+
+                       promise = AppContext.LoadJS(wizardStep.Url).then(() => {
+                           wizardController = new QuantityWizard(self.OrderSelection, wizardStep, self.DataAllSteps);
+                       })
+
+                       break;
+
+                   case 15:
+
+                       promise = AppContext.LoadJS(wizardStep.Url).then(() => {
+                           wizardController = new LabellingCompoSimpleWizard(self.OrderSelection, wizardStep, self.DataAllSteps);
+                       })
+
+                       break;
+
+                   case 30:
+
+                       promise = AppContext.LoadJS(wizardStep.Url).then(() => {
+                           wizardController = new ArticleExtrasWizard(self.OrderSelection, wizardStep, self.DataAllSteps);
+                       })
+
+                       break;
+
+                   case 40:
+
+                       promise = AppContext.LoadJS(wizardStep.Url).then(() => {
+                           wizardController = new MadeInWizard(self.OrderSelection, wizardStep, self.DataAllSteps);
+                       })
+
+                       break;
+
+                   case 50:
+
+                       promise = AppContext.LoadJS(wizardStep.Url).then(() => {
+                           wizardController = new SupportFilesWizard(self.OrderSelection, wizardStep, self.DataAllSteps);
+                       })
+
+                       break;
+
+                   case 80:
+
+                       promise = AppContext.LoadJS(wizardStep.Url).then(() => {
+                           wizardController = new ShippingAddressWizard(self.OrderSelection, wizardStep, self.DataAllSteps);
+                       })
+
+                       break;
+
+                   case 90:
+
+                       promise = AppContext.LoadJS(wizardStep.Url).then(() => {
+                           wizardController = new ReviewWizard(self.OrderSelection, wizardStep, self.DataAllSteps);
+                       })
+
+                       break;
+
+                   default:
+                       //console.log(`wizard type "${wizardStep.Type}" not found`);
+                       var outResolver = function () { };
+
+                       promise = new Promise((resolve, reject) => {
+                           outResolver = resolve;
+
+                       }).then(() => {
+                           //wizardController = new OrderReportView();
+                           wizardController = new OrderGroupIndexView();
+                       })
+
+                       outResolver();
+
+                       break;
+
+               }
+
+               promise.then(() => {
+
+                   //wizardController.Show();
+
+                   //self.Wizard = wizardController;
+
+                   var e = new Event("WizardCreated");
+                   e.wizardController = wizardController;
+                   e.wizardStep = wizardStep;
+
+                   self.OnWizardCreated.Raise(e);
+
+               })
+
+           },
+
+           // OrderSavedHandler2: function (data, projectId,ordernumber) {
+           //     let self = this; 
+           //     let orderID = data[0].OrderID; 
+           //     AppContext.HttpGet(`/manualorderentry/getsavedorder/${orderID}/${projectId}`, (result) => {
+
+           //         if (result.Success) {
+           //             if (result.Data) {
+           //                 result.Data.forEach((order) => {
+
+           //                     let orderSelection = {
+
+           //                         OrderNumber: ordernumber,
+           //                         Details: [],
+           //                         OrderGroupID: order.OrderGroupID,
+           //                         Orders: [order.ID],
+           //                         ProjectID: order.ProjectID
+           //                     }
+
+           //                     self.OrderSelection.push(orderSelection);
+           //                 })
+           //                 self.RemoveOverlay();
+           //                 validatorHandler = new ValidatorHelper(self.OrderSelection);
+
+           //                 validatorHandler.OnWizardCreated.Subscribe((e) => {
+           //                     var wizard = e.wizardController;
+           //                     var wizardStep = e.wizardStep
+           //                     wizard.Show(self.ViewContainer);
+           //                 })
+
+           //                 validatorHandler.Continue();
+
+           //             } else {
+           //                 AppContext.ShowWarning("@g["Order Queued!"]");
+           //                 self.ClearPage();
+           //                 self.RemoveOverlay();
+           //             }
+           //             result.Data.forEach((element) => {
+
+           //                 console.log("Order Saved", element)
+           //             })
+           //         } else {
+           //             self.ClearPage();
+           //             self.RemoveOverlay();
+           //             window.location.href = '/';
+
+           //         }
+               
+           //     })
+
+           // }, 
+
+           // OrderSavedHandler :  function (ordernumber, projectId)
+           // {
+           //         let self = this
+           //         // buscar la order
+           //     AppContext.HttpGet(`/manualorderentry/getsavedorder/${ordernumber}/${projectId}`, (result) => {
+                   
+           //         if (result.Success)
+           //         {
+           //             if (result.Data) 
+           //             {
+           //                 result.Data.forEach((order) => {
+
+           //                     let orderSelection = {
+                                    
+           //                         OrderNumber : ordernumber, 
+           //                         Details : [], 
+           //                         OrderGroupID : order.OrderGroupID, 
+           //                         Orders : [order.ID], 
+           //                         ProjectID : order.ProjectID
+           //                     }
+
+           //                     self.OrderSelection.push(orderSelection); 
+           //                 })
+           //                 self.RemoveOverlay();
+           //                 validatorHandler = new ValidatorHelper(self.OrderSelection);
+
+           //                 validatorHandler.OnWizardCreated.Subscribe((e) => {
+           //                     var wizard = e.wizardController;
+           //                     var wizardStep = e.wizardStep
+           //                     wizard.Show(self.ViewContainer);
+           //                 })
+
+           //                 validatorHandler.Continue();
+
+           //             } else 
+           //             {
+           //                 AppContext.ShowWarning("@g["Order Queued!"]");
+           //                 self.ClearPage();
+           //                 self.RemoveOverlay();
+           //             }
+           //             result.Data.forEach((element)=> {
+
+           //                 console.log("Order Saved", element)
+           //             })
+           //         } else {
+           //             self.ClearPage(); 
+           //             self.RemoveOverlay();
+           //             window.location.href = '/';
+
+           //         }
+           //     });
+
+
+               
+           // },
+           SaveAndNext: async function (e) {
+               e.preventDefault();
+               var self = this;
+
+
+
+               // if (!self.ValidateOrderNumber()) {
+               //     //AppContext.ShowError("@g["Please specify if the OrderNumber is '-25' or '-D'"]");
+               //     return;
+               // }
+
+               if (!self.GetGrid().ValidState()) {
+                   AppContext.ShowError("@g["Colors code are required"]");
+                   return;
+               }
+
+               if (self.LengthColorsValidation()) {
+                   AppContext.ShowError("@g["Colors length is 3 characters"]");
+                   return;
+               }
+
+
+               if (!self.ArticlesValidation() || !self.SizesValidation()) {
+                   AppContext.ShowError("@g["Articles and Sizes are required"]");
+                   return;
+               }
+
+               if (!self.ValidateEmptyQuality()) {
+                   AppContext.ShowError("@g["Empty Article Quality"]");
+                   return;
+               }
+
+               if (!self.ValidateEmptySizes()) {
+                   AppContext.ShowError("@g["There are sizes with zero quantity"]");
+                   return;
+               }
+
+               // if (!self.ValidateDuplicateColorSizes()) {
+               //     AppContext.ShowError("@g["Repeated Colors"]");
+               //     return;
+               // }
+
+               var status = @((int)OrderStatus.Completed);
+               self._solve(status);
+
+               // var view = await AppContext.ViewManager.Load("/DataEntry/ConfirmSaveOrder.js");
+               // view.SetMessage("@g["Do you want to save and send the order ?"]");
+               // var result = await view.ShowDialog();
+
+               // if (result) {
+               //     if (self.model.ValidState() && self.PricesValidation()) {
+               //         var status = @((int)OrderStatus.Completed);
+               //         self._solve(status);
+               //     } else {
+               //         AppContext.ShowError("@g["Save Error"]");
+               //     }
+               // }
+           },
+
+           //#endregion
+
+           //#region Validations
+
+           ValidateEmptyQuality: function () { 
+               let self = this 
+               if (self.elements.ArticleQuality2.val() == "") { 
+                   return false; 
+               }
+               if (self.elements.ArticleQuality1.val()=="") 
+               {
+                   return false;
+               }
+               return true
+           },
+
+           ValidateBarcode2: function () {
+
+               try {
+                   var self = this;
+                   var sizes = JSON.parse(JSON.stringify(self.GetGrid().Rows.DataSource));
+                   var colorsize = [];
+                   var compareSizeInditex = [];
+                   self.BarcodesPrintEntry = [];
+
+                   //extract color and size
+                   sizes.forEach((x) => {
+                       for (prop in x) {
+                           if (prop != "ColorCode" && prop != "TotalColor") {
+
+                               if (x[prop] != "-" && x[prop] != "0") {
+
+                                   if (prop.split('_').length > 1) {
+                                       var sizeid = prop.split('_')[1];
+                                       colorsize.push({ ColorCode: x["ColorCode"], SizeId: sizeid });
+                                   }
+                               }
+                           }
+                       }
+                   })
+
+                   colorsize.forEach((x) => {
+                       self.BarcodesPrintEntry.push(self.CreateBarcodes(x.ColorCode, x.SizeId, self.model.ArticleQuality1, self.model.ArticleQuality2));
+                   });
+
+                   compareSizeInditex = self.BarcodesInditex.map(function (element) {
+                       return element.Barcode.slice(0, -1);
+                   });
+
+                   if (compareSizeInditex.length == self.BarcodesPrintEntry.length) {
+
+                       self.BarcodesPrintEntry.sort();
+                       compareSizeInditex.sort();
+
+                       if (JSON.stringify(compareSizeInditex) === JSON.stringify(self.BarcodesPrintEntry)) {
+                           return true;
+                       } else {
+                           return false;
+                       }
+
+                   } else {
+                       return false;
+                   }
+
+               }
+               catch (err) {
+                   return false;
+               }
+           },
+
+
+           ValidateBarcode: function () {
+
+               try {
+                   var self = this;
+                   var sizes = JSON.parse(JSON.stringify(self.GetGrid().Rows.DataSource));
+                   var colorsize = [];
+                   var compareSizeInditex = [];
+                   self.BarcodesPrintEntry = [];
+                   var flag = true;
+                   var finder = 0;
+
+                   //extract color and size
+                   sizes.forEach((x) => {
+                       for (prop in x) {
+                           if (prop != "ColorCode" && prop != "TotalColor") {
+
+                               if (x[prop] != "-") {
+
+                                   if (prop.split('_').length > 1) {
+                                       var sizeid = prop.split('_')[1];
+                                       colorsize.push({ ColorCode: x["ColorCode"], SizeId: sizeid });
+                                   }
+                               }
+                           }
+                       }
+                   })
+
+                   colorsize.forEach((x) => {
+                       self.BarcodesPrintEntry.push(self.CreateBarcodes(x.ColorCode, x.SizeId, self.model.ArticleQuality1, self.model.ArticleQuality2));
+                   });
+
+                   compareSizeInditex = self.BarcodesInditex.map(function (element) {
+                       return element.Barcode.slice(0, -1);
+                   });
+
+                   self.BarcodesPrintEntry.forEach((y) => {
+                       var found = compareSizeInditex.filter(x => x == y);
+
+                       if (found.length == 0) {
+                           flag = false;
+                       } else {
+                           finder++;
+                       }
+                   })
+
+                   return (flag && (finder == compareSizeInditex.length)) ? true : false;
+               }
+               catch (err) {
+                   return false;
+               }
+           },
+
+           ValidateOrderNumber: function () {
+
+               var self = this;
+               var ordernumber = self.elements.OrderNumber;
+               var regex = ""
+               var res = true;
+               var msg;
+
+               if (self.model.BrandID == 39) { //BERSHKA
+                   regex = /-01$/;
+                   msg = "Especifique si el n&#xFA;mero de pedido es &#x27;-01&#x27;";
+
+               } else if (self.model.BrandID == 67) {
+                   regex = /-D|-25$/;
+                   msg = "Especifique si el n&#xFA;mero de pedido es &#x27;-25&#x27; o &#x27;-D&#x27;";
+               }
+
+               try {
+
+                   res = regex.test(ordernumber.val())
+                   if (!res)
+                       AppContext.ShowError(msg);
+
+               }
+               catch (err) {
+                   res = false;
+               }
+
+               return res;
+           },
+
+           ValidateEmptySizes: function () {
+               var self = this;
+               var count = 0;
+               const BreakError = {};
+
+               try {
+                   var rows = self.GetGrid().Rows.Each(function (rowIdx, rowData) {
+                       if (rowData.TotalColor == 0) {
+                           count += 1;
+                           throw BreakError;
+                       }
+                   });
+               }
+               catch (err) {
+                   if (count > 0) {
+                       return false;
+                   }
+               }
+               return true;
+           },
+
+           ValidateDuplicateColorSizes: function () {
+               var self = this;
+               var count = 0;
+               var colors = [];
+               var rows = self.GetGrid().Rows.Each(function (rowIdx, rowData) {
+
+                   if (colors.length == 0) {
+                       colors.push({ ColorCode: rowData.ColorCode });
+                       return;
+                   }
+
+                   var found = colors.find(x => x.ColorCode == rowData.ColorCode);
+
+                   if (!found) {
+                       colors.push({ ColorCode: rowData.ColorCode });
+                   } else {
+                       count++;
+                   }
+               });
+
+               if (count > 0) {
+                   return false;
+               } else {
+                   return true;
+               }
+           },
+
+           ArticlesValidation: function () {
+               var self = this;
+               var rowscount = self.elements.ArticlesGrid.Rows.Count; 
+             //  var rowscount = self.Articles.length 
+
+               if (rowscount > 0) {
+                   return true;
+               } else {
+                   return false;
+               }
+           },
+
+           SizesValidation: function () {
+               var self = this;
+               var rowscount = self.GetGrid().Rows.Count;
+               if (rowscount > 0) {
+                   return true;
+               } else {
+                   return false;
+               }
+           },
+
+           // PricesValidation: function () {
+           //     var self = this;
+           //     var flag = true;
+
+           //     for (var i = 1; i < 5; i++) {
+
+           //         if ($("input[name='Price" + i + "']").val() != "") {
+
+           //             if ($("input[name='Currency" + i + "']").val() != "") {
+
+           //                 $("input[name='Currency" + i + "']").removeClass("is-invalid");
+           //                 flag = true;
+
+           //             } else {
+           //                 $("input[name='Currency" + i + "']").addClass("is-invalid");
+           //                 flag = false;
+           //                 break;
+           //             }
+           //         } else {
+           //             $("input[name='Currency" + i + "']").removeClass("is-invalid");
+           //             flag = true;
+           //         }
+           //     }
+
+           //     return flag;
+           // },
+
+           LengthColorsValidation: function () {
+               var self = this;
+               var rowscount = 0;
+
+               self.GetGrid().Rows.Each(function (rowIdx, rowData) {
+                   if (rowData.ColorCode.length != 3) {
+                       rowscount++;
+                   }
+               });
+
+               if (rowscount > 0) {
+                   return true;
+               } else {
+                   return false;
+               }
+           },
+
+           ExtractedSizesValidations: function () {
+               var self = this;
+               var d = self.OrderData;
+               var count = 0;
+
+               if (d != null) {
+
+                   var jsonorder = self.OrderData.OrderJsonData != "" ? JSON.parse(self.OrderData.OrderJsonData) : null;
+
+                   if (jsonorder != null) {
+
+                       var headers = self.GetGrid().Headers;
+
+                       if (InditexExtractedSizes.length > 0) {
+
+                           for (var i = 0; i < InditexExtractedSizes.length; i++) {
+
+                               var obj = InditexExtractedSizes[i];
+
+                               for (var x in obj) {
+
+                                   for (var j = 0; j < self.GetGrid().Headers.Count; j++) {
+
+                                       if (headers.Get(j).Text == x.replace("SizeID_", "").replace("ColorCode", "Color")) {
+
+                                           if (headers.Get(j).Text != "Color") {
+                                               count++;
+                                           }
+                                           break;
+                                       }
+                                   }
+                               }
+
+                               i = InditexExtractedSizes.length;
+                           }
+
+                           if (count == Object.keys(InditexExtractedSizes[0]).length - 1) {
+                               return true;
+                           } else {
+                               return false;
+                           }
+                       }
+
+                   } else {
+                       return true;
+                   }
+
+               } else {
+                   return true;
+               }
+           },
+
+           //#endregion
+
+           //#region Order
+
+           // LoadOrder: function () {
+           //     var self = this;
+           //     var d = $.Deferred();
+
+           //     $.when(
+           //         AppContext.HttpGet(`/order/getbyid/${self.OrderId}`)
+           //     ).fail(function () {
+           //         d.reject();
+           //         console.log('fail to get order')
+           //     }).then(function (data) {
+           //         d.resolve(data);
+           //     })
+
+           //     return d.promise();
+           // },
+
+           SetOrderData: function () {
+               var self = this;
+
+               self.model.ID = self.OrderData.ID;
+               self.model.CompanyID = self.OrderData.CompanyID;
+               self.model.CreatedDate = self.OrderData.CreatedDate;
+               self.model.CreatedBy = self.OrderData.CreatedBy;
+               self.model.Status = self.OrderData.Status;
+               self.model.OrderNumber = self.OrderData.OrderNumber + '-06';
+               self.model.ArticleQuality1 = self.OrderData.ArticleQuality1;
+               self.model.ArticleQuality2 = self.OrderData.ArticleQuality2;
+               self.model.Description = self.OrderData.Description;
+               self.model.DeliveryDate = self.OrderData.DeliveryDate == "0001-01-01T00:00:00" ? "@DateTime.Now.ToString("yyyy-MM-dd")" : new Date(Date.parse(self.OrderData.DeliveryDate));
+               self.model.Price1 = self.OrderData.Price1;
+               self.model.Price2 = self.OrderData.Price2;
+               self.model.Price3 = self.OrderData.Price3;
+               self.model.Price4 = self.OrderData.Price4;
+               self.model.Price5 = self.OrderData.Price5;
+               self.model.Currency1 = "EUR" ;
+               self.model.Currency2 = "EUR" ;
+               self.model.Currency3 = self.OrderData.Currency3;
+               self.model.Currency4 = self.OrderData.Currency4;
+               self.model.Currency5 = self.OrderData.Currency5;
+               self.model.AdditonalTagsPercentage = self.OrderData.AdditonalTagsPercentage;
+               self.model.OrderJsonData = self.OrderData.OrderJsonData;
+               self.CompanyID = self.OrderData.CompanyID; 
+               self.OrderId = self.OrderData.ID; 
+
+               // if (self.model.OrderJsonData != "") {
+               //     self.BarcodesInditex = JSON.parse(self.model.OrderJsonData).Sizes;
+               // }
+
+               self.BarcodesInditex = self.OrderData.Sizes;
+               self.AddCustomColumnsJson();
+           },
+
+           // SetOrderComboData: function () {
+           //     var self = this;
+
+           //     var sectionID = -1;
+
+           //     var ProviderCompanyID = "";
+           //     var ProviderReference = -1;
+           //     var MarketOriginID = -1;
+
+           //     if (self.OrderId > 0) {
+
+           //         sectionID = parseInt(self.OrderData.SectionID);
+           //         ProviderReference = self.OrderData.MarketOriginID;
+           //         MarketOriginID = parseInt(self.OrderData.MarketOriginID);
+           //         ProviderCompanyID = parseInt(self.OrderData.ProviderCompanyID);
+
+           //         // looking inner order data
+           //         if (sectionID < 1) {
+           //             // looking inner json data
+           //             var found = self.SectionData.find((f) => f.Code == JSON.parse(self.OrderData.OrderJsonData).Section.toString());
+           //             self.model.SectionID = found != null ? parseInt(found.ID) : -1;
+           //         } else {
+           //             self.model.SectionID = self.OrderData.SectionID;
+           //         }
+
+           //         if (MarketOriginID < 1) {
+
+           //             self.model.MarketOriginID = -1; 
+           //         } else {
+           //             self.model.MarketOriginID = self.OrderData.MarketOriginID;
+           //         }
+
+           //         if (ProviderCompanyID < 1) {
+
+           //             if (self.Providers )
+           //             {
+           //                 var found = self.Providers.find((f) => f.ClientReference == self.OrderData.ProviderReference)
+
+           //                 if (found != null) {
+           //                     self.model.ProviderReference = self.OrderData.ProviderReference;
+           //                     self.model.ProviderCompanyID = found.ProviderCompanyID;
+           //                 } else {
+           //                     AppContext.ShowInfo("@g["Provider not found"]");
+           //                 }
+
+           //             }
+
+           //         } else {
+           //             self.model.ProviderCompanyID = self.OrderData.ProviderCompanyID;
+           //           //  self.model.ProviderReference = self.OrderData.ProviderReference;
+           //         }
+
+           //     }
+
+           //     //articles
+           //     // self.OrderData.Articles.forEach((x) => {
+           //     //     var found = self.Articles.find((f) => f.ArticleCode == x.ArticleCode)
+           //     //     self.elements.ArticlesGrid.Rows.Add({ ArticleID: found.ID, Name: found.Name, ArticleCode: found.ArticleCode, LabelID: found.LabelID, PackCode: found.PackCode });
+           //     // })
+           // },
+
+           //#endregion
+
+           //#region Helpers Methods
+
+           FillComboBox: function (element, data, valueField, textField, triggerChange) {
+               var opValue, opText;
+               var combo = AppContext.GetContainerElement(element);
+               combo.empty();
+               $.each(data, function (i, item) {
+                   opValue = valueField ? item[valueField] : item.ID ? item.ID : item.Value ? item.Value : item;
+                   opText = textField ? item[textField] : item.Name ? item.Name : item.Text ? item.Text : item;
+                   combo.append($('<option>', {
+                       value: opValue,
+                       text: opText
+                   }));
+                   if (i === 0) {
+                       combo.val(opValue);
+
+                       if (triggerChange) {
+                           combo.change();
+                       }
+                   }
+               });
+           },
+
+           ShowOverlay: function () {
+               var overlay = null;
+               overlay = $('<div><div id="overlay"></div><div id="overlaymessage">Processing...</div></div>');
+               overlay.appendTo(document.body)
+           },
+
+           RemoveOverlay: function () {
+               $("#overlaymessage").remove();
+               $("#overlay").remove();
+           },
+
+           //#endregion
+
+           //#region SizesGrid
+           GetGrid: function () {
+               var self = this;
+               return self.elements.SizeGrid;
+           },
+
+           GetChinaGrid: function () {
+               var self = this;
+               return self.elements.ChinaGrid;
+           },
+
+           AddCustomColumns: function () {
+               var self = this;
+               self.ClearCustomColumns();
+
+               try {
+
+                   self.GetGrid().Headers.Add({
+                       Text: "Color",
+                       Field: "ColorCode",
+                       Sortable: true,
+                       Width: 120,
+                       Type: "String",
+                       Editable: true,
+                       Validations: "required"
+                   })
+
+                   //add header if the size contains china_custom_size
+                   // if (self.SizesData[0].CHINA_CUSTOM) {
+                   //     self.GetChinaGrid().Headers.Add({
+                   //         Text: "China",
+                   //         Field: "ChinaDesc",
+                   //         Sortable: true,
+                   //         Width: 120,
+                   //         Type: "String",
+                   //         Editable: false
+                   //     });
+                   // }
+
+                   self.SizesData.forEach((o) => {
+                       self.GetGrid().Headers.Add({
+                           Text: o.DisplayField,
+                           Field: "SizeID_" + o.ID,
+                           Sortable: true,
+                           Width: 120,
+                           Type: "Int",
+                           Editable: true
+                       })
+
+                       //add header if the size contains china_custom_size
+                       if (self.SizesData[0].CHINA_CUSTOM) {
+                           self.GetChinaGrid().Headers.Add({
+                               Text: o.DisplayField,
+                               Field: "SizeID_" + o.ID,
+                               Sortable: true,
+                               Width: 120,
+                               Type: "String",
+                               Editable: true
+                           })
+
+                           var ChinaDesc = self.SizesData[0].CHINA;
+                           var chinawarning = "<div class='alert alert-warning' role='alert'>" + "@g["Please validate that the Chinese equivalences are correct"]" + "</div>";
+                           self.elements.instructions.html("<h6></br>Instrucciones para establecer equivalencia China: " + ChinaDesc + "</h6></br>" + chinawarning);
+                           self.elements.instructions.show();
+                       } else {
+                           self.elements.instructions.hide();
+                       }
+                   })
+
+                   self.GetGrid().Headers.Add({
+                       Text: "Total",
+                       Field: "TotalColor",
+                       Sortable: true,
+                       Type: "Int",
+                       Width: 120,
+                       Editable: false,
+                       Validations: "required"
+                   })
+
+               } catch (ex) {
+                   AppContext.ShowError("@g["An error occurred when creating the size grid"]");
+               }
+           },
+
+           AddRowSize: function (e) {
+               e.preventDefault();
+               var self = this;
+
+               var row = {ColorCode:0, Size:"-", Quantity:0} 
+               self.GetGrid().Rows.Add(row);
+
+             
+               console.log ("DataSource", self.GetGrid().Rows.DataSource) 
+
+               // if (self.SizesData) {
+               //     var rowChina = { ChinaDesc: '@g["Equivalent Size"]' };
+               //     var row = { ColorCode: "", TotalColor: 0 };
+
+               //     self.SizesData.forEach((o) => {
+               //         row["SizeID_" + o.ID] = "-";
+               //         rowChina["SizeID_" + o.ID] = "";
+               //     })
+
+               //     //add row if the size contains china_custom_size
+               //     if (self.SizesData[0].CHINA_CUSTOM) {
+               //         if (self.GetChinaGrid().Rows.Count < 10) {
+               //             if (!self.chinasize)
+               //                 self.GetChinaGrid().Rows.Add(rowChina);
+
+               //             self.chinasize = true;
+               //         }
+               //     }
+
+               //     self.GetGrid().Rows.Add(row);
+               // }
+           },
+
+           LoadExtractedSizes: function (e) {
+               e.preventDefault();
+               var self = this;
+
+               if (self.SizesData) {
+
+                   //Base Row
+                   var row = { ColorCode: "", TotalColor: 0 };
+                   self.SizesData.forEach((o) => {
+                       row["SizeID_" + o.ID] = "-";
+                   })
+
+                   var headers = self.GetGrid().Headers;
+
+                   if (InditexExtractedSizes.length > 0) {
+                       let sizeCount = -1;
+                       for (var i = 0; i < InditexExtractedSizes.length; i++) {
+                           let totalColor = 0; 
+                           var rowclone = null;
+                           rowclone = JSON.parse(JSON.stringify(row));
+
+                           var obj = InditexExtractedSizes[i];
+                           
+                           for (var x in obj) {
+                          
+                               for (var j = 0; j < self.GetGrid().Headers.Count; j++) {
+
+                                   if (headers.Get(j).Text == x.replace("SizeID_", "").replace("ColorCode", "Color").trim()) {
+
+                                       if (headers.Get(j).Text == "Color") {
+                                           rowclone[headers.Get(j).Field] = obj[x];
+                                       } else {
+
+                                           sizeCount++;
+                                           rowclone[headers.Get(j).Field] = self.OrderData.Sizes[sizeCount].Quantity;
+                                           totalColor += self.OrderData.Sizes[sizeCount].Quantity
+                                       }
+                                       break;
+                                   }
+                               }
+                           }
+                           rowclone.TotalColor = totalColor;
+                           self.GetGrid().Rows.Add(rowclone);
+                       }
+                   }
+               }
+           },
+
+           LoadRowsSize: function () {
+               var self = this;
+               self.GetGrid().Rows.Add(row);
+           },
+
+           // LoadSizes: async function (e) {
+           //     var self = this;
+           //     var result = null;
+           //     var setId = self.elements.SizeSetID.val();
+
+           //     if (setId && setId != -1) {
+           //         var catalogid = self.SizesSetCatalog.CatalogID;
+
+           //         result = await AppContext.HttpGet(`/catalogdata/getsubset/${catalogid}/${setId}/${self.SizesCatalogName}`);
+           //         self.SizesData = JSON.parse(result);
+
+           //         self.AddCustomColumns();
+           //         self.GetGrid().Rows.Clear();
+           //         self.chinasize = false;
+           //         self.GetChinaGrid().Rows.Clear();
+
+
+           //         if (self.OrderId != 0 && self.OrderData.SizeSetID == setId) {
+           //             //Load Saved Sizes
+           //             var dataSizes = JSON.parse(self.OrderData.RowJsonData);
+
+           //             dataSizes.forEach((x) => {
+           //                 for (prop in x) {
+           //                     if (prop != "ColorCode" && prop != "TotalColor") {
+           //                         if (x[prop].toString().split("|").length > 0) {
+           //                             x[prop] = x[prop].toString().split("|")[0];
+           //                         }
+           //                     }
+           //                 }
+           //             });
+
+           //             self.GetGrid().Rows.LoadData(dataSizes);
+
+           //             //GET CHINA SIZE
+           //             var obj = []
+           //             obj.push({ ChinaDesc: '@g["Equivalent Size"]' });
+           //             JSON.parse(self.OrderData.RowJsonData).forEach((x) => {
+           //                 for (prop in x) {
+           //                     if (prop != "ColorCode" && prop != "TotalColor") {
+           //                         if (x[prop].toString().split("|").length > 1) {
+           //                             obj[0][prop] = x[prop].toString().split("|")[1];
+           //                         } else {
+           //                             var chinaval = x[prop].toString().split("|")[0];
+           //                             obj[0][prop] = chinaval.includes("|") ? chinaval : "";
+           //                         }
+           //                     }
+           //                 }
+           //             })
+           //             self.GetChinaGrid().Rows.LoadData(obj);
+           //             self.chinasize = true;
+           //         }
+           //     } else {
+           //         self.GetGrid().Headers.Clear();
+           //         self.GetGrid().Rows.Clear();
+           //         self.GetChinaGrid().Headers.Clear();
+           //         self.GetChinaGrid().Rows.Clear();
+           //         self.elements.instructions.hide();
+           //     }
+           // },
+
+           RemoveSizes: function (e) {
+               e.preventDefault();
+               var self = this;
+               var idx = self.GetGrid().Rows.SelectedIndex;
+               if (idx >= 0) {
+                   self.GetGrid().Rows.Remove(idx);
+               }
+           },
+
+           HandleCellEdit: function (e) {
+               var self = this;
+
+               if (e.proposedValue.trim().includes(".")) {
+                   AppContext.ShowError("@g["The quantities must be integers"]");
+                   e.proposedValue = e.currentValue.toString();
+                   return;
+               }
+
+               if (e.proposedValue.trim().split("-").length - 1 > 1) {
+                   AppContext.ShowError("@g["The field only accept one '-' symbol"]");
+                   e.proposedValue = "-";
+                   return;
+               }
+
+               if (e.proposedValue.trim() == "") {
+                   e.proposedValue = "0";
+               } else if (e.proposedValue != "-") {
+
+                   if (e.field == "ColorCode") {
+                       e.proposedValue = e.proposedValue.toString();
+                   } else {
+                       e.proposedValue = Math.abs(parseInt(e.proposedValue.replace(",", ""))).toString();
+                       e.newValue = Math.abs(parseInt(e.proposedValue.replace(",", "")));
+                   }
+               }
+
+               if (isNaN(e.newValue)) {
+                   e.preventDefault();
+               }
+
+               self.CalculateTotals(e);
+           },
+
+           CalculateTotals: function (e) {
+               var self = this;
+
+               //se busca cambios en campos de tallas
+               if (e.field.startsWith("SizeID_")) {
+                   var total = 0;
+                   var additional = 0;
+                   var row = self.GetGrid().Rows.Get(e.rowIndex);
+
+                   //se recorren las columnas del row seleccionado
+                   for (var column in row) {
+
+                       if (column == e.field) {
+                           total += Math.abs(Number(Number.isNaN(e.newValue) ? 0 : e.newValue));
+                       } else if (column.startsWith("SizeID_")) {
+
+                           if (row[column] != "-" && row[column] != "") {
+                               total += Math.abs(Number(row[column]));
+                           }
+                       }
+                   }
+
+                   row["TotalColor"] = total;
+                   self.GetGrid().Rows.Update(e.rowIndex, row);
+               }
+           },
+
+           CreateBarcodes: function (colorCode, sizeid, model, quality) {
+               var self = this;
+               var sizecode = self.SizesData.filter(x => x.ID == sizeid);
+               return "0" + model + quality + colorCode + sizecode[0].Code;
+           },
+
+           ClearCustomColumns: function () {
+               this.GetGrid().Headers.Clear();
+               this.GetChinaGrid().Headers.Clear();
+           },
+
+           FillSubSectionCombo: function () {
+               let self = this;
+               let Data = null;
+               let section = self.elements.SectionID.val();
+               var defaultValue = { ID: -1, Name: '@Html.Raw(g["Select an Option"])' };
+
+               Data = self.SubSectionData;
+             //  Data.unshift(defaultValue);
+               if (Data?.length > 0) 
+               {
+                   self.FillComboBox(self.elements.SubSectionID, Data, "ID", "Name", false);
+                   self.model.SubSectionID = Data[0].ID 
+               }
+               
+
+
+               // if (self.OrderId != 0) {
+               //     self.FillComboBox(self.elements.SubSectionID, Data, "ID", "Name", false);
+
+               //     var SubSectionID = -1;
+               //     SubSectionID = parseInt(self.OrderData.SubSectionID);
+
+               //     if (SubSectionID < 1) {
+               //        // var found = self.SubSectionData.find((f) => f.Code == JSON.parse(self.OrderData.OrderJsonData).SubSection.toString());
+               //        var found = self.SubSectionData.find((f) => f.Code == self.OrderData.SubSectionID)
+               //         self.model.SubSectionID = found == null ? -1 : parseInt(found.ID);
+               //         if (Data.filter((obj) => { return obj.ID != -1 }).length == 1) {
+               //             self.model.SubSectionID = 1;
+               //         }
+               //     } else {
+               //         self.model.SubSectionID = self.OrderData.SubSectionID;
+               //     }
+               // } else {
+               //     self.FillComboBox(self.elements.SubSectionID, Data, "ID", "Name", true);
+               // }
+           },
+
+           //#endregion
+
+
+           //#region
+           GetGridJson: function () {
+               var self = this;
+               return self.elements.SizeGridJson;
+           },
+
+           ClearCustomColumnsJson: function () {
+               this.GetGridJson().Headers.Clear();
+           },
+
+           // AddCustomColumnsJson: function () {
+           //     var self = this;
+           //     self.ClearCustomColumnsJson();
+           //     //var d = self.OrderData.OrderJsonData != "" ? JSON.parse(self.OrderData.OrderJsonData) : null; 
+           //     let d = self.OrderData.Sizes; 
+           //     console.log("Sizes", self.OrderData.Sizes)
+           //     var colors = [];
+           //     InditexExtractedSizes = [];
+
+           //     if (d != null) {
+
+           //         $('div[name="extractedsizes"]').show();
+
+           //         try {
+           //             self.GetGridJson().Headers.Add({
+           //                 Text: "Color",
+           //                 Field: "ColorCode",
+           //                 Sortable: true,
+           //                 Width: 120,
+           //                 Type: "String",
+           //                 Editable: false
+           //             });
+
+           //             const distinctSizes = d.map(d=>d.Size) 
+           //             const uniqueSizes = [... new Set(distinctSizes)]
+
+           //             uniqueSizes.forEach((o) => {
+           //                 self.GetGridJson().Headers.Add({
+           //                     Text: o,
+           //                     Field: "SizeID_" + o,
+           //                     Sortable: true,
+           //                     Width: 120,
+           //                     Type: "Int",
+           //                     Editable: false
+           //                 })
+           //             });
+
+           //             for (var j = 0; j < d.length; j++) {
+           //                 var colorcode = d[j].Color;
+
+           //                 if (!colors.includes(colorcode)) {
+           //                     colors.push(colorcode);
+           //                 }
+           //             }
+
+           //             //addcolors
+           //             colors.forEach((o) => {
+           //                 var row = { ColorCode: o.length < 3 ? "0" + o : o };
+
+           //                 d.forEach((o) => {
+           //                     row["SizeID_" + o.Size] = '@Html.Raw(g["Yes"])';
+           //                 })
+
+           //                 self.GetGridJson().Rows.Add(row);
+           //                 InditexExtractedSizes.push(row);
+           //             });
+
+           //         } catch (ex) {
+           //             AppContext.ShowError("@g["An error occurred when creating the size grid"]");
+           //         }
+           //     }
+           // },
+
+           //#endregion
+
+	};
+//</script>

@@ -1,0 +1,206 @@
+﻿@page
+@inject ILocalizationService g
+@inject RequestLocalizationOptions langOptions
+@inject IUserData userData
+@inject ICompanyRepository companyRepo
+@inject ILocationRepository locationRepo
+@inject IUserRepository userRepo
+
+@{
+    Layout = null;
+    int companyid = Convert.ToInt32(Request.Query["companyid"]);
+    var data = companyRepo.GetByID(companyid);
+    var locations = locationRepo.GetList();
+    var companyLocations = locations.Where(p => p.CompanyID == companyid);
+    var idtLocations = locations.Where(p => p.CompanyID == 1);
+    var customerList = new List<IAppUser>();
+    var clientContactList = new List<IAppUser>();
+    @if (userData.IsIDTAdminRoles)
+    {
+        customerList = userRepo.GetCustomerList(1, true);
+        clientContactList = userRepo.GetCustomerList(companyid, false);
+    }
+    var disabled = userData.IsIDT ? "" : "disabled";
+
+}
+<viewcard>
+    <viewform>
+        <viewrow>
+            <viewcolumn>
+                <div model name="ID" label="ID:" class="FormDisplay">@data.ID</div>
+                <input model name="RFIDConfigID" type="hidden" value="@data.RFIDConfigID" />
+                @if (userData.Admin_Companies_CanRename)
+                {
+                    <input model name="Name" label="@g["Name"]:*" validation="required;maxlen(50)" value="@data.Name" type="text" />
+                }
+                else
+                {
+                    <div model name="Name" label="@g["Name"]:*">@data.Name</div>
+                }
+
+                @if (userData.Admin_Companies_CanEditMDSettings)
+                {
+                    <input model name="CompanyCode" label="@g["Company Code"]:*" validation="required;maxlen(12)" value="@data.CompanyCode" type="text" />
+                    <input model name="ClientReference" label="@g["Client Reference"]:*" type="text" value="@data.ClientReference" validation="required;maxlen(10)" />
+                    @*
+            <select model name="IDTZone" label="@g["Zone"]:" options="@(OptionList.FromEnum<Zones>(data.IDTZone))" />
+            <input model name="GSTCode" label="@g["GST Code"]:*" validation="required;maxlen(6)" value="@data.GSTCode" type="text" />
+            <input model name="GSTID" label="@g["GST ID"]:*" validation="required;numeric;maxlen(6)" value="@data.GSTID" type="text" />
+                    *@
+                    <input model name="SyncWithSage" type="hidden" value="0" />
+                    <input model name="SyncWithSage" label="@g["Sync with SAGE ?"]" value="1" type="checkbox" action="change:EnableSageSync" data-type="bool" @(data.SyncWithSage == true ? "checked" : "") />
+                    <div class="form-group row">
+                        <label class="col-sm col-form-label">@g["SAGE Reference"]:</label>
+                        <div class="col-sm">
+                            <div class="input-group input-group-sm">
+                                <input type="text" model name="SageRef" class="form-control" placeholder="@g["Customer Ref."]" no-transform value="@data.SageRef">
+                                <div class="input-group-append">
+                                    <a href="#" name="SageSyncObject" action="SageSyncObjectFn" class="btn btn-primary btn-sm mb-2" title="@g["click to sync data with Sage"]">@g["Sync"]</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <input model name="CompanyCode" type="hidden" value="@data.CompanyCode" />
+                    <input model name="ClientReference" type="hidden" value="@data.ClientReference" />
+                    <input model name="SyncWithSage" type="hidden" value="@data.SyncWithSage" data-type="bool" />
+                    <input model name="SageRef" type="hidden" value="@data.SageRef" />
+                    @*
+            <input model name="IDTZone" type="hidden" value="@data.IDTZone" />
+            <input model name="GSTCode" type="hidden" value="@data.GSTCode" />
+            <input model name="GSTID" type="hidden" value="@data.GSTID" />
+                    *@
+                }
+
+                <input model name="MainContact" label="@g["Main Contact"]:" validation="maxlen(50)" value="@data.MainContact" type="text" />
+                <input model name="MainContactEmail" label="@g["Contact Email"]:" validation="maxlen(50);email" value="@data.MainContactEmail" type="text" />
+                <select model name="Culture" label="@g["Language"]:" options="@(OptionList.FromEnumerable(langOptions.SupportedUICultures, "Name", "DisplayName", data.Culture))" />
+
+                <div class="form-group row">
+                    <label class="col-sm col-form-label">@g["Main Location"]:</label>
+                    <div class="col-sm">
+                        <div class="input-group input-group-sm">
+                            <select model name="MainLocationID" class="form-control" no-transform options="@(OptionList.FromEnumerable(companyLocations, "ID", "Name", data.MainLocationID.ToString()))"></select>
+                            <div class="input-group-append">
+                                <div class="mt-1 ml-2 mb-3">
+                                    <a href="#" title="@g["Add Location"]" action="click:AddLocation"><span class="fa fa-plus mr-1" style="color:green;"></span></a>
+                                    <a href="#" title="@g["Edit Location"]" action="click:EditLocation"><span class="fa fa-pencil ml-1 mr-1"></span></a>
+                                    <a href="#" title="@g["Remove Location"]" action="click:RemoveLocation"><span class="fa fa-trash ml-1"></span></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <textarea model name="Instructions" label="@g["Instructions"]:" validation="maxlen(2000)">@data.Instructions</textarea>
+                @if (userData.Admin_Companies_CanEditProductionSettings)
+                {
+                    <select model name="DefaultProductionLocation" label="@g["Default Production Location"]:" options="@(OptionList.FromEnumerable(idtLocations, "ID", "Name", data.DefaultProductionLocation.ToString()))" />
+
+                    <div class="form-group row">
+                        <label class="col-sm col-form-label">@g["Default Delivery Location"]:</label>
+                        <div class="col-sm">
+                            <div class="input-group input-group-sm">
+                                <select model name="DefaultDeliveryLocation" class="form-control" no-transform options="@(OptionList.FromEnumerable(companyLocations, "ID", "Name", data.DefaultDeliveryLocation.ToString()))"></select>
+                                <div class="input-group-append">
+                                    <div class="mt-1 ml-2 mb-3">
+                                        <a href="#" title="@g["Add Location"]" action="click:AddLocation"><span class="fa fa-plus mr-1" style="color:green;"></span></a>
+                                        <a href="#" title="@g["Edit Location"]" action="click:EditLocation"><span class="fa fa-pencil ml-1 mr-1"></span></a>
+                                        <a href="#" title="@g["Remove Location"]" action="click:RemoveLocation"><span class="fa fa-trash ml-1"></span></a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <input model name="SLADays" label="@g["SLA (Days)"]:" validation="numeric;maxlen(2)" value="@data.SLADays" type="text" />
+                    <input model name="ShowAsCompany" label="@g["Show in company list?"]" checked="@data.ShowAsCompany" value="@data.ShowAsCompany" type="checkbox" @disabled />
+                }
+                else
+                {
+                    <input model name="ClientReference" type="hidden" value="@data.ClientReference" />
+                    <input model name="DefaultProductionLocation" type="hidden" value="@data.DefaultProductionLocation" />
+                    <input model name="DefaultDeliveryLocation" type="hidden" value="@data.DefaultDeliveryLocation" />
+                    <input model name="SLADays" label="@g["SLA (Days)"]:" validation="numeric;maxlen(2)" value="@data.SLADays" type="hidden" />
+                    <input model name="ShowAsCompany" no-transform checked="@data.ShowAsCompany" value="@data.ShowAsCompany" type="checkbox" style="display:none;" @disabled />
+                }
+                @if (userData.IsIDTAdminRoles)
+                {
+                    <select model name="CustomerSupport1" label="@g["Customer Support 1"]:" options="@(OptionList.FromEnumerable(customerList, "Id", "UserName", !String.IsNullOrEmpty(data.CustomerSupport1) ? data.CustomerSupport1.ToString() : ""))" />
+                    <select model name="CustomerSupport2" label="@g["Customer Support 2"]:" options="@(OptionList.FromEnumerable(customerList, "Id", "UserName", !String.IsNullOrEmpty(data.CustomerSupport2) ? data.CustomerSupport2.ToString() : ""))" />
+                    <select model name="ClientContact1" label="@g["Client Contact 1"]:" options="@(OptionList.FromEnumerable(clientContactList, "Id", "UserName", !String.IsNullOrEmpty(data.ClientContact1) ? data.ClientContact1.ToString() : ""))" />
+                    <select model name="ClientContact2" label="@g["Client Contact 2"]:" options="@(OptionList.FromEnumerable(clientContactList, "Id", "UserName", !String.IsNullOrEmpty(data.ClientContact2) ? data.ClientContact2.ToString() : ""))" />
+                }
+            </viewcolumn>
+            <viewcolumn>
+                <div style="font-size:17px;">@g["Company Logo"] (128x128)</div>
+                <hr class="subtitle" />
+                @if (userData.Admin_Companies_CanEditLogo)
+                {
+                    <input name="Icon" type="hidden" data-type="image" />
+                }
+                else
+                {
+                    <img class="ThumbImage2" src="/companies/logo/@data.ID" alt="@g["Company Logo"]" />
+                }
+                <br />
+
+                @if (userData.Admin_Companies_CanEditProviders)
+                {
+                    <div style="font-size:17px;">@g["Company Providers"]</div>
+                    <hr class="subtitle" />
+                    <div class="toolbar-body" style="width:100%">
+                        <span class="toolbar-grip"></span>
+                        <a href="#" title="@g["Add"]" action="AddProvider"><span class="fa fa-plus" style="color:green;"></span></a>
+                        <a href="#" title="@g["Edit"]" action="EditProvider"><span class="fa fa-pencil"></span></a>
+                        <a href="#" title="@g["Remove"]" action="RemoveProvider"><span class="fa fa-trash"></span></a>
+                    </div>
+                    <div component="TableView" name="ProvidersTable" style="width:100%; height:35vh; border:1px solid rgba(0, 0, 0, 0.125);">
+                        <template>
+                            <column width="130" field="CompanyName">@g["Name"]</column>
+                            <column width="80" field="CompanyCode">@g["Company code"]</column>
+                            <column width="80" field="ClientReference">@g["Reference"]</column>
+                            <column width="130" field="LocationName">@g["Production location"]</column>
+                            <column width="80" field="SLADays">@g["SLA (Days)"]</column>
+                        </template>
+                    </div>
+                    <br />
+                }
+                @if (userData.Admin_Companies_CanEditRFIDSettings)
+                {
+                    <div style="font-size:17px;">@g["Serial number sequence"]</div>
+                    <hr class="subtitle" />
+                    <input model name="SerialNumber" label="@g["Start of sequence"]:" validation="numeric;maxlen(9)" value="0" type="text" />
+                    <a href="#" class="btn btn-outline-primary" action="UpdateSequence">@g["Update Sequence"]</a>
+                }
+                <input model name="HasOrderWorkflow" label="@g["Enable Order Workflow?"]" checked="@data.HasOrderWorkflow" value="@data.HasOrderWorkflow" type="checkbox" data-type="bool" @(data.HasOrderWorkflow == true ? "checked" : "") />
+            </viewcolumn>
+        </viewrow>
+    </viewform>
+    <viewfooter>
+        @if (userData.Admin_Companies_CanEdit)
+        {
+            <a href="#" class="btn btn-primary" action="Save">@g["Save"]</a>
+
+        }
+        @if (userData.Admin_Companies_CanEditFTPSettings)
+        {
+            <a href="#" class="btn btn-outline-primary" action="FtpAccount">@g["Ftp Account"]</a>
+        }
+        @if (userData.Admin_Companies_CanEditRFIDSettings)
+        {
+            <a href="#" class="btn btn-outline-primary" action="RFIDConfig">@g["RFID Configuration"]</a>
+        }
+        @if (userData.Can_Change_ERPConfiguration)
+        {
+            <a href="#" class="btn btn-outline-primary" action="ERPConfig">@g["ERP Configuration"]</a>
+        }
+
+        @if (userData.IsIDT)
+        {
+            <a href="#" class="btn btn-outline-primary" action="InlayConfig">@g["Inlay Configuration"]</a>
+        }
+    </viewfooter>
+</viewcard>

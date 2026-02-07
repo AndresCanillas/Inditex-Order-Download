@@ -1,0 +1,100 @@
+﻿@page
+@using Service.Contracts.Documents 
+@inject ILocalizationService g
+@inject IMappingRepository mappingRepo
+@inject IUserData userData
+@inject IPluginManager<IDocumentImportPlugin> pluginManager
+@{
+	Layout = null;
+	var readOnly = userData.Admin_Mappings_CanEdit ? "" : "readonly";
+	var disabled = userData.Admin_Mappings_CanEdit ? "" : "disabled";
+	var editable = userData.Admin_Mappings_CanEdit ? "editable" : "";
+	var cultures = mappingRepo.GetCultures();
+	var encodings = mappingRepo.GetEncodings();
+	var plugins = pluginManager.GetList();
+}
+	<viewcard>
+		<viewrow>
+			<viewcolumn>
+				<viewform>
+					<input model name="ID" type="hidden" />
+					<input model name="CompanyID" type="hidden" />
+					<input model name="ProjectID" type="hidden" />
+					@if (userData.Admin_Mappings_CanRename)
+					{
+						<input model name="Name" label="@g["Name"]:*" type="text" validation="required;maxlen(50)" />
+					}
+					else
+					{
+						<div model name="Name" label="@g["Name"]:*"></div>
+					}
+					<select model name="RootCatalog" label="@g["Catalog"]:*" validation="required" @disabled></select>
+					<select model name="SourceType" label="@g["File Type"]:*" validation="required" @disabled>
+						<option value="Excel">Excel</option>
+						<option value="Delimited">Delimited</option>
+						<option value="Fixed">Fixed</option>
+					</select>
+					<input model name="FileNameMask" label="@g["File name mask"]:*" validation="required;maxlen(400)" type="text" @readOnly />
+					<select model name="SourceCulture" label="@g["Culture"]:*" validation="required" options="@(OptionList.FromEnumerable(cultures, "Name", "DisplayName"))" @disabled></select>
+					<input model name="IncludeHeader" label="@g["File includes header?"]" type="checkbox" @disabled />
+				</viewform>
+			</viewcolumn>
+			<viewcolumn>
+				<viewform>
+					<select model name="Encoding" label="@g["Encoding"]:" options="@(OptionList.FromEnumerable(encodings, "Name", "DisplayName"))" @disabled></select>
+					<input model name="LineDelimiter" label="@g["Line delimiter"]:" validation="maxlen(5)" type="text" @readOnly />
+					<input model name="ColumnDelimiter" label="@g["Column delimiter"]:" validation="maxlen(5)" type="text" @readOnly />
+					<input model name="QuotationChar" label="@g["Quote character"]:" validation="maxlen(1)" type="text" @readOnly />
+					<select model name="Plugin" label="Plugin:" options="@(OptionList.FromEnumerable(plugins, "Name", "Name"))" @disabled></select>
+				</viewform>
+			</viewcolumn>
+		</viewrow>
+		<viewrow>
+			<viewcolumn>
+				<div style="font-size:17px;">@g["Columns"]</div>
+				<hr class="subtitle" />
+				@if (userData.Admin_Mappings_CanEdit)
+				{
+					<div class="toolbar-body" style="width:100%">
+						<span class="toolbar-grip"></span>
+						<a href="#" title="@g["Add column"]" action="AddColumn"><span class="fa fa-plus"></span></a>
+						<a href="#" title="@g["Insert column"]" action="InsertColumn"><span class="fa fa-angle-double-down"></span></a>
+						<a href="#" title="@g["Move Down"]" action="MoveColumnDown"><span class="fa fa-angle-down"></span></a>
+						<a href="#" title="@g["Move Up"]" action="MoveColumnUp"><span class="fa fa-angle-up"></span></a>
+						<span class="toolbar-separator"></span>
+						<a href="#" title="@g["Remove column"]" action="RemoveColumn"><span class="fa fa-trash"></span></a>
+						<span class="toolbar-separator"></span>
+						<a href="#" title="@g["Initialize from catalog definition"]" action="InitMappings"><span class="fa fa-wrench"></span></a>
+					</div>
+				}
+				<div component="GridView" name="MappingsTable" style="width:100%; height:370px;">
+					<template>
+						<column width="50" field="ColOrder" sortable data-type="int" @editable>@g["Sequence"]</column>
+						<column width="110" field="InputColumn" @editable>@g["Input Column"]</column>
+						<column width="50" field="Ignore" type="Bool" @editable>@g["Ignore"]</column>
+						<column width="70" field="Type" @editable map='{"1":"Text", "2":"Int32", "3":"Int64", "4":"Bool", "5":"Decimal", "6":"DateTime"}'>@g["Type"]</column>
+						<column width="50" field="IsFixedValue" type="Bool" @editable>@g["Is Fixed?"]</column>
+						<column width="80" field="FixedValue" @editable>@g["Fixed Value"]</column>
+						<column width="50" field="MinLength" @editable>@g["Min Length"]</column>
+						<column width="50" field="MaxLength" @editable>@g["Max Length"]</column>
+						<column width="50" field="MinValue" @editable>@g["Min Value"]</column>
+						<column width="50" field="MaxValue" @editable>@g["Max Value"]</column>
+						<column width="50" field="MinDate" type="Date" @editable>@g["Min Date"]</column>
+						<column width="50" field="MaxDate" type="Date" @editable>@g["Max Date"]</column>
+						<column width="50" field="DateFormat" @editable>@g["Date Format"]</column>
+						<column width="50" field="DecimalPlaces" @editable>@g["Decimals"]</column>
+						<column width="90" field="Function" @editable map='@(Map.FromEnum<ValidationFunction>())'>@g["Function"]</column>
+						<column width="300" field="FunctionArguments" @editable>@g["Arguments"]</column>
+						<column width="50" field="CanBeEmpty" type="Bool" @editable>@g["Can Be Empty"]</column>
+						<column width="350" field="TargetColumn" @editable>@g["Target Column"]</column>
+					</template>
+				</div>
+			</viewcolumn>
+		</viewrow>
+		@if (userData.Admin_Mappings_CanEdit)
+		{
+			<viewfooter>
+				<a href="#" class="btn btn-primary" action="Save">@g["Save"]</a>
+			</viewfooter>
+		}
+	</viewcard>

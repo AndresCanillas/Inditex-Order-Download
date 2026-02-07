@@ -1,0 +1,64 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Brands/Projects/Packs/ArticleByDataDialog.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+
+//<script>
+    var ArticleByDataDialog = function (projectId, packId, id) {
+        FormView.Extend(this, "Add Configuration", `/Admin/Brands/Projects/Packs/ArticleByDataDialog?projectId=${projectId}&packId=${packId}&id=${id}`);
+        this.Id = id;
+        this.ProjectId = projectId;
+        this.PackId = packId;
+
+	};
+
+    ArticleByDataDialog.prototype = {
+        constructor: ArticleByDataDialog,
+
+        OnLoad: function () {
+            this.model.ID = this.Id;
+
+            AppContext.Packs.GetPackArticleById(this.Id, (result) => {
+
+                if (result.Data) {
+                    this.model.Field = result.Data.FieldName;
+                    this.model.AllowEmptyValues = result.Data.AllowEmptyValues;
+                    var rows = JSON.parse(result.Data.Mapping);
+                    this.elements.DataGrid.Rows.LoadData(rows);
+                }
+            });            
+        },
+
+        AddRecord: function (e) {
+            e.preventDefault();
+            this.elements.DataGrid.Rows.Add({ Key: "", Value: "" });
+        },
+
+        DeleteRecord: function () {
+            var self = this;
+            var idx = this.elements.DataGrid.Rows.SelectedIndex;
+			if (idx >= 0) {
+				var confirm = new ConfirmDialog("@g["Delete selected row from this configuration?"]");
+				confirm.ShowDialog(function (response) {
+					if (response) {
+                        self.elements.DataGrid.Rows.Remove(idx);
+					}
+				});
+			}
+        },
+
+        Save: function () {
+            
+            this.model.Definition = this.elements.DataGrid.Rows.DataSource;
+            if (this.model.Definition.length == 0) return;
+
+            this.Ok();
+        },
+	};
+//</script>

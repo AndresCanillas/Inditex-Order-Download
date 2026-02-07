@@ -1,0 +1,29 @@
+﻿@page
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/WF/ItemPriorityDialog.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var ItemPriorityDialog = function (priority) {
+		FormView.Extend(this, "Change Item Priority", `/Admin/WF/ItemPriorityDialog`);
+		this.itempriority = priority;
+	};
+
+	ItemPriorityDialog.prototype = {
+		constructor: ItemPriorityDialog,
+
+		OnLoad: async function () {
+
+			if (this.itempriority != null) {
+				this.elements.ItemPriority[0].value = this.itempriority
+			}
+		},
+
+		OnUnload: function () {
+		}
+	};
+//</script>

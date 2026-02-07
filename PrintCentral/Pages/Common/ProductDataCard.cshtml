@@ -1,0 +1,15 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+<div class='card' style='font-size:13px;'>
+	<div class='card-header'><strong><span model name="TXT1">@g["Product"]</span></strong></div>
+	<div class='card-body'>
+		<div class='card-text'>TXT2: <span model name="TXT2"></span></div>
+		<div class='card-text'>TXT3: <span model name="TXT3"></span></div>
+		<div class='card-text'>Barcode: <span model name="Barcode"></span></div>
+		<div class='card-text'>Size: <span model name="Size"></span></div>
+		<div class='card-text'>Price: <span model name="Price"></span></div>
+	</div>
+</div>

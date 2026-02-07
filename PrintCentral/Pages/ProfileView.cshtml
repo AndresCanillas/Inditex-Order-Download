@@ -1,0 +1,36 @@
+﻿@page
+@inject RequestLocalizationOptions langOptions
+@inject ILocalizationService g
+@inject IUserRepository repo
+@{
+	Layout = null;
+	var data = repo.GetByName(User.Identity.Name);
+}
+<viewcard>
+	<viewrow>
+		<viewcolumn>
+			<viewform>
+				<viewtitle>@g["Basic user information"]</viewtitle>
+				<input model name="Id" type="hidden" value="@data.Id" />
+				<input model name="UserName" type="hidden" value="@data.UserName" />
+				<input model name="FirstName" label="@g["First Name"]:*" validation="required;maxlen(40)" value="@data.FirstName" />
+				<input model name="LastName" label="@g["Last Name"]:*" validation="required;maxlen(40)" value="@data.LastName" />
+				<input model name="Email" label="@g["Email"]:*" validation="required;maxlen(40);email" value="@data.Email" />
+				<input model name="PhoneNumber" label="@g["Phone Number"]:" validation="maxlen(20);chars(0123456789(\)+-. )" value="@data.PhoneNumber" />
+				<select model name="Language" label="@g["Language"]:" validation="required" options="@(OptionList.FromEnumerable(langOptions.SupportedUICultures, "Name", "DisplayName", data.Language))"></select>
+			</viewform>
+		</viewcolumn>
+		<viewcolumn>
+			<viewform>
+				<viewtitle>@g["Password change"]</viewtitle>
+				<input model name="ChangePassword" label="@g["Change Password?"]" action="change:ChangePasswordChanged" type="checkbox" style="position:relative; top:2px;" />
+				<input model name="OriginalPassword" label="@g["Current Password"]:" type="password" disabled />
+				<input model name="NewPassword" label=" @g["New Password"]:" type="password" disabled />
+				<input model name="PasswordConfirmation" label="@g["Confirmation"]:" type="password" disabled />
+			</viewform>
+		</viewcolumn>
+	</viewrow>
+	<viewfooter>
+		<button class="btn btn-primary" name="SaveBtn" action="Save">@g["Save"]</button>
+	</viewfooter>
+</viewcard>

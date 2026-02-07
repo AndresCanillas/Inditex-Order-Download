@@ -1,0 +1,506 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData  userData
+@inject IOrderRepository  orderRepo
+@inject IProjectRepository projectRepo
+@{
+    Layout = null;
+}
+
+
+//<script src="~/js/jquery-3.0.0.min.js"></script>
+//<script src="~/js/AppContext.js"></script>
+//<script src="~/js/AppContext.AppDomain.js"></script>
+//# sourceURL=https://Pages/Validation/ShippingAddressView.js
+///<script>
+
+    var ShippingAddressView = function (orderSelection ) {
+
+        this.OrderSelection = orderSelection
+        this.WorkSelection = null;
+        this.AddressListReady = false;
+        this.ItemSelected = false;
+        this.AddressForm = null;
+        this.AddressList = null;
+        this.IsNewAddress = false;
+        this.EnableEdition = false;
+        this.SavedState = false;
+
+        FormView.Extend(this, "@g["Shipping Address View"]", `@Url.Content("~/Validation/Common/ShippingAddressView")`);
+    }
+
+    ShippingAddressView.prototype = {
+
+        constructor: ShippingAddressView,
+
+        OnLoad: function () {
+
+            var self = this;
+
+            //self.model.WizardID = this.WizardStep.WizardID;
+            //self.model.WizardStepID = this.WizardStep.ID;
+
+            //self.ShowStatus();
+
+            $('html, body').animate({
+                    scrollTop: 0
+                }, 400);
+
+            AppContext.LoadJS('/Admin/AddressView.js', '/Common/Components/AddressListView.js').then(() => {
+                self.AddressListReady = true;
+
+                self.GetSelectedAddress();
+
+
+            })
+
+        },
+
+        GetSelectedAddress: function () {
+            var self = this;
+
+            self.model.AddressID = 0;
+
+            AppContext.Wizard.GetDefaultAddress(self.OrderSelection).
+                done((result) => {
+
+                    if (result.Success == false) {
+                        AppContext.ShowError('@g["No adress found"]', 10000);
+                    }
+
+                    self.WorkSelection = result.Data;
+
+                    
+
+                    self.model.AddressID = self.WorkSelection[0].ShippingAddressID;
+
+                    self._configureAddressForm();
+
+                    self._configureAddressList();
+
+                    self.AddressForm.Show(self.elements.AddressContainer)
+
+                    self.AddressForm.AfterLoadData.Subscribe(() => {
+                        self.AllowEdition();
+                    })
+
+
+                    if (isNaN(self.model.AddressID) || self.model.AddressID < 1) {
+                        self.ShowWarning()
+                    }
+                });
+        
+        },
+
+
+
+        // return JQuery.Promise
+        Save: function () {
+
+            var self = this;
+
+            var promise = null;
+
+            var deferred = $.Deferred();
+            promise = deferred.promise();
+
+                
+
+            if (!self.AddressForm.model.ValidState()) {
+
+                deferred.reject();
+                return promise;
+            };
+
+            if (self.IsNewAddress) {
+
+                promise = self.AddressForm.Save().done((formResponse) => {
+                    if (formResponse.Success) {
+                        self.ShowWarning(false);
+                    }
+                })
+
+            } else {
+                deferred.resolve();
+            }
+
+            
+            return promise.then(() => {
+
+                self.SetAddress(self.AddressForm.model.ID);
+
+                self.IsNewAddress = false;
+
+                self.AddressForm.AsReadOnly(true);
+
+                if (parseInt(self.model.AddressID) < 1) {
+                    AppContext.ShowError('@g["Please Set an Address"]');
+                    self.SavedState = false;
+                    return { Success: false, Message: '@g["Please Set an Address"]' };
+
+                }
+
+                return AppContext.Wizard.SaveShippingAddress(self.WorkSelection);
+            }, (failResponse) => { return failResponse });
+
+            
+
+        },
+
+
+        _solve: function () {
+            var self = this;
+
+            return AppContext.Wizard.SolveShippingAddress(self.WorkSelection);
+        },
+
+        _refreshItemData: function (response) {
+
+        },
+
+        SaveAndNext: function () {
+
+            var self = this;
+
+
+            if (self.IsNewAddress) {
+
+                AppContext.ShowInfo("Edition is active, save firts")
+                return;
+            }
+
+            if (parseInt(self.model.AddressID) < 1) {
+                AppContext.ShowError('@g["Please Set an Address"]');
+                return;
+            }
+
+            var p = self.Save();
+
+            p.then((responseSolve) => {
+
+                if (responseSolve.Success == true) {
+
+                    self._solve().done((solveResponse) => {
+
+                        if (solveResponse == false) {
+                            return;
+                        }
+
+                        self.GetValidator().GetStep(self.WizardStep.Position + 1);
+                    });
+
+                    
+                }
+
+            })
+        },
+
+        Back: function () {
+            this.GetValidator().GetStep(this.WizardStep.Position - 1);
+        },
+
+        GetCurrentAddress: function () {
+            var self = this;
+
+            return self.WorkSelection[0].ShippingAddressID
+        },
+
+        GetCurrentVendor: function () {
+
+            var self = this;
+
+            return self.WorkSelection[0].SendToCompanyID;
+
+        },
+
+        SetAddress: function (addressID) {
+
+            var self = this;
+
+            self.model.AddressID = addressID
+
+            for (var i = 0; i < self.WorkSelection.length; i++) {
+                self.WorkSelection[i].ShippingAddressID = addressID
+                                      
+            }
+
+        },
+
+        _configureAddressForm: function () {
+
+            var self = this;
+
+            self.AddressForm = new AddressView(self.GetCurrentAddress(), self.GetCurrentVendor(), null)
+
+            self.AddressForm.IsReadOnly = true;
+
+        },
+
+
+        _configureAddressList: function () {
+
+            var self = this;
+
+            var setup = {
+                CompanyID: self.GetCurrentVendor(),
+                AddOption: false,
+                DeleteOption: false,
+                OpenOption: true,
+                ShowFilters: true,
+                SelectOption: true
+
+            }
+
+            self.AddressList = new AddressListView(setup);
+
+            self.AddressList.ItemSelected.Subscribe(this, this.ItemSelectedEvent);
+            self.AddressList.DefaultItemSelected.Subscribe(this, this.DefaultItem);
+
+
+        },
+
+        ShowAddressList: function (e) {
+
+            var self = this;
+
+            e.preventDefault();
+
+            self._configureAddressList();
+
+            if (self.AddressListReady == false) {
+                AppContext.ShowInfo('@g["Please, try again"]')
+
+                return;
+            }
+
+            // enable edition
+            if (self.IsNewAddress) {
+
+                AppContext.ShowInfo("Edition is active, save firts")
+                return;
+            }
+
+
+            self.AddressList.ShowDialog(() => {
+
+                if (self.ItemSelected) {
+                    self.SelectAddress(self.ItemSelected)
+
+                    self.ItemSelected = null;
+                }
+
+            }, 800);
+
+
+        },
+
+
+        ItemSelectedEvent: function (e) {
+            var self = this;
+
+
+            if (e.item) {
+                //self.AddItem(e.item);
+                console.log(e.item);
+                self.ItemSelected = e.item;
+
+                self.IsNewAddress = false;
+                self.AddressForm.AsReadOnly(true);
+
+            }
+
+            if (e.target) {
+                // target is Component that triggered event, for this case ArticleListView object
+                //self.Show(e.target.ViewContainer);
+
+                e.target.Close()
+            }
+
+        },
+
+
+        /**
+            item = {
+                ID: 2
+                Name: "España"
+                AddressLine1: "address line 1 text"
+                AddressLine2: "address line 2 text"
+                CityOrTown: "Madrid"
+                StateOrProvince: "Paris"
+                Country: "España"
+                ZipCode: "000000"
+                Notes: "prueba "
+                Default: false
+                CreatedBy: "SysConfig"
+                CreatedDate: "2020-02-26T13:56:44.661548"
+                UpdatedBy: "SysConfig"
+                UpdatedDate: "2020-02-26T14:30:27.6254097"
+            }
+
+
+         */
+        SelectAddress: function (item) {
+
+            var self = this;
+
+            // llenar los datos del formulario
+           // console.log(item);
+
+            self.AddressForm.LoadData(item);
+
+            self.AllowEdition();
+
+            self.SetAddress(item.ID);
+
+            //self.AddressForm.AsReadOnly(true);
+
+        },
+
+        SetAsReadOnly: function () {
+            var self = this;
+
+            self.AddressForm.AsReadOnly(true);
+
+            self.AddressForm.DisableAllActions();
+        },
+
+
+        AddNew: function () {
+            var self = this;
+
+            self.IsNewAddress = true;
+
+            AppContext.LoadJS("/common/AskNameDialog.js").then(() => {
+				var dialog = new AskNameDialog("@g["New Address"]");
+				dialog.ShowDialog(function (dlgData) {
+                    if (dlgData) {
+                        self.AddressForm.AsReadOnly(false);
+                        AppContext.Addresses.Insert(dlgData, self.GetCurrentVendor(), function (result) {
+                            if (result.Success) {
+								//self.AddressList.dataSource.push(result.Data);
+                                //self.AddressList.OpenClicked({ target: null, item: result.Data });
+                                //self.AddressList.ItemSelected.Raise({ target: this, item: result.Data });
+                                self.SelectAddress(result.Data)
+							}
+						});
+					}
+				});
+			})
+        },
+
+
+        Edit: function () {
+            var self = this;
+
+            self.IsNewAddress = true;
+
+            self.AddressForm.AsReadOnly(false);
+
+
+        },
+
+        AllowEdition: function () {
+
+            var self = this;
+
+            if (parseInt(self.AddressForm.model.ID) > 0) {
+
+                self.elements.EditBtn.removeClass('disabled')
+            } else {
+
+                if (self.elements.EditBtn.hasClass('disabled') == false)
+                    self.elements.EditBtn.addClass('disabled')
+
+            }
+        },
+
+        GetValidator: function () {
+
+            var self = this;
+
+            var validator = new ValidatorHelper(self.OrderSelection);
+
+            validator.OnWizardCreated.Subscribe(this, this._validatorHelperOnCreateEvent)
+
+            return validator;
+
+        },
+
+        _validatorHelperOnCreateEvent: function (e) {
+
+            var self = this;
+
+            var wizard = e.wizardController;
+            var wizardStep = e.wizardStep
+
+            wizard.Show(self.ViewContainer);
+        },
+
+        DefaultItem: function (e) {
+            var self = this;
+            var companyId = self.WorkSelection[0].SendToCompanyID;
+            var isDefault = !e.item.Default;
+            e.item.Default = isDefault;
+            AppContext.Addresses.SetDefaultAddress(companyId, e.item.ID, isDefault);
+            self.SelectAddress(e.item);
+        },
+
+        ShowWarning: function (show) {
+            var self = this;
+
+
+            if (show == undefined) {
+                show = true
+            }
+
+            if (show) {
+                self.elements.NoAddressSelected.removeClass('invisible')
+            } else {
+                self.elements.NoAddressSelected.addClass('invisible')
+            }
+        },
+
+        // TODO: ShowStatus method and GoBCGoToStepToStep method, could be better in parent object, to reuse for all wizards views
+        ShowStatus: function() {
+            var self = this;
+            var breadCrumbs = new BreadCrumbsUI({
+                ContainerElm: this.elements.BreadcrumbContainer,
+	            Controller: self,
+                LinkClick: 'BCGoToStep',
+                Crumbs: $.map(self.AllSteps, (wzdStep) => {
+                    // Crumb Object {Text, Position, Href, State }
+                    return {
+                        Text: wzdStep.Name,
+                        Position: wzdStep.Position,
+                        Href: '#',
+                        State : self.WizardStep.ID == wzdStep.ID ? CrumbState.PROGRESS : ( wzdStep.IsCompleted ? CrumbState.COMPLETED :CrumbState.PENDING )
+                    } 
+                }),
+	            AutoRender: true,
+	            SizeCls: '', // not implemented
+	            AlignCls: '' // justify-content-center or justify-content-end
+            });
+
+        },
+
+        BCGoToStep: function (evt) {
+
+            var self = this;
+            var stepBtn = $(evt.target);
+            var step = stepBtn.data('position')
+            var wzdStepSelected = self.AllSteps.find((val) => val.Position == step)
+            var beforeStepSelected = self.AllSteps.find((val) => val.Position == step - 1)
+
+            if (!wzdStepSelected
+                || self.WizardStep.ID == wzdStepSelected.ID
+                || (wzdStepSelected.IsCompleted == false && beforeStepSelected && beforeStepSelected.IsCompleted == false)
+            ) { 
+                evt.preventDefault();
+                return;
+            }
+
+            self.GetValidator().GetStep(step);
+        }
+    }
+
+/// </script>

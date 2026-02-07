@@ -1,0 +1,126 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+
+//# sourceURL=https://Pages/Upload/ConfirmDialogs/ConfirmDeriveOrderView.js
+//<script>
+
+    var ConfirmDeriveOrderView = function (orderData) {
+        FormView.Extend(this, "@g["Confirm your action"]", "/Upload/ConfirmDialogs/ConfirmDeriveOrderView");
+        this.OrderData = orderData;
+        this.Accepted = false;
+    }
+
+    ConfirmDeriveOrderView.prototype = {
+
+        constructor: ConfirmDeriveOrderView,
+
+        OnLoad: function () {
+            var self = this;
+
+            self.model.OrderID = self.OrderData.OrderID;
+            self.elements.OrderNumberTitle.text(self.OrderData.OrderNumber);
+
+            // check if current vender is provider to load his providers
+            AppContext.Providers.CheckIsBroker(self.OrderData.SendToCompanyID)
+                .then((response) => {
+
+                    if (!response.Success) {
+                        return;
+                    }
+
+                    // looking available list off providers from: current broker assigned or from main customer assigned
+                    var companyId = response.Data.IsBroker ? self.OrderData.SendToCompanyID : self.OrderData.CompanyID;
+
+                    AppContext.Providers.GetByCompanyID(companyId)
+                    .done((response) => {
+
+                        // fill combo to select
+                        var options = [];
+
+                        var defaultOption = `<option value="-1">@g["Select new provider"]</option>`;
+
+                        for (provider of response) {
+                            var opt = `<option value="${provider.CompanyName}" ProviderCompanyID="${provider.ProviderCompanyID}" action="click:AfterSelectProvider"></option>`;
+                            options.push(opt);
+                        }
+
+                        //self.elements.ProviderID.html(options.join(''));
+                        var html = $(options.join(''));
+                        AppContext.BindActions(html, this);
+                        self.elements.ProviderList.html(html);
+                    })
+                });
+        },
+
+        Save: function () {
+            var self = this;
+
+            var providerID = self.GetProviderIdSelected();
+
+            if (providerID == null)
+                return;
+
+            AppContext.Orders.Derive(self.OrderData.OrderID, providerID, self.OrderData.ArticleCode)
+            .done((response) => {
+                if (response.Success == false)
+                    return;
+
+                self.Close(response);
+            })
+        },
+
+        IsEnableSubmit: function () {
+            return this.Accepted && this.GetProviderIdSelected() > 0;
+        },
+
+        ClickConfirm: function () {
+            var self = this;
+
+            self.Accepted = self.elements.Confirm.prop('checked');
+
+            self.EnableSubmit();
+        },
+
+        EnableSubmit: function () {
+            var self = this;
+
+            var btn = self.elements.SubmitButton;
+
+            if (self.IsEnableSubmit()) {
+                //btn.prop('disabled', false);
+                btn.removeClass('disabled')
+            } else {
+                //btn.prop('disabled', true);
+                btn.addClass('disabled')
+            }
+        },
+
+        GetProviderIdSelected: function () {
+            // AVOID TO USE controller model, the value is not asigned in change event in ProviderID field
+            var provider = this.elements.ProviderID.val();
+            var list = this.elements.ProviderList[0];
+
+            for (var i = 0; i < list.options.length; i++) {
+
+				if (provider == list.options[i].value) {
+					this.elements.ProviderID[0].setCustomValidity("");
+					return parseInt(list.options[i].attributes["ProviderCompanyID"].value);
+				}
+            }
+
+            this.elements.ProviderID[0].setCustomValidity("Invalid Provider");
+
+			return null;
+        },
+
+        AfterSelectProvider: function (evt) {
+            this.EnableSubmit();
+            return true;
+        }
+    }
+
+// </script>

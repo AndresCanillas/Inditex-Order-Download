@@ -1,0 +1,82 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+	
+}
+<viewform>
+	<viewrow>
+
+		<viewcolumn>
+
+			<input model name="ProjectID" label="@g["ProjectID"]" value="" type="hidden" data-type="int" />
+			<input model name="ItemRef" label="@g["Article"]" type="text" />
+			<input model name="SearchKey" label="@g["Search Key"]" type="text" />
+			<input model name="Status" label="@g["Item Status"]" value="1" />
+			<input model name="ListSize" label="@g["Cantidad"]" type="number" value="100" data-type="int" />
+			<input model name="Family" label="@g["Family"]" type="text" />
+			<input model name="Brand" label="@g["Brand"]" type="text" />
+
+			<a href="#" action="GetItems">@g["Get Items"]</a>
+
+		</viewcolumn>
+
+		<viewcolumn>
+
+			<input model name="BpcNum" label="@g["Customer"]" type="text" />
+			<input model name="ShortTitle" label="@g["Short Title"]" />
+			<input model name="BprNam" label="@g["Trade Name 1"]" />
+
+			<a href="#" action="GetItems">@g["Get Items"]</a>
+
+		</viewcolumn>
+
+
+	</viewrow>
+
+	<viewrow>
+		<viewcolumn>
+
+			<div name="ProgressBar" class="progress">
+				<div class="progress-bar bg-info" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+			</div>
+
+			<br />
+
+			<div class="d-none" name="ItmListContainer">
+				<div component="GridView" name="ItmList" style="width:100%; max-height:30vh;">
+					<template>
+						<column field="CategoryCode" width="120">@g["Category"]</column>
+						<column field="Reference" width="120">@g["Product"]</column>
+						<column field="Description" width="220">@g["Description"]</column>
+						<column field="SearchKey" width="120">@g["Search Key"]</column>
+					</template>
+				</div>
+				<br />
+				<button type="button" class="btn btn-primary" name="SyncItemsBtn" action="SyncItems">@g["Sync"]</button>
+				<button type="button" class="btn btn-primary d-none" name="SyncNextItemsBtn" action="SyncNextItems">@g["Sync Next"]</button>
+			</div>
+
+			<div class="d-none" name="BpcListContainer">
+				<div component="GridView" name="BpcList" style="width:100%; max-height:30vh;">
+				</div>
+				<br />
+				<button type="button" class="btn btn-primary" action="SyncBpc">@g["Sync"]</button>
+			</div>
+		</viewcolumn>
+
+	</viewrow>
+
+	<viewrow>
+		<viewcolumn>
+			<div name="PaginationContainer"></div>
+		</viewcolumn>
+	</viewrow>
+
+	<viewfooter>
+		
+		<button type="button" class="btn btn-secondary" action="Cancel">@g["Cancel"]</button>
+	</viewfooter>
+
+</viewform>

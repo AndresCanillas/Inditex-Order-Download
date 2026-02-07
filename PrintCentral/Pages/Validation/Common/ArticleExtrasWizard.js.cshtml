@@ -1,0 +1,928 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData  userData
+@inject IOrderRepository  orderRepo
+@inject IProjectRepository projectRepo
+@{
+    Layout = null;
+    
+}
+
+//# sourceURL=https://Pages/Validation/Common/ArticleExtrasWizard.js
+///<script type="text/javascript">
+
+const orderRepeatPatterm = /@Html.Raw(Order.REPEAT_PATTERN)/;
+const orderDerivePattern = /@Html.Raw(Order.DERIVATION_PATTERN)/;
+const DEFAULT_MAX_ALLOWED = 50000;
+
+var ArticleExtrasWizard = function(orderSelection, wizardStep, allSteps) {
+
+    //this.OrderRowInfo = orderRowInfo;
+    this.OrderSelection = orderSelection
+    this.WizardStep = wizardStep;
+    this.AllSteps = allSteps;
+    this.ArticleListReady = false;
+    this.ItemSelected = null;
+    this.OrderGroupPositionSelected = null;
+    this.TableData = null;
+    this.AsActive = false;
+    this.OriginalLabels = null;
+    this.ItemsSelected = [];
+    this.CanSelectMultipleItems = true;
+    this.AllowQuantityEdition = 0; // Enable Wizard 0 NO,1 Fixed Value,2 Percentage
+    this.AllowEditQuantity = false; // Allow to User Edit Values
+    this.IsApplyAutomaticPercentage = true; // Appliy Increment Automatically
+    this.MaxExtras = 0; // Cache configured value
+    AWizardBaseView.Extend(this, '@g["Article Extras Wizard "]', `@Url.Content("~/Validation/common/ArticleExtrasWizard")?OrderGroupID=${this.OrderSelection[0].OrderGroupID}`, wizardStep, allSteps);
+    ExtendObj(this, ArticleExtrasWizard.prototype);
+}
+
+ArticleExtrasWizard.prototype = {
+
+    constructor: ArticleExtrasWizard,
+
+    OnLoad: function() {
+        var self = this;
+
+        self.ProjectID = self.OrderSelection[0].ProjectID;
+
+        self.model.WizardID = this.WizardStep.WizardID;
+        self.model.WizardStepID = this.WizardStep.ID;
+        self.model.ProjectID = self.ProjectID;
+        self.ShowStatus();
+
+        AppContext.LoadJS('/Common/Components/ArticleListView.js').then(() => {
+
+            self.ArticleListReady = true;
+
+            self.LoadProjectData(self.ProjectID)
+                .then(() => self.LoadArticles())
+
+        });
+
+    },
+
+    LoadArticles: function() {
+        var self = this;
+
+        AppContext.Wizard.GetOrderItemsDetails(self.OrderSelection)
+            .done((result) => {
+
+                if ($('[name="TableContainer"]').length == 0) {
+                    return;
+                }
+
+
+                if (self.AllowEditQuantity === false /*&& self.IsOrderRepeat == false*/ ) {
+                    // disable buttons
+                    self.elements.UserMaxValue.prop("disabled", true);
+                }
+
+                var $tbody = self.elements.TableContainer.find('tbody');
+                $tbody.html('');
+                self.TableData = result.Data;
+                self._AddRows(self.TableData)
+
+
+                if (self.IsApplyAutomaticPercentage) {
+                    self._UpdateEntryValues();
+                }
+
+                
+
+
+                if (self.OriginalLabels !== null)
+                    return true;
+
+                // this code only is executed one time
+                self.OriginalLabels = [];
+
+                for (let groupIdx = 0; groupIdx < result.Data.length; groupIdx++) {
+                    var grp = result.Data[groupIdx]
+                    var items = grp.Details.map(m => m.OrderID)
+
+                    // https://stackoverflow.com/a/57224151
+                    //let arr1 = list1.filter(e => {
+                    //    return !list2.some(item => item.userId === e.userId);
+                    //});
+                    // current selection that not  inner the current response Items properties is a ARticles With Variable DATA
+                    let noItems = self.OrderSelection[groupIdx].Orders.filter(e => items.indexOf(e) == -1)
+                    let areItems = self.OrderSelection[groupIdx].Orders.filter(e => items.indexOf(e) > -1)
+
+                    self.OriginalLabels.push({
+                        noItems: noItems,
+                        areItems: areItems
+                    });
+                };
+
+
+            });
+    },
+
+    _AddRows: function(result) {
+        var self = this;
+
+        var k = 0;
+        var itemNumber = 0;
+
+        var $tbody = self.elements.TableContainer.find('tbody');
+
+        for (var i = 0; i < result.length; i++) {
+
+            var sel = result[i];
+
+            var trGroup = self._GetRowGroupTemplate(sel, k)
+
+            $tbody.append(trGroup);
+
+            for (var j = 0; j < sel.Details.length; j++) {
+
+                var tr = $(self._GetRowTemplate(sel.Details[j], k, itemNumber++, j));
+
+                $tbody.append(tr);
+
+            }
+
+            k++;
+
+        }
+
+        // bind model and antions inner tbody
+
+        self.model = AppContext.BindModel(self.ViewContainer, self);
+        AppContext.BindActions($tbody, self);
+    },
+
+
+    _GetRowGroupTemplate: function(sel, i) {
+
+        var self = this;
+
+        var projectID = self.elements.ProjectID.val();
+
+        var tr = `
+                <tr class="table-info">
+                    <td colspan="7">
+
+                        <input model name="rq[${i}].OrderNumber" value="${sel.OrderNumber}" type="hidden" />
+                        <input model name="rq[${i}].OrderGroupID" value="${sel.OrderGroupID}" type="hidden" />
+                        <input model name="rq[${i}].WizardStepPosition" value="1" type="hidden" />
+                        <input model name="rq[${i}].ProjectID" value="${projectID}" type="hidden" />
+
+                        <span class="btn btn-sm" style="cursor: auto;">
+                            @g["Order N°"] :  ${sel.OrderNumber}
+                        </span>
+
+                        <a href="#" class="btn btn-sm btn-link pull-right" name="Articles" action="ShowArticleList" data-group-position="${i}" data-order-group-id="${sel.OrderGroupID}">@g["Add Article"]</a>
+                        
+
+                    </td>
+                </tr>
+            `;
+
+        return tr;
+    },
+
+    _GetRowTemplate: function(item, groupNumber, itemNumber, unitNumber) {
+
+        let self = this;
+
+        let i = groupNumber
+        let j = itemNumber
+        let k = unitNumber
+
+        let max = item.MaxAllowed > 0 ? item.MaxAllowed : DEFAULT_MAX_ALLOWED;
+
+        if( item.Quantity > max )
+            max = item.Quantity;
+
+
+        let orderId = item.OrderID || '';
+        let printerJobId = item.PrinterJobID || '';
+        let printerJobDetailID = item.PrinterJobDetailID || ''
+        let strDescription = item.Description ? item.Description : "";
+        let isBilled = 0;
+
+        //var canEdit = !item.isBilled;
+
+        let readonly = "";
+
+        if (item.IsBilled) {
+            readonly = 'readonly="readonly"'
+            isBilled = 1;// UN USED PROPERTY, after check ArticlesExtrasWizardController not use it
+        }
+
+        if (self.AllowEditQuantity == false )
+            readonly = 'readonly="readonly"'
+
+        if(orderRepeatPatterm.test(item.OrderNumber) || item.Source == @((int)DocumentSource.Repetition) || item.QuantityRequested == 0 ) {// REPs are valid to modify quantity, ignore project configuration
+            readonly = '';
+            //self.elements.UserMaxValue.prop("disabled", false); // allow by line to modify quantities, item is a repetition
+        }
+
+        let tr = `
+                <tr data-idx="${i}" data-group-item-position="${i}">
+                    <th>${j + 1}</th>
+                    <!-- <td><input type="checkbox" action="Mark" name="item-${j}" value="1" no-transform class=" removable" /></td>-->
+                    <td>${item.ArticleCode}</td>
+                    <td>${item.Article}</td>
+                    <td>${strDescription}</td>
+                    <td>${item.QuantityRequested}</td>
+                    <td>
+
+                        <div class="form-inline">
+                            <div name="item-${k}"  class="input-group input-group-sm " data-index="${k}">
+                                <input model name="rq[${i}].Items[${k}].IsBilled" value="${isBilled}" type="hidden" class="article-id is-billed " />
+                                <input model name="rq[${i}].Items[${k}].ArticleID" value="${item.ArticleID}" type="hidden" class="article-id " />
+                                <input model name="rq[${i}].Items[${k}].ArticleCode" value="${item.ArticleCode}" type="hidden" class="article-id " />
+                                <input model name="rq[${i}].Items[${k}].PrinterJobID" value="${printerJobId}" type="hidden" class="" />
+                                <input model name="rq[${i}].Items[${k}].PrinterJobDetailID" value="${printerJobDetailID}" type="hidden" class="" />
+                                <input model name="rq[${i}].Items[${k}].OrderID" value="${orderId}" type="hidden" class="" />
+                                <input model name="rq[${i}].Items[${k}].Value" action="keyup:GoNextField; change:QuantityUpdated" type="number" ${readonly} value="${item.Quantity}" validation="range(0,${max})" max="${max}" data-quantity-requested="${item.QuantityRequested}" data-item="item-${j}" class="form-control input-sm mr-1 user-entry text-right" no-transform>
+                                <small class="form-text text-muted">
+                                    <a class="btn btn-link SetMaxItemAction" style="font-size: 11px;" href="#" action="SetMax" max="" data-item="item-${j}" >@($"{g["Set Max"]}")(${max})</a>
+                                </small>
+                            </div>
+                        </div>
+
+                    </td>
+                    <td><span name="extra-${k}">${(item.Quantity - item.QuantityRequested)}</span></td>
+                </tr>`;
+
+        return tr;
+    },
+
+    Save: function(e) {
+
+        var self = this;
+        e.target.disabled = true
+        // mark items as active
+        self.AsActive = true;
+
+        var p = self._save();
+
+        p.done((responseSave) => {
+
+        })
+        .fail(() => {
+
+        })
+        .always( () => {
+               e.target.disabled = false;
+               self.AsActive = false;
+        })
+    },
+
+    // return JQuery.Promise
+    _save: function() {
+
+        var self = this;
+
+        if (!this.model.ValidState()) {
+
+            var deffered = $.Deferred();
+
+            deffered.reject();
+
+            return deffered.promise();
+        };
+
+        //var data = self.GetData();
+
+        var arrayData = $('[name="articleextras-wizard-frm"]').serializeArray();
+        //console.log(arrayData);
+        return AppContext.Wizard.SaveExtrasState(arrayData, self.AsActive).done((response) => {
+
+            //self.LoadArticles();
+            self.UpdateUi(response);
+
+            self._UpdateSelection(response)
+
+        })
+
+    },
+
+    UpdateUi: function(savedResponse) {
+        var self = this;
+        let d = document;
+
+        //var itemIdx = $(evt.target).closest('.input-group').data('index')
+
+        //var groupIdx = $(evt.target).closest('tr').data('group-item-position')
+        
+        for (let groupIdx = 0; groupIdx < savedResponse.Data.length; groupIdx++) {
+
+            let items = savedResponse.Data[groupIdx].Items;
+            let currentItems = [];
+
+            currentItems = items.map(m => m.OrderID);
+
+            for (let itemIdx = 0; itemIdx < items.length; itemIdx++) {
+
+                let currentItem = items[itemIdx];
+                let row = $(`tr[data-idx="${groupIdx}"]`)
+                // TODO: remove row with curremtItem.OrderID = -1
+
+                if (currentItem.Value == 0) {
+                    $(row.get(itemIdx)).remove();
+                } else {
+
+                    row.find(`[model][name="rq[${groupIdx}].Items[${itemIdx}].PrinterJobID"]`).val(currentItem.PrinterJobID)
+                    row.find(`[model][name="rq[${groupIdx}].Items[${itemIdx}].PrinterJobDetailID"]`).val(currentItem.PrinterJobDetailID)
+                    row.find(`[model][name="rq[${groupIdx}].Items[${itemIdx}].OrderID"]`).val(currentItem.OrderID)
+                }
+
+            }
+
+            self.OrderSelection[groupIdx].Orders = self.OriginalLabels[groupIdx].noItems.concat(currentItems);
+
+            self.TableData = savedResponse.Data;
+
+        }
+
+    },
+
+    _solve: function() {
+        const self = this;
+
+        let promise = AppContext.Wizard.SolveExtras(self.OrderSelection);
+        
+
+        return promise;
+    },
+
+    _refreshItemData: function(response) {
+
+        var self = this;
+
+        if (!response.Success) {
+            return;
+        }
+
+        for (var i = 0; i < response.Data.Items.length; i++) {
+
+            var item = response.Data.Items[i]
+
+            self.elements.TableContainer.find(`div[data-index="${i}"]`).find('[name$=PrinterJobID]').val(item.PrinterJobID)
+            self.elements.TableContainer.find(`div[data-index="${i}"]`).find('[name$=PrinterJobDetailID]').val(item.PrinterJobDetailID)
+        }
+    },
+
+    SaveAndNext: function() {
+
+        var self = this;
+
+        // mark items as active
+        self.AsActive = true;
+
+        var p = self._save();
+
+        p.done((responseSave) => {
+
+            self.AsActive = false;
+
+            if (responseSave.Success == false) {
+                return;
+            }
+
+            self._solve().done((responseSolve) => {
+
+                if (responseSolve.Success == false) {
+                    return;
+                }
+
+                self.GetValidator().GetStep(self.WizardStep.Position + 1);
+
+            });
+
+        }).fail(() => {
+            self.AsActive = false;
+        })
+    },
+
+    Back: function() {
+        this.GetValidator().GetStep(this.WizardStep.Position - 1);
+    },
+
+
+    ShowArticleList: function(e) {
+
+        var self = this;
+
+        e.preventDefault();
+
+        if (self.ArticleListReady == false) {
+            AppContext.ShowInfo('@g["Please, try again"]')
+
+            return;
+        }
+
+        self.OrderGroupPositionSelected = $(e.currentTarget).data('groupPosition')
+
+        var setup = {
+            ProjectID: self.elements.ProjectID.val(),
+            AddOption: false,
+            DeleteOption: false,
+            OpenOption: true,
+            ShowFilters: true,
+            SelectOption: true,
+            ArticleTypeFilter: 2, // ArticleTypeFilter.Item
+            CanSelectMultipleItems: self.CanSelectMultipleItems,
+            ItemsExtras: true
+        }
+
+        var ArticleList = new ArticleListView(setup)
+
+        ArticleList.ItemSelected.Subscribe(this, this.ItemSelectedEvent)
+
+        ArticleList.ShowDialog(() => {
+
+            if (self.CanSelectMultipleItems) {
+                if (self.ItemsSelected) {
+
+                    self.ItemsSelected.forEach((itemSelected) => {
+
+                        self.AddItem(itemSelected, self.OrderGroupPositionSelected);
+                    })
+                }
+            } else {
+                if (self.ItemSelected) {
+
+                    self.AddItem(self.ItemSelected, self.OrderGroupPositionSelected);
+                    self.ItemSelected = null;
+                    self.OrderGroupPositionSelected = null;
+
+                }
+
+
+            }
+
+        }, 1400);
+
+
+    },
+
+
+    ItemSelectedEvent: function(e) {
+        let self = this;
+
+        if (self.CanSelectMultipleItems) {
+
+            self.ItemsSelected = []
+            if (e.items) {
+                e.items.forEach((article) => {
+                    self.ItemSelected = article.item;
+
+                    let itemContainer = self.elements.TableContainer.find(`[data-group-item-position="${self.OrderGroupPositionSelected}"]`);
+
+                    if (itemContainer.find(`.article-id[value="${self.ItemSelected.ID}"]`).length) {
+
+                        if (itemContainer.find(`.is-billed[value="0"]`).length) {
+
+                            self.ItemSelected = null;
+
+                            self.OrderGroupPositionSelected = null;
+
+                            AppContext.ShowError('@g["Article already added this Order"]');
+                        }
+                    } else {
+                        self.ItemsSelected.push(self.ItemSelected);
+                        self.ItemSelected = null;
+                    }
+
+                })
+            }
+        } else {
+
+            if (e.item) {
+                //self.AddItem(e.item);
+                self.ItemSelected = e.item;
+
+
+                var itemContainer = self.elements.TableContainer.find(`[data-group-item-position="${self.OrderGroupPositionSelected}"]`);
+
+                if (itemContainer.find(`.article-id[value="${self.ItemSelected.ID}"]`).length) {
+
+                    if (itemContainer.find(`.is-billed[value="0"]`).length) {
+
+                        self.ItemSelected = null;
+
+                        self.OrderGroupPositionSelected = null;
+
+                        AppContext.ShowError('@g["Article already added this Order"]');
+                    }
+                }
+            }
+
+        }
+
+
+
+
+        if (e.target) {
+            // target is Component that triggered event, for this case ArticleListView object
+            //self.Show(e.target.ViewContainer);
+
+            e.target.Close()
+        }
+
+    },
+
+    /*
+     Item Interface = {
+        ID: 33
+        ProjectID: 40
+        Name: "KDO"
+        Description: null
+        LabelType: "Hang Tag"
+        ArticleCode: "KDO"
+        BillingCode: "BItem01"
+        MaterialID: 6
+        MaterialName: "HandTag 45x190mm"
+        LabelID: 40
+        LabelName: "PVPV5801"
+        EncodeRFID: false
+        }
+     */
+
+    AddItem: function(item, groupPosition) {
+        
+        var self = this;
+
+        var sel = self.TableData[groupPosition];
+
+
+        var articleItem = $.extend({
+            Quantity: 1,
+            QuantityRequested: 0, // not in original order
+            RequiresDataEntry: 0,
+            ProductDataID: -1,
+            OrderID: -1,
+            PrinterJoinID: -1,
+            PrinterJobDetailID: -1,
+            OrderGroupID: sel.OrderGroupID
+        }, item);
+        articleItem.ArticleID = item.ID;
+        articleItem.Article = item.Name;
+
+        if (!sel.Details.find(article => article.ID == item.ID)) {
+
+            sel.Details.push(articleItem);
+
+            // refresh
+
+            var $tbody = self.elements.TableContainer.find('tbody');
+
+            $tbody.html('');
+
+            self._AddRows(self.TableData);
+        }
+
+
+
+    },
+
+
+    GoNextField: function(evt) {
+
+        var key = evt.keyCode ? evt.keyCode : evt.which;
+
+        if (key == 13) {
+
+            evt.preventDefault();
+
+            var currentPosition = $(evt.target).closest('.input-group').data('index')
+
+            //if ($(evt.target).closest('.input-group').hasClass('is-last')) {
+            //    return false;
+            //}
+
+            var nextField = $('[data-index="' + (parseInt(currentPosition + 1)) + '"]').find('.user-entry');
+
+            if (nextField.length == 1) {
+
+                nextField.focus();
+                var tmpStr = nextField.val();
+                nextField.val('');
+                nextField.val(tmpStr);
+                nextField.get(0).select();
+            }
+
+        }
+
+        return true;
+    },
+
+    QuantityUpdated: function(evt) {
+
+        let self = this;
+
+        let entry = $(evt.target);
+
+        let itemIdx = $(evt.target).closest('.input-group').data('index')
+
+        let groupIdx = $(evt.target).closest('tr').data('group-item-position')
+
+        const quantity = entry.val()
+
+        self.TableData[groupIdx].Details[itemIdx].Quantity = quantity
+
+        const diff = entry.val() - entry.data('quantityRequested')
+
+        $(`[name="extra-${itemIdx}"]`).text(diff);
+    },
+
+    SetMax: function(evt) {
+
+        var self = this;
+
+        var lnk = $(evt.target)
+
+        var userEntry = lnk.closest('.input-group').find('.user-entry')
+
+        self._setMax(userEntry);
+
+
+    },
+
+    _setMax: function(field) {
+        let self = this;
+
+        if(field.prop('readonly') || field.prop('disabeld')) return;
+
+        //field.val(field.attr('max'));//AllowQuantityEdition
+        let request = field.attr('data-quantity-requested');
+
+        let _value = parseInt(self.elements.UserMaxValue.val());
+
+        let max = field.attr('max'); // get calculated max from backend
+        field.val(max);
+
+        field.change();
+    },
+
+    SetMaxAll: function(evt) {
+
+        var self = this;
+
+        var allEntries = self.elements.TableContainer.find('.user-entry');
+
+        switch(self.AllowQuantityEdition) {
+            case 1:
+                self.elements.UserMaxValue.val(self.MaxExtras);
+            break;
+
+            case 2:
+                self.elements.UserMaxValue.val(self.MaxQuantityPercentage);
+            break;
+
+            default:
+                self.elements.UserMaxValue.val(0);
+            break;
+        }
+
+        $.each(allEntries, (key, entry) => {
+            self._setMax($(entry));
+        });
+
+    },
+
+    AllQuantityUpdatedEvent: function(evt) {
+
+        this._UpdateEntryValues()
+
+    },
+
+    keyupUserGlobalInput: function (evt) {
+        let self = this;
+
+        var globalIncreaseValue = self.elements.UserMaxValue.val();
+
+        
+
+        if(globalIncreaseValue < 0 || globalIncreaseValue > self.MaxExtras)
+        {
+            // add error css class
+        }else {
+            // remove error css class
+            this._UpdateEntryValues();
+        }
+    },
+
+    _UpdateEntryValues: function() {
+        let self = this;
+        let _value = self.elements.UserMaxValue.val();
+
+        if (_value < 0 || _value > self.MaxQuantityPercentage) return;
+
+        // ALL orders, need a SetMaxCurrentOrder, to update separated grups
+        let allEntries = self.elements.TableContainer.find('.user-entry');
+
+        allEntries.each((idx, entry) => {
+
+            let field = $(entry);
+
+            //if (field.prop('readonly') || field.prop('disabeld')) return;
+
+            let row = field.closest('.input-group')
+
+            let itemIdx = row.data('index')
+            let entryAction = row.find('a.SetMaxItemAction')
+
+            //field.attr('max', _value);
+            let requested = field.attr('data-quantity-requested')
+
+            //  check edition type, 0 -> NO, 1 -> Fixed Value , 2 -> Percentage
+            switch (self.AllowQuantityEdition) {
+
+                case 1:
+                    value = Math.ceil(parseInt(_value) + parseInt(requested));
+                    //entryAction.text(`@(g["Set Max"])(${value})`);
+                    field.val(value);
+                    // field.attr({
+                    //     "validation": `range(1,${value})`
+                    // });
+                    break;
+
+                case 2:
+
+                    if(requested > 0)
+                        value = Math.ceil(requested * (1.0 + parseFloat(_value) / 100.0));
+                    else{
+                        //->Math.ceil(DEFAULT_MAX_ALLOWED * (1.0 + parseFloat(_value) / 100.0));
+                        value = 0; // User always must set value in a manually way 
+                    }
+
+
+                    //entryAction.text(`@(g["Set Max"])(${value})`);
+                    field.val(value);
+                    // field.attr({
+                    //     "validation": `range(1,${value})`
+                    // });
+                    break;
+
+                default:
+                    field.val(requested);
+                    break;
+            }
+
+
+            field.change();
+        });
+
+    },
+
+
+    Mark: function(evt) {
+
+        var self = this;
+
+        var $chk = $(evt.target);
+
+        self._mark($chk, true)
+
+    },
+
+    MarkAll: function() {
+
+        self = this;
+
+        var state = self.elements.CheckAll.prop('checked');
+
+
+        var allChk = self.elements.TableContainer.find('input:checkbox.removable')
+        //var allChk = self.elements.TableContainer.find('.removable')
+
+        $.each(allChk, function(index, chk) {
+
+            $(chk).prop('checked', state)
+
+        })
+
+
+    },
+
+    _mark: function($chk, verify) {
+
+        var self = this;
+
+        if (verify) {
+
+            if ($chk.prop('checked')) {
+
+                var allChk = self.elements.TableContainer.find('input:checkbox.removable')
+
+                var allAreChecked = true;
+
+                for (var i = 0; i < allChk.length; i++) {
+                    if ($(allChk.get(i)).prop('checked') !== true) {
+                        allAreChecked = false;
+                        break;
+                    }
+                }
+
+                if (allAreChecked && allChk.length > 0) {
+                    self.elements.CheckAll.prop('checked', true);
+                }
+            } else {
+                self.elements.CheckAll.prop('checked', false);
+            }
+
+        }
+
+    },
+
+    GetValidator: function() {
+
+        var self = this;
+
+        var validator = new ValidatorHelper(self.OrderSelection);
+
+        validator.OnWizardCreated.Subscribe(this, this._validatorHelperOnCreateEvent)
+
+        return validator;
+
+    },
+
+    _validatorHelperOnCreateEvent: function(e) {
+
+        var self = this;
+
+        var wizard = e.wizardController;
+        var wizardStep = e.wizardStep
+
+        wizard.Show(self.ViewContainer);
+    },
+    LoadProjectData: function(ProjectID) {
+        //AppContext.Projects
+        let self = this;
+        let lbl = self.elements.ThresholdType
+        return AppContext.Projects.GetByID(ProjectID)
+            .done((result) => {
+                // TODO: why result is not stored inner Project property for better semantic
+                self.AllowQuantityEdition = result.AllowExtrasDuringValidation;
+                self.AllowEditQuantity = result.AllowUserEditExtraQuantities;
+                self.IsApplyAutomaticPercentage = result.IsApplyAutomaticExtraIncrement;
+                
+
+                if (result.IsApplyAutomaticExtraIncrement)
+                    self.elements.InfoApplyIncrese.text('@g["Yes"]');
+                else
+                    self.elements.InfoApplyIncrese.text('@g["No"]');
+
+                switch (self.AllowQuantityEdition) {
+                    case 1:
+                        self.elements.UserMaxValue.val(result.MaxExtras);
+                        self.elements.UserMaxValue.attr({
+                            "max": result.MaxExtras,
+                            "min": 0,
+                            "validation": "range(0," + result.MaxExtras + ")"
+                        });
+                        //self.MaxQuantityPercentage = result.MaxExtras;
+                        self.MaxExtras = result.MaxExtras;
+                        lbl.text('@g["Fixed value "]');
+                        break;
+                    case 2:
+                        self.elements.UserMaxValue.val(result.MaxExtrasPercentage);
+                        self.elements.UserMaxValue.attr({
+                            "max": result.MaxExtrasPercentage,
+                            "min": 0,
+                            "validation": "range(0," + result.MaxExtrasPercentage + ")"
+                        });
+                        self.MaxQuantityPercentage = result.MaxExtrasPercentage;
+                        lbl.text('@g["Percentaje "]');
+                        break;
+                    default:
+                        self.elements.divQuantity.hide();
+                        //self.elements.MaxQuantityPercentage.attr({ "max": 0, "min": 0 });
+                        lbl.text('@g["No Allow Edition "]');
+                        break;
+                }
+
+
+
+            });
+    },
+
+    // update selection with Extrass added
+    _UpdateSelection: function (result) {
+
+        var self = this;
+
+        for (var i = 0; i < result.Data.length; i++) {
+
+            var sel = result.Data[i];
+
+            for (var j = 0; j < sel.Items.length; j++) {
+                self.OrderSelection[i].Orders.push(sel.Items[j].OrderID);
+            }
+
+            self.OrderSelection[i].Orders = [...new Set(self.OrderSelection[i].Orders)];
+        }
+
+
+    },
+
+}
+
+/// </script>

@@ -1,0 +1,50 @@
+﻿@page
+@inject ILocalizationService g
+
+
+@{
+    Layout = null;
+    int projectid = Convert.ToInt32(Request.Query["projectid"]);
+    var controllerArgs = new
+    {
+        Title = g["VariableData Fields"],
+        CatalogName = Catalog.VARIABLEDATA_CATALOG,
+        ProjectID = projectid
+    };
+
+    var compoArgs = new
+    {
+        Title = g["Composition Fields"],
+        CatalogName = Catalog.COMPOSITIONLABEL_CATALOG,
+        ProjectID = projectid
+    };
+}
+<viewform>
+
+    <viewrow>
+
+        <viewcolumn>
+
+            <div>
+                <div component="OrderGrid" name="VirtualCatalog">
+
+                    <template>
+                        <column width="50" field="Include" type="Bool" Editable="1">@g["Include"]</column>
+                        <column width="150" field="CatalogName">@g["Catalog"]</column>
+                        <column width="150" field="Column">@g["Column"]</column>
+                        <column width="150" field="Display" Editable="1">@g["Display"]</column>
+                        <column width="150" field="Position" Editable="1" Sortable="1" type="int">@g["Position"]</column>
+                        <column width="150" field="Width" Editable="1" Sortable="1" type="int">@g["Width (px)"]</column>
+                    </template>
+
+                </div>
+            </div>
+        </viewcolumn>
+
+
+    </viewrow>
+
+    <viewfooter>
+        <a href="#" class="btn btn-primary" action="Save">@g["Set"]</a>
+    </viewfooter>
+</viewform>

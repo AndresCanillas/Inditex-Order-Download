@@ -1,0 +1,53 @@
+﻿@page
+@inject ILocalizationService g
+@inject IAppConfig cfg
+@{
+	Layout = null;
+	var showMaintenanceScreen = !User.IsInRole(Roles.SysAdmin) && cfg["WebLink:MaintenanceMode"] == "true";
+	bool isqa = cfg["WebLink.IsQA"] == "true";
+}
+@if (showMaintenanceScreen)
+{
+	<nav class="navbar navbar-expand-lg navbar-dark" style="top:0px; left:0px; width:100%; height:57px; background-color:#3F454A; color:#ffffff; border-bottom:solid 1px #000000;">
+		<div style="white-space:nowrap">
+			<img src="/images/LOGO_IDT_BY_INDET_GROUP.png" width="140" height="12" />
+			@if (isqa)
+			{
+				<span style="-webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; font-family:Calibri; font-size:7pt; color:white">QA</span>
+			}
+		</div>
+		<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+			<span class="navbar-toggler-icon"></span>
+		</button>
+		<div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+		</div>
+	</nav>
+	<br />
+	<div class="container">
+		<div class="row">
+			<div class="col-sm">&nbsp;</div>
+			<div class="col-8">
+				<br />
+				<div class="jumbotron">
+					<h1 class="display-4">@g["System under maintenance!"]</h1>
+					<p class="lead">@g["We are currently updating the system and performing tests to ensure all is left in a working state."]</p>
+					<hr class="my-4">
+					<p>@g["The site should be back to normal in a few minutes."]</p>
+				</div>
+			</div>
+			<div class="col-sm">&nbsp;</div>
+		</div>
+	</div>
+}
+else
+{
+	<div component="FormView" name="TopNavBar" controller="/common/NavBar.js"></div>
+	<div component="FormView" name="VMenu" controller="/common/VMenuBar.js" class="menubar"></div>
+	<div class="main-panel2">
+		<div class="main-panel-header">@g["Orders"]</div>
+		<div name="mainContainer" class="main-panel-content">
+			<div component="FormView" controller="/Upload/OrderGroupIndexView.js"></div>
+		</div>
+		<div component="FormView" controller="/common/FooterBar.js"></div>
+	</div>
+}

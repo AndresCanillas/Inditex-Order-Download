@@ -1,0 +1,44 @@
+﻿@page
+@using Service.Contracts.WF;
+@{
+	Layout = null;
+}
+<div style="margin:5px; font-size:10pt;">
+	<div class="form-row">
+		<div class="col-25">
+			<label>Status:</label>
+		</div>
+		<div class="col-75">
+			<select model name="ItemStatus" action="change:ItemStatusChanged" style="width:150px; min-width:150px;" class="form-control custom-select-sm" options="@(OptionList.FromEnum<ItemStatus>())"></select>
+		</div>
+	</div>
+	<div class="form-row" name="DelayTime">
+		<div class="col-25">
+			<label>Delay (minutes):</label>
+		</div>
+		<div class="col-75">
+			<input model name="Minutes" type="text" style="width:150px; min-width:150px;" class="form-control custom-select-sm" data-type="int" validation="required;numeric;range(0,9999)" />
+		</div>
+	</div>
+	<div class="form-row">
+		<div class="col-25">
+			<label>Move To:</label>
+		</div>
+		<div class="col-75">
+			<select model name="TaskID" style="width:200px; min-width:200px;" class="form-control custom-select-sm"></select>
+		</div>
+	</div>
+	<div class="form-row">
+		<div class="col-25">
+			<label>Reason:</label>
+		</div>
+	</div>
+	<div class="form-row">
+		<textarea model name="Reason" validation="required" class="form-control" style="min-height:60px; min-width:100%; overflow:scroll; background:white;"></textarea>
+	</div>
+	<div style="float:right; margin-top:20px;">
+		<a href="#" action="Ok" class="btn btn-primary" style="margin-right:0px; width:80px;">Move</a>
+		<a href="#" action="Cancel" class="btn btn-outline-danger" style="margin-right:0px;">Cancel</a>
+	</div>
+</div>
+

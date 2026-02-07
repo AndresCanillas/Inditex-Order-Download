@@ -1,0 +1,66 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData  userData
+@inject IOrderRepository  orderRepo
+@inject IProjectRepository projectRepo
+@inject IEventQueue events
+@{
+    Layout = null;
+
+}
+<viewform>
+    <viewcard>
+        <viewrow>
+            <viewcolumn>
+                <div name="BreadcrumbContainer"></div>
+                <h5><a href="#" name="previeworderszip" data-orderNumber="" action="DownloadPreviewsZip">@g["Order "] <span name="CurrentOrderNumber"></span><img src="~/images/Download.png" style="width:26px;height:26px;margin-left:3px" /></a> <small>(@g["Due Date"] <span name="CurrentOrderDueDate"></span>)</small></h5>
+                <div name="UserValidation" class="alert alert-warning" role="alert" style="display:none">@g["The current user does not have permissions to validate this order"]</div>
+            </viewcolumn>
+        </viewrow>
+        <viewrow>
+            <viewcolumn>
+                <div id="PreviewAndCaptionsFiles" name="PreviewAndCaptionsFiles" class="carousel slide" data-ride="carousel" style=" width:100%; margin: 5px auto;">
+                    <ol name="CarrouselIndicatorFiles" class="carousel-indicators"></ol>
+                    <div name="CarrouselContentFiles" class="carousel-inner">
+                    </div>
+                    <a class="carousel-control-prev" href="#PreviewAndCaptionsFiles" role="button" data-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="sr-only">>@g["Previus"]</span>
+                    </a>
+                    <a class="carousel-control-next" href="#PreviewAndCaptionsFiles" role="button" data-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="sr-only">@g["Next"]</span>
+                    </a>
+                </div>
+            </viewcolumn>
+            <viewcolumn>
+                <div id="PreviewAndCaptions" name="PreviewAndCaptions" class="carousel slide" data-ride="carousel" style=" width:100%; margin: 5px auto;">
+                    <ol name="CarrouselIndicator" class="carousel-indicators"></ol>
+                    <div name="CarrouselContent" class="carousel-inner">
+                    </div>
+                    <a class="carousel-control-prev" href="#PreviewAndCaptions" role="button" data-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="sr-only">>@g["Previus"]</span>
+                    </a>
+                    <a class="carousel-control-next" href="#PreviewAndCaptions" role="button" data-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="sr-only">@g["Next"]</span>
+                    </a>
+                </div>
+            </viewcolumn>
+        </viewrow>
+        <viewfooter>
+            <div class="row justify-content-end" name="AvailableActions">
+                <div class="col-4 text-right">
+                    <a href="#" class="btn btn-sm btn-primary"  name="btnAvailableActions" action="SaveAndNext">@g["Validate Order"] <span class="fa fa-fw fa-chevron-right" aria-hidden="true"></span></a>
+                </div>
+            </div>
+        </viewfooter>
+    </viewcard>
+</viewform>
+
+<script>
+    $(".carousel-control-prev").click(function () {
+        $("#mySlideshow").carousel('prev');
+    });
+</script>

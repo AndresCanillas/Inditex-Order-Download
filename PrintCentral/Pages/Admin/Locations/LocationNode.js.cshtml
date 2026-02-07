@@ -1,0 +1,100 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Locations/LocationNode.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var LocationNode = function (id, text) {
+		TreeNode.Extend(this, "LocationNode", id, text);
+		this.CanEdit = true;
+		this.menu = {
+			MenuWidth: "250px",
+			Options: [
+				{ Text: "@Html.Raw(g["Open"])", OnClick: this.OnDoubleClick }
+				@if (userData.Admin_Locations_CanRename)
+				{
+				@:, { Text: "@Html.Raw(g["Rename"])", OnClick: this.Rename }
+				}
+				@if (userData.Admin_Locations_CanDelete)
+				{
+				@:, { IsSeparator: true }
+                @:, { Text: "@Html.Raw(g["Delete"])", OnClick: this.Delete }
+				}
+			]
+		};
+	};
+
+	LocationNode.prototype = {
+		constructor: LocationNode,
+
+		loadDependencies: function (callback) {
+			AppContext.LoadJS(
+                "/admin/Locations/LocationView.js",
+                "/admin/Locations/Printers/PrintersRootNode.js").then(()=>callback());
+		},
+
+		GetContextMenu: function () {
+			return this.menu;
+		},
+
+		OnDoubleClick: function () {
+			var self = this;
+			this.loadDependencies(function () {
+				var view = new LocationView(self.EntityID);
+				view.NodeID = self.NodeID;
+				view.OnSaved.Subscribe(self, function (data) { this.setText(data.Name); });
+				view.Show(self.getViewContainer());
+			});
+		},
+
+		@if (userData.Admin_Locations_CanRename)
+		{
+		<text>
+		Rename: function () {
+			this.BeginEdit();
+		},
+
+		OnEditEnding: function (value) {
+			return AppContext.Locations.Rename(this.EntityID, value);
+		},
+		</text>
+		}
+
+		@if (userData.Admin_Locations_CanDelete)
+		{
+		<text>
+		Delete: function () {
+			var self = this;
+			var confirm = new ConfirmDialog("@g["Delete location? IMPORTANT: Deleting a location will also delete all printers associated to it."]");
+			confirm.ShowDialog(function (response) {
+				if (response) {
+					AppContext.Locations.Delete(self.EntityID, function (result) {
+						if (result.Success)
+							self.Remove();
+					});
+				}
+			});
+		},
+		</text>
+		}
+
+		OnExpanded: function () {
+			var self = this;
+			this.loadDependencies(function () {
+				if (!self.IsLoaded) {
+					self.IsLoaded = true;
+					self.AddNode(new PrintersRootNode(self.EntityID));
+				}
+			});
+		}
+	};
+//</script>
+
+
+

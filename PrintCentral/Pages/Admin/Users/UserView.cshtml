@@ -1,0 +1,97 @@
+﻿@page
+@inject ILocalizationService g
+@inject RequestLocalizationOptions langOptions
+@inject IUserRepository repo
+@inject ILocationRepository locationRepo
+@inject IUserData userData
+@{
+	Layout = null;
+	string userid = Request.Query["userid"];
+	var data = repo.GetByID(userid);
+	var roles = Roles.GetRoles();
+	var userRoles = repo.GetUserRoles(data.Id);
+	var locations = locationRepo.GetByCompanyID(data.CompanyID??0);
+	var resetURL = repo.GetResetURLByUserNameAsync(userid);
+}
+	<viewcard>
+		<viewrow>
+			<viewcolumn>
+				<viewform>
+					<input model name="Id" type="hidden" value="@data.Id" />
+					<input model name="CompanyID" type="hidden" value="@data.CompanyID" />
+					@if (userData.Admin_Users_CanRename)
+					{
+						<input model name="UserName" label="@g["User Name"]:" type="text" value="@data.UserName" />
+					}
+					else
+					{
+						<input model name="UserName" label="@g["User Name"]:" type="hidden" readonly value="@data.UserName" />
+						<div model name="UserName" label="@g["User Name"]:">@data.UserName</div>
+					}
+					<input model name="FirstName" label="@g["First Name"]:*" validation="required;maxlen(40)" type="text" value="@data.FirstName" />
+					<input model name="LastName" label="@g["Last Name"]:*" validation="required;maxlen(40)" type="text" value="@data.LastName" />
+					<input model name="Email" label="@g["Email"]:*" validation="required;maxlen(128);email" type="text" value="@data.Email" />
+					<input model name="PhoneNumber" label="@g["Phone Number"]:" validation="maxlen(20);chars(0123456789(\)+-. )" type="text" value="@data.PhoneNumber" />
+					<select model name="Language" label="@g["Language"]:" options="@(OptionList.FromEnumerable(langOptions.SupportedUICultures, "Name", "DisplayName", data.Language))"></select>
+					<select model name="LocationID" label="@g["Main Location"]:" options="@(OptionList.FromEnumerable(locations, "ID", "Name", data.LocationID))"></select>
+					@if (userData.Admin_Users_CanHiddeUser)
+					{
+						<input model name="ShowAsUser" label="@g["Show user?"]" type="checkbox" checked="@(data.ShowAsUser)" value="@(data.ShowAsUser)" />
+					}
+					@if (userData.Admin_Users_CanAssignIDTRoles && data.LockoutEnd.HasValue)
+					{
+						<input model name="LockoutEnd" label="@g["The user is locked until"]:" validation="maxlen(40)" type="datetime" readonly value="@data.LockoutEnd" />
+					}
+
+				</viewform>
+			</viewcolumn>
+			<viewcolumn>
+				<div class="card">
+					<div class="card-header">Roles</div>
+					<div class="card-body">
+						@foreach (var item in roles)
+                        {
+
+                            if ((item.IsSysAdminRole || item.IsIDTRole) && data.CompanyID != 1)
+                            {
+								continue; // can't assign admin rol and idt rol to other companies
+                            }
+
+                            if ((item.IsSysAdminRole && !userData.Admin_Users_CanAssignSysAdminRole)  ||
+                            (item.IsIDTRole && !userData.Admin_Users_CanAssignIDTRoles)  ||
+                            (item.IsCompanyRole && !userData.Admin_Users_CanAssignPublicRoles))
+                            {
+                                continue;
+                            }
+							<div class="FormRow" style="display:flex;">
+								<div style="flex:50%">
+									<label>
+										<input action="SetRole" type="checkbox" name="@item.Name" value="" @(userRoles.Contains(item.Name) ? "checked=checked" : "") /> @item.Name
+									</label>
+								</div>
+							</div>
+						}
+					</div>
+				</div>
+			</viewcolumn>
+		</viewrow>
+		
+			<viewfooter>
+				@if (userData.Admin_Users_CanEdit)
+				{
+					<a href="#" class="btn btn-primary" action="Save">@g["Save"]</a>
+				}
+				@if (userData.Admin_Users_CanResetPassword)
+				{
+					<a href="#" class="btn btn-secondary" action="ResetPassword">@g["Reset password"]</a>
+					
+				}
+
+				<span>
+					<label name="resetURL">@(resetURL.Result ?? String.Empty)</label>
+					<a href="#PasswordResetLinkCopy" name="UserView_btnCopy" class="btn btn-light" action="btnCopyText">@g["Copy"]</a>
+				</span>
+			
+			</viewfooter>
+		
+	</viewcard>

@@ -1,0 +1,156 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Orders/ChangeOrderStatusView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+/// <reference path="/js/AppContext.AppDomain.js" />
+
+//<script>
+    var ChangeOrderStatusView = function (orderData, newStateRequired) {
+        FormView.Extend(this, "@g["Change Order Status"]", `/Admin/Orders/ChangeOrderStatusView`);
+        if (newStateRequired == undefined) {
+            newStateRequired = true;
+        }
+
+
+
+
+        this.OrderData = orderData;
+        this.Accepted = false;
+        this.HasNewState = !newStateRequired;
+        this.NewStateRequired = newStateRequired;
+        
+	};
+
+
+    ChangeOrderStatusView.prototype = {
+        constructor: ChangeOrderStatusView,
+
+		OnLoad: function () {
+            var self = this;
+
+            self.FillAvailableStates();
+
+            // antes de asignar la data deben estar cargadas las opciones de los combos (<select> list)
+            self.LoadData(self.OrderData)
+
+        },
+
+        SelectNewState: function () {
+            var self = this;
+
+            self.EnableSubmit();
+
+            self.ShowEffect();
+        },
+
+        ClickConfirm: function () {
+            var self = this;
+
+            self.EnableSubmit();
+        },
+
+        Save: function () {
+
+            var self = this;
+
+            if (self.IsEnableSubmit() == false) {
+
+                AppContext.ShowError('@g["Require a new state selected and confirmed action before apply changes"]')
+                return;
+            }
+
+            AppContext.Orders.ChangeStatus(self.GetData())
+                .done((response) => {
+
+                    if (!response.Success) {
+
+                        AppContext.ShowError(response.Message)
+
+                        return;
+                    }
+                    @* get state translation from UI *@
+                    self.OrderData.OrderStatus = self.model.OrderStatus
+                    self.OrderData.OrderStatusText = self.elements.OrderStatus.find('[value="self.model.OrderStatus"]').text()
+
+                    self.Close(self.OrderData);
+
+                });
+
+        },
+
+        EnableSubmit: function () {
+
+            var self = this;
+
+            var btn = self.elements.SubmitButton;
+
+            if (self.NewStateRequired) {
+                self.HasNewState = self.elements.OrderStatus.val() != self.OrderData.OrderStatus && -1 != self.elements.OrderStatus.val();
+            } else {
+                self.HasNewState = true;
+            }
+
+            self.Accepted = self.elements.Confirm.prop('checked');
+
+            
+
+            if (self.IsEnableSubmit()) {
+                //btn.prop('disabled', false);
+                btn.removeClass('disabled')
+            } else {
+                //btn.prop('disabled', true);
+                btn.addClass('disabled')
+            }
+
+        },
+
+        IsEnableSubmit: function () {
+            return this.Accepted && this.HasNewState;
+        },
+
+        ShowEffect: function () {
+
+            var self = this;
+
+            //var effectIdx = self.elements.OrderStatus.val();
+            var effectIdx = self.model.OrderStatus
+
+            self.elements.EffectsContainer.find('.effect-status').removeClass('d-block')
+
+            // state selected is different to current state
+            if (effectIdx != "" &&  self.OrderData.OrderStatus != effectIdx && self.elements[`EffectStatus_${effectIdx}`]) {
+                self.elements[`EffectStatus_${effectIdx}`].addClass('d-block')
+            }
+
+        },
+
+        FillAvailableStates: function () {
+
+            var self = this;
+            var options = [];
+
+            if (!$.isArray(self.OrderData.NextStates)) {
+                return;
+            }
+
+            self.OrderData.NextStates.forEach(function (nextState) {
+
+                options.push(`<option value="${nextState.State}">${nextState.Description}</option>`)
+
+            })
+
+            self.elements.OrderStatus.empty();
+
+            self.elements.OrderStatus.append(options.join(''));
+
+        }
+    };
+//</script>
+
+

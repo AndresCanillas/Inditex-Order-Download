@@ -1,0 +1,106 @@
+@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Dashboards/Customer/CustomerDashboardUserFilteredView.js
+///<reference path="/js/jquery-3.0.0.min.js" />
+///<reference path="/js/Kendo.all.min.js" />
+///<reference path="/js/AppContext.js" />
+
+//<script>
+	var CustomerDashboardUserFilteredView = function () {
+		  FormView.Extend(this, null, `/Admin/Dashboards/Customer/CustomerDashboardUserFilteredView`);
+	  };
+
+	CustomerDashboardUserFilteredView.prototype = {
+		constructor: CustomerDashboardUserFilteredView,
+
+		refreshCounters: async function(self) {
+
+			var selectedUser = document.getElementById("Customer").value;
+			if (selectedUser == "") return;
+
+			var response = await AppContext.HttpGet(`/Dashboards/Customer/GetCountersByTaskForUser/` + selectedUser);
+
+			if (response.Success === true) {
+				self.Tasks = response.Data;
+				self.elements.Tasks.Rows.LoadData(response.Data);
+
+				var TotalWaitingItems = 0;
+				var TotalRejectedItems = 0;
+
+				for (let i = 0; i < response.Data.length; i++) {
+					TotalWaitingItems += response.Data[i].Waiting;
+					TotalRejectedItems += response.Data[i].Rejected;
+				}
+
+				self.model.TotalWaiting = TotalWaitingItems;
+				self.model.TotalRejected = TotalRejectedItems;
+			}
+		},
+
+		OnLoad: async function () {
+
+			  this.timerid = setInterval(this.refreshCounters, 60000, this);
+			  var usersCombo = document.getElementById("Customer");
+
+			  var response = await AppContext.HttpGet(`/Dashboards/Customer/GetCustomersList`);
+			  if (response.Success === true) {
+
+				  if (response.Data.length < 2) this.elements.Customer.hide();
+				  else this.elements.Customer.show();
+
+				  for (let i = 0; i < response.Data.length; i++) {
+					  const newOption = document.createElement('option');
+					  newOption.value = response.Data[i].Id;
+					  newOption.text = response.Data[i].FirstName + ' ' + response.Data[i].LastName;
+					  usersCombo.add(newOption);
+				  }
+			  }
+
+			  await this.refreshCounters(this);
+		},
+
+		WaitingLink: function (val, row, col, dataType, data) {
+			return this.getLink("ShowItemErrorView", data.TaskID, val, waitingstatus);
+		},
+
+		RejectedLink: function (val, row, col, dataType, data) {
+			return this.getLink("ShowItemErrorView", data.TaskID, val,rejectedstatus);
+		},
+
+		CustomerChanged: function () {
+			this.refreshCounters(this);
+		},
+
+		OnUnload: function () {
+			clearInterval(this.timerid);
+		},
+
+		getLink: function (action, taskID, val, statusid) {
+
+			if (val == 0) return "";
+
+			var style = `padding: 0; color:#4040A0; background: #AAFFAA; text-align: center; cursor: pointer`;
+			var link = `<div action="${action}" data-taskid="${taskID}" data-statusid="${statusid}" data-itemscount=${val} style="${style}"><b>${val}</b></div>`;
+			return link;
+		},
+
+		ShowItemErrorView: async function (e) {
+			e && e.preventDefault();
+
+			var selectedUser = document.getElementById("Customer").value;
+			var taskid = e.currentTarget.attributes["data-taskid"].value;
+			var statusid = e.currentTarget.attributes["data-statusid"].value;
+			var itemscount = e.currentTarget.attributes["data-itemscount"].value;
+
+			await AppContext.LoadJS("/Admin/Dashboards/Customer/ItemErrorView.js");
+				  var dlg = new ItemErrorView(taskid, statusid, selectedUser,itemscount );
+			dlg.ShowDialog(async (result) => {
+				await this.refreshCounters(this);
+			},"90%");
+			
+		}
+	};
+//</script>

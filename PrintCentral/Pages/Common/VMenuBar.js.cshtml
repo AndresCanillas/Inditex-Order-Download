@@ -1,0 +1,232 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData u
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Common/VMenuBar.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+
+//<script>
+var VMenuBar = function () {
+    FormView.Extend(this, "", "/common/VMenuBar");
+    this.MenuOptionClicked = new AppEvent();
+};
+
+VMenuBar.prototype = {
+    constructor: VMenuBar,
+
+    OnLoad: function () {
+        var self = this;
+
+        AppContext.AppEventListener.Subscribe(this, this.HandleNotificationEvent);
+        this.UpdateDashboardItemsCount();
+
+        $("BODY").click(function () {
+            self.HideAll();
+        });
+    },
+
+    HandleNotificationEvent: function (e) {
+        if (e.EventName === "DashboardRefreshEvent") {
+            this.UpdateDashboardItemsCount();
+        }
+    },
+
+    UpdateDashboardItemsCount: function () {
+        var self = this;
+        AppContext.HttpGet(`/Dashboards/Customer/GetUserTotalItemsAsync/@u.Id`, function (data) {
+            if (data >= 0) {
+                if (data > 0) {
+                    self.elements.ItemsCount.show();
+                    if (data < 100)
+                        self.elements.ItemsCount.text(data);
+                    else
+                        self.elements.ItemsCount.text("99+");
+                } else
+                    self.elements.ItemsCount.hide();
+            }
+        })
+    },
+
+    HideAll: function () {
+        this.elements.UploadOption.removeClass("active");
+        this.elements.PrintOption.removeClass("active");
+        this.elements.AdminOption.removeClass("active");
+        this.elements.DashboardsOption.removeClass("active");
+        this.elements.UploadMenu.addClass("hidden");
+        this.elements.PrintMenu.addClass("hidden");
+        this.elements.AdminMenu.addClass("hidden");
+        this.elements.DashboardsOption.addClass("hidden");
+    },
+
+    OpenUploadMenu: function (e) {
+        this.HideAll();
+        this.elements.UploadOption.addClass("active");
+        this.elements.UploadMenu.removeClass("hidden");
+    },
+
+    OpenPrintMenu: function (e) {
+        this.HideAll();
+        this.elements.PrintOption.addClass("active");
+        this.elements.PrintMenu.removeClass("hidden");
+    },
+
+    OpenAdminMenu: function (e) {
+        this.HideAll();
+        this.elements.AdminOption.addClass("active");
+        this.elements.AdminMenu.removeClass("hidden");
+    },
+
+    UploadVariableData: function (e) {
+        this.HideAll();
+        this.MenuOptionClicked.Raise({
+            option: "UploadVariableData"
+        });
+    },
+
+    UploadOrder: function (e) {
+        this.HideAll();
+        this.MenuOptionClicked.Raise({
+            option: "UploadOrder"
+        });
+    },
+    UploadPoolFile: function (e) {
+        this.HideAll();
+        this.MenuOptionClicked.Raise({
+            option: "UploadPoolFile"
+        });
+    },
+    ShowOrders: function (e) {
+        this.HideAll();
+        this.MenuOptionClicked.Raise({
+            option: "ShowOrders"
+        });
+    },
+    ShowPDFExtractor : function (e) 
+    {
+        this.HideAll(); 
+        this.MenuOptionClicked.Raise({
+            option: "ShowPDFExtractor",
+                params:
+                {
+                            CompanyID: e.target.attributes["data-companyID"].value,
+                            BrandID: e.target.attributes["data-brandID"].value,
+                            ProjectID: e.target.attributes["data-projectID"].value,
+                            Url: e.target.attributes["data-url"].value
+                }
+        });
+    },
+    OpenManualEntryMenu: function (e) {
+        this.HideAll();
+        this.elements.ManualEntryOption.addClass("active");
+        this.elements.ManualEntryMenu.removeClass("hidden");
+    },
+
+    BatchPrint: function (e) {
+        this.HideAll();
+        this.MenuOptionClicked.Raise({
+            option: "BatchPrint"
+        });
+    },
+
+    ShowPendingJobs: function (e) {
+        this.HideAll();
+        this.MenuOptionClicked.Raise({
+            option: "ShowPendingJobs"
+        });
+    },
+
+    ShowPrinters: function (e) {
+        this.HideAll();
+        this.MenuOptionClicked.Raise({
+            option: "ShowPrinters"
+        });
+    },
+
+    ShowBrands: function (e) {
+        this.HideAll();
+        this.MenuOptionClicked.Raise({
+            option: "ShowBrands"
+        });
+    },
+
+    ShowArticles: function (e) {
+        this.HideAll();
+        this.MenuOptionClicked.Raise({
+            option: "ShowArticles"
+        });
+    },
+
+    ShowLocations: function (e) {
+        this.HideAll();
+        this.MenuOptionClicked.Raise({
+            option: "ShowLocations"
+        });
+    },
+
+    ShowUsers: function (e) {
+        this.HideAll();
+        this.MenuOptionClicked.Raise({
+            option: "ShowUsers"
+        });
+    },
+
+    ShowAddresses: function (e) {
+        this.HideAll();
+        this.MenuOptionClicked.Raise({
+            option: "ShowAddresses"
+        });
+    },
+
+    ShowReport: function (e) {
+        this.HideAll();
+        this.MenuOptionClicked.Raise({
+            option: "ShowReport"
+        });
+    },
+
+    ShowDashboards: function (e) {
+        this.HideAll();
+        this.MenuOptionClicked.Raise({
+            option: "ShowDashboards"
+        });
+    },
+
+    UploadDelivery: function (e) {
+        this.HideAll();
+        this.MenuOptionClicked.Raise({
+            option: "UploadDelivery"
+        });
+    },
+
+    ShowManualEntry: function (e) {
+        this.HideAll();
+        this.MenuOptionClicked.Raise({
+            option: "ShowManualEntry",
+            params: {
+                      CompanyID: e.target.attributes["data-companyID"].value,
+                      BrandID: e.target.attributes["data-brandID"].value,
+                      ProjectID: e.target.attributes["data-projectID"].value,
+                      Url: e.target.attributes["data-url"].value
+          }
+        });
+    },
+       ShowOrderPoolManager: function (e) {
+              this.HideAll();
+              this.MenuOptionClicked.Raise({
+                       option: "ShowOrderPoolManager", 
+                       params: {
+                                  CompanyID: e.target.attributes["data-companyID"].value,
+                                  BrandID: e.target.attributes["data-brandID"].value,
+                                  ProjectID: e.target.attributes["data-projectID"].value,
+                                  Url: e.target.attributes["data-url"].value
+                      }
+              });
+          }
+};
+
+//</script>

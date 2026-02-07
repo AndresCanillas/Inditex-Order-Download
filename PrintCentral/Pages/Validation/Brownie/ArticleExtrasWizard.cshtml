@@ -1,0 +1,111 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData  userData
+@inject IOrderGroupRepository orderGroupRepo
+@inject IProjectRepository projectRepo
+@inject IEventQueue events
+@{
+    Layout = null;
+
+    OrderInfoDTO info = new OrderInfoDTO();
+
+
+    //if (Request.Query.ContainsKey("orderid"))
+    //{
+    //    id = Convert.ToInt32(Request.Query["orderid"].ToString());
+
+    //    currentArticles = orderRepo.GetOrderArticles(new OrderArticlesFilter() { OrderID = id, ArticleType = ArticleTypeFilter.Item }).ToList(); ;
+
+    //    var o = orderRepo.GetByID(id);
+
+    //    project = projectRepo.GetByID(o.ProjectID);
+
+    //    delta = project.MaxExtras.HasValue ? project.MaxExtras.Value : 0;
+
+    //    // This page is available then this project is allow add extras articles
+    //    //if (project.AllowExtrasDuringValidation == (int)OrderExtrasOption.MaxPercentajeValue)
+    //    //{
+    //    //    delta = project.MaxExtrasPercentage.Value;
+    //    //}else
+    //    //{
+    //    //    delta = project.MaxExtras.Value;
+    //    //}
+
+    //    events.Send(new ArticlesExtraStepStartedEvent(id, o.OrderNumber, o.CompanyID, project.BrandID, project.ID));
+    //}
+
+
+    if (Request.Query.ContainsKey("OrderGroupID"))
+    {
+        var orderGroupId = Convert.ToInt32(Request.Query["OrderGroupID"].ToString());
+
+        info = orderGroupRepo.GetProjectInfo(orderGroupId);
+
+    }
+}
+<!-- fuera del formulario , este campo no se envia en el post, por que se esta utilizando $(form).serializeArray -->
+    
+
+    
+    <viewform>
+        <viewcard>
+
+            <form name="articleextras-wizard-frm" method="post" onsubmit="return false;">
+
+                <input name="ProjectID" value="@info.ProjectID" type="hidden" readonly />
+
+                <input name="WizardStepID" value="" type="hidden" readonly />
+
+                <viewrow>
+                    <viewcolumn>
+                        <div name="BreadcrumbContainer"></div>
+                    </viewcolumn>
+                </viewrow>
+
+                <viewrow>
+
+                    <viewcolumn>
+
+                        <div class="table-responsive" name="TableContainer">
+
+                            <table class="table table-sm table-striped table-hover">
+
+                                <thead>
+                                    <tr>
+                                        <th scope="col" width="60">#</th>
+                                        @*<th scope="col"><input type="checkbox" name="CheckAll" action="MarkAll" value="1" no-transform /></th>*@
+                                        <th scope="col" width="90">@g["Article Code"]</th>
+                                        <th scope="col" width="150">@g["Article"]</th>
+                                        <th scope="col" width="220">@g["Description"]</th>
+                                        <th scope="col" width="150">@g["Quantity Confirmed"]</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    </viewcolumn>
+
+                </viewrow>
+
+            </form>
+            <viewfooter>
+
+                <div class="row justify-content-end" name="AvailableActions">
+                    <div class="col-4 text-center">
+                        <a href="#" class="btn btn-sm btn-outline-primary" action="Save"> <span class="fa fa-fw fa-save" aria-hidden="true"></span> @g["Save"]</a>
+                    </div>
+                    <div class="col-4 text-right">
+                        <a href="#" class="btn btn-sm btn-primary" action="SaveAndNext">@g["Save And Next"] <span class="fa fa-fw fa-chevron-right" aria-hidden="true"></span></a>
+                    </div>
+                </div>
+
+            </viewfooter>
+
+        </viewcard>
+    </viewform>
+    

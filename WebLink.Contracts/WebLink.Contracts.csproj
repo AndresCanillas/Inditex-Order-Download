@@ -1,0 +1,83 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup Label="Globals">
+    <SccProjectName></SccProjectName>
+    <SccProvider></SccProvider>
+    <SccAuxPath></SccAuxPath>
+    <SccLocalPath></SccLocalPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <LangVersion>7.3</LangVersion>
+    <Version>7.0.1</Version>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <CodeAnalysisRuleSet>WebLink.Contracts.ruleset</CodeAnalysisRuleSet>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <CodeAnalysisRuleSet>WebLink.Contracts.ruleset</CodeAnalysisRuleSet>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Migrations\20240502135615_OrderPool.cs" />
+    <Compile Remove="Migrations\20240502135615_OrderPool.Designer.cs" />
+    <Compile Remove="Migrations\20241014074941_AddArticleCompositionConfig.cs" />
+    <Compile Remove="Migrations\20241014074941_AddArticleCompositionConfig.Designer.cs" />
+    <Compile Remove="Migrations\20241014080212_AddArticleCompositionConfig.cs" />
+    <Compile Remove="Migrations\20241014080212_AddArticleCompositionConfig.Designer.cs" />
+    <Compile Remove="Migrations\20250210142607_OrderListIndex.cs" />
+    <Compile Remove="Migrations\20250210142607_OrderListIndex.Designer.cs" />
+    <Compile Remove="Migrations\20250630135429_AddDeliveryTables.cs" />
+    <Compile Remove="Migrations\20250630135429_AddDeliveryTables.Designer.cs" />
+    <Compile Remove="Migrations\20250702083455_AddDeliveryTables.cs" />
+    <Compile Remove="Migrations\20250702083455_AddDeliveryTables.Designer.cs" />
+    <Compile Remove="Migrations\20250702131743_AddDeliveryTables.cs" />
+    <Compile Remove="Migrations\20250702131743_AddDeliveryTables.Designer.cs" />
+    <Compile Remove="Migrations\20250702132448_AddDeliveryTables.cs" />
+    <Compile Remove="Migrations\20250702132448_AddDeliveryTables.Designer.cs" />
+    <Compile Remove="Migrations\20250703151332_AddFieldsInDeliveryTables.cs" />
+    <Compile Remove="Migrations\20250703151332_AddFieldsInDeliveryTables.Designer.cs" />
+    <Compile Remove="Migrations\20250710132248_AddFieldsInDeliveryTables.cs" />
+    <Compile Remove="Migrations\20250710132248_AddFieldsInDeliveryTables.Designer.cs" />
+    <Compile Remove="Migrations\20250717072501_AddFieldHasCompoAuditToProjects.cs" />
+    <Compile Remove="Migrations\20250717072501_AddFieldHasCompoAuditToProjects.Designer.cs" />
+    <Compile Remove="Migrations\20250723055523_CreateCompositionAuditTable.cs" />
+    <Compile Remove="Migrations\20250723055523_CreateCompositionAuditTable.Designer.cs" />
+    <Compile Remove="Migrations\20250825181320_OptionalCareInstructionsByLabel.cs" />
+    <Compile Remove="Migrations\20250825181320_OptionalCareInstructionsByLabel.Designer.cs" />
+    <Compile Remove="Migrations\20251014064233_ArmandDataStructure.cs" />
+    <Compile Remove="Migrations\20251014064233_ArmandDataStructure.Designer.cs" />
+    <Compile Remove="Migrations\20260109072714_CreateColumnExtraDataOrderPool.cs" />
+    <Compile Remove="Migrations\20260109072714_CreateColumnExtraDataOrderPool.Designer.cs" />
+    <Compile Remove="Migrations\20260203155431_AddDeliveryCentralIds.cs" />
+    <Compile Remove="Migrations\20260203155431_AddDeliveryCentralIds.Designer.cs" />
+    <Compile Remove="Models\Repositories\Project\ExportProjectRepository.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+	  <PackageReference Include="LinqKit.Core" Version="1.2.2" />
+	  <PackageReference Include="Microsoft.AspNetCore.App" Version="2.1.5" />
+	  <PackageReference Include="Miracle.FileZilla.Api" Version="3.2.0" />
+	  <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+	  <PackageReference Include="System.Drawing.Common" Version="4.6.0" />
+	  <PackageReference Include="System.Drawing.Primitives" Version="4.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Models\Repositories\InLay\DTO\" />
+    <Folder Include="Models\Repositories\EncodeLabels\" />
+    <Folder Include="Services\Events\Mango\" />
+    <Folder Include="Services\Events\Tempe\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Service.Contracts\Service.Contracts-NetCore21.csproj" />
+  </ItemGroup>
+
+</Project>

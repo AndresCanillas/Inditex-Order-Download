@@ -1,0 +1,70 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/UserNode.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var UserNode = function (id, text) {
+        TreeNode.Extend(this, "UserNode", id, text);
+		this.CanEdit = false;
+		this.menu = {
+			MenuWidth: "250px",
+			Options: [
+				{ Text: "@Html.Raw(g["Open"])", OnClick: this.OnDoubleClick }
+				@if (userData.Admin_Users_CanDelete)
+				{
+					@:, { IsSeparator: true },
+					@:{ Text: "@Html.Raw(g["Delete"])", OnClick: this.Delete }
+				}
+			]
+		};
+		this.Expand();
+	};
+
+    UserNode.prototype = {
+		loadDependencies: function (callback) {
+			AppContext.LoadJS("/admin/Users/UserView.js").then(()=>callback());
+		},
+
+		@if (userData.Admin_Users_CanDelete)
+		{
+		<text>
+		Delete: function () {
+			var self = this;
+			var confirm = new ConfirmDialog("@g["Delete User? IMPORTANT: This operation cannot be undone."]");
+			confirm.ShowDialog(function (response) {
+				if (response) {
+					AppContext.Users.Delete(self.EntityID, function (result) {
+						if (result.Success) {
+							self.Remove();
+						}
+					});
+				}
+			});
+		},
+		</text>
+		}
+
+		GetContextMenu: function () {
+			return this.menu;
+		},
+
+		OnDoubleClick: function () {
+			var self = this;
+			this.loadDependencies(function () {
+				var view = new UserView(self.EntityID);
+				view.NodeID = self.NodeID;
+				view.Show(self.getViewContainer());
+			});
+		}
+	};
+//</script>
+
+
+

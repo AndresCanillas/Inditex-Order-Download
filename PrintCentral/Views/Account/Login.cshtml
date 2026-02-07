@@ -1,0 +1,67 @@
+﻿@using WebLink.Controllers
+
+@model LoginRequest
+@inject ILocalizationService g
+@inject IAppConfig config
+@{
+	Layout = null;
+	bool isqa = config["WebLink.IsQA"] == "true";
+}
+<!DOCTYPE html>
+<html>
+<head>
+	<meta name="robots" content="noindex,nofollow">
+	<meta name="viewport" content="width=device-width" />
+	<link rel="stylesheet" href="~/css/bootstrap.css" />
+	<title>Log In</title>
+</head>
+<body>
+	<nav class="navbar navbar-expand-lg navbar-dark" style="top:0px; left:0px; width:100%; height:57px; background-color:#3F454A; color:#ffffff; border-bottom:solid 1px #000000;">
+		<div style="white-space:nowrap">
+			<img src="/images/LOGO_IDT_BY_INDET_GROUP.png" width="140" height="12" />
+			@if (isqa)
+			{
+				<span style="-webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; font-family:Calibri; font-size:7pt; color:white">QA</span>
+			}
+		</div>
+		<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+		<span class="navbar-toggler-icon"></span>
+		</button>
+		<div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+		</div>
+	</nav>
+	<br />
+	<div class="container">
+		<div class="row">
+			<div class="col-sm">&nbsp;</div>
+			<div class="col-4">
+				<br />
+				<form asp-action="Login" asp-controller="Account" method="post">
+					<h4>@g["Log In"]</h4><br />
+					<input type="hidden" id="ReturnUrl" name="ReturnUrl" value="@(Context.Request.Query["ReturnUrl"])" />
+					<div class="form-group">
+						<label asp-for="UserName">@g["User Name"]</label>
+						<div>
+							<span asp-validation-for="UserName" class="text-danger"> </span>
+						</div>
+						<input asp-for="UserName" class="form-control" required autofocus />
+					</div>
+					<div class="form-group">
+						<label asp-for="Password">@g["Password"]</label>
+						<div>
+							<span asp-validation-for="Password" class="text-danger"></span>
+						</div>
+						<input id="Password" name="Password" type="password" value="@Model.Password" class="form-control" />
+					</div>
+					<button class="btn btn-primary" type="submit">@g["Log In"]</button>
+					<br /><br />
+					<div class="text-danger" asp-validation-summary="All"></div>
+				</form>
+			</div>
+			<div class="col-sm">&nbsp;</div>
+		</div>
+	</div>
+</body>
+</html>
+
+

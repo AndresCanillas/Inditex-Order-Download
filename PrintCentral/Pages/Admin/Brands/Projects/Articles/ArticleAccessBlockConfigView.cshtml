@@ -1,0 +1,38 @@
+﻿@page
+@inject ILocalizationService g
+@inject ILocationRepository locationRepo
+@{
+    Layout = null;
+    var locations = locationRepo.GetIDTFactories();
+}
+
+<viewform>
+    <input model name="ArticleID" type="hidden" data-type="int" />
+    <input model name="ProjectID" type="hidden" data-type="int" />
+    <input model name="ExportBlockedLocationIds" type="hidden" />
+
+    <viewrow>
+        <viewcolumn>
+            <div class="form-subtitle">@g["Acces Block config"]</div>
+            <hr class="subtitle" />
+        </viewcolumn>
+    </viewrow>
+
+    <viewrow>
+        <viewcolumn>
+            @foreach (var l in locations)
+            {
+                <div class="form-group row" style="margin-bottom:5px;">
+                    <label class="col-sm col-form-label">@l.Name</label>
+                    <div class="col-sm" style="padding-top:7px;">
+                        <input type="checkbox" class="AccessBlockLoc" value="@l.ID" />
+                    </div>
+                </div>
+            }
+        </viewcolumn>
+    </viewrow>
+
+    <viewfooter>
+        <a href="#" class="btn btn-primary" action="Save">@g["Save"]</a>
+    </viewfooter>
+</viewform>

@@ -1,0 +1,64 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Production/PrinterSettingsDialog.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+
+//<script>
+	var PrinterSettingsDialog = function (projectid, printerid, articleid, orderid, productid) {
+		FormView.Extend(this, "@g["Printer Settings"]", `/Production/PrinterSettingsDialog?PID=${printerid}&AID=${articleid}`);
+		this.ProjectID = projectid;
+		this.PrinterID = printerid;
+		this.ArticleID = articleid;
+		this.OrderID = orderid;
+		this.ProductID = productid;
+	};
+
+	PrinterSettingsDialog.prototype = {
+		constructor: PrinterSettingsDialog,
+
+		OnLoad: function () {
+			this.EnableCutChange(null);
+		},
+
+		EnableCutChange: function (e) {
+			if (this.model.EnableCut === true) {
+				this.elements.CutBehavior.prop("disabled", false);
+				this.CutBehaviorChange(null);
+			}
+			else {
+				this.elements.CutBehavior.prop("disabled", true);
+				this.CutBehaviorChange(null);
+			}
+		},
+
+		CutBehaviorChange: function (e) {
+			var enabled = this.model.EnableCut && parseInt(this.model.CutBehavior, 10) === 2;
+			this.elements.ResumeAfterCut.prop("disabled", !enabled);
+		},
+
+		PrintSample: function (e) {
+			var self = this;
+			var data = this.GetData();
+			AppContext.Printers.UpdateSettings(data, function (result) {
+				if (result.Success) {
+					AppContext.PrinterJobs.PrintSample(self.ProjectID, self.PrinterID, self.ArticleID, self.OrderID, self.ProductID);
+				}
+			});
+		},
+
+		Save: function (e) {
+			var self = this;
+			if (!this.model.ValidState()) return;
+			var data = this.GetData();
+			AppContext.Printers.UpdateSettings(data, function (result) {
+				self.Close();
+			});
+		}
+	};
+//</script>

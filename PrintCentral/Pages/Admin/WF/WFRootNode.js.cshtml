@@ -1,0 +1,48 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/WF/WFRootNode.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var WFRootNode = function () {
+		TreeNode.Extend(this, "WFRootNode", 0, "Workflows");
+        this.CanEdit = false;
+	};
+
+	WFRootNode.prototype = {
+		constructor: WFRootNode,
+
+		@if (userData.IsIDTAdminRoles)
+		{
+		<text>
+
+		OnExpanded: async function () {
+			await AppContext.LoadJS("/Admin/WF/WFManagerNode.js");
+			if (!this.IsLoaded) {
+				var response = await AppContext.HttpGet("/wf/workflows");
+				if (response.Success === true) {
+					this.IsLoaded = true;
+					this.loadNodes(response.Data);
+				}
+			}
+		},
+
+		loadNodes: function (data) {
+			for (var wf of data) {
+				if (!this.FindNode("WFManagerNode", wf.ID, false)) {
+					var node = new WFManagerNode(wf.WorkflowID, wf.Name);
+					this.AddNode(node);
+				}
+			}
+		}
+
+		</text>
+		}
+    };
+//</script>

@@ -1,0 +1,29 @@
+﻿@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+<div class="main-panel-content">
+    <div class="col-12">
+       <div component="OrderGrid" name="DeliveryNotesTable" style="width:100%; height: calc(100% - 42px); border-bottom:1px solid #bdbdbd">
+            <template>
+                <column width="100" field="DeliveryNote" sortable="true">@g["Delivery Note"]</column>
+                <column width="140" field="SendToName" sortable="true">@g["Vendor"]</column>
+                <column width="70" field="Country" sortable="Country">@g["Country"]</column>
+                <column width="70" field="FactoryCode" sortable="true">@g["Factory"]</column>
+                <column width="70" field="FactoryName" sortable="true">@g["Factory Name"]</column>
+                <column width="100" field="CarrierName" sortable="true">@g["Carrier"]</column>
+                <column width="100" field="ShippingDate" type="Date" sortable="true">@g["Shipping Date"]</column>
+                <column width="100" field="TrackingCode" sortable="true" render="RenderTrackingCode">@g["Tracking Code"]</column>
+                <column width="50" field="PackageNumber" sortable="true">@g["Package"]</column>
+                <column width="150" field="ArticleCode" sortable="true">@g["Article Code"]</column>
+                <column width="150" field="Description" sortable="true">@g["Description"]</column>
+                <column width="70" field="Size" sortable="true">@g["Size"]</column>
+                <column width="70" field="Colour" sortable="true">@g["Colour"]</column>
+                <column width="70" field="Quantity" sortable="true">@g["Quantity"]</column>
+                <column width="70" field="QuantitySent" sortable="true">@g["Sent"]</column>
+            </template>
+        </div>
+    </div>
+</div>
+    

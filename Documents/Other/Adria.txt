@@ -1,0 +1,29 @@
+Serializacion/Codificación (SGTIN/Propietarios - TEMPE)
+Mesa
+Cinta
+Headers RFID - Codigo de barras para usar en mesa/cinta
+Programa de Verficiacion de RFID (ambos standares o solo SGTIN?)
+FastReel (programa para codificar)
+
+Codificación RFID
+	Fijo = el password no se calcula, sino que se fija usando AccessKeyDefault/KillKeyDefault  (Hexadecimal)
+	MD5
+		= Mezcla el Seed (accPass o kilPass) con el Serial, se genera un hash MD5, pasa a hexadecimal y se toman los 8 caracteres a la derecha (izq. si es un reverse).
+	SHA
+		= Mezcla el Seed (accPass o kilPass) con el EPC, se genera un hash SHA, pasa a hexadecimal y se toman los 8 caracteres a la derecha (izq. si es un reverse).
+
+
+La configuracion de todos los programas se guarda en "C:\SmartDots\[Programa]\Config"
+
+FastReel - Se debe cambiar el codigo de barras a mano en el codigo fuente (MainWindow.cs)
+
+Mesa/Cinta/Winsinga - Review bases de datos
+
+EPCIS TEMPE
+
+
+
+
+
+
+

@@ -1,0 +1,119 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData  userData
+@inject IOrderGroupRepository orderGroupRepo
+@inject IProjectRepository projectRepo
+@inject IEventQueue events
+@{
+    Layout = null;
+
+    //OrderInfoDTO info = new OrderInfoDTO();
+
+
+    //if (Request.Query.ContainsKey("orderid"))
+    //{
+    //    id = Convert.ToInt32(Request.Query["orderid"].ToString());
+
+    //    currentArticles = orderRepo.GetOrderArticles(new OrderArticlesFilter() { OrderID = id, ArticleType = ArticleTypeFilter.Item }).ToList(); ;
+
+    //    var o = orderRepo.GetByID(id);
+
+    //    project = projectRepo.GetByID(o.ProjectID);
+
+    //    delta = project.MaxExtras.HasValue ? project.MaxExtras.Value : 0;
+
+    //    // This page is available then this project is allow add extras articles
+    //    //if (project.AllowExtrasDuringValidation == (int)OrderExtrasOption.MaxPercentajeValue)
+    //    //{
+    //    //    delta = project.MaxExtrasPercentage.Value;
+    //    //}else
+    //    //{
+    //    //    delta = project.MaxExtras.Value;
+    //    //}
+
+    //    events.Send(new ArticlesExtraStepStartedEvent(id, o.OrderNumber, o.CompanyID, project.BrandID, project.ID));
+    //}
+
+
+}
+<!-- fuera del formulario , este campo no se envia en el post, por que se esta utilizando $(form).serializeArray -->
+    
+
+    
+    <viewform>
+        <viewcard>
+
+            <form name="articleextras-wizard-frm" method="post" onsubmit="return false;">
+
+                <input model name="ProjectID" value="-1" type="hidden" />
+
+                <input model name="WizardStepID" value="" type="hidden" />
+
+                <viewrow>
+                    <viewcolumn>
+                        <div name="BreadcrumbContainer"></div>
+                    </viewcolumn>
+                </viewrow>
+
+                <viewrow>
+
+                    <viewcolumn>
+
+                        <div class="table-responsive" name="TableContainer">
+
+                            <table class="table table-sm table-striped table-hover">
+
+                                <thead>
+                                    <tr>
+                                        <th scope="col" width="60">#</th>
+                                        @*<th scope="col"><input type="checkbox" name="CheckAll" action="MarkAll" value="1" no-transform /></th>*@
+                                        <th scope="col" >@g["Article Code"]</th>
+                                        <th scope="col" >@g["Article"]</th>
+                                        <th scope="col" >@g["Description"]</th>
+                                        <th scope="col" width="150">@g["Quantity Requested"]</th>
+                                        <th scope="col" width="300">@g["Quantity Confirmed"]</th>
+                                        <th scope="col" width="100">@g["Differential"]</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    </viewcolumn>
+
+                </viewrow>
+                <viewrow>
+                    <viewcolumn>
+                        <input type="hidden" name="MaxValuePercent" value="188" />
+                        <div name="ControllerUIContainer" class="form-group row" style="margin-bottom:5px;">
+
+                            <label name="ThresholdType" class="col-sm col-form-label">Max Value <span name="MaxValueText">188</span></label>
+                            <input model class="form-control-sm" action="keyup:keyupUserGlobalInput;change:AllQuantityUpdatedEvent" style="width:80px;" name="UserMaxValue" label="@g["XXXXX"] (%):" type="number" min="0" max="188" value="0" />
+                            <a class="btn btn-link" href="#" name="BtnSetMaxAll" action="SetMaxAll">@($"{g["Set Max"]}")</a>
+                            <div class="col-sm mt-2"><em> @g["Increment Quantity Automatically"]: </em>  <span name="InfoApplyIncrese">@g["No"]</span></div>
+                        </div>
+                    </viewcolumn>
+                </viewrow>
+
+            
+                <viewfooter>
+
+                    <div class="row justify-content-end" name="AvailableActions">
+                        <div class="col-4 text-center">
+                            <a href="#" class="btn btn-sm btn-outline-primary" action="Save"> <span class="fa fa-fw fa-save" aria-hidden="true"></span> @g["Save"]</a>
+                        </div>
+                        <div class="col-4 text-right">
+                            <a href="#" class="btn btn-sm btn-primary" action="SaveAndNext">@g["Save And Next"] <span class="fa fa-fw fa-chevron-right" aria-hidden="true"></span></a>
+                        </div>
+                    </div>
+
+                </viewfooter>
+            </form>
+
+        </viewcard>
+    </viewform>
+    

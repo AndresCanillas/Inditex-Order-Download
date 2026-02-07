@@ -1,0 +1,85 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Materials/MaterialsRootNode.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var MaterialsRootNode = function () {
+        TreeNode.Extend(this, "MaterialsRootNode", 0, "@g["Materials"]");
+        this.CanEdit = false;
+        this.menu = {
+            MenuWidth: "200px",
+			Options: [
+			@if (userData.Admin_Materials_CanAdd)
+			{
+			@:{ Text: "@Html.Raw(g["New Material"])", OnClick: this.CreateMaterial }
+			}
+            ]
+        };
+	};
+
+    MaterialsRootNode.prototype = {
+        constructor: MaterialsRootNode,
+
+        loadDependencies: function (callback) {
+            AppContext.LoadJS(
+                "/Common/AskNameDialog.js",
+                "/Admin/Materials/MaterialNode.js").then(()=>callback());
+        },
+
+        GetContextMenu: function () {
+            return this.menu;
+        },
+
+		@if (userData.Admin_Materials_CanAdd)
+		{
+		<text>
+		CreateMaterial: function () {
+			var self = this;
+			this.loadDependencies(function () {
+				var dialog = new AskNameDialog("@g["New Material"]");
+				dialog.ShowDialog(function (dlgData) {
+					if (!dlgData) return;
+					AppContext.Materials.Insert(dlgData, function (result) {
+						if (result.Success) {
+							var node = new MaterialNode(result.Data.ID, result.Data.Name);
+							self.AddNode(node);
+							node.OnDoubleClick();
+							if (!self.Expanded)
+								self.Expand();
+						}
+					});
+				});
+			});
+		},
+		</text>
+		}
+
+        OnExpanded: function () {
+			var self = this;
+			this.loadDependencies(function (){
+				if (!self.IsLoaded) {
+					self.IsLoaded = true;
+					AppContext.Materials.GetList( function (data){ self.loadNodes(data); });
+				}
+			});
+		},
+
+        loadNodes: function (data){
+			var material, node;
+			for (var index = 0; index < data.length; index++) {
+				material = data[index];
+				if (!this.FindNode("MaterialNode", material.ID, false)) {
+					node = new MaterialNode(material.ID, material.Name);
+					this.AddNode(node);
+				}
+			}
+		}
+    };
+//</script>

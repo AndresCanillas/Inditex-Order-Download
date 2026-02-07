@@ -1,0 +1,168 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+
+
+}
+//# sourceURL=https://Pages/Validation/Common/Mango/QuantityWizard.js
+///<script>
+
+    var MadeInWizard = function (orderSelection, wizardStep, allSteps) {
+
+        this.OrderSelection = orderSelection;
+        this.WizardStep = wizardStep;
+        this.AllSteps = allSteps;
+        this.BreadCrumbs = null;
+        this.FormSelector = '[name="madein-wizard-frm"]'
+        FormView.Extend(this, "@g["Quantities Wizard"]", `@Url.Content("~/Validation/Mango/QuantityWizard")`);
+    }
+
+    MadeInWizard.prototype = {
+
+        constructor: MadeInWizard,
+
+        OnLoad: function () {
+
+            var self = this;
+
+            self.model.WizardID = self.WizardStep.WizardID;
+            self.model.WizardStepID = self.WizardStep.ID;
+
+            self.ShowStatus()
+
+
+        },
+
+        // #region Wizard Base
+        Save: function () {
+
+            var self = this;
+            if (!self.model.ValidState()) {
+
+                var deffered = $.Deferred();
+
+                deffered.reject();
+
+                return deffered.promise();
+            };
+
+            var arrayData = $(FormSelector).serializeArray();
+
+            return AppContext.Wizard.SaveQuantityState(arrayData)
+
+        },
+
+
+        _solve: function () {
+            var self = this;
+
+            if (!self.model.ValidState()) {
+
+                var deffered = $.Deferred();
+
+                deffered.reject();
+
+                return deffered.promise();
+            };
+
+            var arrayData = $(FormSelector).serializeArray();
+
+            return AppContext.Wizard.SolveQuantities(arrayData);
+
+        },
+
+        SaveAndNext: function () {
+
+			var self = this;
+
+            var p = self._solve();
+
+            p.done(() => {
+
+                self.GetValidator().GetStep(self.WizardStep.Position + 1);
+
+            })
+
+        },
+
+        Back: function () {
+            this.GetValidator().GetStep(this.WizardStep.Position - 1);
+        },
+
+        GetValidator: function () {
+
+            var self = this;
+
+            var validator = new ValidatorHelper(self.OrderSelection);
+
+            validator.OnWizardCreated.Subscribe(this, this._validatorHelperOnCreateEvent)
+
+            return validator;
+
+        },
+
+        _validatorHelperOnCreateEvent: function (e) {
+            var self = this;
+
+            var wizard = e.wizardController;
+            var wizardStep = e.wizardStep
+
+            wizard.Show(self.ViewContainer);
+        },
+        // TODO: ShowStatus method and GoBCGoToStepToStep method, could be better in parent object, to reuse for all wizards views
+        ShowStatus: function() {
+            var self = this;
+            var breadCrumbs = new BreadCrumbsUI({
+                ContainerElm: this.elements.BreadcrumbContainer,
+	            Controller: self,
+                LinkClick: 'BCGoToStep',
+                Crumbs: $.map(self.AllSteps, (wzdStep) => {
+                    // Crumb Object {Text, Position, Href, State }
+                    return {
+                        Text: wzdStep.Name,
+                        Position: wzdStep.Position,
+                        Href: '#',
+                        State : self.WizardStep.ID == wzdStep.ID ? CrumbState.PROGRESS : ( wzdStep.IsCompleted ? CrumbState.COMPLETED :CrumbState.PENDING )
+                    } 
+                }),
+	            AutoRender: true,
+	            SizeCls: '', // not implemented
+	            AlignCls: '' // justify-content-center or justify-content-end
+            });
+
+        },
+
+        BCGoToStep: function (evt) {
+
+            var self = this;
+            var stepBtn = $(evt.target);
+            var step = stepBtn.data('position')
+            var wzdStepSelected = self.AllSteps.find((val) => val.Position == step)
+            var beforeStepSelected = self.AllSteps.find((val) => val.Position == step - 1)
+
+            if (!wzdStepSelected
+                || self.WizardStep.ID == wzdStepSelected.ID
+                || (wzdStepSelected.IsCompleted == false && beforeStepSelected && beforeStepSelected.IsCompleted == false)
+            ) { 
+                evt.preventDefault();
+                return;
+            }
+
+            self.GetValidator().GetStep(step);
+        },
+
+        // #endregion  Wizard Base
+
+        // #region MadeIn Wizard
+        // catalogname, displayfield, currentProject
+        LoadInfoFor: function () {
+
+        }
+
+        // #endregion MadeIn Wizard
+    };
+
+/// </script>
+

@@ -1,0 +1,322 @@
+
+Ahora los mapeos pueden hacer referencia a multiples tablas dentro del sistema utilizando para ello el sistema de catálogos dinámicos.
+
+Se deberá indicar un catálogo RAIZ (por ejemplo Orders), y los mappings podrán hacer referencia a compos del catálogo raíz o bien
+a campos en tablas relacionadas por medio de especificar un path.
+
+Por ejemplo, asumiendo que nuestro catálogo raíz es Orders, entonces:
+	- Para hacer referencia al Detail de una orden se deberá anteponer "Details." al nombre del campo destino.
+	- Para hacer referencia a la data del Producto para un detalle, el path sería "Details.Product."
+
+NOTAS sobre los Paths
+
+Normalmente se puede acceder a un campo de otro catálogo que no sea el de Orders usando "." para denotar el paso de un catálogo a otro.
+Sin embargo es tambien posible utilizar los signos ! y @. Estos signos tienen un significado similar a ".", las diferencias se
+explican a continuación:
+
+Insert New Row  (.)
+
+Si se utiliza "." para acceder a un catálogo relacionado (ya sea un Set o Reference), entonces se insertará siempre un nuevo registro
+en la tabla relacionada. En este caso la importación de datos fallará si la inserción del nuevo registro falla.
+
+Lookup Row  (!)
+
+Si se utiliza "!" para acceder a un catálogo relacionado, entonces se buscará un registro ya existente. En este caso la importación
+de datos fallará si no se encuentra ningun registro que haga match con el valor provisto en el documento excel para la(s) columna(s)
+en las que se especifique '!'. Notar que en ningun caso se plantea la actualizacion del registro ya existente o la
+inserción de un nuevo registro.
+
+Update Or Insert (@)
+
+Finalmente si se utiliza "@", entonces primero se intentará buscar un registro que coincida con los valores provistos (similar a '!').
+En caso de encontrar una coincidencia, el registro será actualizado con la data del registro actual. En caso de no encontrarse un
+registro, entonces se insertará uno nuevo. La importación de datos fallará si la actualización o la inserción del registro
+falla.
+
+
+
+Hash Tables
+
+Si un catálogo contiene un campo tipo Set (por ejemplo Orders.Details es un set), entonces es posible crear un hash table
+(o diccionario) usando uno de los campos de dicho catálogo. La función de un hash table es impedir la inserción de
+múltiples registros con información repetida dentro de un catálogo.
+
+Por ejemplo, considere el siguiente archivo de datos:
+
+NumOrden    Fecha       Facturar Enviar   Modelo      Cantidad CB               Nombre          Talla      TXT1       TXT2
+----------- ----------- -------- -------- ----------- -------- ---------------- --------------- ---------- ---------- ----------
+O2319       2019/07/21  SMD-124  SMD-125  ST-1P       10       1234567890138    PACK CAMISETAS  S          txt1       txt2
+O2319       2019/07/21  SMD-124  SMD-125  ST-1P       32       1234567890184    PACK CAMISETAS  M          txt1       txt2
+O2319       2019/07/21  SMD-124  SMD-125  ST-1P       28       1234567890162    PACK CAMISETAS  L          txt1       txt2
+O2319       2019/07/21  SMD-124  SMD-125  ST-1P       11       1234567890121    PACK CAMISETAS  XL         txt1       txt2
+
+Si este archivo de datos se procesa sin más, se crearán 4 registros en Orders, todos con un order number 'O2319', y cada order
+tendrá a su vez, un solo registro en su detail. Este comportamiento es ovbiamente erroneo, ya que lo que en realidad se desea es
+insertar una sola orden 'O2319' y poner 4 registros en el detalle de dicha orden, a la vez que se insertan/actualizan los datos 
+del producto asociado a cada detalle.
+
+Para crear un hash table, simplemente se debe agregar el signo '#' al inicio del campo que será usado como llave en los mapeos:
+
+SourceColumn	TargetColumn
+--------------- ---------------------------------------------
+NumOrder 	#OrderNumber
+Fecha		OrderDate
+Facturar	BillTo
+Enviar		SendTo
+Modelo		Details.ArticleCode
+Cantidad	Details.Quantity
+CB		Details.Product@Barcode
+Nombre		Details.Product.ProductName
+Talla		Details.Product.Size
+TXT1		Details.Product.TXT1
+TXT2		Details.Product.TXT2
+
+Como se puede ver en el ejemplo anterior la columna NumOrder se ha mapeado usando el path: "#OrderNumber".
+Esto provocará que el sistema cree un hashtable utilizando el campo OrderNumber, la primera vez que un nuevo valor para el campo 
+OrderNumber sea visto, el sistema procesará dicho registro de forma normal (por ejemplo ejecutando el insert o lookup correspondiente)
+y agregará el valor obtenido al hashtable. De ese momento en adelante, si el mismo valor para OrderNumber es visto de nuevo,
+ya no se volverá a procesar la operación, en vez de eso, el sistema simplemente usará el mismo ID que ya habia insertado en el
+hash table.
+
+
+
+
+
+EJEMPLO
+
+El siguiente ejemplo trata de explicar como es que los mapeos serán procesados por el servicio.
+
+De manera predefinida el sistema de catálogos dinámicos solo considera 3 catálogos por default: Orders, OrderDetails y Products.
+Sin embargo los usuarios pueden definir cualquier cantidad de catálogos satélites que juzgen necesario. Para este ejemplo hemos
+considerado 2 catalogos adicionales: Colores y Provedores.
+
+En el catálogo de Products se ha agregado un campo llamado "Color" que es una referencia al nuevo catálogo de Colores.
+
+Por otro lado en el catálogo de Orders se ha agregado un campo llamado "Provedor" que es una referencia al catálogo de provedores.
+
+Por lo que los paths para acceder a campos de estos nuevos catálogos son:  "Details.Product.Color." y "Provedor." respectivamente.
+
+Mappings de ejemplo:
+
+SourceColumn	TargetColumn
+--------------- ----------------------------------------
+NumOrder 	#OrderNumber
+Fecha		OrderDate
+Facturar	BillTo
+Enviar		SendTo
+CPRV		Provedor!CODPROV
+CB		Details.Product@Barcode
+Nombre		Details.Product.ProductName
+Talla		Details.Product.Size
+TXT1		Details.Product.TXT1
+TXT2		Details.Product.TXT2
+TXT3		Details.Product.TXT3
+CColor		Details.Product.Color!ColorCode
+Modelo		Details.ArticleCode
+Cantidad	Details.Quantity
+
+
+En este ejemplo particular, se identifican las siguientes operaciones:
+
+ImportOp
+	ID = 0
+	Depth = 0
+	Path: ""
+	Catalog = Orders (por ser el catalogo raiz)
+	OpType= Insert (por ser el ctalogo raiz)
+	SearchBy: null
+	Data = {OrderNumber:ONum, OrderDate:ODate, BillTo:Cod1, SendTo:Cod2, Details: (delegate), Provedor: (delegate)}
+
+Notas:	Esta op se crea por default al procesar una orden. Catalog esta asignado por default a Orders y OpType = Insert (significa que 
+	no intentaremos buscar o acutualizar un registro existente, si no crear uno nuevo).
+	Data es el producto de buscar todos los campos de nivel 0 en los mapeos, es decir:
+	 OrderNumber, OrderDate, BillTo, SendTo, Details y Provedor
+	Los primeros 4 campos son escalares por lo que sus valores quedan determinados directamente con la data del archivo.
+	Details al ser tipo Set desencadenará una nueva operación y el valor del campo quedará establecido como un delegado
+	a evaluar mas tarde.
+	Provedor al ser tipo Reference tambien desencadena una nueva operación por lo que su valor tambien queda asignado como un
+	delegado.
+	Los delegados de los que hablamos arriba sirven para indicar que el valor del campo en cuestion no es conocido sino hasta 
+	despues de haber ejecutado la operación asociada. 
+
+
+
+ImportOp
+	ID = 1
+	Depth = 1
+	Path: "Details"
+	Catalog = OrderDetails
+	OpType = Insert
+	SearchBy: null
+	Data = {ArticleCode:ARTX, Quantity:10, Product:(delegate)}   
+
+Notas:	Esta op es creada al encontrar el primer mapping que inicia en "Details" y ver que Details es un campo tipo set dentro del 
+	catálogo Orders. OpType es Insert porque en ningun momento se indica '!' o '@' al acceder a alguno de los campos de Detail.
+	Para crear Data se deben procesar todos los mappings de nivel 1 que inicien en "Details", en este caso:
+	ArticleCode, Quantity y Product. Los primeros dos son escalares por lo que no desencadenan mas operaciones, pero "Product"
+	es Reference, por lo que se desencadena una nueva operación y el valor de la columna será un delegado a evaluar mas tarde.
+
+	Al ejecutar esta operación se insertará un nuevo registro en OrderDetails con los valores de Data, el resultado de la operacion
+	será el ID del registro insertado. Este resultado será utilizado como el valor para la columna Details de la operación con ID 0.
+	En caso de que ocurra un error al insertar el registro, se generará un error descriptivo del problema encontrado.
+
+
+
+ImportOp
+	ID = 2
+	Depth = 1
+	Path = "Provedor"
+	Catalog = Provedores
+	OpType = Existing
+	SearchBy = CODPROV
+	Data: {CODPROV:ProvCode}
+
+Notas:	Esta op se crea al encontrar el campo "Provedor" y ver que Provedor se trata de un campo tipo Reference dentro de Order.
+	OpType es "Existing" porque se ha especificado al menos un campo dentro de provedor usando '!'. Cuando OpType es Existing o
+	UpdateOrInsert, se debe inicializar tambien el campo SearchBy que deberá contener el (o los) nombres de todas las columnas que
+	serán usadas para buscar una coincidencia. En este caso solo un campo usa !, por lo que SearchBy ha quedado como "CODPROV".
+	Data es el resultado de buscar todos los mappings de nivel 1 que inician en "Provedor". En este caso solo CODPROV, que es escalar
+	y por lo tanto no se desencadena nuevas operaciones.
+
+	Al ejecutar esta operación se buscará un registro dentro del catalogo Provedores cuyo campo CODPROV sea igual al valor 
+	suministrado en el archivo excel para esta columna. El valor resultante de la operación será el ID del primer registro encontrado,
+	en caso de no encontrar un registro la importación será fallida, agregando un error descriptivo de cual es el problema encontrado.
+	El resultado de esta operación será utilizado como el valor para la columna 'Provedor' (operacion con ID 0).
+
+
+
+ImportOp
+	ID = 3
+	Depth = 2
+	Path = "Details.Product"
+	Catalog = Products
+	OpType = UpdateOrInsert
+	SearchBy = Barcode
+	Data = {Barcode:Code, TXT1:A, TXT2:B, TXT3:C, Color:(delegate)}
+
+Notas:	Esta op se crea al encontrar el campo Product dentro de Detail y ver que Product se trata de un campo tipo reference.
+	OpType es UpdateOrInsert porque se ha utilizado @ para indicar al menos uno de los campos del producto (Barcode)
+	SearchBy ha quedado inicializado a Barcode ya que es el unico campo para el cual se ha usado @, sin embargo es posible que
+	existan multiples campos que se usen para la busqueda por lo que no podemos asumir que siempre será solo un campo.
+	Data es el resultado de buscar todos los mappings de nivel 2 que inician en "Details.Product". En este caso 
+	Barcode, TXT1, TXT2 y TXT3 son escalares por lo que no desencadenan mas operaciones, pero Color es tipo Reference por lo que
+	se crea una nueva operación.
+
+	Al ejecutar esta operación, y ya que se trata de una operacion tipo UpdateOrInsert, se buscará un registro dentro del catalogo
+	Products cuyo campo Barcode sea igual al valor suministrado en el archivo excel para esta columna. El valor resultante de la
+	operación será el ID del primer registro encontrado. Si un registro es encontrado, dicho registro será actualizado de paso.
+	Si no se encuentra un registro entonces se insertará uno nuevo con los datos del archivo excel. En caso de que el update o el
+	insert fallen se generará un error tan descriptivo como sea posible.
+	El resultado de esta operación será utilizado como el valor para la columna 'Product' de la operacion con ID 1.
+
+
+ImportOp
+	ID = 4
+	Depth = 3
+	Path = "Details.Product.Color"
+	Catalog = Colores
+	OpType = Existing
+	SearchBy = "ColorCode"
+	Data: {ColorCode:ColorCode}
+
+Notas:	Esta op se crea al encontrar el campo "Color" dentro de Product y ver que Color se trata de un campo tipo Reference.
+	OpType es Existing porque se ha especificado ! para acceder a almenos uno de los campos del catálogo Color.
+	SearchBy ha quedado como "ColorCode" debido a que es el único campo al que se ha hecho referencia usando '!', como antes,
+	es posible que existan multiples campos que se usen para la busqueda.
+	Data es el resultado de buscar todos los mappings de nivel 3 que inician en "Details.Product.Color". En este caso ColorCode
+	es el único y al ser escalar no desencadena mas operaciones.
+
+	Al ejecutar esta operación se buscará un registro dentro del catalogo Colores cuyo campo ColorCode sea igual al valor 
+	suministrado en el archivo excel para esta columna. El valor resultante de la operación será el ID del primer registro encontrado,
+	en caso de no encontrar un registro la importación será fallida, agregando un error descriptivo de cual es el problema encontrado.
+	El resultado de esta operación será utilizado como el valor para la columna 'Color' de la operacion con ID 3.
+
+
+
+
+
+Hasta este punto el algoritmo ya ha identificado todas las operaciones a ejecutar, no se generan mas operaciones porque ya no hay mas
+mappings pendientes de visitar.
+
+Una vez que se tiene la lista de operaciones, estas se ordenan por Depth de forma descendente (es decir se ejecutan 
+las operaciones con mayor depth primero). De forma que las operaciones quedan ordenadas de la siguiente manera:
+
+
+ImportOp
+	ID = 4
+	Depth = 3
+	Path = "Details.Product.Color"
+	Catalog = Colores
+	OpType = Existing
+	SearchBy = "ColorCode"
+	Data: {ColorCode:ColorCode}
+
+ImportOp
+	ID = 3
+	Depth = 2
+	Path = "Details.Product"
+	Catalog = Products
+	OpType = UpdateOrInsert
+	SearchBy = Barcode
+	Data = {Barcode:Code, TXT1:A, TXT2:B, TXT3:C, Color:(delegate)}
+
+ImportOp
+	ID = 2
+	Depth = 1
+	Path = "Provedor"
+	Catalog = Provedores
+	OpType = Existing
+	SearchBy = CODPROV
+	Data: {CODPROV:ProvCode}
+
+ImportOp
+	ID = 1
+	Depth = 1
+	Path: "Details"
+	Catalog = OrderDetails
+	OpType = Insert
+	SearchBy: null
+	Data = {ArticleCode:ARTX, Quantity:10, Product:(delegate)}   
+
+ImportOp
+	ID = 0
+	Depth = 0
+	Path: ""
+	Catalog = Orders (por ser el catalogo raiz)
+	OpType= Insert (por ser el ctalogo raiz)
+	SearchBy: null
+	Data = {OrderNumber:ONum, OrderDate:ODate, BillTo:Cod1, SendTo:Cod2, Details: (delegate), Provedor: (delegate)}
+
+
+NOTA: El orden de las operaciones con mismo DEPTH no importa.
+
+Una vez ordenadas las opearaciones estas son ejecutadas.
+
+Estas operaciones se han de ejecutar por cada registro del archivo excel.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

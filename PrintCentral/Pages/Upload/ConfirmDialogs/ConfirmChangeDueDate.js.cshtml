@@ -1,0 +1,74 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages/Upload/ConfirmDialogs/ConfirmChangeDueDate.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+/// <reference path="/js/AppContext.AppDomain.js" />
+
+//<script>
+    var ConfirmChangeDueDate = function (options) {
+        FormView.Extend(this, "@g["Change Due Date"]", `/Upload/ConfirmDialogs/ConfirmChangeDueDate`);
+        
+        this.Data = options;
+        this.Accepted = false;        
+    };
+
+    ConfirmChangeDueDate.prototype = {
+        constructor: ConfirmChangeDueDate,
+
+        onShow: function () {
+        },
+        ClickConfirm: function () {
+            var self = this;
+
+            self.EnableSubmit();
+        },
+        OnLoad: function () {
+            this.elements.OrderDueDate[0].value = kendo.toString(kendo.parseDate(this.Data.OrderDueDate), 'MM/dd/yyyy');
+            this.EnableSubmit();
+        },
+        EnableSubmit: function () {
+            var self = this;
+
+            var btn = self.elements.SubmitButton;
+
+            self.Accepted = self.elements.Confirm.prop('checked');
+
+
+
+            if (self.IsEnableSubmit()) {
+                //btn.prop('disabled', false);
+                btn.removeClass('disabled')
+            } else {
+                //btn.prop('disabled', true);
+                btn.addClass('disabled')
+            }
+
+        },
+        IsEnableSubmit: function () {
+            return this.Accepted;
+        },
+
+        Save: async function () {
+            var self = this;
+            debugger;
+            var data = {
+                OrderID: self.Data.OrderID,
+                OrderDueDate: kendo.toString(self.model.OrderDueDate, 'yyyy-MM-dd') + " 23:59:59" 
+            };
+            AppContext.Orders.ChangeDueDate(data)
+                .done((response) => {
+                    if (!response.Success) {
+                        AppContext.ShowError(response.Message);
+                        return;
+                    }
+                    self.Close();
+                });
+        }
+    };
+//</script>

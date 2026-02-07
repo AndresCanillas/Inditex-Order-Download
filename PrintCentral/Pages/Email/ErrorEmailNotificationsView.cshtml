@@ -1,0 +1,119 @@
+﻿@page
+@inject ILocalizationService g
+@inject IOrderEmailService emailService
+@inject IUserManager userManager
+@{
+	string tokenCode = "";
+	IEnumerable<ErrorEmailDetail> errors = new List<ErrorEmailDetail>();
+	IEmailServiceSettings settings = new EmailServiceSettings();
+	IEmailToken token = new EmailToken();
+	string title = "";
+	string subtitle = "";
+	int rowIndex = 0;
+	int userCompanyID = -1;
+	if (Request.QueryString.HasValue)
+	{
+		tokenCode = this.Request.QueryString.Value.Substring(1);
+		token = emailService.GetTokenFromCode(tokenCode);
+		if (token != null)
+		{
+			errors = emailService.GetTokenErrors(token, true, false);
+			settings = emailService.GetEmailServiceSettings(token);
+			AppUser user = await userManager.FindByIdAsync(token.UserId);
+			userCompanyID = user.CompanyID.HasValue ? user.CompanyID.Value : -1;
+			if (user != null && !String.IsNullOrWhiteSpace(user.Language))
+			{
+				Response.Cookies.Append("language", user.Language);
+				CultureInfo.CurrentUICulture = new CultureInfo(user.Language);
+			}
+			switch (token.Type)
+			{
+				case EmailType.OrderProcessingError:
+					title = g["Summary of Issues found in Order Processing"];
+					subtitle = g["The following list is a summary of the different issues found while System try to process orders"];
+					break;
+			}
+		}
+		else
+		{
+			token = new EmailToken();
+		}
+		Layout = null;
+	}
+}
+	<viewform>
+		<div class="mainContainer">
+			<div class="bluestrip">
+			<img src="/images/LOGO_IDT_BY_INDET_GROUP.png" style="width:180px; height:auto;" />
+				<div class="title">
+					@title
+				</div>
+				<div class="subtitle">
+					@subtitle
+				</div>
+				<div style="margin:auto; padding-top:20px; width:30%; text-align:center;">
+					<a href="/Account/Login" class="button">@g["System Login"]</a>
+				</div>
+			</div>
+			<div class="whitestrip">
+				<a name="selectButton" href="#" action="selectClick">@g["Unselect all"]</a>
+				<div style="max-height:40vh; overflow:auto;">
+					<table>
+						<thead>
+							<tr>
+								<td style="width:16px;">&nbsp;</td>
+								<td>@g["Type"]</td>
+								<td>@g["Message"]</td>
+							</tr>
+						</thead>
+						<tbody>
+							@foreach (var o in errors)
+							{
+							<tr>
+								<td><input name="row_@rowIndex" type="checkbox" checked value="@o.ItemID" /></td>
+								<td>@g[o.TypeDescription]</td>
+								<td>@g[o.Message]</td>
+								
+							</tr>
+								rowIndex++;
+							}
+						</tbody>
+					</table>
+				</div>
+				<div>
+					<div style="text-align:right; padding-top:20px; padding-bottom:20px;">
+						<div name="settingsButton" class="btn btn-outline-primary" action="settingsClick">Edit email notification settings</div>
+					</div>
+					<div name="settings" style="display:none; margin:auto; width:50%; min-width:500px; padding:10px; border:solid 1px #D0D0D0; border-radius:4px;">
+						<input model name="UserId" type="hidden" value="@token.UserId" />
+						<input model name="TokenCode" type="hidden" value="@tokenCode" />
+						<input model name="NotifyOrderReceived" type="checkbox" @(settings.NotifyOrderReceived ? "checked" : "") label="@g["Notify when orders are received?"]" data-type="bool" />
+						<input model name="NotifyOrderPendingValidation" type="checkbox" @(settings.NotifyOrderPendingValidation ? "checked" : "") label="@g["Notify about orders pending validation?"]" data-type="bool" />
+						<input model name="NotifyOrderValidated" type="checkbox" @(settings.NotifyOrderValidated ? "checked" : "") label="@g["Notify when orders get validated?"]" data-type="bool" />
+						<input model name="NotifyOrderConflict" type="checkbox" @(settings.NotifyOrderConflict ? "checked" : "") label="@g["Notify when orders are marked as In Conflict?"]" data-type="bool" />
+						<input model name="NotifyOrderReadyForProduction" type="checkbox" @(settings.NotifyOrderReadyForProduction ? "checked" : "") label="@g["Notify about orders ready for production?"]" data-type="bool" />
+						<input model name="NotifyOrderCompleted" type="checkbox" @(settings.NotifyOrderCompleted ? "checked" : "") label="@g["Notify about completed orders?"]" data-type="bool" />
+						<input model name="NotifyOrderProcesingErrors" type="hidden" value="@(userCompanyID == 1 && settings.NotifyOrderCompleted ? "1" : "0")" data-type="bool" />
+						<input model name="NotificationPeriodInDays" type="number" style="width:40px;" value="@settings.NotificationPeriodInDays" label="@g["Notification period (days)"]:" data-type="int" validation="required;range(1,7);maxlen(2)" />
+
+						<div style="text-align:right; padding-top:20px; padding-bottom:10px;">
+							<div class="btn btn-outline-primary" action="saveSettings">@g["Save"]</div>
+						</div>
+					</div>
+				</div>
+				<div class="comment">
+					<div style="margin-top:10px;">
+						<div name="markButton" class="btn btn-primary" action="markClick">@g["Mark as seen"]</div>
+					</div>
+					<div style="width:350px; padding-top:20px; margin:auto;">
+						@g["NOTE: The selected notifications will be marked as seen, you will not be notified again about these records."]
+					</div>
+				</div>
+			</div>
+			<div class="footer">
+				<div class="comment">
+					<a href="https://www.smartdots.es/">www.smartdots.es</a>
+				</div>
+			</div>
+		</div>
+	</viewform>

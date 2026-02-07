@@ -1,0 +1,39 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+	<viewcard>
+		<viewrow>
+			
+
+			<viewcolumn>
+
+				@*<viewtitle>@g["Catalog was Updated"]</viewtitle>*@
+
+				<p>@g["Some orders may be affected by this change, maybe you need check those orders"]</p>
+
+				<viewform>
+					<viewtitle>@g["Detail"]</viewtitle>
+					<div model name="CatalogName" label="@g["Catalog Name"]:" style="font-size:15px; line-height:2;"></div>
+					<div model name="TotalOrders" label="@g["Total orders affected"]:" style="font-size:15px; line-height:2;"></div>
+					<div model name="ModificationType" label="@g["Modification Type"]:" style="font-size:15px; line-height:2;"></div>
+				</viewform>
+
+
+
+			</viewcolumn>
+		</viewrow>
+		<viewrow>
+			
+			<viewcolumn class="clearfix">
+
+				<a href="#" class="btn btn-danger float-left" action="DismissNotification">@g["Dismiss"]</a>
+
+				<div class="float-right">
+					<a href="#" class="btn btn-light" action="CloseNotification">@g["Close"]</a>
+					<a href="#" class="btn btn-primary" action="ShowOrders">@g["Show affected orders"]</a>
+				</div>
+			</viewcolumn>
+		</viewrow>
+	</viewcard>

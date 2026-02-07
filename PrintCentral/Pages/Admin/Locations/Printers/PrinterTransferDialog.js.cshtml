@@ -1,0 +1,30 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Locations/Printers/PrinterTransferDialog.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var PrinterTransferDialog = function (printerid) {
+		FormView.Extend(this, "@g["Change printer company"]", `/admin/Locations/Printers/PrinterTransferDialog?id=${printerid}`);
+    };
+
+    PrinterTransferDialog.prototype = {
+		constructor: PrinterTransferDialog,
+
+		OnLoad: function () {
+			this.LoadLocations();
+		},
+
+		LoadLocations: function (e) {
+			var self = this;
+			AppContext.Locations.GetByCompanyID(this.model.CompanyID, function (data) {
+				AppContext.LoadComboBox(self.elements.LocationID, data, "ID", "Name");
+			});
+        }
+    };
+//</script>

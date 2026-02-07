@@ -1,0 +1,55 @@
+﻿@page
+@inject ILocalizationService g
+@inject IBrandRepository repo
+@inject IUserData userData
+@{
+	Layout = null;
+	int brandid = Convert.ToInt32(Request.Query["brandid"]);
+	var data = repo.GetByID(brandid);
+}
+	<viewcard>
+		<viewrow>
+			<viewcolumn>
+				<viewform>
+					<input model name="ID" type="hidden" value="@data.ID" />
+					<input model name="CompanyID" type="hidden" value="@data.CompanyID" />
+					@if (userData.Admin_Brands_CanEditLogo)
+					{
+						<input name="Icon" label="@g["Brand Icon"]:" type="file" accept=".png, .jpg, .jpeg, .gif" data-type="image" />
+					}
+					else
+					{
+						<img src="/brands/geticon/@data.ID" class="ThumbImage2" alt="@g["Brand Icon"]:" />
+					}
+					@if (userData.Admin_Brands_CanRename)
+					{
+						<input model name="Name" label="@g["Name"]:" type="text" value="@data.Name" />
+					}
+					else
+					{
+						<div model name="Name" label="@g["Name"]:">@data.Name</div>
+					}
+					@if (userData.Admin_Brands_CanEditFTPSettings)
+					{
+						<input model name="EnableFTPFolder" label="@g["Enable FTP Folder?"]" type="checkbox" checked="@(data.EnableFTPFolder)" value="@(data.EnableFTPFolder)" action="change:UpdateFolder" />
+						<input model name="FTPFolder" label="@g["FTPFolder"]:" type="text" value="@data.FTPFolder" readonly />
+					}
+					else
+					{
+						<input model name="EnableFTPFolder" type="hidden" value="@(data.EnableFTPFolder)" />
+						<input model name="FTPFolder" type="hidden" value="@data.FTPFolder" />
+					}
+					<input model name="RFIDConfigID" label="@g["RFID Config ID"]:" type="hidden" value="@data.RFIDConfigID" />
+				</viewform>
+		</viewrow>
+		@if (userData.Admin_Brands_CanEdit)
+		{
+		<viewfooter>
+			<a href="#" class="btn btn-primary" action="Save">@g["Save"]</a>
+			@if (userData.Admin_Brands_CanEditRFIDSettings)
+			{
+				<a href="#" class="btn btn-outline-primary" action="RFIDConfig">@g["RFID Configuration"]</a>
+			}
+		</viewfooter>
+		}
+	</viewcard>

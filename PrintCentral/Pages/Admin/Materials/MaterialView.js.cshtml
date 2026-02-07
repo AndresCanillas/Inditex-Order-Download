@@ -1,0 +1,55 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Materials/MaterialView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var MaterialView = function (materialid) {
+		FormView.Extend(this, "@g["Material"]", `/admin/Materials/MaterialView?materialid=${materialid}`);
+	};
+
+    MaterialView.prototype = {
+        constructor: MaterialView,
+
+		@if (userData.Admin_Materials_CanEdit)
+		{
+		<text>
+		Save: function (e) {
+			var self = this;
+			if (!this.model.ValidState()) return;
+			this.model.Properties = JSON.stringify(this.elements.PropertyTable.data);
+			var data = this.GetData();
+			AppContext.Materials.Update(data, function (result) {
+				if (result.Success) {
+					self.OnSaved.Raise(data);
+					if (self.dialog === true)
+						self.Close(data);
+				}
+			});
+		},
+
+		AddProperty: function (e) {
+			this.elements.PropertyTable.AddRow({ Name: "", Value: "" });
+			this.elements.PropertyTable.BeginEdit(this.elements.PropertyTable.GetRowCount()-1, 0);
+		},
+
+		RemoveProperty: function (e) {
+			var idx = this.elements.PropertyTable.SelectedIndex;
+			if (idx >= 0)
+				this.elements.PropertyTable.DeleteRow(idx);
+		},
+		</text>
+		}
+
+		OnLoad: function () {
+			if(this.model.Properties.length > 0)
+				this.elements.PropertyTable.LoadData(JSON.parse(this.model.Properties));
+		}
+	};
+//</script>

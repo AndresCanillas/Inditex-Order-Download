@@ -1,0 +1,50 @@
+﻿@page
+@inject ILocalizationService g
+@inject ILabelRepository labelRepo
+@inject IMaterialRepository materialRepo
+@inject IUserData userData
+@{
+	var materials = materialRepo.GetList();
+	Layout = null;
+}
+<viewcard>
+	<viewform>
+		<viewrow>
+			<viewcolumn>
+				<img src="~/images/dnd.png" alt="Drag N' Drop" /><span>@g["Drag the database fields onto the label variables to assign them."]</span>
+			</viewcolumn>
+		</viewrow>
+		<viewrow>
+			<viewcolumn>
+				<div class="tab-item active">@g["Label Variables"]</div>
+				<hr class="subtitle" />
+			</viewcolumn>
+			<viewcolumn>
+				<div>
+					<div name="tab1" class="tab-item active" action="DatabaseFieldsClick">@g["Database Fields"]</div>
+					<div name="tab2" class="tab-item" action="PredefinedFieldsClick">@g["Predefined Fields"]</div>
+				</div>
+				<hr class="subtitle" />
+			</viewcolumn>
+		</viewrow>
+		<viewrow>
+			<viewcolumn style="height:400px; overflow-y:scroll; overflow-x:hidden;">
+				<div name="Variables">
+				</div>
+			</viewcolumn>
+			<viewcolumn style="height:400px; overflow-y:scroll; overflow-x:hidden;">
+				<div name="DBFields" action="dragover:AllowDrop;drop:Drop" style="min-height:200px;height:95%">
+				</div>
+				<div name="PredefinedFields" action="dragover:AllowDrop;drop:Drop" style="min-height:200px;height:95%;display:none;">
+				</div>
+			</viewcolumn>
+		</viewrow>
+	</viewform>
+	<viewfooter>
+		@if (userData.Admin_Labels_CanEdit)
+		{
+			<a href="#" class="btn btn-primary" action="Save">@g["Save"]</a>
+		}
+		<a href="#" class="btn btn-secondary" action="Cancel">@g["Cancel"]</a>
+	</viewfooter>
+</viewcard>

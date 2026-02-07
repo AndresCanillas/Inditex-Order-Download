@@ -1,0 +1,114 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/Projects/Labels/LabelPreview.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var LabelPreview = function (labelid, projectid) {
+		FormView.Extend(this, "@g["Label"]", "/Admin/Brands/Projects/Labels/LabelPreview");
+		this.LabelID = labelid;
+        this.ProjectID = projectid;
+        this.ArticleList = {};
+	};
+
+
+    LabelPreview.prototype = {
+        constructor: LabelPreview,
+
+		OnLoad: function () {
+			var self = this;
+			self.elements.OrdersGrid.RowClick.Subscribe(this, this.OrderSelected);
+			self.elements.DetailsGrid.RowClick.Subscribe(this, this.DetailSelected);
+			//AppContext.Catalogs.GetByName(self.ProjectID, "Orders", (result) => {
+			//	if (result.Success)
+			//		self.OrderCatalog = result.Data;
+			//});
+			AppContext.Labels.GetByID(this.LabelID, (labelData) => {
+				var currentDate = new Date();
+				self.LoadData(labelData);
+                self.elements.LabelPreview.attr("src", `/labels/getpreview/${labelData.ID}?${currentDate.toTicks()}`);
+                self.FilterOrders();
+			});
+		},
+
+		OrderSelected: function (e) {
+			var self = this;
+			if (this.CurrentOrder === e.rowData.ID) return;
+            this.CurrentOrder = e.rowData.ID;
+
+            AppContext.Orders.GetSimplePrintDetailsData(self.CurrentOrder, self.LabelID)
+                .done((response) => {
+                    if (!response.Success) return;
+                    self.ArticleList = response.Data;
+                    self.elements.DetailsGrid.Rows.LoadData(self.ArticleList);
+                })
+			//if (this.OrderCatalog != null) {
+			//	AppContext.HttpGet(`/catalogdata/getsubset/${this.OrderCatalog.CatalogID}/${e.rowData.OrderDataID}/Details`, (data) => {
+			//		if (data != null) {
+   //                     self.ArticleList = JSON.parse(data);
+   //                     self.elements.DetailsGrid.Rows.LoadData(self.ArticleList);
+			//		}
+			//	});
+
+                
+			//}
+		},
+
+		DetailSelected: function (e) {
+			var detailID = e.rowData.ID;
+			if (this.CurrentPreview === detailID) return;
+			this.CurrentPreview = detailID;
+			this.elements.LabelPreview.attr("src", `/labels/getarticlepreview/${this.LabelID}/${this.CurrentOrder}/${this.CurrentPreview}?${new Date().getTime()}`);
+		},
+
+		SetPreview: function (e) {
+			var self = this;
+			e.preventDefault();
+			if (this.CurrentOrder && this.CurrentPreview) {
+				AppContext.HttpPost(`/labels/setpreview/${this.LabelID}/${this.CurrentOrder}/${this.CurrentPreview}`).then((result) => {
+					if (result.Success) {
+						self.Close(true);
+					}
+				});
+			}
+        },
+
+        HandleOrdersKeyDown: function (e) {
+            if (e.keyCode === 13)
+                this.FilterOrders();
+        },
+
+        HandleArticlesKeyPress: function (e) {
+            if (e.keyCode === 13)
+                this.FilterArticles();
+        },
+
+        FilterOrders: function () {
+            var self = this;
+            var filter = {};
+            filter.ProjectID = self.ProjectID;
+            filter.LabelID = self.LabelID;
+            filter.OrderNumber = self.model.FindByNumber;
+
+            AppContext.HttpPost("/orders/getbyproject", filter, function (result) {
+                if (result && result.Success) {
+                    self.elements.OrdersGrid.Rows.LoadData(result.Data);
+                }
+            });
+        },
+
+        FilterArticles: function () {
+            var self = this;
+            var code = self.model.FindByCode;
+
+            var articles = self.ArticleList.filter(x => x.ArticleCode.toLowerCase().includes(code.toLowerCase()));
+            self.elements.DetailsGrid.Rows.LoadData(articles);
+        }
+	};
+//</script>

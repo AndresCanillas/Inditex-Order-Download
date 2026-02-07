@@ -1,0 +1,56 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+<viewform compact>
+	<viewtitle>@g["Holidays"]</viewtitle>
+	<div style="float:left; padding-top:10px; padding-right:20px;">
+		<div class="toolbar-body" style="width:100%">
+			<span class="toolbar-grip"></span>
+			<a href="#" title="@g["Add Holiday"]" action="AddHoliday"><span class="fa fa-plus"></span></a>
+			<span class="toolbar-separator"></span>
+			<a href="#" title="@g["Remove Holiday"]" action="RemoveHoliday"><span class="fa fa-trash"></span></a>
+		</div>
+		<div component="GridView" name="Holidays" style="height:200px; border:1px solid #c0c0c0; border-radius:4px;">
+			<template>
+				<column width="200" field="Name">@g["Name"]</column>
+				<column width="90" field="Date">@g["Date"]</column>
+			</template>
+		</div>
+	</div>
+	<div style="float:left; padding-top:10px;">
+		<input model name="Name" type="text" label="@g["Holiday Name"]:" action="keyup:MarkAsEdited" validation="required;maxlen(40);" disabled />
+		<select model name="Month" label="@g["Month"]:" action="change:MonthChanged" validation="required" data-type="int" disabled>
+			<option value="1">@g["January"]</option>
+			<option value="2">@g["February"]</option>
+			<option value="3">@g["March"]</option>
+			<option value="4">@g["April"]</option>
+			<option value="5">@g["May"]</option>
+			<option value="6">@g["June"]</option>
+			<option value="7">@g["July"]</option>
+			<option value="8">@g["August"]</option>
+			<option value="9">@g["September"]</option>
+			<option value="10">@g["October"]</option>
+			<option value="11">@g["November"]</option>
+			<option value="12">@g["December"]</option>
+		</select>
+		<input model name="Day" type="text" label="@g["Day"]:" action="keyup:MarkAsEdited" validation="required;numeric;maxlen(2);range(1,31)" data-type="int" disabled />
+		<a href="#" name="btnSave" class="btn btn-primary disabled" style="float:right;" action="SaveCurrentRow">@g["Update Row"]</a>
+	</div>
+	<viewtitle style="clear:both; padding-top:20px;">@g["Working Days"]</viewtitle>
+	<div style="float:left; width:50%;">
+		<input model name="WeekDay1" type="checkbox" label="@g["Monday"]" />
+		<input model name="WeekDay2" type="checkbox" label="@g["Tuesday"]" />
+		<input model name="WeekDay3" type="checkbox" label="@g["Wednesday"]" />
+		<input model name="WeekDay4" type="checkbox" label="@g["Thursday"]" />
+	</div>
+	<div style="float:left; width:50%">
+		<input model name="WeekDay5" type="checkbox" label="@g["Friday"]" />
+		<input model name="WeekDay6" type="checkbox" label="@g["Saturday"]" />
+		<input model name="WeekDay7" type="checkbox" label="@g["Sunday"]" />
+	</div>
+	<div style="clear:both;">
+		<input model name="CutoffTime" type="text" label="@g["Cuttof Time"]:" style="width:100px;" validation="required;maxlen(5);regex(^\d{1,2}:\d{2}$)" />
+	</div>
+</viewform>

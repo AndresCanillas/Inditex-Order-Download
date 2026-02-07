@@ -1,0 +1,40 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/BrandsList.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var BrandsList = function (companyid) {
+		FormView.Extend(this, "@g["Brands"]", `/Admin/Brands/BrandsList`);
+		if (companyid == null)
+			this.CompanyID = @userData.SelectedCompanyID;
+		else
+			this.CompanyID = companyid;
+	};
+
+	BrandsList.prototype = {
+        constructor: BrandsList,
+
+		OnLoad: function () {
+			this.elements.Brands.LoadItems({ CompanyID: this.CompanyID, AddOption: true, OpenOption: true, DeleteOption: true });
+			this.elements.Brands.ItemSelected.Subscribe(this, this.OpenBrand);
+		},
+
+		OnUnload: function () {
+			this.elements.Brands.ItemSelected.Unsubscribe(this, this.OpenBrand);
+		},
+
+        OpenBrand: function (e) {
+            AppContext.LoadJS("/Admin/Brands/BrandsView.js").then(() => {
+                var dlg = new BrandsView(e.item.ID);
+				dlg.ShowDialog(null, "80%");
+			});
+		}
+    };
+//</script>

@@ -1,0 +1,94 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+
+//# sourceURL=https://Pages/Upload/ConfirmResetValidation.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/AppContext.js" />
+/// <reference path="/js/AppContext.AppDomain.js" />
+
+//  <script>
+    
+    var ConfirmResetValidationView = function (orderSelection,ordersChanged) {
+        FormView.Extend(this, "@g["Confirm to Reset Validation in selected order(s)"]", "/Upload/ConfirmResetValidationView")
+
+        //this.OrderData = orderData;
+        this.OrderSelection = orderSelection;
+
+        this.Accepted = false;
+
+        this.OrdersChanged = ordersChanged;
+    }
+
+
+    ConfirmResetValidationView.prototype = {
+
+        constructor: ConfirmResetValidationView,
+
+        OnLoad: function () {
+            var self = this;
+
+            self.EnableSubmit();
+
+            //self.elements.OrderNumber.text(self.OrderData.OrderNumber)
+
+
+            if (self.OrdersChanged)
+                $(`[name="OrdersChanged"]`).show();
+
+        },
+
+
+        Save: function () {
+            var self = this;
+            
+            AppContext.Orders.ResetValidation(self.OrderSelection)
+            .done((response) => {
+                if (response.Success == false) {
+                    //AppContext.ShowError('@g["Try Again, cannot execute action"]')
+                    // keep in confirm window
+                    return;
+                }
+
+                self.Close(response);
+            })
+
+            
+
+        },
+
+        IsEnableSubmit: function () {
+            return this.Accepted;
+        },
+
+        ClickConfirm: function () {
+            var self = this;
+
+            self.Accepted = self.elements.Confirm.prop('checked');
+
+            self.EnableSubmit();
+        },
+
+
+        EnableSubmit: function () {
+
+            var self = this;
+
+            var btn = self.elements.SubmitButton;
+
+            if (self.IsEnableSubmit()) {
+                //btn.prop('disabled', false);
+                btn.removeClass('disabled')
+            } else {
+                //btn.prop('disabled', true);
+                btn.addClass('disabled')
+            }
+
+        },
+    }
+
+
+// </script>

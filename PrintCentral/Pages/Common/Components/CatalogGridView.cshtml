@@ -1,0 +1,54 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+	var isAdmin = userData.IsIDT && User.IsAnyRole(Roles.SysAdmin, Roles.IDTLabelDesign, Roles.IDTProdManager);
+}
+<div class="toolbar-body" style="width:100%">
+    <span class="toolbar-grip"></span>
+    <a name="AddBtn" href="#" title="@g["Add new record"]" action="AddRecord"><span class="fa fa-plus" style="color:green;"></span></a>
+    <a hidden name="SetBtn" href="#" title="@g["Add set record"]" action="AddSet"><span class="fa fa-plus" style="color:#008aff;"></span></a>
+
+    <a name="OpenBtn" href="#" title="@g["Open record"]" action="OpenRecord"><span class="fa fa-edit"></span></a>
+    <a name="SaveBtn" href="#" title="@g["Save"]" action="SaveCatalog"><span class="fa fa-save" style="color:#008aff;"></span></a>
+    @if (userData.IsIDT)
+    {
+        <a name="ImportFileBtn" href="#" title="@g["Import File"]" action="ImportFile"><span class="fa fa-file-excel-o"></span></a>
+    }
+    <span name="Separator1" class="toolbar-separator"></span>
+    <a name="ExportCatalogBtn" href="#" title="@g["Export"]" action="ExportCatalog"><span class="fa fa-download" style="color:#008aff;"></span></a>
+    <a name="DeleteBtn" href="#" title="@g["Delete record"]" action="DeleteRecord"><span class="fa fa-trash" style="color:darkred;"></span></a>
+    @if (userData.IsSysAdmin || userData.UserRoles.Contains("IDTLabelDesign") || userData.UserRoles.Contains("CompanyAdmin"))
+    {
+        <a name="EditCompoBtn" href="#" title="@g["Edit Compo"]" action="EditCompoRecord"><span class="fa fa-ticket" style="color:#0496;"></span></a>
+    }
+    
+    <span class="toolbar-separator"></span>
+    <span class="" style="font-size:12px; margin-right:8px;">@g["Filter by"]:</span><div name="FieldSelector" component="CatalogFieldSelector" controller="/Common/Components/CatalogFieldSelector.js" style="display:inline;"></div><input name="SearchTerm" type="text" action="keypress:SearchKeyPress" style="font-size:13px; width:200px; margin-left:8px;" /><a href="#" title="@g["Search"]" action="FilterCatalog"><span class="fa fa-search"></span></a>
+</div>
+<div name="Grid" component="GridView" style="width:100%; height:90%;"></div>
+<div style="font-size:11px; margin-top:8px;">
+	<div style="display:inline-block; width:250px;">
+		@g["Displaying records"] <span name="StartIndex"></span> @g["to"] <span name="EndIndex"></span> @g["of"] <span name="TotalRecords"></span>
+	</div>
+	<div name="PagingElement" style="display:inline-block; font-size:16px; width:180px; display:none;">
+        <div name="FirstPage" action="FirstPage" class="badge badge-secondary" style="font-size:14px; cursor:pointer; margin-top:2px; margin-right:8px;"><span class="fa fa-angle-double-left"></span></div>
+        <div name="PrevPage" action="PreviousPage" class="badge badge-secondary" style="font-size:14px; cursor:pointer; margin-top:2px; margin-right:8px;"><span class="fa fa-angle-left"></span></div>
+		<div name="NextPage" action="NextPage" class="badge badge-secondary" style="font-size:14px; cursor:pointer; margin-top:2px; margin-right:8px;"><span class="fa fa-angle-right"></span></div>
+        <div name="LastPage" action="LastPage" class="badge badge-secondary" style="font-size:14px; cursor:pointer; margin-top:2px; margin-right:8px;"><span class="fa fa-angle-double-right"></span></div>
+	</div>
+</div>
+<div name="footer" style="display:none;">
+    <viewfooter>
+        <viewform>
+            <input model name="SelectedID" data-type="Int" type="hidden" />
+            <input model name="SelectedText" type="hidden" />
+        </viewform>
+        @if (isAdmin)
+        {
+        <button type="button" class="btn btn-primary" action="Assign">@g["Assign Selected"]</button>
+        }
+        <button type="button" class="btn btn-secondary" action="Cancel">@g["Close"]</button>
+    </viewfooter>
+</div>

@@ -1,0 +1,368 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages/Validation/Zara/Components/ArticleListView.js
+///<reference path="/js/jquery-3.0.0.min.js" />
+///<reference path="/js/Kendo.all.min.js" />
+///<reference path="/js/AppContext.js" />
+
+//<script>
+      var ArticleListView = function (setup) {
+          FormView.Extend(this, "@g["List of articles"]");
+
+          this.Content = $(`
+                        <inlineform name="FilterForm" style="display:none; margin-bottom:10px;">
+                            <select model name="ArticleType" label="@g["Article Type"]:" action="change:ApplyFilters" style="max-width:200px;display:none;" type="hidden">
+                                  <option value="1">@g["All"]</option>
+                                  <option value="2">@g["Shared"]</option>
+                                  <option selected value="3">@g["Custom"]</option>
+                            </select>
+                            <select model name="Category" label="@g["Category Type"]:" action="change:ApplyFilters" style="max-width:200px;">
+                                  ${SetCatgoriesModal(setup)}
+                            </select>
+                            <input model name="SearchText" label="@g["Search"]:" action="keyup:FilterItems" />
+                        </inlineform>
+                        <div name="ListContainer"></div>`);
+          this.dataSource = null;
+          this.ItemSelected = new AppEvent();
+          this.Setup = setup;
+          this.FilterApplied = false;
+
+      };
+
+      function SetCatgoriesModal(setup) {
+          var options = "";
+          setup.Categories?.forEach((item, index) => {
+              if (index == 0)
+                  options += `<option value="${item.ID}" selected>${item.Name}</option>`;
+              else
+                  options += `<option value="${item.ID}">${item.Name}</option>`;
+          });
+          return options;
+      };
+
+      ArticleListView.prototype = {
+          constructor: ArticleListView,
+
+          OnLoad: function () {
+              AppContext.AppEventListener.Subscribe(this, this.HandleNotifications);
+              this.model.ArticleType = 3;
+              if (this.Setup != null)
+                  this.LoadItems(this.Setup);
+          },
+
+          OnUnload: function () {
+              AppContext.AppEventListener.Unsubscribe(this, this.HandleNotifications);
+              this.ItemSelected.Dispose();
+          },
+
+          HandleNotifications: function (e) {
+              if (e.EventName === "EntityEvent") {
+                  if (e.EntityName === "Article") {
+                      if (e.Operation === 2)
+                          this.HandleDeleteNotification(e.Entity);
+                      if (e.Operation === 1)
+                          this.HandleUpdateNotification(e.Entity);
+                  }
+              }
+          },
+
+          HandleDeleteNotification(entity) {
+              var card = this.ViewContainer.find(`[data-entityid='${entity.ID}']`);
+              if (card.length === 1) {
+                  card.off();
+                  card.remove();
+              }
+          },
+
+          HandleUpdateNotification(entity) {
+              this.UpdateCard(entity);
+          },
+
+          ApplyFilters: function () {
+              var self = this;
+              var cards = this.elements.ListContainer.find("[data-entityid]");
+              $.each(cards, function (index, card) {
+                  card = $(card);
+                  var visible = true;
+                  var badge = card.find("span[name='SHFlag']");
+                  var isShared = badge.hasClass("badge-warning");
+                  switch (self.model.ArticleType) {
+                      case "1": break;
+                      case "2": visible = visible && isShared; break;
+                      case "3": visible = visible && !isShared; break;
+                  }
+
+                  var searchText = self.model.SearchText;
+                  if (searchText != null && searchText.length > 0) {
+                      var articleCode = card.find('[name="ArticleCode"]').text();
+                      var name = card.find('[name="TypeName"]').text();
+                      var material = card.find('[name="Material"]').text();
+                      var rgx = new RegExp(`${searchText}`, 'gi');
+                      visible = visible && (rgx.test(articleCode) || rgx.test(name) || rgx.test(material));
+                  }
+
+                  var categoryIdModel = self.model.Category;
+                  var categoryIdData = card.find('[data-categoryid]').attr('data-categoryid');
+                  if(categoryIdModel != categoryIdData){
+                       visible = false;
+                  }
+
+                  if (visible)
+                      card.show();
+                  else
+                      card.hide();
+              });
+          },
+
+          FilterItems: function (e) {
+              var self = this;
+              if (self.model.SearchText.length > 0) {
+                  self.ApplyFilters(e);
+                  self.FilterApplied = true;
+                  return;
+              }
+              if (self.FilterApplied == true) {
+                  self.ApplyFilters(e);
+                  self.FilterApplied = false;
+              }
+          },
+
+          LoadItems: function (setup) {
+              if (setup == null) setup = { ProjectID: @userData.SelectedProjectID };
+              if (setup.ProjectID == null)
+                  setup.ProjectID = @userData.SelectedProjectID;
+              this.ProjectID = setup.ProjectID;
+              this.ShowFilters = setup.ShowFilters == true;
+              this.ShowNewOption = setup.AddOption == true;
+              this.ShowOpenOption = setup.OpenOption == true;
+              this.ShowDeleteOption = setup.DeleteOption == true;
+              //this.IsForSelect = setup.SelectOption == true;
+              //this.Parent = setup.Parent;
+
+              if (setup.ArticleType != null)
+                  this.model.ArticleType = setup.ArticleType;
+              if (this.ShowFilters)
+                  this.elements.FilterForm.show();
+              else
+                  this.elements.FilterForm.hide();
+              var self = this;
+
+              if (setup.ArticleID != null) {
+                  AppContext.Articles.GetFullArticle(setup.ArticleID, function (data) {
+                      if (data != null) {
+                          self.LoadArticles(setup, [data]);
+                      }
+                  });
+              } else if (setup.ArticleTypeFilter) {
+                  // Label Or Item
+                  AppContext.Articles.GetFullByProjectIDFiltered({ ProjectID: parseInt(self.ProjectID), ArticleType: setup.ArticleTypeFilter, Category: 67 }, function (data) {
+                      if (data != null) {
+                          self.LoadArticles(setup, data);
+                      }
+                  })
+              } else {
+                  AppContext.Articles.GetFullByProjectID(this.ProjectID, function (data) {
+                      if (data != null) {
+                          self.LoadArticles(setup, data);
+                      }
+                  });
+              }
+          },
+
+          LoadArticles: function (setup, data) {
+              this.dataSource = data;
+              this.elements.ListContainer.empty();
+    @if (userData.Admin_Articles_CanAdd)
+    {
+        @:if (this.ShowNewOption) this.CreateNewCard();
+    }
+                        if (data != null) {
+                  for (var i = 0; i < data.length; i++) {
+                      if (setup.ArticleType == null || setup.ArticleType == data[i].ArticleType) {
+                          if (setup.HideIfNotLabel == null || (setup.HideIfNotLabel != null && data[i].LabelID != null))
+                              this.CreateItemCard(data[i]);
+                      }
+                  }
+              }
+              this.ApplyFilters();
+          },
+
+
+    @if (userData.Admin_Articles_CanAdd)
+    {
+        <text>
+              CreateNewCard: function () {
+                  var self = this;
+                  var html = $(`
+                                <div class="new-item-card article-card">
+                                    <div style="padding-top:10px;">
+                                        <div class="btn btn-outline-secondary btn-sm" action="CreateItem" style="display:block; margin:auto; width:140px;"><span class="fa fa-plus"></span>&nbsp;&nbsp;@g["New Article"]</div>
+                                    </div>
+                                    <img action="CreateItem" src="/images/newitem.png" class="image-preview article-preview" style="margin-top:48px" />
+                                </div>`);
+                  AppContext.BindActions(html, this);
+                  self.elements.ListContainer.append(html);
+              },
+
+          CreateItem: function (e) {
+              var self = this;
+              AppContext.LoadJS("/common/AskNameDialog.js").then(() => {
+                  var dialog = new AskNameDialog("@g["New Article"]");
+                  dialog.ShowDialog(function (dlgData) {
+                      if (dlgData) {
+                          dlgData.ProjectID = self.ProjectID;
+                          dlgData.ArticleCode = dlgData.Name;
+                          AppContext.Articles.Insert(dlgData, function (result) {
+                              if (result.Success) {
+                                  self.CreateItemCard(result.Data);
+                                  self.dataSource.push(result.Data);
+                                  var card = self.ViewContainer.find(`[data-entityid='${result.Data.ID}']`);
+                                  self.ItemSelected.Raise({ target: self, item: result.Data });
+                              }
+                          });
+                      }
+                  });
+              })
+          },
+        </text>
+    }
+
+
+    @if (userData.Admin_Articles_CanDelete)
+    {
+        <text>
+              DeleteItem: function (e) {
+                  var self = this;
+                  var card = $(e.target.parentNode);
+                  var id = card.attr("data-entityid");
+                  var confirm = new ConfirmDialog("@g["Delete Article? IMPORTANT: This operation cannot be undone."]");
+                  confirm.ShowDialog(function (response) {
+                      if (response) {
+                          AppContext.Articles.Delete(id, function (result) {
+                              if (result.Success) {
+                                  card.off();
+                                  card.remove();
+                                  var idx = self.dataSource.findIndex(function (e) { return e.ID == id; });
+                                  self.dataSource.splice(idx, 1);
+                              }
+                          });
+                      }
+                  });
+              },
+        </text>
+    }
+
+          CreateItemCard: function (data) {
+              var self = this;
+              var openAction = this.ShowOpenOption ? " action=OpenClicked" : " style='cursor:default;'";
+    @if (!userData.IsIDT)
+    {
+        @:openAction = self.Setup ? openAction : "";
+    }
+
+    @if (userData.Admin_Articles_CanDelete)
+    {
+        @:var deleteAction = this.ShowDeleteOption ? '<span class="ti ti-close card-right card-close" action=DeleteItem></span>' : "";
+    }
+    else
+    {
+        @:var deleteAction = "";
+    }
+                        var html = null;
+              if (data.LabelID != null && data.LabelID > 0)
+                  html = this.CreateLabelItem(data, openAction, deleteAction);
+              else
+                  html = this.CreateArticleItem(data, openAction, deleteAction);
+              AppContext.BindActions(html, this);
+              self.elements.ListContainer.append(html);
+          },
+
+      CreateLabelItem: function (data, openAction, deleteAction) {
+          var rfid = data.EncodeRFID == true ? "badge-warning" : "badge-secondary";
+          var shared = data.ProjectID != null ? "badge-secondary" : "badge-warning";
+          var html = $(`
+                        <div class="item-card article-card" data-entityid="${data.ID}"${openAction}>
+                            <span class="fa fa-tag"></span>${deleteAction}
+                            <div style="cursor:pointer" name="ArticleCode" title="${data.ArticleCode}">${data.ArticleCode}</div>
+                            <div name="TypeName">${data.LabelType} ${data.Name}</div>
+                            <div name="Material">${data.MaterialName}</div>
+                            <span class="badge ${rfid}" name="RFFlag">RFID</span>
+                            <span class="badge ${shared}" name="SHFlag">Shared</span>
+                            <div class="preview-container"><img src="/labels/getpreview/${data.LabelID}?${new Date().getTime()}" class="image-preview article-preview" /></div>
+                        </div>`);
+          return html;
+      },
+
+      CreateArticleItem: function (data, openAction, deleteAction) {
+          var shared = data.ProjectID != null ? "badge-secondary" : "badge-warning";
+          var materialName = data.Description ? data.Description : '';
+          var html = $(`
+                              <div class="item-card article-card" data-entityid="${data.ID}"${openAction}>
+                            <span class="fa fa-tag"></span>${deleteAction}
+                                  <div style="cursor:pointer" name="ArticleCode" data-categoryid="${data.CategoryID}">${data.ArticleCode}</div>
+                            <div name="TypeName">${data.Name}</div>
+                            <div name="Material">${materialName}</div>
+                            <span class="badge ${shared}" name="SHFlag">Shared</span>
+                            <div class="preview-container"><img src="/articles/getpreview/${data.ID}?${new Date().getTime()}" class="image-preview article-preview" /></div>
+                        </div>`);
+          return html;
+      },
+
+      OpenClicked: function (e) {
+          var self = this;
+          e.preventDefault();
+          var cardElm = $(e.target).closest("[data-entityid]");
+          var id = cardElm.attr("data-entityid");
+          var cardData = this.dataSource.first(p => p.ID == id);
+          this.ItemSelected.Raise({ target: this, item: cardData });
+
+
+          //if (this.IsForSelect == true) {
+          //    this.Parent.Show(this.ViewContainer);
+          //}
+      },
+
+      UpdateCard: function (data) {
+          var idx = this.dataSource.findIndex(p => p.ID == data.ID);
+          if (idx >= 0) {
+              var self = this;
+              AppContext.Articles.GetFullArticle(data.ID, (data) => {
+                  self.dataSource[idx] = data;
+                  var card = self.ViewContainer.find(`[data-entityid='${data.ID}']`);
+                  card.find("[name='ArticleCode']").text(data.ArticleCode);
+                  if (data.LabelID != null) {
+                      card.find("[name='TypeName']").text(data.LabelType + " " + data.Name);
+                      card.find("[name='Material']").text(data.MaterialName);
+                  }
+                  else {
+                      card.find("[name='TypeName']").text(data.Name);
+                      card.find("[name='Material']").text(data.Description);
+                  }
+                  var rfBadge = card.find("[name='RFFlag']");
+                  if (data.EncodeRFID) {
+                      rfBadge.removeClass("badge-secondary");
+                      rfBadge.addClass("badge-warning");
+                  }
+                  else {
+                      rfBadge.addClass("badge-secondary");
+                      rfBadge.removeClass("badge-warning");
+                  }
+                  var sharedBadge = card.find("[name='SHFlag']");
+                  if (data.ProjectID == null) {
+                      sharedBadge.removeClass("badge-secondary");
+                      sharedBadge.addClass("badge-warning");
+                  }
+                  else {
+                      sharedBadge.addClass("badge-secondary");
+                      sharedBadge.removeClass("badge-warning");
+                  }
+                  card.find(".image-preview").attr("src", `/articles/getpreview/${data.ID}?${new Date().getTime()}`)
+              });
+          }
+      }
+                };
+            //</script>

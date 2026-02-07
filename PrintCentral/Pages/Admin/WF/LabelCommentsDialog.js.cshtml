@@ -1,0 +1,55 @@
+﻿@page
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/WF/LabelCommentsDialog.js
+///<reference path="/js/jquery-3.0.0.min.js" />
+///<reference path="/js/Kendo.all.min.js" />
+///<reference path="/js/AppContext.js" />
+
+//<script>
+	var LabelCommentsDialog = function (row) {
+		FormView.Extend(this, "Label Comments Code: <b>"+row.LabelName+"</b>", `/Admin/WF/LabelCommentsDialog`);
+		this.Article = row;
+	};
+
+	LabelCommentsDialog.prototype = {
+		constructor: LabelCommentsDialog,
+
+		OnLoad: function () {
+			var self = this;
+			self.AddComments();
+		},
+
+		AddComments: function(){
+			var self = this;
+			var html = "";
+
+			if (!self.Article.Comments || self.Article.Comments.trim() === ""){
+				var comments = "There aren't comments for this label!";
+				html = $(`
+					<div class="ItemLog Message">
+						<div>${comments}</div>
+					</div>
+				`);
+
+				AppContext.BindActions(html, this);
+				this.elements.LogContainer.append(html);
+				return;
+			}
+
+			var comments = self.Article.Comments.split('\n');
+
+			for (let comment of comments) {
+				let itemHtml = $(`
+					<div class="ItemLog Message">
+						<div>${comment}</div>
+					</div>
+				`);
+
+				AppContext.BindActions(itemHtml, this);
+				this.elements.LogContainer.append(itemHtml);
+			}
+		}
+	}
+//</script>

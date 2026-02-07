@@ -1,0 +1,3001 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages/ManualEntry/IAPDFZaraExtractor.js
+///<reference path="/js/jquery-3.0.0.min.js" />
+///<reference path="/js/Kendo.all.min.js" />
+///<reference path="/js/AppContext.js" />
+///<reference path="/js/AppContext.AppDomain.js" />
+
+// <script>
+
+               class AdvancedCombo {
+                   constructor(config) {
+                       this.containerId = config.containerId;
+                       this.data = config.data;
+                       this.displayField = config.displayField;
+                       this.valueField = config.valueField;
+                       this.placeholder = config.placeholder || 'Buscar...';
+
+                       this.isOpen = false;
+                       this.selectedItem = null;
+                       this.keyboardSelectedIndex = -1;
+                       this.filteredItems = [...this.data];
+
+                       this.elements = {
+                           input: document.getElementById(config.containerId + 'Input'),
+                           arrow: document.getElementById(config.containerId + 'Arrow'),
+                           dropdown: document.getElementById(config.containerId + 'Dropdown'),
+                           result: document.getElementById(config.containerId + 'Result'),
+                           stats: document.getElementById(config.containerId + 'Stats')
+                       };
+
+                       this.initializeEventListeners();
+                       this.loadOptions();
+
+                       // Aplicar selección por defecto si se especifica
+                       if (config.defaultSelection) {
+                           const defaultItem = this.data.find(item => {
+                               if (typeof config.defaultSelection === 'function') {
+                                   return config.defaultSelection(item);
+                               }
+                               return item[this.valueField] === config.defaultSelection;
+                           });
+
+                           if (defaultItem) {
+                               this.selectItem(defaultItem);
+                           }
+                       }
+                   }
+
+                   loadOptions(itemsToLoad = this.data, searchTerm = '') {
+                       const dropdown = this.elements.dropdown;
+                       dropdown.innerHTML = '';
+
+                       if (itemsToLoad.length === 0) {
+                           dropdown.innerHTML = '<div class="no-results">No se encontraron resultados</div>';
+                           return;
+                       }
+
+                       itemsToLoad.forEach(item => {
+                           const option = document.createElement('div');
+                           option.className = 'advanced-option';
+
+                           let displayText = this.getDisplayText(item);
+                           if (searchTerm) {
+                               displayText = this.highlightMatch(displayText, searchTerm);
+                           }
+
+                           option.innerHTML = displayText;
+                           option.addEventListener('click', () => this.selectItem(item));
+                           dropdown.appendChild(option);
+                       });
+
+                       this.updateStats(itemsToLoad.length, searchTerm);
+                   }
+
+                   getDisplayText(item) {
+                       if (this.displayField instanceof Function) {
+                           return this.displayField(item);
+                       }
+                       return item[this.displayField];
+                   }
+
+                   selectItem(item) {
+                       this.selectedItem = item;
+                       this.elements.input.value = this.getDisplayText(item);
+                       this.close();
+                       this.updateResult();
+
+                       // Disparar evento de selección
+                       const event = new CustomEvent('itemSelected', {
+                           detail: { item, comboId: this.containerId }
+                       });
+                       document.dispatchEvent(event);
+                   }
+
+                   filterOptions(searchTerm) {
+                       const term = searchTerm.toLowerCase();
+                       this.filteredItems = this.data.filter(item =>
+                           this.getDisplayText(item).toLowerCase().includes(term)
+                       );
+                       this.loadOptions(this.filteredItems, searchTerm);
+                       this.keyboardSelectedIndex = -1;
+                   }
+
+                   highlightMatch(text, searchTerm) {
+                       const regex = new RegExp(`(${this.escapeRegExp(searchTerm)})`, 'gi');
+                       return text.replace(regex, '<span class="match-highlight">$1</span>');
+                   }
+
+                   updateStats(count, searchTerm) {
+                       if (this.elements.stats) {
+                           this.elements.stats.innerHTML = searchTerm ?
+                               `Encontrados: ${count} resultado(s) para "${searchTerm}"` :
+                               `Total: ${count} elemento(s)`;
+                       }
+                   }
+
+                   updateResult() {
+                       if (this.elements.result && this.selectedItem) {
+                           this.elements.result.innerHTML = `
+                               <span class="result-label">Seleccionado:</span>
+                               <span class="result-value">${this.getDisplayText(this.selectedItem)} (ID: ${this.selectedItem[this.valueField]})</span>
+                           `;
+                       }
+                   }
+
+                   open() {
+                       this.isOpen = true;
+                       this.elements.dropdown.classList.add('show');
+                       this.elements.arrow.classList.add('open');
+                   }
+
+                   close() {
+                       this.isOpen = false;
+                       this.elements.dropdown.classList.remove('show');
+                       this.elements.arrow.classList.remove('open');
+                   }
+
+                   escapeRegExp(string) {
+                       return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                   }
+
+                   initializeEventListeners() {
+                       // Input: búsqueda en tiempo real
+                       this.elements.input.addEventListener('input', e => {
+                           this.filterOptions(e.target.value);
+                           if (!this.isOpen) this.open();
+                       });
+
+                       // Input: focus abre el dropdown
+                       this.elements.input.addEventListener('focus', () => {
+                           this.open();
+                           this.loadOptions();
+                       });
+
+                       // Flecha: toggle dropdown
+                       this.elements.arrow.addEventListener('click', e => {
+                           e.stopPropagation();
+                           this.isOpen ? this.close() : this.open();
+                       });
+
+                       // Input: navegación por teclado
+                       this.elements.input.addEventListener('keydown', e => {
+                           if (!this.isOpen && e.key === 'ArrowDown') {
+                               this.open();
+                               return;
+                           }
+
+                           switch (e.key) {
+                               case 'ArrowUp':
+                                   e.preventDefault();
+                                   this.keyboardSelectedIndex = Math.max(-1, this.keyboardSelectedIndex - 1);
+                                   this.updateKeyboardSelection();
+                                   break;
+                               case 'ArrowDown':
+                                   e.preventDefault();
+                                   this.keyboardSelectedIndex = Math.min(this.filteredItems.length - 1, this.keyboardSelectedIndex + 1);
+                                   this.updateKeyboardSelection();
+                                   break;
+                               case 'Enter':
+                                   if (this.keyboardSelectedIndex >= 0) {
+                                       e.preventDefault();
+                                       this.selectItem(this.filteredItems[this.keyboardSelectedIndex]);
+                                   }
+                                   break;
+                               case 'Escape':
+                                   this.close();
+                                   break;
+                           }
+                       });
+                   }
+
+                   updateKeyboardSelection() {
+                       const options = this.elements.dropdown.children;
+                       Array.from(options).forEach((option, index) => {
+                           option.classList.toggle('keyboard-selected', index === this.keyboardSelectedIndex);
+                       });
+
+                       if (this.keyboardSelectedIndex >= 0) {
+                           const selectedOption = options[this.keyboardSelectedIndex];
+                           if (selectedOption) {
+                               selectedOption.scrollIntoView({ block: 'nearest' });
+                           }
+                       }
+                   }
+
+                   getValue() {
+                       return this.selectedItem ? this.selectedItem[this.valueField] : null;
+                   }
+
+                   getSelection() {
+                       if (!this.selectedItem) {
+                           return {
+                               value: null,
+                               text: '',
+                               item: null
+                           };
+                       }
+
+                       return {
+                           value: this.selectedItem[this.valueField],
+                           text: this.getDisplayText(this.selectedItem),
+                           item: this.selectedItem
+                       };
+                   }
+
+                   clear() {
+                       this.selectedItem = null;
+                       this.elements.input.value = '';
+                       if (this.elements.result) {
+                           this.elements.result.innerHTML = '';
+                       }
+                       this.filteredItems = [...this.data];
+                       this.loadOptions();
+                   }
+               }
+
+
+       class ModalManager {
+           constructor() {
+               this.initializeModals();
+               this.attachEventListeners();
+           }
+
+           initializeModals() {
+               // Get modal elements
+               this.modals = {
+                   composition: document.getElementById('composition-modal'),
+                   business: document.getElementById('business-modal'),
+                   article: document.getElementById('article-modal'),
+                   price: document.getElementById('price-modal'),
+                   validation: document.getElementById('validation-modal')
+               };
+           }
+
+           attachEventListeners() {
+               // Attach click handlers for closing modals when clicking outside
+               Object.values(this.modals).forEach(modal => {
+                   if (modal) {
+                       modal.addEventListener('click', (event) => {
+                           if (event.target === modal) {
+                               this.closeModal(modal);
+                           }
+                       });
+                   }
+               });
+
+               // Attach cancel button handlers
+               const cancelButtons = {
+                   'cancel-composition': 'composition',
+                   'cancel-business': 'business',
+                   'cancel-article': 'article',
+                   'cancel-price': 'price',
+               };
+
+               Object.entries(cancelButtons).forEach(([buttonId, modalType]) => {
+                   const button = document.getElementById(buttonId);
+                   if (button) {
+                       button.addEventListener('click', () => this.closeModal(this.modals[modalType]));
+                   }
+               });
+           }
+
+           // Generic open modal method
+           openModal(modal) {
+               if (modal) {
+                   modal.style.display = 'block';
+               }
+           }
+
+           // Generic close modal method
+           closeModal(modal) {
+               if (modal) {
+                   modal.style.display = 'none';
+                   // Call specific cleanup if needed
+                   const modalId = modal.id;
+                   if (modalId === 'price-modal') {
+                       this.clearPriceForm();
+                   }
+               }
+           }
+
+           clearPriceForm() {
+               const inputs = document.querySelectorAll('.currency-input, .price-input');
+               inputs.forEach(input => input.value = '');
+           }
+
+           // Specific modal open methods
+           openCompositionModal(jsonData, Sections, Fibers,Exceptions, WashInstructions,MadeIn,OrderSectionCatalogID) {
+               const modal = this.modals.composition;
+               const compositionForm = modal.querySelector('.composition-form');
+
+               // Obtain current composition data
+               const currentComposition = jsonData.Datos_adicionales.etiqueta_composicion;
+
+               // Generate form HTML dynamically
+               let formHtml = this.generateCompositionForm(currentComposition,Sections, Fibers,Exceptions, WashInstructions, MadeIn);
+
+               compositionForm.innerHTML = formHtml;
+               this.openModal(modal);
+           }
+
+               openBusinessModal(jsonData, Sections, Providers, SizesSet, OrderSectionCatalogID, MadeIn, SizeRange) {
+               const modal = this.modals.business;
+               const businessInfo = jsonData.Pedido.business_information;
+               const sizeRange = SizeRange.split(",")
+
+              const $seccion = document.getElementById("seccion");
+               $seccion.innerHTML= ''; 
+               Sections.forEach(seccion=> {
+                   const option = document.createElement('option'); 
+                   option.value = seccion.Code; 
+                   option.text = seccion.Name;
+                   $seccion.appendChild(option);
+                 });
+                    const defaulOptionPr =  document.createElement('option');
+                           defaulOptionPr.value = "-1",
+                           defaulOptionPr.text = "Seleccione una opción"
+
+                    const defaulOptionMd =  document.createElement('option');
+                                  defaulOptionMd.value = "-1",
+                                  defaulOptionMd.text = "Seleccione una opción"
+                    const defaulOptionSz =  document.createElement('option');
+                                  defaulOptionSz.value = "-1",
+                                  defaulOptionSz.text = "Seleccione una opción"
+                    const defaulOptionSs =  document.createElement('option');
+                                         defaulOptionSs.value = "-1",
+                                         defaulOptionSs.text = "Seleccione una opción"
+                     const ProvidersMapped = Providers.map (p=> {
+                         return {
+                             ClientReference : p.ClientReference, 
+                             CompanyName :p.CompanyName.trim() 
+                         }
+
+                     })
+
+                     ProvidersMapped.push ({
+                        ClientReference : "-1", 
+                        CompanyName: "Seleccione una opción"
+                     });
+                     const proveedorSelecionado = Providers.find(item=> item.ClientReference == businessInfo.id_proveedor);
+                     let selectedProviderID = "-1"
+                     if (proveedorSelecionado)
+                     {
+                       selectedProviderID = proveedorSelecionado.ClientReference;
+                     }
+
+                 const providersCombo = new AdvancedCombo({
+                              containerId: 'providers',
+                              data: ProvidersMapped,
+                              displayField: item => `${item.CompanyName.trim()}`,
+                              valueField: 'ClientReference',
+                              placeholder: 'Buscar proveedor...',
+                              defaultSelection: selectedProviderID
+
+                          });
+
+                       window.providersCombo = providersCombo;
+
+                     
+                       const $madeIn = document.getElementById("madeIn");
+                           $madeIn.innerHTML= '';
+                          
+                             MadeIn.forEach(item=> {
+                                 const option = document.createElement('option');
+                                        option.value = item.ID;
+                                        option.text = item.SPANISH;
+                                  $madeIn.appendChild(option);
+                               });
+
+                   
+
+               // Fill form with current data
+               document.getElementById('pedidoZara').value = businessInfo.PedidoZara;
+               document.getElementById('esSur').value = businessInfo.esSur.toString();
+               document.getElementById('alarma').value = businessInfo.Alarma.toString();
+               document.getElementById('codigoTaller').value = businessInfo.codigoTaller;
+
+              const seccionSeleccionada = Sections.find(item=> item.Name === businessInfo.seccion);
+              if (seccionSeleccionada) 
+              {
+                  $seccion.value = seccionSeleccionada.Code;
+              }
+
+              const $sizesSet = document.getElementById("sizesset");
+              $sizesSet.innerHTML= '';
+              const filteredSizeSets = SizesSet
+                  .filter(sizeSet => sizeSet.Section === $seccion.selectedOptions[0].text)
+                  .filter(sizeSet => {
+                      return sizeRange.every(size => 
+                          sizeSet.sizes.some(s => s.DisplayField === size)
+                      );
+                  });
+
+              filteredSizeSets.forEach(sizeSet => {
+                  const option = document.createElement('option');
+                  option.value = sizeSet.ID;
+                  option.text = sizeSet.Name;
+                  $sizesSet.appendChild(option);
+              });
+
+              
+                           $.when(
+                                       AppContext.HttpGet(`/catalogdata/getsubset/${OrderSectionCatalogID}/${$seccion.value}/OrderSubSections`, null, null, true)
+                                         ).fail(function () {
+                                         }).then(function (subsectionData) {
+                                                 const subseccionSelect = document.getElementById('subseccion');
+                                                    
+                                                 subseccionSelect.innerHTML = '';
+                                                 let OrderSubSectionData = []
+                                             // var result = JSON.parse(sizessetData[0]);
+                                             // self.SizesSetData = result.filter(x => x.Section == sectiontxt);
+                                              OrderSubSectionData= JSON.parse(subsectionData);
+                                         // Add filtered options to subseccion select
+                                         subseccionSelect.appendChild(defaulOptionSs); 
+                                         OrderSubSectionData.forEach(subseccion => {
+                                                   const option = document.createElement('option');
+                                                   option.value = subseccion.ID;
+                                                   option.text = subseccion.Name;
+                                                   subseccionSelect.appendChild(option);
+                                               });
+
+                                       const subseccionSelecionada = OrderSubSectionData.find(item => item.ID == businessInfo.id_subseccion)
+                                       if (subseccionSelecionada)
+                                       {
+                                                  subseccionSelect.value = subseccionSelecionada.ID
+                                       }else {
+                                                  subseccionSelect.value = -1
+                                       }
+                                       });
+
+
+              // const proveedorSelecionado = Providers.find(item=> item.ID == businessInfo.id_proveedor);
+              
+              // if (proveedorSelecionado)
+              // {
+              //     $proveedor.value = proveedorSelecionado.ID;
+              // }else {
+              //      $proveedor.appendChild(defaulOptionPr)
+              //      $proveedor.value = "-1";
+              // }
+
+              if (businessInfo.id_madeIn)
+              {
+                  $madeIn.value = businessInfo.id_madeIn; 
+              }else {
+                   $madeIn.appendChild(defaulOptionMd)
+                   $madeIn.value = "-1"; 
+              }
+            const sizesSetSelecionado = SizesSet.find(item=> item.ID == businessInfo.id_sizeset);
+                   if (sizesSetSelecionado)
+                     {
+                          $sizesSet.value = sizesSetSelecionado.ID;
+                     }else {
+                         $sizesSet.appendChild(defaulOptionSz)
+                         $sizesSet.value = "-1"
+                     }
+               this.openModal(modal);
+           }
+
+           openArticleModal(jsonData, itemIndex, Articles) {
+               const modal = this.modals.article;
+               const article = jsonData.Pedido.articulos[itemIndex];
+
+               // Fill form with current data
+              document.getElementById('ref-fornitura').value = article['Ref. Fornitura'];
+              const articleSeleccionado = Articles.find (item => item.ArticleCode.includes(article.ArticleCode))
+              let selectedArticleID = -1; 
+              if (articleSeleccionado) {
+                  selectedArticleID = articleSeleccionado.ID; 
+              }
+                const articlesCombo = new AdvancedCombo({
+                       containerId: 'articles',
+                       data: Articles,
+                       displayField: item => `${item.ArticleCode.trim()}`,
+                       valueField: 'ID',
+                       placeholder: 'Buscar artículo...',
+                       defaultSelection: selectedArticleID
+
+                   });
+
+                window.articlesCombo = articlesCombo; 
+              // const articleCode =  document.getElementById('articleCode')
+              // articleCode.innerHTML = '';
+              //     Articles.forEach (item=> {
+              //     const option = document.createElement('option'); 
+              //     option.value = item.ID 
+              //     option.text = item.ArticleCode 
+              //     articleCode.appendChild(option); 
+
+              // })
+
+             
+
+              // if (articleSeleccionado)
+              // {
+              //     articleCode.value = articleSeleccionado.ID 
+              // }
+            //   const mcc = this.parseMCC(article.MCC)
+                if (article.NormalizeMCC)
+                {
+                       document.getElementById('temporada').value =  article.NormalizeMCC.Temporada;
+                       document.getElementById('modelo').value = article.NormalizeMCC.Modelo;
+                       document.getElementById('calidad').value =article.NormalizeMCC.Calidad;
+                       document.getElementById('color').value = article.NormalizeMCC.Color;
+
+                }
+
+               // Save article index for later use
+               modal.setAttribute('data-item-index', itemIndex);
+
+               this.openModal(modal);
+           }
+
+           parseMCC(input) {
+                    const regex = /^(\w+)\s+(\d+)\/(\d+)\/(\d+)$/;
+                    const match = input.match(regex);
+        
+                    if (!match) {
+                            //throw new Error("Formato inválido. Se esperaba: 'I2024 7154/397/712'");
+                            return null 
+                    }
+
+                    const [, Temporada, Modelo, Calidad, Color] = match;
+
+                   return {
+                       Temporada,
+                       Modelo,
+                       Calidad,
+                       Color
+                   };
+        }
+
+           openPriceModal(jsonData) {
+               const modal = this.modals.price;
+
+               // Fill current values if they exist
+               const priceInfo = jsonData.Datos_adicionales.etiqueta_precio?.info_precio?.precios;
+               if (priceInfo && Array.isArray(priceInfo)) {
+                   const currencyInputs = document.querySelectorAll('.currency-input');
+                   const priceInputs = document.querySelectorAll('.price-input');
+                   let extraCurrency  = 0;
+                   for (let i = 0; i<= Math.min(priceInfo.length, 5) -1; i++) {
+                       const price = priceInfo[i];
+                       if (price && price.etiqueta_color) 
+                       {
+                           const currencyInput =  document.querySelector(`.${price.etiqueta_color}`);
+                           const priceInput = document.querySelector(`.price-${price.etiqueta_color}`);
+                           currencyInput.value = price.tipo_divisa || '';
+                           priceInput.value  = this.parseDecimal(price.precio_divisa);
+                       }else {
+                            if (extraCurrency == 0) 
+                            {
+                                const currencyInput = document.querySelector('.USA'); 
+                                const priceInput = document.querySelector ('.price-USA') ;
+                                currencyInput.value = price.tipo_divisa || '';
+                                priceInput.value  = this.parseDecimal(price.precio_divisa);
+                            }else {
+                                 const currencyInput = document.querySelector('.UK');
+                                 const priceInput = document.querySelector ('.price-UK') ;
+                                 currencyInput.value = price.tipo_divisa || '';
+                                 priceInput.value  = this.parseDecimal(price.precio_divisa);
+                            }
+                            extraCurrency++;
+                       } 
+
+                        // if (price)     
+                        // {
+                        //     currencyInputs[i].value = price.tipo_divisa || '';
+                        //     priceInputs[i].value = this.parseDecimal(price.precio_divisa);
+
+                        // } else {
+                        //        currencyInputs[i].value = '';
+                        //        priceInputs[i].value = this.parseDecimal(0);
+                        // }
+
+
+                              //priceInputs[i].value = price.precio_divisa ? price.precio_divisa.replace(',', '.') : '';
+                   }
+               }
+
+               this.openModal(modal);
+           }
+
+          parseDecimal(input) {
+         // Elimina espacios y asegura que sea string
+         const str = input.toString().trim();
+
+         // Si contiene tanto ',' como '.'
+         if (str.includes(',') && str.includes('.')) {
+           // Si ',' está después del '.', probablemente ',' sea decimal
+           if (str.lastIndexOf(',') > str.lastIndexOf('.')) {
+             // Europeo: "1.234.567,89" → quitar puntos, cambiar coma a punto
+             return parseFloat(str.replace(/\./g, '').replace(',', '.'));
+           } else {
+             // Americano: "1,234,567.89" → quitar comas
+             return parseFloat(str.replace(/,/g, ''));
+           }
+         }
+
+         // Solo contiene ','
+         if (str.includes(',') && !str.includes('.')) {
+           // Asumimos ',' como decimal
+           return parseFloat(str.replace(',', '.'));
+         }
+
+         // Solo contiene '.' o ningún separador → puede usarse directamente
+         return parseFloat(str);
+       }
+
+
+           // Helper method to generate composition form
+           generateCompositionForm(currentComposition, Sections, Fibers,Instructions, WashInstructions, MadeIn) {
+               let formHtml = '';
+
+               // Market origin
+               formHtml += `
+                   <div class="form-section" style="display:none">
+                       <h4>Información General</h4>
+                       <div class="form-group">
+                           <label>Mercado de origen:</label>
+                           
+                           <select class="select-form mercado-origen">
+                                        ${MadeIn.filter(s => s.IsActive).map(madein =>
+                                               `<option value="${madein.ID}" ${madein.SPANISH === currentComposition.info_composicion.mercado_origen.Nombre ? 'selected' : ''}>
+                                                      ${madein.SPANISH}
+                                               </option>`
+                                         ).join('')}
+                                          </select>
+                       </div>
+                   </div>
+               `;
+
+               // Composition sections
+
+                currentComposition.info_composicion.composicion_prenda.Secciones.forEach((seccion, secIndex) => {
+                       formHtml += `
+                           <div class="form-section" data-section-index="${secIndex}">
+                               <h4>Sección</h4>
+                               <div class="form-group">
+                                   <label>Nombre de la sección:</label>
+                                    <select class="select-form section-name">
+                                       ${Sections.filter(s => s.IsActive).map(section =>
+                                           `<option value="${section.ID}" ${section.SPANISH === seccion.Nombre ? 'selected' : ''}>
+                                               ${section.SPANISH}
+                                           </option>`
+                                       ).join('')}
+                                   </select>
+                               </div>
+                               <h4>Fibras</h4>
+                               <div class="fibras-container">
+                       `;
+               // currentComposition.info_composicion.composicion_prenda.Secciones.forEach((seccion, secIndex) => {
+               //     formHtml += `
+               //         <div class="form-section" data-section-index="${secIndex}">
+               //             <h4>Sección</h4>
+               //             <div class="form-group">
+               //                 <label>Nombre de la sección:</label>
+               //                 <input type="text" class="section-name" value="${seccion.Nombre}">
+               //             </div>
+               //             <h4>Fibras</h4>
+               //             <div class="fibras-container">
+               //     `;
+
+                   seccion.Fibras.forEach((fibra, fibIndex) => {
+                       formHtml += this.createFibraRow(fibra, fibIndex, Fibers);
+                   });
+
+                   formHtml += `
+                           </div>
+                           <button class="add-fibra-btn" style="display:none" onclick="addFibraRow(this)">
+                               <i class="fas fa-plus"></i> Añadir Fibra
+                           </button>
+                       </div>
+                   `;
+               });
+
+               // Exceptions
+               formHtml += `
+                   <div class="form-section">
+                       <h4>Excepciones</h4>
+                       <div class="excepciones-container">
+               `;
+
+               // if (currentComposition.info_composicion.composicion_prenda.Excepciones) {
+               //     currentComposition.info_composicion.composicion_prenda.Excepciones.forEach((excepcion, index) => {
+               //         formHtml += `
+               //             <div class="form-group">
+               //                 <input type="text" class="excepcion" value="${excepcion}">
+               //                 <button class="remove-row-btn" onclick="removeExcepcion(this)">
+               //                     <i class="fas fa-times"></i>
+               //                 </button>
+               //             </div>
+               //         `;
+               //     });
+               // }
+
+                let exceptionData = Instructions.filter(x => x.Category === 'Exception');
+                window.CareInstructions = Instructions;
+
+                             if (currentComposition.info_composicion.composicion_prenda.Excepciones) {
+                          currentComposition.info_composicion.composicion_prenda.Excepciones.forEach((excepcion, index) => {
+                              formHtml += `
+                                  <div class="form-group">
+                                     
+                                         <select class="select-form excepcion">
+                                                     ${exceptionData.filter(s => s.IsActive).map(exception =>
+                                                              `<option value="${exception.ID}" ${exception.Spanish === excepcion.Nombre ? 'selected' : ''}>
+                                                             ${exception.Spanish}
+                                                  </option>`
+                                              ).join('')}
+                                          </select>
+                                      <button class="remove-row-btn"  onclick="removeExcepcion(this)">
+                                          <i class="fas fa-times"></i>
+                                      </button>
+                                  </div>
+                              `;
+                          });
+                      }
+
+               formHtml += `
+                       </div>
+                       <button class="add-fibra-btn" style="display:none" onclick="addExcepcion()">
+                           <i class="fas fa-plus"></i> Añadir Excepción
+                       </button>
+                   </div>
+               `;
+
+               // Care instructions Wash, Bench, Dry, Iron, DryCleanning
+               formHtml += `
+                   <div class="form-section">
+                       <h4>Instrucciones de Conservación</h4>
+                       <div class="instrucciones-container">
+               `;
+              let washData = WashInstructions
+              if (currentComposition.info_composicion.instrucciones_conservacion) 
+              {
+                         let washe = currentComposition.info_composicion.instrucciones_conservacion.find (i=>i.Categoria == 'Wash') 
+                         if (washe) 
+                         {
+                         formHtml += `
+                              <div class="form-group">
+                                              <select class="select-form instruccion">
+                                                                 ${washData.filter(s => s.IsActive && s.Category == 'Wash').map(wash =>
+                                                                                            `<option value="${wash.ID}"  ${wash.Spanish === washe.Nombre ? 'selected' : ''}>
+                                                                                  ${wash.Spanish}
+                                                                </option>`
+                                                            ).join('')}
+                                                        </select>
+
+                              </div>
+                          `;
+                         }
+                         let blench = currentComposition.info_composicion.instrucciones_conservacion.find (i=>i.Categoria == 'Bleach')
+                                if (blench)
+                                {
+                                formHtml += `
+                                     <div class="form-group">
+                                                     <select class="select-form instruccion">
+                                                                        ${washData.filter(s => s.IsActive && s.Category == 'Bleach').map(wash =>
+                                                                                                   `<option value="${wash.ID}"  ${wash.Spanish === blench.Nombre ? 'selected' : ''}>
+                                                                                         ${wash.Spanish}
+                                                                       </option>`
+                                                                   ).join('')}
+                                                               </select>
+
+                                     </div>
+                                 `;
+                                }
+                                let dry = currentComposition.info_composicion.instrucciones_conservacion.find (i=>i.Categoria == 'Dry')
+                                       if (dry)
+                                       {
+                                       formHtml += `
+                                            <div class="form-group">
+                                                            <select class="select-form instruccion">
+                                                                               ${washData.filter(s => s.IsActive && s.Category == 'Dry').map(wash =>
+                                                                                                          `<option value="${wash.ID}"  ${wash.Spanish === dry.Nombre ? 'selected' : ''}>
+                                                                                                ${wash.Spanish}
+                                                                              </option>`
+                                                                          ).join('')}
+                                                                      </select>
+
+                                            </div>
+                                        `;
+                                       }
+                               let iron = currentComposition.info_composicion.instrucciones_conservacion.find (i=>i.Categoria == 'Iron')
+                                              if (dry)
+                                              {
+                                              formHtml += `
+                                                   <div class="form-group">
+                                                                   <select class="select-form instruccion">
+                                                                                      ${washData.filter(s => s.IsActive && s.Category == 'Iron').map(wash =>
+                                                                                                                 `<option value="${wash.ID}"  ${wash.Spanish === iron.Nombre ? 'selected' : ''}>
+                                                                                                       ${wash.Spanish}
+                                                                                     </option>`
+                                                                                 ).join('')}
+                                                                             </select>
+
+                                                   </div>
+                                               `;
+                                              }
+                               let dryCleanning = currentComposition.info_composicion.instrucciones_conservacion.find (i=>i.Categoria == 'DryCleaning')
+                                              if (dryCleanning)
+                                              {
+                                              formHtml += `
+                                                   <div class="form-group">
+                                                                   <select class="select-form instruccion">
+                                                                                      ${washData.filter(s => s.IsActive && s.Category == 'DryCleaning').map(wash =>
+                                                                                                                 `<option value="${wash.ID}"  ${wash.Spanish === dryCleanning.Nombre ? 'selected' : ''}>
+                                                                                                       ${wash.Spanish}
+                                                                                     </option>`
+                                                                                 ).join('')}
+                                                                             </select>
+
+                                                   </div>
+                                               `;
+                                              }
+              }
+              // currentComposition.info_composicion.instrucciones_conservacion.forEach((instruccion, index) => {
+              //      formHtml += `
+              //          <div class="form-group">
+              //                          <select class="select-form instruccion">
+              //                                             ${washData.filter(s => s.IsActive).map(wash =>
+              //                                                                        `<option value="${wash.ID}"  ${wash.Spanish === instruccion.Nombre ? 'selected' : ''}>
+              //                                                              ${wash.Spanish}
+              //                                            </option>`
+              //                                        ).join('')}
+              //                                    </select>
+
+              //          </div>
+              //      `;
+              //  });
+
+               formHtml += `
+                       </div>
+
+                   </div>
+               `;
+
+               // Additional care instructions
+               formHtml += `
+                   <div class="form-section">
+                       <h4>Instrucciones de Conservación Adicionales</h4>
+                       <div class="otras-instrucciones-container">
+               `;
+                      let additionalData = Instructions.filter(x => x.Category === 'Additional');
+
+               if (currentComposition.info_composicion.otras_instrucciones_conservacion) {
+                   currentComposition.info_composicion.otras_instrucciones_conservacion.forEach(instruccion => {
+                       formHtml += `
+                           <div class="form-group">
+                                     <select class="select-form otra-instruccion">
+                                             ${additionalData.filter(s => s.IsActive).map(additional =>
+                                                        `<option value="${additional.ID}" ${additional.Spanish === instruccion.Nombre ? 'selected' : ''}>
+                                                                   ${additional.Spanish}
+                                                         </option>`
+                                                     ).join('')}
+                                      </select>
+                               <button class="remove-row-btn" onclick="removeOtraInstruccion(this)">
+                                   <i class="fas fa-times"></i>
+                               </button>
+                           </div>
+                       `;
+                   });
+               }
+
+               formHtml += `
+                       </div>
+                        <button class="add-fibra-btn" style="display:none" onclick="addOtraInstruccion()">
+                           <i class="fas fa-plus"></i> Añadir Instrucción Adicional
+                       </button>
+                   </div>
+               `;
+
+               return formHtml;
+           }    createFibraRow(fibra, fibIndex, Fibers) {
+               // Remove the % symbol from the percentage value if it exists
+               const cleanPercentage = fibra.Porcentaje ? fibra.Porcentaje.replace('%', '') : '';
+
+               // return `
+               //     <div class="fibra-row" data-fibra-index="${fibIndex}">
+               //         <div class="form-group">
+               //             <label>Porcentaje:</label>
+               //             <input type="number" class="fibra-porcentaje" min="0" max="100" value="${cleanPercentage}">
+               //         </div>
+               //         <div class="form-group">
+               //             <label>Nombre:</label>
+               //             <input type="text" class="fibra-nombre" value="${fibra.Nombre}">
+               //             <button class="remove-row-btn remove-row-fiber-btn" onclick="removeFibraRow(this)">
+               //             <i class="fas fa-times"></i>
+               //         </button>
+               //         </div>
+
+
+               //     </div>
+               // `;
+
+                return `
+                          <div class="fibra-row" data-fibra-index="${fibIndex}">
+                              <div class="form-group">
+                                  <label>Porcentaje:</label>
+                                  <input type="number" class="fibra-porcentaje" min="0" max="100" value="${cleanPercentage}">
+                              </div>
+                              <div class="form-group">
+                                  <label>Nombre:</label>
+                                    <select class="select-form fibra-nombre">
+                                              ${Fibers.filter(s => s.IsActive).map(fiber =>
+                                                  `<option value="${fiber.ID}" ${fiber.SPANISH === fibra.Nombre ? 'selected' : ''}>
+                                                      ${fiber.SPANISH}
+                                                  </option>`
+                                              ).join('')}
+                                          </select>
+                                  <button class="remove-row-btn remove-row-fiber-btn" onclick="removeFibraRow(this)">
+                                  <i class="fas fa-times"></i>
+                              </button>
+                              </div>
+
+
+                          </div>
+                      `;
+           }
+       }
+
+
+      var IAPDFZaraExtractor = function (options) {
+
+        if (!options) {
+            options = {};
+        }
+
+        //this.options = OrderEntryView.GetDefaults(options);
+
+         console.log("IAPDFZaraExtractor- Ctor")
+
+           FormView.Extend(this, "@g["PDF Extractor"]", `/ManualEntry/IAPDFZaraExtractor`);
+
+           this.Options = options;
+           this.CompanyId = null;
+           this.OrderId = 0;
+           this.ProjectId = 0;
+           this.OrderSections;
+           
+           this.pdfFile = null; 
+           this.jsonData = null;
+           this.modalManager = null;
+
+           document.addEventListener('DOMContentLoaded', function() {
+                   // Initialize modal manager
+                   modalManager = new ModalManager();
+           });
+           
+           this.FormSelector = '[name="dataentry-frm"]';
+           
+           this.Languages = [{ "Culture": "es-ES", "Lang": "Spanish" }, { "Culture": "ca-ES", "Lang": "Catalan" }, { "Culture": "en-US", "Lang": "English" }, { "Culture": "fr-FR", "Lang": "French" }, { "Culture": "tr-TR", "Lang": "Turkish" }];
+           this.DataAllSteps = [];
+           this.OrderSelection = [];
+           this.OnWizardCreated = new AppEvent();
+
+
+       };
+
+
+    // public static method
+    IAPDFZaraExtractor.GetDefaults = function (options) {
+
+        return $.extend({
+            Title: '@g["Custom Report"]',
+            Filter: {},
+            EnableStorageFilter: true,
+        }, options);
+    };
+
+
+     IAPDFZaraExtractor.prototype = {
+               constructor: IAPDFZaraExtractor,
+        
+		OnLoad: function () {
+            var self = this;
+            console.log("OnLoad ");
+            self.InitializeView();
+            self.LoadCatalogs(); 
+        },
+
+           SetOptions: function (options) {
+               this.Options = options;
+           },
+           OnShow: function () {
+               let self = this;
+              console.log("OnShow")
+           },
+           OnHide: function () {
+               let self = this;
+
+           },
+       textoMasParecido: function (entrada, lista) {
+         let self = this;
+         let mejorCoincidencia = null;
+         let menorDistancia = Infinity;
+
+         for (const texto of lista) {
+           const distancia = self.levenshtein(entrada.toLowerCase(), texto.toLowerCase());
+           if (distancia < menorDistancia) {
+             menorDistancia = distancia;
+             mejorCoincidencia = texto;
+           }
+         }
+
+         return mejorCoincidencia;
+       },
+        levenshtein: function (a, b) {
+         const matrix = [];
+
+         for (let i = 0; i <= b.length; i++) {
+           matrix[i] = [i];
+         }
+         for (let j = 0; j <= a.length; j++) {
+           matrix[0][j] = j;
+         }
+
+         for (let i = 1; i <= b.length; i++) {
+           for (let j = 1; j <= a.length; j++) {
+             if (b.charAt(i - 1) === a.charAt(j - 1)) {
+               matrix[i][j] = matrix[i - 1][j - 1];
+             } else {
+               matrix[i][j] = Math.min(
+                 matrix[i - 1][j - 1] + 1, // sustitución
+                 matrix[i][j - 1] + 1,     // inserción
+                 matrix[i - 1][j] + 1      // eliminación
+               );
+             }
+           }
+         }
+
+         return matrix[b.length][a.length];
+       }, 
+
+
+           LoadCatalogs:  function () {
+
+               let self = this;
+
+               let sectionCatalogName = "@Catalog.BRAND_SECTIONS_CATALOG";
+               let fiberCatalogName = "@Catalog.BRAND_FIBERS_CATALOG";
+               let washingRulesCatalogName = "@Catalog.BRAND_CAREINSTRUCTIONS_CATALOG";
+
+               let d1 = $.Deferred();
+
+               $.when(
+                   AppContext.Catalogs.GetByName(self.Options.ProjectID, sectionCatalogName, null, null, false, false),
+                   AppContext.Catalogs.GetByName(self.Options.ProjectID, fiberCatalogName, null, null, false, false),
+                   AppContext.Catalogs.GetByName(self.Options.ProjectID, washingRulesCatalogName, null, null, false, false),
+                   AppContext.Catalogs.GetByName(self.Options.ProjectID, "CareInstructions", null, null, false, false), 
+                   AppContext.Catalogs.GetByName(self.Options.ProjectID, "MadeIn", null, null, false, false),
+                   AppContext.Catalogs.GetByName(self.Options.ProjectID, "OrderSections", null, null, false, false),
+                   AppContext.Catalogs.GetByName(self.Options.ProjectID, "SizesSet", null, null, false, false),
+                   AppContext.Catalogs.GetByName(self.Options.ProjectID, "OrderSubSections", null, null, false, false),
+                   
+
+               ).fail(function () {
+            
+                   d1.reject();
+                   console.log('fail to get definitions')
+
+               }).then(function (sectionsCatalog, fibersCatalog, washingRulesCatalog,careInstructionsCatalog, madeInCatalog, orderSectionCatalogs, sizesSetCatalog, orderSubSectionCatalog) {
+
+                   self.SectionsCatalog = sectionsCatalog[0].Data;
+                   self.FibersCatalog = fibersCatalog[0].Data;
+                   self.WashingRulesCatalog = washingRulesCatalog[0].Data;
+                   self.CareInstructionsCatalog = careInstructionsCatalog[0].Data; 
+                   self.MadeInCatalog = madeInCatalog[0].Data; 
+                   self.OrderSectionCatalogs = orderSectionCatalogs[0].Data; 
+                   self.SizesSetCatalog  = sizesSetCatalog[0].Data
+                   self.OrderSubSectionCatalog = orderSubSectionCatalog[0].Data
+
+
+                   $.when(
+                       AppContext.CatalogData.GetByCatalogID(self.SectionsCatalog.CatalogID, null, null, false),
+                       AppContext.CatalogData.GetByCatalogID(self.FibersCatalog.CatalogID, null, null, false),
+                       AppContext.CatalogData.GetByCatalogID(self.WashingRulesCatalog.CatalogID, null, null, false),
+                       AppContext.CatalogData.GetByCatalogID(self.CareInstructionsCatalog.CatalogID, null, null, false),
+                       AppContext.CatalogData.GetByCatalogID(self.MadeInCatalog.CatalogID, null, null,false),
+                       AppContext.CatalogData.GetByCatalogID(self.OrderSectionCatalogs.CatalogID, null, null,false),
+                       AppContext.CatalogData.GetByCatalogID(self.SizesSetCatalog.CatalogID, null, null,false),
+                       AppContext.CatalogData.GetByCatalogID(self.OrderSubSectionCatalog.CatalogID, null, null,false),
+                       AppContext.HttpGet(`/articles/getbyprojectid/${self.Options.ProjectID}`),
+                       AppContext.HttpGet(`/providers/getbycompanyid/${self.Options.CompanyID}`),
+                       AppContext.HttpGet(`/packs/getbyprojectid/${self.Options.ProjectID}`)
+
+                   ).then(function (sectionData, fibersData, washingRulesData, careInstructionsData, madeInData, orderSectionData,sizesSetData, orderSubSectionData, articlesData, providersData, packsData) {
+
+                       let SectionData = JSON.parse(sectionData[0]);
+                       self.SectionData = SectionData.sort((a,b)=> {
+                          if (a.SPANISH < b.SPANISH) return -1 
+                          if (a.SPANISH > b.SPANISH) return 1; 
+                          return 0; 
+                       });
+                       let FibersData = JSON.parse(fibersData[0]);
+                           self.FibersData = FibersData.sort((a,b)=> {
+                                 if (a.SPANISH < b.SPANISH) return -1
+                                 if (a.SPANISH > b.SPANISH) return 1;
+                                 return 0;
+                       });
+                       self.WashinRulesData = JSON.parse(washingRulesData[0]);
+                       let CareInstructionsData = JSON.parse(careInstructionsData[0]);
+                       self.CareInstructionsData = CareInstructionsData.sort((a,b)=> {
+                                if (a.Spanish < b.Spanish) return -1
+                                if (a.Spanish > b.Spanish) return 1;
+                                 return 0;
+                              });
+                       let MadeInData = JSON.parse(madeInData[0]);
+
+                                      self.MadeInData = MadeInData.filter(m=> m.SPANISH.trim().length>0).sort((a,b)=> {
+                                        if (a.SPANISH < b.SPANISH) return -1
+                                        if (a.SPANISH > b.SPANISH) return 1;
+                                        return 0;
+                              });
+                       self.Articles = articlesData[0].filter(x => x.ProjectID != null && x.EnableAddItems).sort((a, b) => {
+                           if (a.Name < b.Name) return -1;
+                           if (a.Name > b.Name) return 1;
+                           return 0;
+                       });
+                       self.ProvidersData = providersData[0];
+                       self.OrderSectionData =  JSON.parse(orderSectionData[0]);
+                       self.SizesSetData=JSON.parse(sizesSetData[0]);
+                       self.GetSizesOfSizeSet(); 
+                       self.PacksData = packsData[0].filter(x => x.ProjectID != null)
+                       self.OrderSubSectionData = JSON.parse(orderSubSectionData[0]);
+                       for (let pack of self.PacksData) {
+                              self.Articles.push({
+                                  "ID": pack.ID,
+                                  "ProjectID": pack.ProjectID,
+                                  "Name": pack.Name,
+                                  "Description": pack.Description,
+                                  "ArticleCode": pack.PackCode,
+                                  "BillingCode": pack.PackCode,
+                                  "LabelID": null,
+                                  "Instructions": null,
+                                  "CategoryID": null,
+                                  "PackCode": pack.PackCode
+                         });
+                         };
+                         let Articles = self.Articles.sort((a, b) => {
+                                                         if (a.ArticleCode < b.ArticleCode) return -1;
+                                                         if (a.ArticleCode > b.ArticleCode) return 1;
+                                  return 0;
+                              });
+                       
+                       self.Articles = Articles; 
+                       
+                       console.log("Section Data", sectionData[0]);
+                       console.log("Fibers Data", fibersData[0]);
+                       console.log("WahsingRules", washingRulesData[0]);
+                       console.log("CareInstructions", careInstructionsData[0]);
+                       console.log("MadeIn", madeInData[0]);
+                       console.log("Articles", self.Articles)
+
+
+                      d1.resolve();
+
+                   })
+                       .always(function () { 
+                    
+                       })
+                       .fail(function (a, b, c, d) {
+
+
+                           console.log('fail to get data', a, b, c, d)
+                           d1.reject();
+
+                       })
+               })
+
+
+               return d1.promise();
+
+           },
+           InitializeView: function () {
+               let self = this;
+               self.modalManager = new ModalManager();
+               window.openCompositionModal = function() {
+                   self.modalManager.openCompositionModal(self.jsonData, self.SectionData, self.FibersData, self.CareInstructionsData,self.WashinRulesData, self.MadeInData);
+               }
+
+               window.openBusinessModal = function() {
+                          self.modalManager.openBusinessModal(self.jsonData, self.OrderSectionData, self.ProvidersData, self.SizesSetData, self.OrderSectionCatalogs.CatalogID,  self.MadeInData, self.GetSizeRange());
+               }
+
+               window.openArticleModal = function(itemIndex) {
+                   self.modalManager.openArticleModal(self.jsonData, itemIndex, self.Articles);
+               }
+
+               window.openPriceModal = function() {
+                   self.modalManager.openPriceModal(self.jsonData);
+               }
+               self.fileUpload = document.getElementById('file-upload');
+               self.fileName = document.getElementById('file-name');
+               self.processBtn = document.getElementById('process-btn');
+               self.statusMessage = document.getElementById('status-message');
+               self.loader = document.getElementById('loader');
+               self.contentDisplay = document.getElementById('content-display');
+               self.orderNumber = document.getElementById('order-number');
+               self.pdfViewer = document.getElementById('pdf-viewer');
+               self.orderDisplay = document.getElementById('order-display');
+               self.jsonDisplay = document.getElementById('json-display');
+               self.downloadJsonBtn = document.getElementById('download-json');
+               self.compositionModal = document.getElementById('composition-modal');
+               self.compositionForm = self.compositionModal.querySelector('.composition-form');
+
+               // Cambiando las asignaciones a window para mantener el contexto
+               window.editQuantities = (itemIndex) => self.editQuantities(itemIndex);
+               window.addFibraRow = (btn) => self.addFibraRow(btn);
+               window.removeFibraRow = (btn) => self.removeFibraRow(btn);
+               window.addExcepcion = () => self.addExcepcion();
+               window.removeExcepcion = (btn) => self.removeExcepcion(btn);
+               window.addInstruccion = () => self.addInstruccion();
+               window.removeInstruccion = (btn) => self.removeInstruccion(btn);
+               window.addOtraInstruccion = () => self.addOtraInstruccion();
+               window.removeOtraInstruccion = (btn) => self.removeOtraInstruccion(btn);
+               window.deleteArticle = (itemIndex) => self.deleteArticle(itemIndex);
+
+               self.InitListeners(); 
+           },
+           showSuccessMessage :function (message)
+           {
+                          let self = this;
+                          self.statusMessage.className = 'status-message success';
+                          self.statusMessage.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
+                          self.statusMessage.style.display = 'block';
+
+                          // Hacer que el mensaje desaparezca después de 1.5 segundos
+                          setTimeout(() => {
+                              self.statusMessage.style.display = 'none';
+                          }, 1500);
+           },
+
+           resetForm: function ()
+           {
+               let self = this;
+               self.pdfFile = null;
+               self.fileName.textContent = 'Ningún archivo seleccionado';
+               self.processBtn.disabled = true;
+               self.contentDisplay.style.display = 'none';
+               self.statusMessage.style.display = 'none';
+               document.querySelector('.file-upload-container').style.display = 'block';
+           },
+
+           InitListeners : function () 
+           {
+               let self = this;
+               document.querySelectorAll('.tab').forEach(tab => {
+                   tab.addEventListener('click', function() {
+                       const tabContainer = this.closest('.content-tabs');
+                       const container = tabContainer.closest('.pdf-container, .json-container');
+
+                       // Desactivar todas las pestañas en este contenedor
+                       tabContainer.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+
+                       // Activar la pestaña actual
+                       this.classList.add('active');
+
+                       // Mostrar el contenido de la pestaña seleccionada
+                       const tabId = this.getAttribute('data-tab');
+                       container.querySelectorAll('.tab-content').forEach(content => {
+                           content.classList.add('hidden');
+                       });
+                       document.getElementById(tabId).classList.remove('hidden');
+                   });
+               });
+
+               self.fileUpload.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                         this.pdfFile = e.target.files[0];
+                         this.fileName.textContent = self.pdfFile.name;
+                         this.processBtn.disabled = false;
+
+                                     // Mostrar vista previa del PDF
+                                     const fileURL = URL.createObjectURL(self.pdfFile);
+                                     this.pdfViewer.src = fileURL;
+                                 } else {
+                                     this.resetForm();
+                                 }
+
+               });
+               self.processBtn.addEventListener('click', ()=> {
+                   let self = this;
+
+                   if (!self.pdfFile) {
+                       self.showErrorMessage('Por favor seleccione un archivo PDF');
+                       return;
+                   }
+
+                   // Disable button at start of processing
+                   self.processBtn.disabled = true;
+
+                   // Mostrar loader y ocultar mensajes
+                   self.statusMessage.style.display = 'none';
+                   self.loader.style.display = 'block';
+
+                   // Enviar el PDF a la API
+                   self.sendToApi(self.pdfFile)
+                       .then(data => {
+                           self.jsonData = data;
+                           self.actualizarAlarma(); 
+                           self.addArticleCode(); 
+                           self.showSuccessMessage('Pedido procesado correctamente');
+                           self.NormalizeArticleData(); 
+                           self.NormalizeCompositionData(); 
+                           self.NormalizePriceData();
+                           self.NormalizeBussinesInfo(); 
+                           self.displayOrderData(self.jsonData);
+                           self.loader.style.display = 'none';
+                           self.contentDisplay.style.display = 'block';
+                           document.querySelector('.file-upload-container').style.display = 'none';
+                       })
+                       .catch(error => {
+                           self.showErrorMessage('Error al procesar el pedido: ' + error.message);
+                           self.loader.style.display = 'none';
+                           // Re-enable button on error
+                           self.processBtn.disabled = false;
+                       })
+                       .finally(() => {
+                           // Re-enable button after processing completes
+                           self.processBtn.disabled = false;
+                       });
+               });
+
+
+
+               self.downloadJsonBtn.addEventListener('click', () => {
+                   if (this.jsonData) {
+                       const dataStr = JSON.stringify(this.jsonData, null, 2);
+                       const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                       const url = URL.createObjectURL(dataBlob);
+
+                       const downloadLink = document.createElement('a');
+                       downloadLink.href = url;
+                       downloadLink.download = `pedido_${this.jsonData.Main.numeroPedido}.json`;
+                       document.body.appendChild(downloadLink);
+                       downloadLink.click();
+                       document.body.removeChild(downloadLink);
+                   }
+               });
+
+               // Event listeners para los botones de acción
+               document.querySelector('.btn-reset').addEventListener('click', ()=> {
+                   this.resetForm();
+               });
+
+       // Modal de validación
+
+       document.querySelector('.btn-reprocess').addEventListener('click', async () => {
+           let self = this;
+           const $btn = document.getElementById("btn-reprocess")
+           $btn.disabled = true;
+
+                  if (!self.pdfFile) {
+                              self.showErrorMessage('Por favor seleccione un archivo PDF');
+                              return;
+                          }
+
+                          // Disable button at start of processing
+                          self.processBtn.disabled = true;
+
+                          // Mostrar loader y ocultar mensajes
+                          self.statusMessage.style.display = 'none';
+                          self.loader.style.display = 'block';
+
+                          // Enviar el PDF a la API
+                          self.sendToApi(self.pdfFile)
+                              .then(data => {
+                                  self.jsonData = data;
+                                  self.actualizarAlarma();
+                                  self.addArticleCode();
+                                  self.showSuccessMessage('Pedido procesado correctamente');
+                                  self.NormalizeArticleData();
+                                  self.NormalizeCompositionData();
+                                  self.NormalizePriceData();
+                                  self.NormalizeBussinesInfo();
+                                  self.displayOrderData(self.jsonData);
+                                  self.loader.style.display = 'none';
+                                  self.contentDisplay.style.display = 'block';
+                                  document.querySelector('.file-upload-container').style.display = 'none';
+                              })
+                              .catch(error => {
+                                  self.showErrorMessage('Error al procesar el pedido: ' + error.message);
+                                  self.loader.style.display = 'none';
+                                  // Re-enable button on error
+                                  $btn.disabled = false;
+                              })
+                              .finally(() => {
+                                  // Re-enable button after processing completes
+                                  $btn.disabled = false;
+                              });
+
+
+       });
+
+       self.validationModal = document.getElementById('validation-modal');
+       document.querySelector('.btn-validate').addEventListener('click', async () => {
+           let self = this;
+           const $btn  = document.getElementById("btn-validate");
+           $btn.disabled = true;
+           try {
+               // Validate article codes first
+               if (!self.ValidateArticleCodes()) {
+                   $btn.disabled = false;
+                   return;
+               }
+
+               // Validate business info
+               if (!self.ValidateBusinessInfo()) {
+                          $btn.disabled = false;
+                   return;
+               }
+
+               let catalogid = self.SizesSetCatalog.CatalogID;
+               let setId = self.jsonData.Pedido.business_information.id_sizeset;
+               let resultado = await AppContext.HttpGet(`/catalogdata/getsubset/${catalogid}/${setId}/Sizes`);
+               self.SizesData = JSON.parse(resultado);
+               
+               if (!self.UpdateIdTallas()) {
+                   self.showErrorMessage('Por favor seleccione un conjunto de tallas correcto');
+                          $btn.disabled = false;
+                   return;
+               }
+
+               // Llamar a GetSizeRange después de UpdateIdTallas
+               self.GetSizeRange();
+               
+               // Show loader while processing
+               self.loader.style.display = 'block';
+
+               const response = await fetch('/manualorderentry/savePDFZaraData', {
+                   method: 'POST',
+                   headers: {
+                       'Content-Type': 'application/json',
+                   },
+                   body: JSON.stringify(self.jsonData)
+               });
+
+               const result = await response.json();
+
+               if (result.Success) {
+                   self.showSuccessMessage(result.Message);
+                   self.validationModal.style.display = 'block';
+               } else {
+                   self.showErrorMessage(result.Message || 'Error al validar los datos');
+               }
+           } catch (error) {
+               console.error('Error:', error);
+               self.showErrorMessage('Error al procesar la validación');
+           } finally {
+               self.loader.style.display = 'none';
+               $btn.disabled = false;
+           }
+       });
+
+               document.querySelector('.close-modal').addEventListener('click', ()=> {
+                   this.validationModal.style.display = 'none';
+                   this.resetForm();
+               });
+
+               // Cerrar modal al hacer clic fuera de él
+               window.addEventListener('click', (event) => {
+                   if (event.target === this.validationModal) {
+                       this.validationModal.style.display = 'none';
+                       this.resetForm();
+                   }
+               });
+
+              // Article modal save changes
+                          document.getElementById('save-article').addEventListener('click', function() {
+                              const modal = document.getElementById('article-modal');
+                              const itemIndex = modal.getAttribute('data-item-index');
+
+                              
+
+                              // Update article data
+                              const article = self.jsonData.Pedido.articulos[itemIndex];
+                              const articlesCombo = window.articlesCombo;
+                              const articleText = articlesCombo.selectedItem ? articlesCombo.getDisplayText(articlesCombo.selectedItem) : '';
+                                            // article['Ref. Fornitura'] = document.getElementById('articleCode').selectedOptions[0].text;
+                              article['Ref. Fornitura'] = articleText;
+                              article.ArticleCode = articleText
+                              article.NormalizeMCC  = {
+                                          Temporada : document.getElementById('temporada').value,
+                                          Modelo :        document.getElementById('modelo').value,
+                                          Calidad : document.getElementById('calidad').value,
+                                          Color : document.getElementById('color').value
+                              }
+
+                              article.MCC = self.stringifyMCC(article.NormalizeMCC);
+
+                              if (article.TipoArticulo === 'COMPOSICION')
+                              {
+                                  self.jsonData.Datos_adicionales.etiqueta_composicion.main_adicionales.ref = article.ArticleCode; 
+                              }
+
+                              if (article.TipoArticulo == 'PRECIO') 
+                              {
+                                  self.jsonData.Datos_adicionales.etiqueta_precio.main_adicionales.ref = article.ArticleCode
+                              }
+
+                              self.displayOrderData(self.jsonData);
+                              self.modalManager.closeModal(modal);
+                          });
+
+               // Event listener para guardar cambios en la composición
+               document.getElementById('save-composition').addEventListener('click', ()=> {
+                   // Recolectar datos del formulario
+                       const mercadoOrigen =
+                       {
+                           Nombre :document.querySelector('.mercado-origen').selectedOptions[0].text,
+                           ID: document.querySelector('.mercado-origen').selectedOptions[0].value
+                       }
+                       
+
+                   const sections = [];
+                   document.querySelectorAll('.form-section[data-section-index]').forEach(sectionEl => {
+                       const fibras = [];
+                       sectionEl.querySelectorAll('.fibra-row').forEach(fibraEl => {
+                           const porcentaje = fibraEl.querySelector('.fibra-porcentaje').value + '%';
+                           const nombre = fibraEl.querySelector('.fibra-nombre').selectedOptions[0].text;
+                           const ID = fibraEl.querySelector('.fibra-nombre').selectedOptions[0].value;
+                           if (nombre) {
+                               fibras.push({ Porcentaje: porcentaje, Nombre: nombre, ID: ID});
+                           }
+                       });
+
+                       const sectionName = sectionEl.querySelector('.section-name').selectedOptions[0].text;
+                              const sectionID =sectionEl.querySelector('.section-name').selectedOptions[0].value;
+                       if (sectionName) {
+                           sections.push({
+                               Nombre: sectionName,
+                               Fibras: fibras,
+                               ID : sectionEl.querySelector('.section-name').selectedOptions[0].value
+                           });
+                       }
+                   });
+
+
+                   const excepciones = Array.from(document.querySelectorAll('.excepcion'))
+                              .map(el => {
+                                  return {
+                                    Nombre :  el.selectedOptions[0].text,
+                                    ID : el.selectedOptions[0].value
+                                  }
+                                 })
+                       .filter(val => val);
+
+                   const instrucciones = Array.from(document.querySelectorAll('.instruccion'))
+                              .map(el => {
+                                    return {
+                                               Nombre : el.selectedOptions[0].text,
+                                               ID : el.selectedOptions[0].value,
+                                               Categoria :  this.CareInstructionsData.find(c=>c.ID == el.selectedOptions[0].value).Category
+                                           }
+                              })
+                       .filter(val => val);
+
+                   const otrasInstrucciones = Array.from(document.querySelectorAll('.otra-instruccion'))
+                              .map(el => {
+                                  return {
+                                      Nombre: el.selectedOptions[0].text,
+                                      ID : el.selectedOptions[0].value
+                                  }
+                                  
+                              })
+                       .filter(val => val);
+
+                   // Actualizar el objeto JSON
+                   this.jsonData.Datos_adicionales.etiqueta_composicion.info_composicion.mercado_origen = mercadoOrigen;
+                   this.jsonData.Datos_adicionales.etiqueta_composicion.info_composicion.composicion_prenda.Secciones = sections;
+                   this.jsonData.Datos_adicionales.etiqueta_composicion.info_composicion.composicion_prenda.Excepciones = excepciones;
+                   this.jsonData.Datos_adicionales.etiqueta_composicion.info_composicion.instrucciones_conservacion = instrucciones;
+                   this.jsonData.Datos_adicionales.etiqueta_composicion.info_composicion.otras_instrucciones_conservacion = otrasInstrucciones;
+
+                   // Actualizar la visualización
+                   this.displayOrderData(this.jsonData);
+
+                   // Cerrar el modal
+                   this.compositionModal.style.display = 'none';
+               });
+
+               // Event listeners for price modal
+               document.addEventListener('DOMContentLoaded', function() {
+                   // ...existing event listeners...
+
+                   document.getElementById('cancel-price').addEventListener('click', () => {
+                                                            this.closePriceModal
+                   });
+                   document.getElementById('save-price').addEventListener('click', ()=>{
+                       this.savePriceChanges
+                   });
+
+                   // Close modal when clicking outside
+                   document.getElementById('price-modal').addEventListener('click', (event) => {
+                       if (event.target === this) {
+                           this.closePriceModal();
+                       }
+                   });
+               });
+
+               // Event listeners para el modal de información de negocio
+               document.getElementById('cancel-business').addEventListener('click', () => {
+                   this.closeBusinessModal
+               });
+               document.getElementById('save-business').addEventListener('click', ()=> {
+                   self.saveBusinessChanges();
+               });
+
+               // Cerrar modal al hacer clic fuera de él
+               document.getElementById('business-modal').addEventListener('click', function(event) {
+                   if (event.target === this) {
+                       self.closeBusinessModal();
+                   }
+               });
+
+                                         // Price modal save changes
+                          document.getElementById('save-price').addEventListener('click', function() {
+                              self.savePriceChanges();
+                              self.modalManager.closeModal(document.getElementById('price-modal'));
+                          });
+
+               document.addEventListener('DOMContentLoaded', function() {
+                   // Business modal save changes
+                   document.getElementById('save-business').addEventListener('click', function() {
+                       const businessInfo = {
+                           PedidoZara: document.getElementById('pedidoZara').value,
+                           esSur: document.getElementById('esSur').value === 'true',
+                           Alarma: document.getElementById('alarma').value === 'true',
+                           codigoTaller: document.getElementById('codigoTaller').value
+                       };
+
+                       // Update jsonData
+                       self.jsonData.Pedido.business_information = businessInfo;
+                       self.displayOrderData(self.jsonData);
+                       modalManager.closeModal(document.getElementById('business-modal'));
+                   });
+
+
+
+                   // Composition modal save changes
+                   document.getElementById('save-composition').addEventListener('click', function() {
+                       self.saveCompositionChanges();
+                       self.modalManager.closeModal(document.getElementById('composition-modal'));
+                   });
+
+                   // Price modal save changes
+                   document.getElementById('save-price').addEventListener('click', function() {
+                       self.savePriceChanges();
+                       self.modalManager.closeModal(document.getElementById('price-modal'));
+                   });
+               });
+
+               // Event listeners for business modal section change
+               document.getElementById('seccion').addEventListener('change', function() {
+                   // Filter subsecciones based on selected seccion
+                   const selectedSeccionCode = this.value;
+                   const subseccionSelect = document.getElementById('subseccion');
+                   subseccionSelect.innerHTML = '';
+                   const sizessetSelect = document.getElementById('sizesset');
+                   sizessetSelect.innerHTML = ''
+                          const sectiontxt = document.getElementById('seccion').selectedOptions[0].text
+                    $.when(
+                              AppContext.HttpGet(`/catalogdata/getsubset/${self.OrderSectionCatalogs.CatalogID}/${selectedSeccionCode}/OrderSubSections`, null, null, true)
+                                  ).fail(function () {
+                                  }).then(function (subsectionData) {
+
+                                      // var result = JSON.parse(sizessetData[0]);
+                                      
+                                      self.OrderSubSectionData= JSON.parse(subsectionData);
+
+
+
+                          // Add filtered options to subseccion select
+                                  self.OrderSubSectionData.forEach(subseccion => {
+                                            const option = document.createElement('option');
+                                            option.value = subseccion.ID;
+                                            option.text = subseccion.Name;
+                                            subseccionSelect.appendChild(option);
+                                        });
+
+                                        self.SizesSetData.filter(x => x.Section == sectiontxt).forEach(sizeset => {
+                                       const option = document.createElement('option');
+                                          option.value = sizeset.ID;
+                                          option.text = sizeset.Name;
+                                          sizessetSelect.appendChild(option);
+                                                      });
+                                  });
+
+     
+                                         
+
+                   // Get filtered subsections
+
+               });
+           },
+
+           stringifyMCC: function (mcc) {
+                        const { Temporada, Modelo, Calidad, Color } = mcc;
+
+        
+                   if (!Temporada || !Modelo || !Calidad || !Color) {
+                            throw new Error("El objeto debe contener las propiedades: Temporada, Modelo, Calidad y Color.");
+                   }
+
+                   return `${Temporada} ${Modelo}/${Calidad}/${Color}`;
+       },
+
+          actualizarAlarma: function() {
+              let self = this; 
+              const palabrasClave = ["RFID", "ALARMA", "ALARMADO"];
+
+                // Recorremos los artículos
+                const articulos = self.jsonData?.Pedido?.articulos || [];
+
+         // Verificamos si algún artículo contiene las palabras clave en el campo Fornitura
+                const hayPalabraClave = articulos.some(articulo => {
+                const fornitura = articulo?.Fornitura || "";
+                return palabrasClave.some(palabra =>
+                    fornitura.toLowerCase().includes(palabra.toLowerCase())
+                    );
+                });
+
+         // Si se encuentra una palabra clave, se actualiza la propiedad Alarma a true
+         if (hayPalabraClave && self.jsonData?.Pedido?.business_information) {
+                  self.jsonData.Pedido.business_information.Alarma = true;
+         }else {
+               if (self.jsonData?.Pedido?.business_information)
+               {
+                 self.jsonData.Pedido.business_information.Alarma = false
+               }
+         }
+         
+       },
+       addArticleCode: function () {
+         let self = this;
+         const articulos = self.jsonData?.Pedido?.articulos || [];
+
+         articulos.forEach(articulo => {
+           const refFornitura = articulo["Ref. Fornitura"] || "";
+           const extractedCode = refFornitura.trim().split(/\s+/)[0]; // obtiene la primera palabra
+
+                 if (extractedCode.length === 0 || refFornitura.includes('TALLA CHINA')) {
+                      articulo.ArticleCode = '';
+                      return;
+                  }
+           
+           // Buscar en self.Articles una coincidencia
+           const matchingArticle = self.Articles.find(article => 
+               article.ArticleCode && article.ArticleCode.includes(extractedCode)
+           );
+
+           // Asignar el código solo si se encuentra una coincidencia
+           articulo.ArticleCode = matchingArticle ? matchingArticle.ArticleCode : '';
+         });
+
+       
+       },
+
+          showErrorMessage : function (message)
+          {
+                   let self = this;
+                   self.statusMessage.className = 'status-message error';
+                   self.statusMessage.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
+                   self.statusMessage.style.display = 'block';
+          },
+
+           GetSizesOfSizeSet : async function () {
+              let self = this;
+              let catalogid = self.SizesSetCatalog.CatalogID;
+              
+              for (const item of self.SizesSetData) {
+                  const resultado = await AppContext.HttpGet(`/catalogdata/getsubset/${catalogid}/${item.ID}/Sizes`);
+                  item.sizes = JSON.parse(resultado);
+              }
+          },
+
+       NormalizeArticleData : function () 
+       {
+           let self = this;
+                  if (self.jsonData.Pedido.articulos)
+                  {
+                      self.jsonData.Pedido.articulos.forEach(articulo=> {
+
+                           if (articulo['Ref. Fornitura'] === null)  
+                           {
+                               articulo['Ref. Fornitura'] = articulo.Fornitura; 
+                           }
+                                  if (articulo.MCC)
+                           {
+                                  const parsedMCC = self.parseMCC (articulo.MCC)
+                                  if (parsedMCC)
+                                  {
+                                      articulo.NormalizeMCC = parsedMCC;
+                                  }
+
+                           }else {
+                             articulo.NormalizeMCC = {
+                                Temporada : '', 
+                                Modelo : '', 
+                                Calidad : '', 
+                                Color : ''
+                               }; 
+                           }
+                           
+                           
+                           articulo.TipoArticulo = "OTRO";
+                           if (self.jsonData.Datos_adicionales.etiqueta_composicion)
+                           {
+                               if (self.jsonData.Datos_adicionales.etiqueta_composicion.main_adicionales.ref === articulo.ArticleCode)
+                               {   
+                                   if (self.jsonData.Pedido.business_information.esSur)
+                                   {
+                                       articulo.ArticleCode = `${articulo.ArticleCode}SUR`
+                                       articulo["Ref. Fornitura"] = articulo.ArticleCode; 
+                                       self.jsonData.Datos_adicionales.etiqueta_composicion.main_adicionales.ref = `${articulo.ArticleCode}`
+                                   }
+                                   articulo.TipoArticulo = 'COMPOSICION'; 
+                               }
+                           }
+                           if (self.jsonData.Datos_adicionales.etiqueta_precio)
+                           {
+                                   if (articulo.ArticleCode.length > 0 && self.jsonData.Datos_adicionales.etiqueta_precio.main_adicionales.ref.startsWith(articulo.ArticleCode.substring(0, 6)))
+                                  {
+                                           articulo.TipoArticulo = 'PRECIO';
+                                  }
+                           }
+                           
+                      })
+                  }
+       },
+
+       parseMCC: function(input) {
+                           const regex = /^(\w+)\s+(\d+)\/(\d+)\/(\d+)$/;
+                           const match = input.match(regex);
+
+                           if (!match) {
+                                  // throw new Error("Formato inválido. Se esperaba: 'I2024 7154/397/712'"); 
+                                  return; 
+                           }
+
+                           const [, Temporada, Modelo, Calidad, Color] = match;
+
+                          return {
+                              Temporada,
+                              Modelo,
+                              Calidad,
+                              Color
+                          };
+       }, 
+       UpdateIdTallas : function () 
+       {
+           let self = this;
+
+           try {
+               self.jsonData.Pedido.articulos.forEach(articulo => {
+                   articulo.tallas.forEach(talla => {
+                       let tallaSelccionada = self.SizesData.find(s => s.DisplayField == talla.Talla)
+                       if (!tallaSelccionada) {
+                           throw new Error('Size not found');
+                       }
+                       talla.id_talla = tallaSelccionada.ID;
+                   });
+               });
+               return true;
+           } catch (error) {
+               return false;
+           }
+       }, 
+       NormalizeSection : function () 
+       {
+           let self = this
+               self.jsonData.Pedido.business_information.nombre_subseccion = '';
+               if (self.jsonData.Datos_adicionales.etiqueta_composicion)
+                   {
+                       if (self.jsonData.Datos_adicionales.etiqueta_composicion.main_adicionales.genero === 'SRA')
+                       {
+                           self.jsonData.Pedido.business_information.seccion = "Woman";
+                           self.jsonData.Pedido.business_information.id_seccion  ="1"
+                           return;
+
+                       }
+
+                       if (self.jsonData.Datos_adicionales.etiqueta_composicion.main_adicionales.genero === 'CRO')
+                       {
+                           self.jsonData.Pedido.business_information.seccion = "Man";
+                           self.jsonData.Pedido.business_information.id_seccion  ="2"
+                              return;
+                       }
+
+                       self.jsonData.Pedido.business_information.seccion = "Kids";
+                       self.jsonData.Pedido.business_information.id_seccion  ="3"
+                       return;
+                   }
+
+                    if (self.jsonData.Datos_adicionales.etiqueta_precio)
+                    {
+                              if (self.jsonData.Datos_adicionales.etiqueta_precio.main_adicionales.genero === 'SRA')
+                              {
+                                  self.jsonData.Pedido.business_information.seccion = "Woman";
+                                  return;
+
+                              }
+
+                          if (self.jsonData.Datos_adicionales.etiqueta_precio.main_adicionales.genero === 'CRO')
+                          {
+                                     self.jsonData.Pedido.business_information.seccion = "Man";
+                                             self.jsonData.Pedido.business_information.id_seccion  ="1"
+                                     return;
+                          }
+
+                              self.jsonData.Pedido.business_information.seccion = "";
+                               self.jsonData.Pedido.business_information.id_seccion  ="2"
+                              return;
+
+                    }
+
+                    self.jsonData.Pedido.business_information.seccion = "";
+                    return;
+
+       }, 
+
+       NormalizeProvider : function () 
+       {
+           let self = this 
+           self.jsonData.Pedido.business_information.nombre_proveedor = ""; 
+           self.jsonData.Pedido.business_information.id_proveedor  =""; 
+       }, 
+       NormalizeSizeSet : function () 
+       {
+           let self = this;
+           self.jsonData.Pedido.business_information.nombre_sizeset = "";
+           self.jsonData.Pedido.business_information.id_sizeset  ="";
+       }, 
+
+
+        NormalizeBussinesInfo : function () 
+        {
+            let self = this;
+            self.NormalizePedidoZara (); 
+            self.NormalizeSection(); 
+            self.NormalizeProvider(); 
+            self.NormalizeSizeSet(); 
+            self.NormalizeProject(); 
+        }, 
+        NormalizePedidoZara : function () 
+        {
+            let self = this 
+            if (self.jsonData.Pedido.business_information.esSur)
+            {
+                self.jsonData.Pedido.business_information.PedidoZara +='-25'
+            }else {
+                self.jsonData.Pedido.business_information.PedidoZara +='-D'
+            }
+        }, 
+        NormalizeProject : function () 
+        {
+            let self = this;
+            self.jsonData.Pedido.business_information.id_proyecto = self.Options.ProjectID
+        }, 
+
+        SortInstruccionesConservacion : function () 
+        {
+            let self = this;
+
+            const dictInstrucciones = [
+                  { "Posicion" : 1, Categoria : "Wash"},
+                  { "Posicion" : 2, Categoria : "Bleach"},
+                  { "Posicion" : 3, Categoria : "Dry"},
+                  { "Posicion" : 4, Categoria : "Iron"},
+                  { "Posicion" : 5, Categoria : "DryCleaning"}
+            ];
+
+            if (!self.jsonData?.Datos_adicionales?.etiqueta_composicion?.info_composicion?.instrucciones_conservacion) {
+                return;
+            }
+
+            // Crear un mapa de posiciones para buscar rápidamente
+            const posicionMap = new Map(
+                dictInstrucciones.map(item => [item.Categoria, item.Posicion])
+            );
+
+            // Ordenar el array de instrucciones según la posición en el diccionario
+            self.jsonData.Datos_adicionales.etiqueta_composicion.info_composicion.instrucciones_conservacion.sort((a, b) => {
+                const posA = posicionMap.get(a.Categoria) || Number.MAX_VALUE;
+                const posB = posicionMap.get(b.Categoria) || Number.MAX_VALUE;
+                return posA - posB;
+            });
+        },
+
+        NormalizePriceData : function () 
+        {
+
+            let self = this;
+
+           if (self.jsonData.Datos_adicionales.etiqueta_precio)
+           {
+               if (self.jsonData.Datos_adicionales.etiqueta_precio.info_precio.precios) 
+               {
+                   let precios= [] 
+                   let bluePrice = self.jsonData.Datos_adicionales.etiqueta_precio.info_precio.precios.find(z=>z.etiqueta_color=='BLUE'); 
+                   if (bluePrice) 
+                   {
+                     precios.push ( bluePrice); 
+                   }else
+                   {
+                     precios.push ({
+                                tipo_divisa: '', 
+                                precio_divisa : '', 
+                                etiqueta_color :'BLUE' 
+                            })
+                   }
+                   let redPrice = self.jsonData.Datos_adicionales.etiqueta_precio.info_precio.precios.find(z=>z.etiqueta_color=='RED');
+                   if (redPrice)
+                   {
+                       precios.push ( redPrice);
+                   }else
+                   {
+                       precios.push ({
+                             tipo_divisa: '',
+                             precio_divisa : '',
+                             etiqueta_color :'RED'
+                       })
+                   }
+                    let blackPrice = self.jsonData.Datos_adicionales.etiqueta_precio.info_precio.precios.find(z=>z.etiqueta_color=='BLACK');
+                    if (blackPrice)
+                       {
+                        precios.push ( blackPrice);
+                                     }else {
+                                          precios.push ({
+                                              tipo_divisa: '',
+                                              precio_divisa : '',
+                                              etiqueta_color :'BLACK'
+                                          })
+                                      }
+
+                                      const excluidos = ['BLUE','RED','BLACK']
+                                      const otrasMonedas = self.jsonData.Datos_adicionales.etiqueta_precio.info_precio.precios.filter(item => !excluidos.includes(item.etiqueta_color));
+                                      otrasMonedas.forEach(item=>{
+                                            precios.push (item)
+                                      })
+                   self.jsonData.Datos_adicionales.etiqueta_precio.info_precio.precios = precios; 
+               }
+           }
+        }, 
+
+        NormalizeCompositionData: function () {
+           let self = this;
+
+           const translateSectionData = self.SectionData.map(item => item.SPANISH);
+           const translateFibersData = self.FibersData.map(item => item.SPANISH);
+           const translateWashingRulesData = self.WashinRulesData.map(item => item.Spanish);
+           const translateCareInstructionsData = self.CareInstructionsData.map(item => item.Spanish);
+           const translateMadeInData = self.MadeInData.filter(m=>!m.SPANISH.trim()=='').map(item=>item.SPANISH);
+
+           if (self.jsonData.Datos_adicionales.etiqueta_composicion)
+           {
+               const comp = self.jsonData.Datos_adicionales.etiqueta_composicion;
+               const mercadoOrigenNormalizado = self.textoMasParecido(comp.info_composicion.mercado_origen,translateMadeInData);
+               const mercadoOrigenMatch = self.MadeInData.find (m=>m.SPANISH === mercadoOrigenNormalizado)
+               comp.info_composicion.mercado_origen =
+               {
+                  Nombre : mercadoOrigenNormalizado,
+                  ID : mercadoOrigenMatch ? mercadoOrigenMatch.ID : null
+               };
+                self.jsonData.Pedido.business_information.nombre_madeIn =mercadoOrigenNormalizado;
+                self.jsonData.Pedido.business_information.id_madeIn = mercadoOrigenMatch.ID;
+   
+           
+
+               // Secciones de composición
+               comp.info_composicion.composicion_prenda.Secciones.forEach(seccion => 
+               {
+                   if (seccion.Nombre.trim()=='')
+                   {
+                       seccion.Nombre = seccion.Categoria
+                   }
+                   const nombreSeccionNormalizado = self.textoMasParecido(seccion.Nombre, translateSectionData);
+                   const seccionMatch = self.SectionData.find(s => s.SPANISH === nombreSeccionNormalizado);
+
+                   seccion.Nombre = nombreSeccionNormalizado;
+                   seccion.ID = seccionMatch ?  seccionMatch.ID : null;
+
+                          // const nombreSeccionNormalizado = self.textoMasParecido(seccion.Nombre, translateSectionData);
+                   // const sectionMatch = self.
+
+                   seccion.Fibras.forEach(fibra => {
+                       // Encontrar el nombre más parecido
+                       const nombreFibraNormalizado = self.textoMasParecido(fibra.Nombre, translateFibersData);
+                       
+                       // Buscar el ID correspondiente en FibersData
+                       const fiberMatch = self.FibersData.find(f => f.SPANISH === nombreFibraNormalizado);
+                       
+                       // Actualizar el nombre y añadir el ID
+                       fibra.Nombre = nombreFibraNormalizado;
+                       fibra.ID = fiberMatch ? fiberMatch.ID : null;
+                   });
+               });
+
+               // Excepciones
+               if (comp.info_composicion.composicion_prenda.Excepciones && comp.info_composicion.composicion_prenda.Excepciones.length > 0) {
+
+                    const excepcionesExpandidas = [];
+                     comp.info_composicion.composicion_prenda.Excepciones.forEach(excepcion => {
+                              const partes = excepcion.split(',').map(parte => parte.trim()).filter(parte => parte.length > 0);
+                              excepcionesExpandidas.push(...partes);
+                    });
+                   comp.info_composicion.composicion_prenda.Excepciones = excepcionesExpandidas;
+                   comp.info_composicion.composicion_prenda.Excepciones =
+                       comp.info_composicion.composicion_prenda.Excepciones.map(excepcion => {
+                                  const excepcionNormalizada = self.textoMasParecido(excepcion, translateCareInstructionsData)
+                                  const excepcionMatch = self.CareInstructionsData.find(e=>e.Spanish ===excepcionNormalizada);
+
+                                  return {
+                                         Nombre: excepcionNormalizada,
+                                         ID: excepcionMatch ? excepcionMatch.ID : null
+                                 };
+                       });
+               }
+
+               // Instrucciones de conservación
+               if (comp.info_composicion.instrucciones_conservacion && comp.info_composicion.instrucciones_conservacion.length > 0) {
+                   comp.info_composicion.instrucciones_conservacion =
+                       comp.info_composicion.instrucciones_conservacion.map(instruccion =>{
+                       
+                           self.textoMasParecido(instruccion, translateWashingRulesData)
+                           const instruccionNormalizada = self.textoMasParecido(instruccion, translateCareInstructionsData)
+                           const instruccionMatch = self.WashinRulesData.find(e=>e.Spanish ===instruccionNormalizada);
+                           return {
+                                   Nombre: instruccionNormalizada,
+                                   ID: instruccionMatch ? instruccionMatch.ID : null,
+                                   Categoria : instruccionMatch.Category
+                                  };
+                       });
+               }
+
+               self.SortInstruccionesConservacion(); 
+
+               // Otras instrucciones de conservación
+               if (comp.info_composicion.otras_instrucciones_conservacion && comp.info_composicion.otras_instrucciones_conservacion.length > 0) {
+                   comp.info_composicion.otras_instrucciones_conservacion =
+                       comp.info_composicion.otras_instrucciones_conservacion.map(instruccion => {
+                             const otra_instruccion_normalizada =  self.textoMasParecido(instruccion, translateCareInstructionsData);
+                             const otra_instruccion_match = self.CareInstructionsData.find(e=>e.Spanish ===otra_instruccion_normalizada);
+                             return {
+                                      Nombre: otra_instruccion_normalizada,
+                                      ID: otra_instruccion_match ? otra_instruccion_match.ID : null
+                             }
+                       });
+               }
+           }
+    },  
+
+         // Función para mostrar los datos del pedido
+          displayOrderData: function (data)
+          {
+                   let self= this; 
+                   // Mostrar número de pedido
+                   self.orderNumber.textContent = `#${data.Main.numeroPedido}`;
+
+                   // Mostrar JSON en su vista
+                   self.jsonDisplay.textContent = JSON.stringify(data, null, 2);
+
+                   // Construir la vista visual
+                   let html = `
+                       <div class="order-header">
+                           <h2>PEDIDO Nº ${data.Main.numeroPedido}</h2>
+                           <p><strong>Empresa:</strong> ${data.Main.empresa}</p>
+                           <p><strong>Proveedor:</strong> ${data.Main.proveedor}</p>
+                           <p><strong>Fecha:</strong> ${data.Main.fecha}</p>
+                       </div>
+                   `;
+
+                   // Información del negocio
+                   if (data.Pedido.business_information) {
+                       const bi = data.Pedido.business_information;  
+                       html += `
+                           <div class="business-info">
+                               <div class="business-header">
+                                   <h4>Información del Pedido</h4>
+                                   <button class="edit-business-btn" onclick="openBusinessModal()">
+                                       <i class="fas fa-edit"></i> 
+                                   </button>
+                               </div>
+                       <p><strong>Pedido Zara:</strong> ${bi.PedidoZara}</p>
+                       <p><strong>Es Sur:</strong> ${bi.esSur ? 'Sí' : 'No'}</p>
+                       <p><strong>Contiene Alarma:</strong> ${bi.Alarma ? '<span class="alarma">Sí</span>' : 'No'}</p>
+                       <p><strong>Código Taller:</strong> ${bi.codigoTaller || ''}</p>
+                       <p><strong>Sección:</strong> ${bi.seccion}</p>
+                       <p><strong>SubSección:</strong> ${bi.nombre_subseccion || ''}</p>
+                       <p><strong>Conjunto tallas:</strong> ${bi.nombre_sizeset}</p>
+                       <p><strong>Proveedor:</strong> ${bi.nombre_proveedor}</p>
+                       <p><strong>MadeIn:</strong> ${bi.nombre_madeIn || ''}</p>
+                           </div>
+                       `;
+                   }
+
+                   // Observaciones
+                   if (data.Pedido.observaciones_generales) {
+                       html += `
+                           <div class="order-observations">
+                               <h4>Observaciones:</h4>
+                               <p>${data.Pedido.observaciones_generales}</p>
+                           </div>
+                       `;
+                   }
+
+                   // Artículos del pedido
+                   html += '<div class="order-items">';
+                   // html += `
+                   //     <div class="item-header">
+                   //         <div>Ref. Fornitura</div>
+                   //         <div>Fornitura</div>
+                   //         <div>Cantidad</div>
+                   //         <div>Precio</div>
+                   //         <div>MCC</div>
+                   //         <div>Observaciones</div>
+                   //     </div>
+                   // `;
+
+                   html += `
+                       <div class="item-header">
+                           <div>Artículos</div>
+                           <div>MCC</div>
+                       </div>
+                   `;
+
+                   data.Pedido.articulos.forEach((item, itemIndex) => {                html += `                    <div class="item-row">
+                               <div class="item-info">
+                                   <div>${item['Ref. Fornitura']}</div>
+                                   <div>${item.MCC}</div>
+                               </div>
+                               <div class="item-actions">
+                                   <button class="edit-article-btn" onclick="openArticleModal(${itemIndex})">
+                                       <i class="fas fa-edit"></i> 
+                                   </button>
+                                   <button class="delete-article-btn" onclick="deleteArticle(${itemIndex})">
+                                       <i class="fas fa-trash"></i> 
+                                   </button>
+                               </div>
+                           </div>
+                       `;
+
+                       // Mostrar tallas
+                       if (item.tallas && item.tallas.length > 0) {
+                           html += '<div class="sizes-grid">';
+
+                           // Fila de tallas
+                           html += '<div class="size-row">';
+                           html += '<div class="size-header">Talla:</div>';
+                           html += '<div class="size-values">';
+                           item.tallas.forEach(talla => {
+                               html += `<div class="size-value">${talla.Talla}</div>`;
+                           });
+                           html += '</div>';
+                           html += '</div>';
+
+                           // Fila de cantidades
+                           html += '<div class="size-row">';
+                           html += '<div class="size-header">Cant.:</div>';
+                           html += '<div class="size-values">';
+                           html += `<div class="quantity-row" data-item-index="${itemIndex}">`;
+                           item.tallas.forEach(talla => {
+                               html += `<div class="size-value quantity" data-talla="${talla.Talla}">${talla.Cantidad}</div>`;
+                           });
+                           html += '</div>';
+                           html += '</div>';
+                           html += `<button class="edit-quantities-btn" onclick="editQuantities(${itemIndex})">Editar
+                                       <i class="fas fa-edit"></i> 
+                                   </button>`;
+                           html += '</div>';
+
+                           html += '</div>';
+                       }else {
+
+                         html += '<div class="size-row">';
+                                  html += '<div class="size-header">Cant.:</div>';
+                                  html += '<div class="size-values">';
+                                  html += `<div class="quantity-row" data-item-index="${itemIndex}">`;
+                                 
+                                  html += `<div class="size-value quantity" data-talla="Total">${item.Cantidad}</div>`;
+                              
+                                  html += '</div>';
+                                  html += '</div>';
+                                  html += `<button class="edit-quantities-btn" onclick="editQuantities(${itemIndex})">Editar
+                                              <i class="fas fa-edit"></i> 
+                                          </button>`;
+                                  html += '</div>';
+
+                                  html += '</div>';
+                       }
+                   });
+
+                   html += '</div>';
+
+                   // // Importe total
+                   // html += `
+                   //     <div class="order-total">
+                   //         Importe total: ${data.Pedido.Total_importe}
+                   //     </div>
+                   // `;
+
+                   // Datos adicionales
+                   if (data.Datos_adicionales) {
+                       html += '<div class="additional-data">';
+
+                       // Información de composición
+                       if (data.Datos_adicionales.etiqueta_composicion) {
+                           const comp = data.Datos_adicionales.etiqueta_composicion; 
+                           html += `<div class="compostion-label-info">`;
+                           html += `
+                               <div class="section-header">
+                                   <h3>Datos de Composición (Ref: ${comp.main_adicionales.ref})</h3>
+                                   <button class="edit-composition-btn" onclick="openCompositionModal()">
+                                       <i class="fas fa-edit"></i> Editar
+                                   </button>
+                               </div>
+                               <p><strong>Familia:</strong> ${comp.main_adicionales.familia}</p>
+                               <p><strong>Parte:</strong> ${comp.main_adicionales.parte || 'N/A'}</p>
+                               <p><strong>Género:</strong> ${comp.main_adicionales.genero}</p>
+                               <p><strong>Color:</strong> ${comp.info_composicion.color}</p>
+                               <p><strong>Mercado de Origen:</strong> ${comp.info_composicion.mercado_origen.Nombre}</p>
+
+                               <div class="composition">
+                                   <h4>Composición de la prenda:</h4>
+                           `;
+
+                           // Secciones de composición
+                           comp.info_composicion.composicion_prenda.Secciones.forEach(seccion => {
+                               html += `<p><strong>${seccion.Nombre}:</strong> `;
+                               seccion.Fibras.forEach(fibra => {
+                                   html += `${fibra.Porcentaje} ${fibra.Nombre} `;
+                               });
+                               html += `</p>`;
+                           });
+
+                           // Excepciones
+                           if (comp.info_composicion.composicion_prenda.Excepciones && comp.info_composicion.composicion_prenda.Excepciones.length > 0) {
+                               html += `<div class="exceptions">
+                                   <h4>Excepciones:</h4>
+                                   <ul>`;
+                               comp.info_composicion.composicion_prenda.Excepciones.forEach(excepcion => {
+                                   html += `<li>${excepcion.Nombre}</li>`;
+                               });
+                               html += `</ul></div>`;
+                           }
+
+                           html += `</div>
+                               <div class="care-instructions">
+                                   <h4>Instrucciones de conservación:</h4>
+                                   <ul>
+                           `;
+
+                           // Instrucciones de conservación
+                           comp.info_composicion.instrucciones_conservacion.forEach(instruccion => {
+                               html += `<li>${instruccion.Nombre}</li>`;
+                           });
+
+                           html += `</ul></div>`;
+
+                           // Otras instrucciones de conservación
+                           if (comp.info_composicion.otras_instrucciones_conservacion && comp.info_composicion.otras_instrucciones_conservacion.length > 0) {
+                               html += `
+                                   <div class="care-instructions">
+                                       <h4>Adicionales:</h4>
+                                       <ul>`;
+                               comp.info_composicion.otras_instrucciones_conservacion.forEach(instruccion => {
+                                   html += `<li>${instruccion.Nombre}</li>`;
+                               });
+                               html += `</ul></div>`;
+                           }
+
+                           html += `</div>`;
+                       }
+
+                       // Información de precios
+                       if (data.Datos_adicionales.etiqueta_precio) {
+                           const precio = data.Datos_adicionales.etiqueta_precio;
+                           html+= `<div class="price-label-info">`;
+                           html += `
+                               <div class="section-header">
+                                   <h3>Información de Precios (Ref: ${precio.main_adicionales.ref})</h3>
+                                   <button class="edit-price-btn" onclick="openPriceModal()">
+                                       <i class="fas fa-edit"></i> Editar
+                                   </button>
+                               </div>
+                               <p><strong>MCC:</strong> ${precio.main_adicionales.MCC}</p>
+                               <p><strong>Tallas disponibles:</strong> ${precio.info_precio.tallas.join(', ')}</p>
+
+                               <div class="price-info">
+                                   <h4>Precios:</h4>
+                           `;
+
+                           // Mostrar precios
+                           if (precio.info_precio.precios && Array.isArray(precio.info_precio.precios)) {
+                               precio.info_precio.precios.forEach(p => {
+                                   if (p.precio_divisa && p.tipo_divisa) {
+                                       html += `<span class="price-tag ${p.etiqueta_color?.toLowerCase() || 'black'}">${p.precio_divisa} ${p.tipo_divisa}</span>`;
+                                   }
+                               });
+                           }
+
+                           html += `</div>`;
+                           html += `</div>`;
+                       }
+
+                       html += '</div>';
+                   }
+
+                   // Leyenda
+                   if (data.Leyenda) {
+                       html += `
+                           <div class="disclaimer">
+                               <p>${data.Leyenda}</p>
+                           </div>
+                       `;
+                   }
+
+                   // Actualizar el contenido
+                   self.orderDisplay.innerHTML = html;
+          },
+
+          createFibraRow: function (fibra = { Porcentaje: '', Nombre: '' }, index) {
+                   let self = this
+                   return `
+                       <div class="fibra-row" data-fibra-index="${index}">
+                           <input type="number" class="fibra-porcentaje" value="${fibra.Porcentaje.replace('%', '')}" min="0" max="100">
+                           <input type="text" class="fibra-nombre" value="${fibra.Nombre}">
+                           <button class="remove-row-btn" onclick="removeFibraRow(this)">
+                               <i class="fas fa-times"></i>
+                           </button>
+                       </div>
+                   `;
+          },
+
+         addFibraRow: function (btn)
+         {
+                   let self = this 
+                   const container = btn.previousElementSibling;
+                   const index = container.children.length;
+                   container.insertAdjacentHTML('beforeend', self.createFibraRow({}, index));
+         },
+
+         removeFibraRow : function (btn)
+         {
+                   const row = btn.closest('.fibra-row');
+                   row.remove();
+         },
+         addExcepcion: function ()
+         {
+                    let self = this
+                   const container = document.querySelector('.excepciones-container');
+                   let exceptionData = window.CareInstructions.filter(x => x.Category === 'Exception');
+                   
+                       container.insertAdjacentHTML('beforeend', `
+                       <div class="form-group">
+                       <select class="select-form excepcion">
+                                                     ${exceptionData.filter(s => s.IsActive).map(exception =>
+                                                         `<option value="${exception.ID}" >
+                                                             ${exception.Spanish}
+                                                  </option>`
+                                              ).join('')}
+                                          </select>
+                           <button class="remove-row-btn" onclick="removeExcepcion(this)">
+                               <i class="fas fa-times"></i>
+                           </button>
+                       </div>
+                   `);
+         },
+
+         removeExcepcion:  function (btn) 
+         {
+                   const group = btn.closest('.form-group');
+                   group.remove();
+         },
+
+        addInstruccion:  function ()
+        {
+                   const container = document.querySelector('.instrucciones-container');
+                   let additionalData = window.CareInstructions.filter(x => x.Category === 'Additional');
+                   container.insertAdjacentHTML('beforeend', `
+                       <div class="form-group">
+                                            <select class="select-form instruccion">
+                                                 ${addittionalData.filter(s => s.IsActive).map(additional =>
+                                                                       `<option value="${additional.ID}" >
+                                                                           ${additional.Spanish}
+                                                         </option>`
+                                                     ).join('')}
+                                                 </select>
+                           <button class="remove-row-btn" onclick="removeInstruccion(this)">
+                               <i class="fas fa-times"></i>
+                           </button>
+                       </div>
+                   `);
+        },
+        removeInstruccion :  function (btn)
+        {
+                   const group = btn.closest('.form-group');
+                   group.remove();
+        },
+
+        addOtraInstruccion :  function () {
+                   const container = document.querySelector('.otras-instrucciones-container');
+                   let additionalData = window.CareInstructions.filter(x => x.Category === 'Additional');
+                   container.insertAdjacentHTML('beforeend', `
+                       <div class="form-group">
+                  
+                             <select class="select-form otra-instruccion">
+                                       ${additionalData.filter(s => s.IsActive).map(additional =>
+                                                                       `<option value="${additional.ID}" >
+                                                                           ${additional.Spanish}
+                                                         </option>`
+                                                     ).join('')}
+                                                 </select>
+                           <button class="remove-row-btn" onclick="removeOtraInstruccion(this)">
+                               <i class="fas fa-times"></i>
+                           </button>
+                       </div>
+                   `);
+        },
+                       // Función auxiliar para formatear precios
+        formatPrice:  function (price) {
+                   if (!price) return '';
+                   // Eliminar espacios y convertir comas a puntos para el input
+                   return price.toString().trim().replace('.', ',');
+        },
+
+                       // Functions for price modal
+
+
+        closePriceModal: function () 
+        {           
+                   let self = this
+                   const modal = document.getElementById('price-modal');
+                   modal.style.display = 'none';
+                   self.clearPriceForm();
+        },
+        clearPriceForm: function ()
+        {
+                   const inputs = document.querySelectorAll('.currency-input, .price-input');
+                   inputs.forEach(input => input.value = '');
+        },
+        getLabelColor: function (idx) 
+        {
+            let self = this; 
+
+            if (idx == 0){
+                return 'BLUE' 
+            }
+            if (idx == 1) 
+            {
+                return 'RED' 
+            }
+            if (idx == '2')
+            {
+                return 'BLACK'
+            }
+
+            return '';
+        },
+        savePriceChanges:   function () 
+        {
+                   let self = this; 
+                   const currencyInputs = document.querySelectorAll('.currency-input');
+                   const priceInputs = document.querySelectorAll('.price-input');
+                   const prices = [];
+
+                   // Obtener los precios actuales para mantener los colores de etiqueta
+                   const currentPrices = self.jsonData.Datos_adicionales.etiqueta_precio?.info_precio?.precios || [];
+
+                   for (let i = 0; i < 5; i++) {
+                       const currency = currencyInputs[i].value.trim();
+                       const price = priceInputs[i].value.trim();
+
+                       if (currency || price) {
+                           // Buscar si ya existe un precio para esta divisa
+                           //const existingPrice = currentPrices.find(p => p.tipo_divisa === currency);
+
+                           prices.push({
+                               tipo_divisa: currency,
+                               precio_divisa: self.formatPrice(price),
+                               // Mantener el color existente o usar un color por defecto
+                               etiqueta_color: self.getLabelColor(i)
+                           });
+                       }else  
+                       {
+                                prices.push({
+                                      tipo_divisa: '',
+                                      precio_divisa: '',
+                                      // Mantener el color existente o usar un color por defecto
+                                      etiqueta_color: self.getLabelColor(i)
+                                  });
+                       }
+                       
+                   }
+
+                   // Asegurar que la estructura del objeto existe
+                   if (!self.jsonData.Datos_adicionales.etiqueta_precio) {
+                       self.jsonData.Datos_adicionales.etiqueta_precio = {};
+                   }
+                   if (!self.jsonData.Datos_adicionales.etiqueta_precio.info_precio) {
+                       self.jsonData.Datos_adicionales.etiqueta_precio.info_precio = {
+                           precios: [],
+                           tallas: []
+                       };
+                   }
+
+                   self.jsonData.Datos_adicionales.etiqueta_precio.info_precio.precios = prices;
+                   self.displayOrderData(self.jsonData);
+                   self.closePriceModal();
+        },
+        editTotalQuantity : function (itemIndex) 
+        {
+
+        }, 
+        editQuantities:  function (itemIndex)
+        {
+                   let self = this
+                   const quantityRow = document.querySelector(`.quantity-row[data-item-index="${itemIndex}"]`);
+                   const editBtn = quantityRow.closest('.size-row').querySelector('.edit-quantities-btn');
+                   const quantityCells = quantityRow.querySelectorAll('.size-value.quantity');
+
+                   if (editBtn.innerHTML.includes('Editar'))
+                   {
+                       // Cambiar a modo edición
+                       quantityCells.forEach(cell => {
+                           // Eliminar tanto comas como puntos de los separadores de miles
+                           const currentValue = cell.textContent.trim().replace(/[,\.]/g, '');
+                           const talla = cell.getAttribute('data-talla');
+                           cell.classList.add('editable');
+                           cell.innerHTML = `<input type="number"
+                               min="0"
+                               value="${currentValue}"
+                               data-talla="${talla}"
+                               onkeypress="return (event.charCode >= 48 && event.charCode <= 57)"
+                               onpaste="return false"
+                               onchange="if(this.value < 0 || isNaN(this.value)) this.value = 0">`;
+                       });
+                       editBtn.innerHTML = '<i class="fas fa-save"></i> Guardar';
+                       // Enfocar el primer input
+                       const firstInput = quantityCells[0].querySelector('input');
+                       if (firstInput) firstInput.focus();
+                   
+                   } 
+                   else 
+                   {
+                       // Guardar cambios
+                            const newValues = {};
+                            let totalQuantity = 0;
+
+                            quantityCells.forEach(cell => {
+                                const input = cell.querySelector('input');
+                                const talla = input.getAttribute('data-talla');
+                                const value = Math.max(0, parseInt(input.value) || 0);
+                                newValues[talla] = value;
+                                totalQuantity += value;
+
+                                cell.classList.remove('editable');
+                                cell.textContent = value.toLocaleString('es-ES'); // Formatear con separador de miles
+                            });
+
+                       // Actualizar el objeto JSON
+                            const articulo = self.jsonData.Pedido.articulos[itemIndex];
+                            articulo.tallas.forEach(talla => {
+                                 if (newValues[talla.Talla] !== undefined) {
+                                    talla.Cantidad = newValues[talla.Talla].toString();
+                                }
+                             });
+
+                       // Actualizar la cantidad total del artículo
+                            articulo.Cantidad = totalQuantity.toString();
+
+                       // Restaurar el botón a modo edición
+                            editBtn.innerHTML = '<i class="fas fa-edit"></i> Editar';
+
+                       // Actualizar la visualización completa
+                            self.displayOrderData(self.jsonData);
+                   }
+        },
+        closeBusinessModal: function () 
+        {
+                   const modal = document.getElementById('business-modal');
+                   modal.style.display = 'none';
+        },
+       saveBusinessChanges:  function () 
+       {
+                    let self = this;
+                           const $validationerrors = document.getElementById("validation-errors");
+                                 $validationerrors.style.display = 'none'
+                                        const $errormessage = document.getElementById("validation-message")
+
+                    const providersCombo = window.providersCombo                            
+                    if (providersCombo.getValue() == "-1")
+                    {
+                       $validationerrors.style.display = 'block'
+                        $errormessage.innerText = 'Debe indicar un proveedor'
+                       return ;
+                    }
+
+                   if (document.getElementById("madeIn").value == "-1")
+                   {
+                           $validationerrors.style.display = 'block'
+                           $errormessage.innerText = 'Debe indicar el mercado de origen'
+                           return;
+                   }
+
+                   if (document.getElementById("subseccion").value == "-1")
+                          {
+                                  $validationerrors.style.display = 'block'
+                                  $errormessage.innerText = 'Debe indicar una subsecion'
+                                  return;
+                          }
+
+                   if (document.getElementById("sizesset").value == "-1")
+                   {
+                       $validationerrors.style.display = 'block'
+                       $errormessage.innerText = 'Debe indicar el conjunto de tallas'
+                       return;
+                   }
+                   // Recolectar datos del formulario
+                   const pedidoZara = document.getElementById('pedidoZara').value;
+                   const esSur = document.getElementById('esSur').value === 'true';
+                   const alarma = document.getElementById('alarma').value === 'true';
+                   const codigoTaller = document.getElementById('codigoTaller').value;
+                   const seccion = document.getElementById('seccion').selectedOptions[0].text
+                   const id_seccion = document.getElementById('seccion').value
+                   const nombre_proveedor  = providersCombo.selectedItem ? providersCombo.getDisplayText(providersCombo.selectedItem) : ''; // Obtiene el texto mostrado
+                   const id_proveedor   = providersCombo.getValue()
+                   const nombre_sizeset  = document.getElementById('sizesset').selectedOptions[0].text
+                   const id_sizeset   = document.getElementById('sizesset').value
+
+                   const nombre_subseccion  = document.getElementById('subseccion').selectedOptions[0].text
+                   const id_subseccion   = document.getElementById('subseccion').value
+                   const id_madeIn = document.getElementById("madeIn").value
+                   const nombre_madeIn = document.getElementById('madeIn').selectedOptions[0].text 
+
+                   if (esSur == true) 
+                   {
+                       if (!pedidoZara.endsWith('-25'))
+                       {
+                           $validationerrors.style.display = 'block'
+                           $errormessage.innerText = 'El pedido Zara debe acabar en -25'
+                           return; 
+                       }
+                   }else {
+
+                       if (!pedidoZara.endsWith('-D'))
+                       {
+                          $validationerrors.style.display = 'block'
+                          $errormessage.innerText = 'El pedido Zara debe acabar en -D'
+                          return;
+                       }
+                   }
+                   // Crear el nuevo objeto business_information
+                   const newBusinessInfo = {
+                       PedidoZara: pedidoZara,
+                       esSur: esSur,
+                       Alarma: alarma,
+                       codigoTaller: codigoTaller, 
+                       seccion : seccion, 
+                       id_seccion : id_seccion,
+                       nombre_proveedor: nombre_proveedor, 
+                       id_proveedor: id_proveedor, 
+                       nombre_sizeset : nombre_sizeset, 
+                       id_sizeset : id_sizeset, 
+                       nombre_subseccion : nombre_subseccion, 
+                       id_subseccion : id_subseccion,
+                       id_proyecto : self.Options.ProjectID,
+                       id_marca : self.Options.BrandID,
+                       id_company : self.Options.CompanyID,
+                       id_madeIn : id_madeIn, 
+                       nombre_madeIn: nombre_madeIn  
+                   };
+
+                   // Actualizar el objeto jsonData
+                   self.jsonData.Pedido.business_information = newBusinessInfo;
+
+                   // Actualizar la visualización
+                   self.displayOrderData(self.jsonData);
+
+                   // Cerrar el modal
+                   self.closeBusinessModal();
+       },
+                
+      closeArticleModal: function ()
+      {
+         const modal = document.getElementById('article-modal');
+         modal.style.display = 'none';
+      },
+      saveArticleChanges: function ()
+      {
+                   let self = this   
+                   const modal = document.getElementById('article-modal');
+                   const itemIndex = modal.getAttribute('data-item-index');
+
+                   // Obtener los valores del formulario
+                   const refFornitura = document.getElementById('ref-fornitura').value;
+                   const mcc = document.getElementById('mcc').value;
+
+                   // Actualizar el objeto JSON
+                   const article = self.jsonData.Pedido.articulos[itemIndex];
+                   article['Ref. Fornitura'] = refFornitura;
+                   article.MCC = mcc;
+
+                   // Actualizar la visualización
+                   self.displayOrderData(self.jsonData);
+
+                   // Cerrar el modal
+                   self.closeArticleModal();
+      },
+        sendToApi: async function(file) {
+                // Validate file extension
+                const fileName = file.name.toLowerCase();
+                if (!fileName.endsWith('.pdf')) {
+                    throw new Error('El archivo debe ser un PDF');
+                }
+
+                // Validate file type
+                if (file.type !== 'application/pdf') {
+                    throw new Error('El formato del archivo debe ser PDF');
+                }
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    const response = await fetch('/manualorderentry/processZaraPdf', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Error de API: ${response.status}`);
+                    }
+
+                    return await response.json();
+                } catch (error) {
+                    console.error('Error al enviar el archivo:', error);
+                    throw error;
+                }
+        },
+        ValidateBusinessInfo: function() {
+            let self = this;
+            const businessInfo = self.jsonData?.Pedido?.business_information;
+            
+            if (!businessInfo) {
+                self.showErrorMessage('La información de negocio no está disponible');
+                return false;
+            }
+
+            // Check required fields
+            const validations = [
+                { field: 'PedidoZara', message: 'El número de pedido Zara es obligatorio' },
+                { field: 'id_sizeset', message: 'El conjunto de tallas es obligatorio' },
+                { field: 'id_seccion', message: 'La sección es obligatoria' },
+                { field: 'id_subseccion', message: 'La subsección es obligatoria' },
+                { field: 'id_proveedor', message: 'El proveedor es obligatorio' },
+                { field: 'id_madeIn', message: 'El Made In es obligatorio' }
+            ];
+
+            if (businessInfo.esSur) 
+            {
+                if (!businessInfo.PedidoZara.endsWith('-25'))
+                {
+                    self.showErrorMessage("El pedido Zara debe acabar en -25")
+                    return false; 
+                }
+               
+            }else {
+                 if (!businessInfo.PedidoZara.endsWith('-D'))
+                 {
+                   self.showErrorMessage("El pedido Zara debe acabar en -D")
+                   return false 
+                 }
+            }
+
+            for (const validation of validations) {
+                if (!businessInfo[validation.field]) {
+                    self.showErrorMessage(validation.message);
+                    return false;
+                }
+            }
+
+            return true;
+        },
+        ValidateArticleCodes: function() {
+            let self = this;
+            const articles = self.jsonData?.Pedido?.articulos || [];
+
+            for (const article of articles) {
+                if (!article.ArticleCode || article.ArticleCode.trim() === '') {
+                    self.showErrorMessage('Todos los artículos deben tener un código válido');
+                    return false;
+                }
+
+                if (article.NormalizeMCC == null || ((article.NormalizeMCC.Temporada.trim() == '') || (article.NormalizeMCC.Calidad.trim() =='')  || (article.NormalizeMCC.Color.trim() =='') || (article.NormalizeMCC.Modelo.trim() ==''))
+                )
+                {
+                    self.showErrorMessage('Todos los articulos deben tener MCC informado'); 
+                    return false; 
+                }
+
+                       if (article.NormalizeMCC.Modelo.length != 4) 
+                       {
+                          self.showErrorMessage(`El modelo ${article.NormalizeMCC.Modelo} del articulo ${article.ArticleCode} debe tener 4 caracteres`)
+                          return false; 
+                       }
+
+                       if (article.NormalizeMCC.Calidad.length != 3)
+                       {
+                                    self.showErrorMessage(`La calidad ${article.NormalizeMCC.Calidad} del articulo ${article.ArticleCode} debe tener 3 caracteres`)
+                             return false; 
+                       }
+
+                       if (article.NormalizeMCC.Color.length != 3)
+                       {
+                                          self.showErrorMessage(`El color ${article.NormalizeMCC.Color} del articulo ${article.ArticleCode} debe tener 3 caracteres`)
+                            return false;
+                       }
+
+            }
+
+            return true;
+        },
+        GetSizeRange: function() {
+            let self = this;
+            const sizeSet = new Set(); // Uso Set para evitar duplicados automáticamente
+
+            // Recorrer todos los artículos y sus tallas
+            if (self.jsonData?.Pedido?.articulos) {
+                self.jsonData.Pedido.articulos.forEach(articulo => {
+                    if (articulo.tallas && Array.isArray(articulo.tallas)) {
+                        articulo.tallas.forEach(talla => {
+                            if (talla.Talla) {
+                                sizeSet.add(talla.Talla);
+                            }
+                        });
+                    }
+                });
+            }
+
+            // Convertir el Set a un array, ordenarlo y unirlo en un string separado por comas
+            const sizeRange = Array.from(sizeSet).join(',');
+            
+            // Guardar el resultado en el objeto jsonData
+            if (!self.jsonData.Pedido) {
+                self.jsonData.Pedido = {};
+            }
+            self.jsonData.Pedido.SizeRange = sizeRange;
+            return sizeRange;
+        },
+        deleteArticle: function(itemIndex) {
+            let self = this;
+            const article = self.jsonData.Pedido.articulos[itemIndex];
+            
+            if (confirm('¿Está seguro que desea eliminar este artículo?')) {
+                // Remove article from array
+                self.jsonData.Pedido.articulos.splice(itemIndex, 1);
+                
+                // If article was PRECIO type, remove price info
+                if (article.TipoArticulo === 'PRECIO') {
+                     self.jsonData.Datos_adicionales.etiqueta_precio = null;
+                }
+                
+                // If article was COMPOSICION type, remove composition info
+                if (article.TipoArticulo === 'COMPOSICION') {
+                    self.jsonData.Datos_adicionales.etiqueta_composicion = null;
+                }
+                
+                // Update the display
+                self.displayOrderData(self.jsonData);
+            }
+        },
+	};
+//</script>

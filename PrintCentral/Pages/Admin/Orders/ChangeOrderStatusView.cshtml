@@ -1,0 +1,113 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+
+@if (userData.IsSysAdmin)
+{
+    <viewcard>
+        
+            <viewrow>
+                <viewcolumn>
+                    <viewform>
+                        <input name="SelectedCompanyID" type="hidden" value="@userData.SelectedCompanyID" />
+                        
+                        <input model name="OrderID" type="hidden" data-type="int" />
+
+                        <select model name="OrderStatus" label="@g["Status"]:" action="change:SelectNewState" style="max-width:200px;" data-type="int">
+
+                            <option value="-1">@g["Searching Available Options"]</option>
+                           
+                        </select>
+
+
+                        <input model name="ResetEvent" type="hidden" value="0" />
+                        <input model name="ResetEvent" type="checkbox" label="@g["Repeat tasks"]" value="1"/>
+
+
+                    </viewform>
+                </viewcolumn>
+        </viewrow>
+
+        <viewrow>
+
+            <viewcolumn name="EffectsContainer">
+                <div class="d-none" title="@g["XXX: efectos secundarios no definidos"]">
+                    <div name="EffectStatus_@((int)OrderStatus.Processed)" class="d-none effect-status">
+                        <div class="">@g[OrderStatus.Processed.GetText()]</div>
+                        <p> Explain effect to move order to @OrderStatus.Processed.GetText() </p>
+                    </div>
+
+                    <div name="EffectStatus_@((int)OrderStatus.InFlow)" class="d-none effect-status">
+                        <div class="">@g[OrderStatus.InFlow.GetText()]</div>
+                        <p> Explain effect to move order to @OrderStatus.InFlow.GetText() </p>
+                    </div>
+
+                    <div name="EffectStatus_@((int)OrderStatus.Validated)" class="d-none effect-status">
+                        <div class="">@g[OrderStatus.Validated.GetText()]</div>
+                        <p> Explain effect to move order to @OrderStatus.Validated.GetText() </p>
+                    </div>
+
+                    <div name="EffectStatus_@((int)OrderStatus.Billed)" class="d-none effect-status">
+                        <div class="">@g[OrderStatus.Billed.GetText()]</div>
+                        <p> Explain effect to move order to @OrderStatus.Billed.GetText() </p>
+                    </div>
+
+                    <div name="EffectStatus_@((int)OrderStatus.ProdReady)" class="d-none effect-status">
+                        <div class="">@g[OrderStatus.ProdReady.GetText()]</div>
+                        <p> Explain effect to move order to @OrderStatus.ProdReady.GetText() </p>
+                    </div>
+
+                    <div name="EffectStatus_@((int)OrderStatus.Cancelled)" class="d-none effect-status">
+                        <div class="">@g[OrderStatus.Cancelled.GetText()]</div>
+                        <p> Explain effect to move order to @OrderStatus.Cancelled.GetText() </p>
+                    </div>
+                </div>
+
+            </viewcolumn>
+
+        </viewrow>
+        <viewfooter>
+
+            <viewrow>
+
+                <viewcolumn>
+                    <inlineform class="form-inline">
+                        
+                            <a href="#" class="btn btn-secondary btn-sm" action="Close">@g["Close"]</a>
+
+                    </inlineform>
+                </viewcolumn>
+
+                <viewcolumn>
+
+                    <inlineform class="form-inline pull-right">
+
+                        @*<input model name="Confirm" action="ClickConfirm" label="@g["Confirm action?"]" type="checkbox" />*@
+
+                        <div class="form-check mt-1 mr-sm-3">
+                            <input model name="Confirm" class="form-check-input" type="checkbox" id="__inlineFormCheck" no-transform action="click:ClickConfirm">
+                            <label class="form-check-label" for="__inlineFormCheck">
+                                @g["Confirm action?"]
+                            </label>
+                        </div>
+
+                        <a href="#" name="SubmitButton" class="btn btn-sm btn-primary" action="Save">@g["Set new state"]</a>
+
+                    </inlineform>
+                </viewcolumn>
+
+            </viewrow>
+        </viewfooter>
+
+    </viewcard>
+
+}
+else
+{
+
+    <p> @g["Unknow Action Selected"] </p>
+
+}

@@ -1,0 +1,45 @@
+
+Catálogos que tendrian que venir de MD (al menos parcialmente)
+
+
+	- Companies
+	- Locations??		Cada company puede tener multiples locations (oficinas), en la tabla de companies también se puede indicar cual es la ubicacion principal.
+	- Proveedores
+	- Contactos??		(nombre, email, telefono, direccion)
+	- Packs
+	- Articles
+	- Materials
+	- Procesos
+
+
+Orcle
+	Clientes
+	Direcciones
+		- Principales (fiscal, correspondencia, almacen principal)
+		- Almacenes (adicionales)
+		- Contactos
+	Artículos
+
+Middleware MD
+
+	- Consultas
+		GetList y GetByID de cada
+
+	- ABC's
+		Create, Update, Delete de cada
+
+	- Eventos tiempo real
+		Cada vez que en MD se inserte, actualize o borre un registro de alguno de los catalogos que nos interezan,
+		el servicio debería recibir un mensaje indicando que catálogo y que id ha sido modificado.
+
+
+
+
+
+
+
+
+
+
+
+

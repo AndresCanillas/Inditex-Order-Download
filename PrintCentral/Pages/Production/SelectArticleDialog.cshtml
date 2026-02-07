@@ -1,0 +1,48 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+<viewcard>
+	<viewrow>
+		<viewcolumn>
+			@g["Notes"]:
+			<ul>
+				<li>
+					@g["Printer settings are stored for each individual printer and article combination, please select the article you will be printing in order to change its settings."]
+				</li>
+				<li>
+					@g["The product code you enter here will be used exclusively to print samples."]
+				</li>
+			</ul>
+		</viewcolumn>
+	</viewrow>
+	<viewrow>
+		<viewcolumn>
+			<viewform>
+				<input model name="ProjectID" type="hidden" value="@userData.SelectedProjectID" />
+				<input model name="ProductDataID" type="hidden" />
+				<select model name="ArticleID" label="@g["Article"]:" action="change:LoadPreview" data-type="Int" validation="required"></select>
+				<input model name="ProductCode" label="@g["Code"]:" action="keyup:ValidateProduct" validation="required;maxlen(13)" maxlength="13" type="text" autofocus />
+			</viewform>
+		</viewcolumn>
+		<viewcolumn>
+			<div name="ImagePreviewContainer" class='card' style='font-size:12px; display:none;'>
+				<div class='card-header' style="font-size:13px"><strong>@(g["Preview"])</strong></div>
+				<div class='card-body'>
+					<div class="preview-container" style="margin:auto;">
+						<img name="ImagePreview" class="image-preview label-preview" />
+					</div>
+				</div>
+			</div>
+		</viewcolumn>
+		<viewcolumn>
+			<div component="FormView" name="ProductData" controller="/Common/ProductDataCard.js"></div>
+		</viewcolumn>
+	</viewrow>
+	<viewfooter>
+		<button type="button" class="btn btn-primary" action="Accept">@g["OK"]</button>
+		<button type="button" class="btn btn-secondary" action="Cancel">@g["Cancel"]</button>
+	</viewfooter>
+</viewcard>

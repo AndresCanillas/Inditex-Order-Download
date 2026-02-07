@@ -1,0 +1,212 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData  userData;
+@{
+	Layout = null;
+	var uilang = CultureInfo.CurrentUICulture.Name;
+	var isAdmin = userData.IsIDT && User.IsAnyRole(Roles.SysAdmin, Roles.IDTLabelDesign, Roles.IDTProdManager);
+}
+//# sourceURL=https://Pages/Common/Components/CatalogFormView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var CatalogFormView = function (catalog, title, data) {
+		FormView.Extend(this, title);
+		this.Catalog = catalog;
+		this.CatalogDef = JSON.parse(catalog.Definition);
+		this.Readonly = @(isAdmin?"false":"true");
+		this.Data = data;
+		this.Content = AppContext.CatalogForm(this.CatalogDef, "@uilang");
+		this.Content += `
+		<viewfooter>
+			<button name="btnSave" type="button" class="btn btn-primary" action="Save">@g["OK"]</button>
+			<button type="button" class="btn btn-secondary" action="Cancel">@g["Close"]</button>
+		</viewfooter>`;
+	};
+
+	CatalogFormView.prototype = {
+        constructor: CatalogFormView,
+
+		OnLoad: function () {
+			if(this.Data != null) this.LoadData(this.Data);
+			for (var f of this.CatalogDef) {
+				if (f.Type == 1) this.LoadReference(f, this.Data[f.Name]);
+				if (f.Type == 9) this.LoadSet(f, this.Data[f.Name]);
+			}
+			if (this.Readonly && this.Catalog.IsReadonly) {
+				for (var f of this.CatalogDef) {
+					if (f.Type == 6) {
+						var datepicker = this.elements[f.Name].data("kendoDatePicker");
+						datepicker.readonly();
+					}
+					else if (f.Type == 1) {
+						var elm = this.elements[f.Name];
+						var parent = elm.parent();
+						parent.find('[action="OpenRef"]').hide();
+						parent.find('[action="AssignRef"]').hide();
+					}
+					else if(f.Type != 9) {
+						this.elements[f.Name].attr("readonly", true);
+					}
+				}
+				this.elements.btnSave.hide();
+			}
+		},
+
+		OnUnload: function () {
+		},
+
+		GetImageDownloadUrl(field, val) {
+			return `/catalogdata/downloadimage/${this.Catalog.CatalogID}/${this.Data.ID}/${field}`;
+		},
+
+		GetImageUploadUrl(field, val) {
+			return `/catalogdata/uploadimage/${this.Catalog.CatalogID}/${this.Data.ID}/${field}`;
+		},
+
+		GetFileDownloadUrl(field, val) {
+			return `/catalogdata/downloadfile/${this.Catalog.CatalogID}/${this.Data.ID}/${field}`;
+		},
+
+		GetFileUploadUrl(field, val) {
+			return `/catalogdata/uploadfile/${this.Catalog.CatalogID}/${this.Data.ID}/${field}`;
+		},
+
+		LoadReference: function (field, val) {
+			var self = this;
+			if (val != null) {
+				val = parseInt(val, 10);
+				if (val === 0) self.model[`_${field.Name}_DISP`] = "@g["Unassigned"]";
+				else {
+					AppContext.Catalogs.GetByCatalogID(field.CatalogID, (ref) => {
+						AppContext.CatalogData.GetByID(field.CatalogID, val, (row) => {
+							if (row != null) {
+								var refData = JSON.parse(row);
+								self.model[`_${field.Name}_DISP`] = self.GetReferenceText(ref, refData);
+							}
+							else {
+								self.model[`_${field.Name}_DISP`] = "@g["Unassigned"]";
+							}
+						});
+					});
+				}
+			}
+			else self.model[`_${field.Name}_DISP`] = "@g["Unassigned"]";
+		},
+
+		LoadSet: function (field, val) {
+			if (val == null) {
+				val = [];
+				this.Data[field.Name] = val;
+			}
+			this.elements[`_${field.Name}_Grid`].LoadSet(this.Catalog.CatalogID, field.CatalogID, this.Data.ID, field.Name, "@uilang");
+		},
+
+		GetReferenceText(catalog, data) {
+			var result = "";
+			var fields = JSON.parse(catalog.Definition);
+			for (var f of fields) {
+				if (f.IsMainDisplay) return data[f.Name];
+			}
+			for (var f of fields) {
+				if (f.Type == 7) return data[f.Name];
+			}
+			return data.ID.toString();
+		},
+
+		OpenRef: function (e) {
+			e.preventDefault();
+			var self = this;
+			var fieldName = e.target.attributes["fieldname"].value;
+			var fieldDef = this.CatalogDef.first(p => p.Name == fieldName);
+			if (this.Data[fieldName] != null) {
+				var refid = JSON.parse(this.Data[fieldName]);
+				AppContext.Catalogs.GetByCatalogID(fieldDef.CatalogID, (catalog) => {
+					AppContext.CatalogData.GetByID(fieldDef.CatalogID, refid, (data) => {
+						var rowData = JSON.parse(data);
+						var frm = new CatalogFormView(catalog, self.GetCatalogTitle(catalog), rowData);
+						frm.ShowDialog((data) => {
+							if (data) {
+								var text = self.GetReferenceText(catalog, data)
+								var newValue = data.ID;
+								self.Data[fieldName] = newValue;
+								self.model[fieldName] = newValue;
+								self.model[`_${fieldName}_DISP`] = text;
+							}
+						}, "80%");
+					});
+				});
+			}
+			else {
+				this.AssignRef(e);
+			}
+		},
+
+		AssignRef: function (e) {
+			e.preventDefault();
+			var self = this;
+			var fieldName = e.target.attributes["fieldname"].value;
+			var fieldDef = this.CatalogDef.first(p => p.Name == fieldName);
+			var rowid = this.Data[fieldName];
+			var frm = new CatalogGridView(fieldDef.CatalogID, "@g["Assign Reference"]", "@uilang", true);
+			frm.ShowDialog((data) => {
+				if (data) {
+					var newValue = data.SelectedID;
+					self.Data[fieldName] = newValue;
+					self.model[fieldName] = newValue;
+					self.model[`_${fieldName}_DISP`] = data.SelectedText;
+				}
+			}, "80%");
+		},
+
+		GetCatalogTitle: function (cat) {
+			if (cat.Captions == null)
+				return cat.Name;
+			var captions = JSON.parse(cat.Captions);
+			var catName = captions.first(p => p.Language == "@uilang");
+			if (catName != null) return catName.Text;
+			else return cat.Name;
+		},
+
+		Save: function () {
+			var self = this;
+			if (!this.model.ValidState()) return;
+			this.SaveSets().then(() => {
+				var rowData = self.GetData();
+				var rec = { ID: self.Data.ID, CatalogID: self.Catalog.CatalogID, Data: JSON.stringify(rowData) };
+				AppContext.CatalogData.Update(rec, (result) => {
+					if (result.Success) {
+						AppContext.ShowSuccess("@g["Record updated!"]");
+						self.model.ID = JSON.parse(result.Data).ID;
+						self.Ok();
+					}
+				});
+			}).catch(() => { AppContext.ShowError("@g["Operation cannot be completed"]"); });
+		},
+
+		SaveSets: function () {
+			var self = this;
+			return new Promise((resolve, reject) => {
+				var foundErrors = false;
+				for (var f of self.CatalogDef) {
+					if (f.Type == 9) {
+						var gridview = self.elements[`_${f.Name}_Grid`];
+						if (!gridview.ValidState())
+							foundErrors = true;
+						var ids = [];
+						gridview.GetGrid().Rows.Each((rowIdx, rowData) => ids.push(rowData.ID));
+						self.model[f.Name] = ids.join(",");
+						if (gridview.GetGrid().IsEdited())
+							gridview.SaveCatalog().catch(() => foundErrors = true);
+					}
+				}
+				if (foundErrors)
+					reject();
+				else
+					resolve();
+			});
+		}
+	};
+//</script>

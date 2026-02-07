@@ -1,0 +1,705 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData  userData
+@inject IOrderRepository  orderRepo
+@inject IProjectRepository projectRepo
+
+@{
+    Layout = null;
+
+    var lang = ((WebLink.Contracts.Models.UserPrincipal)User).User.UserData.Language;
+}
+
+
+
+//<script src="~/js/jquery-3.0.0.min.js"></script>
+//<script src="~/js/AppContext.js"></script>
+//<script src="~/js/AppContext.AppDomain.js"></script>
+//# sourceURL=https://Pages/Validation/AuditCompoView.js
+///<script>
+
+    var AuditCompoView = function (orderSelection) {
+
+        this.OrderSelection = orderSelection
+        this.WorkSelection = null;
+        this.ItemSelected = false;
+        this.Options = orderSelection; 
+        this.SavedState = false;
+        this.Languages = [{ "Culture": "es-ES", "Lang": "Spanish" }, { "Culture": "ca-ES", "Lang": "Catalan" }, { "Culture": "en-US", "Lang": "English" }, { "Culture": "fr-FR", "Lang": "French" }, { "Culture": "tr-TR", "Lang": "English" }];
+
+               FormView.Extend(this, "@g["Composition Audit"]", `@Url.Content("~/Validation/Common/AuditCompoView")`);
+    }
+
+    AuditCompoView.prototype = {
+
+       constructor: AuditCompoView,
+
+              OnLoad: async function () {
+           var self = this;
+           self.Lang = self.GetLang();
+           const $AuditMessages = document.getElementById("AuditMessages");
+           const $AuditForm = document.getElementById("AuditForm");
+
+           if (self.OrderSelection && self.OrderSelection.EnabledAudit) {
+               $AuditMessages.style.display = 'none';
+               $AuditForm.style.display = 'block';
+
+               // Asignar funciones globales
+                   window.addSectionRow = (btn) => self.AddSectionRow(btn);
+                   window.addFiberRow = (btn) => self.AddFiberRow(btn)
+                   window.addExcepcion = () => self.AddExceptionRow();
+                   window.addAdditional = () => self.AddAdditionalRow();
+                   window.removeOtraInstruccion = (btn) => self.RemoveOtraInstruccion(btn);
+                   window.removeExcepcion = (btn) => self.RemoveExcepcion(btn);
+                   window.removeFibraRow = (btn) => self.RemoveFiber (btn);
+                   window.removeSectionRow =  (btn) => self.RemoveSection (btn);
+                   window.OpenDocumentPreview = () => self.OpenDocumentPreview();
+                   window.setWashIcon = () => self.SetWashIcon();
+                   window.setBleachIcon = () => self.SetBleachIcon();
+                   window.setIronIcon = () => self.SetIronIcon();
+                   window.setDryIcon = () => self.SetDryIcon();
+                   window.setDryCleaningIcon = () => self.SetDryCleaningIcon();
+                   await self.LoadCatalogs()
+                   self.GenerateCompositionForm()
+      
+           } else if (self.OrderSelection && self.OrderSelection.ErrorObject) {
+               $AuditMessages.style.display = 'block';
+               $AuditForm.style.display = 'none';
+
+               const liInfo = document.querySelector('.audit-message.info');
+               if (liInfo) {
+                   const infoSpan = liInfo.querySelector('.audit-content span');
+                   const timestampDiv = liInfo.querySelector('.audit-timestamp');
+
+                   if (infoSpan) {
+                       infoSpan.textContent = self.OrderSelection.ErrorObject.ContactMessage || "";
+                   }
+                   if (timestampDiv) {
+                       timestampDiv.textContent = self.OrderSelection.ErrorObject.AuditDate || "";
+                   }
+               }
+
+               let listHtml = '';
+               self.OrderSelection.ErrorObject.Errors.forEach(errMsg => {
+                   listHtml += `
+                       <li class="audit-message error">
+                           <div class="audit-icon error">
+                               <i class="fas fa-times-circle"></i>
+                           </div>
+                           <div class="audit-content">
+                               <strong>Error:</strong>
+                               <span>${errMsg}</span>
+                               <div class="audit-timestamp">${self.OrderSelection.ErrorObject.AuditDate || ""}</div>
+                           </div>
+                       </li>`;
+               });
+
+               const lista = document.querySelector('.audit-messages-list');
+               if (lista) {
+                   lista.insertAdjacentHTML('beforeend', listHtml);
+               }
+           }
+       },
+
+        OpenDocumentPreview: function () {
+                   let self = this; 
+                   window.open('/order/validate/getpreview/' + self.Options.OrderID + "-" + self.Options.ArticleCode);
+               },
+
+           GetLang: function () {
+
+               var self = this;
+               var langSys = '@lang';
+
+               return self.Languages.find(x => x.Culture == langSys) ? self.Languages.find(x => x.Culture == langSys).Lang : "English";
+           },
+        SetWashIcon : function (e) 
+        {
+           let self = this
+           const wash = document.querySelector(".wash")
+           const washIcon = document.querySelector(".wash-icon")
+           const washText = document.querySelector(".wash-text")
+           let careInstruction =  self.CareInstructionsData.find(x=>x.ID == wash.selectedOptions[0].value)
+           if (careInstruction) 
+           {
+                    if (careInstruction.Symbol.length == 1) 
+                    {
+                        washIcon.style.display = 'none'
+                        washText.style.display = 'inline-block'
+                        washText.textContent = careInstruction.Symbol;
+                    }else {
+                               washIcon.style.display = 'inline-block'
+                               washText.style.display = 'none'
+                               washIcon.src = `/images/getthumbnail/${self.Options.ProjectID}/${careInstruction.Symbol}`
+                    }
+                     
+           }
+        },
+               SetBleachIcon : function () 
+               {
+                         let self = this
+                  const wash = document.querySelector(".bleach")
+                  const washIcon = document.querySelector(".bleach-icon")
+                  const washText = document.querySelector(".bleach-text")
+                  let careInstruction =  self.CareInstructionsData.find(x=>x.ID == wash.selectedOptions[0].value)
+                  if (careInstruction)
+                  {
+                           if (careInstruction.Symbol.length == 1)
+                           {
+                               washIcon.style.display = 'none'
+                               washText.style.display = 'inline-block'
+                               washText.textContent = careInstruction.Symbol;
+                           }else {
+                                      washIcon.style.display = 'inline-block'
+                                      washText.style.display = 'none'
+                                      washIcon.src = `/images/getthumbnail/${self.Options.ProjectID}/${careInstruction.Symbol}`
+                           }
+                  }
+               },
+               SetIronIcon : function () 
+               {
+                                            let self = this
+                         const wash = document.querySelector(".iron")
+                         const washIcon = document.querySelector(".iron-icon")
+                                const washText = document.querySelector(".iron-text")
+                         let careInstruction =  self.CareInstructionsData.find(x=>x.ID == wash.selectedOptions[0].value)
+                         if (careInstruction)
+                         {
+                          if (careInstruction.Symbol.length == 1)
+                           {
+                               washIcon.style.display = 'none'
+                               washText.style.display = 'inline-block'
+                               washText.textContent = careInstruction.Symbol;
+                           }else {
+                                      washIcon.style.display = 'inline-block'
+                                      washText.style.display = 'none'
+                                      washIcon.src = `/images/getthumbnail/${self.Options.ProjectID}/${careInstruction.Symbol}`
+                           }
+                         }
+               },
+
+               SetDryIcon : function () 
+               {
+                        let self = this
+                         const wash = document.querySelector(".dry")
+                         const washIcon = document.querySelector(".dry-icon")
+                         const washText = document.querySelector(".dry-text")
+                         let careInstruction =  self.CareInstructionsData.find(x=>x.ID == wash.selectedOptions[0].value)
+                         if (careInstruction)
+                         {
+                          if (careInstruction.Symbol.length == 1)
+                           {
+                               washIcon.style.display = 'none'
+                               washText.style.display = 'inline-block'
+                               washText.textContent = careInstruction.Symbol;
+                           }else {
+                                      washIcon.style.display = 'inline-block'
+                                      washText.style.display = 'none'
+                                      washIcon.src = `/images/getthumbnail/${self.Options.ProjectID}/${careInstruction.Symbol}`
+                           }
+                         }
+               },
+
+       SetDryCleaningIcon : function () 
+       {
+                let self = this
+                const wash = document.querySelector(".drycleaning")
+                const washIcon = document.querySelector(".drycleaning-icon")
+                const washText = document.querySelector(".drycleaning-text")
+                         let careInstruction =  self.CareInstructionsData.find(x=>x.ID == wash.selectedOptions[0].value)
+                         if (careInstruction)
+                         {
+                          if (careInstruction.Symbol.length == 1)
+                           {
+                               washIcon.style.display = 'none'
+                               washText.style.display = 'inline-block'
+                               washText.textContent = careInstruction.Symbol;
+                           }else {
+                                      washIcon.style.display = 'inline-block'
+                                      washText.style.display = 'none'
+                                      washIcon.src = `/images/getthumbnail/${self.Options.ProjectID}/${careInstruction.Symbol}`
+                           }
+                         }
+       },
+        GetTranslation: function (obj)
+        {
+            let self = this;
+         const key = Object.keys(obj).find(
+           k => k.toLowerCase() === self.Lang.toLowerCase()
+         );
+
+         // Si se encontró la clave y tiene valor no vacío, devolverlo
+         if (key && obj[key]) {
+           return obj[key];
+         }
+
+         // Si no se encontró o está vacío, devolver el valor en inglés
+         const englishKey = Object.keys(obj).find(
+           k => k.toLowerCase() === "english"
+         );
+         return obj[englishKey] || "";  // "" si tampoco hay valor en inglés
+
+
+        },
+        LoadCatalogs :  function () 
+        {
+            let self = this;
+            const lang = self.Lang
+            let sectionCatalogName = "@Catalog.BRAND_SECTIONS_CATALOG";
+            let fiberCatalogName = "@Catalog.BRAND_FIBERS_CATALOG";
+            let washingRulesCatalogName = "@Catalog.BRAND_CAREINSTRUCTIONS_CATALOG";
+
+            let d1 = $.Deferred();
+            $.when(
+                    AppContext.Catalogs.GetByName(self.Options.ProjectID, sectionCatalogName, null, null, false, false),
+                    AppContext.Catalogs.GetByName(self.Options.ProjectID, fiberCatalogName, null, null, false, false),
+                    AppContext.Catalogs.GetByName(self.Options.ProjectID, washingRulesCatalogName, null, null, false, false),
+                    AppContext.Catalogs.GetByName(self.Options.ProjectID, "CareInstructions", null, null, false, false)
+            ).fail(function () {
+                d1.reject();
+                console.log('fail to get definitions')
+            }).then(function (sectionsCatalog, fibersCatalog, washingRulesCatalog,careInstructionsCatalog )
+            {
+                self.SectionsCatalog = sectionsCatalog[0].Data;
+                self.FibersCatalog = fibersCatalog[0].Data;
+                self.WashingRulesCatalog = washingRulesCatalog[0].Data;
+                self.CareInstructionsCatalog = careInstructionsCatalog[0].Data;
+                              $.when(
+                              AppContext.CatalogData.GetByCatalogID(self.SectionsCatalog.CatalogID, null, null, false),
+                              AppContext.CatalogData.GetByCatalogID(self.FibersCatalog.CatalogID, null, null, false),
+                              AppContext.CatalogData.GetByCatalogID(self.WashingRulesCatalog.CatalogID, null, null, false),
+                              AppContext.CatalogData.GetByCatalogID(self.CareInstructionsCatalog.CatalogID, null, null, false)
+                              ).then (function (sectionData, fibersData, washingRulesData, careInstructionsData)
+                                                {
+                                                      let SectionData = JSON.parse(sectionData[0]);
+                                                      self.SectionData = SectionData.sort((a,b)=> {
+                                                          const getKey = (obj, keyName) => {
+                                                                    return Object.keys(obj).find(k => k.toLowerCase() === keyName.toLowerCase());
+                                                          };
+
+                                                         const keyA = getKey(a, lang) || "English";
+                                                         const keyB = getKey(b, lang) || "English";
+
+                                                         const valA = a[keyA] || a["English"] || "";
+                                                         const valB = b[keyB] || b["English"] || "";
+
+                                                         return valA.localeCompare(valB); 
+
+                                                      });
+                                                      let FibersData = JSON.parse(fibersData[0]);
+                                                          self.FibersData = FibersData.sort((a,b)=> {
+                                                                 const getKey = (obj, keyName) => {
+                                                                           return Object.keys(obj).find(k => k.toLowerCase() === keyName.toLowerCase());
+                                                                 };
+
+                                                                const keyA = getKey(a, lang) || "English";
+                                                                const keyB = getKey(b, lang) || "English";
+
+                                                                const valA = a[keyA] || a["English"] || "";
+                                                                const valB = b[keyB] || b["English"] || "";
+
+                                                                return valA.localeCompare(valB);
+                                                             });
+                                                      self.WashinRulesData = JSON.parse(washingRulesData[0]);
+                                                      let CareInstructionsData = JSON.parse(careInstructionsData[0]);
+                                                      self.CareInstructionsData = CareInstructionsData.sort((a,b)=> {
+                                                                 const getKey = (obj, keyName) => {
+                                                                           return Object.keys(obj).find(k => k.toLowerCase() === keyName.toLowerCase());
+                                                                 };
+
+                                                                const keyA = getKey(a, lang) || "English";
+                                                                const keyB = getKey(b, lang) || "English";
+
+                                                                const valA = a[keyA] || a["English"] || "";
+                                                                const valB = b[keyB] || b["English"] || "";
+
+                                                                return valA.localeCompare(valB);
+                                                                    });
+                                                      d1.resolve();
+                                                }).always(function (){
+
+
+                                                }).fail(function(){
+                                                    d1.reject()
+                                                }) 
+                   }
+                   
+             );
+             return d1.promise();
+        },
+        AddFiberRow : function (btn){ 
+            let self = this
+            let container = {}; 
+            let index = 0; 
+            if (btn)
+            {
+              container = btn.previousElementSibling;
+              index = container.children.length;
+            }
+
+                   let formHtml =   `
+                                                      <div class="fibra-row" data-fibra-index="${index}">
+                                                          <div class="form-group">
+                                                              <label>Percentage:</label>
+                                                              <input type="number" class="fibra-porcentaje" min="0" max="100" value="0">
+                                                          </div>
+                                                          <div class="form-group">
+                                                              <label>Fiber:</label>
+                                                                <select class="select-form fibra-nombre">
+                                                                          ${self.FibersData.filter(s => s.IsActive).map(fiber =>
+                                                                              `<option value="${fiber.ID}">
+                                                                                  ${self.GetTranslation(fiber)}
+                                                                              </option>`
+                                                                          ).join('')}
+                                                                      </select>
+                                                              <button class="remove-row-btn remove-row-fiber-btn" onclick="removeFibraRow(this)">
+                                                              <i class="fas fa-times"></i>
+                                                          </button>
+                                                          </div>
+
+                                                      </div>
+                   
+                   
+                   `;
+            if (btn)
+            {
+                container.insertAdjacentHTML("beforeend",  formHtml)
+            }else {
+                return formHtml; 
+            }
+        }, 
+        AddSectionRow : function (btn) 
+        {
+           let self = this;
+           let formHtml = '';
+           let index =0 ;
+          const compositionForm = document.querySelector('.composition-form');
+          
+           if (btn) {
+              const container = btn.previousElementSibling;
+              index = document.querySelectorAll(".form-section").length
+           }
+
+          let translations = {
+              addFiber: "@g["Add Fiber"]",
+              removeFiber: "@g["Remove Fiber"]",
+              section : "@g["Section"]",
+              fiber : "@g["Fibers"]"
+          };
+                   formHtml += `
+                          <div class="form-section" data-section-index="${index}">
+                           <h4>${translations.section}</h4>
+                           <div class="form-group">
+                               <label>${translations.section}:</label>
+                               <select class="select-form section-name">
+                                                    ${self.SectionData.filter(s => s.IsActive).map(section =>
+                                                         `<option value="${section.ID}">
+                                                              ${self.GetTranslation(section)}
+                                                         </option>`
+                                                     ).join('')}
+                                                 </select>
+                            </div>
+                             <h4>${translations.fiber}</h4>
+                            <div class="fibras-container">
+                                ${self.AddFiberRow()}
+                            </div>
+                              <button class="add-fibra-btn" onclick="addFiberRow(this)">
+                                 <i class="fas fa-plus"></i>
+                                      ${translations.addFiber} 
+                            </button>
+                                   <button class="remove-row-btn" onclick="removeSectionRow(this)">
+                                   <i class="fas fa-times"></i>
+                                                ${translations.removeFiber}
+                                          </button>
+
+
+                          </div>
+                        `;
+                       compositionForm.insertAdjacentHTML('beforeend', formHtml)
+
+        }, 
+        CreateCareInstructionsBlock : function () 
+        {
+            let self = this; 
+            let washData = self.CareInstructionsData;
+            const container = document.querySelector(".instrucciones-container")
+            let formHtml = '';
+
+                                formHtml += `
+                                     <div class="form-group">
+                                                     <select class="select-form instruccion wash" onchange="setWashIcon()">
+                                                                        ${washData.filter(s => s.Category == 'Wash').map(wash =>
+                                                                                                   `<option value="${wash.ID}"  >
+                                                                                                ${self.GetTranslation(wash)}
+                                                                       </option>`
+                                                                   ).join('')}
+                                                               </select>
+                                                                <img src="/images/download.png" class="wash-icon" style="width:24px;height:24px">
+                                                                <div name="wsymbols" class="indetgroup-ginetex wash-text" style="display:inline-block; width:30px;height:30px"></div>
+                                     </div>
+                                 `;
+
+                                       formHtml += `
+                                            <div class="form-group">
+                                                                   <select class="select-form instruccion bleach" onchange="setBleachIcon()">
+                                                                               ${washData.filter(s => s.Category == 'Bleach').map(wash =>
+                                                                                `<option value="${wash.ID}">
+                                                                                                   ${self.GetTranslation(wash)}
+                                                                              </option>`
+                                                                          ).join('')}
+                                                                      </select>
+                                                                      <img src="/images/download.png" class="bleach-icon" style="width:24px;height:24px">
+                                                                      <div  class="indetgroup-ginetex bleach-text" style="display:inline-block; width:30px;height:30px"></div>
+                                            </div>
+                                        `;
+                                              formHtml += `
+                                                   <div class="form-group">
+                                                                          <select class="select-form instruccion dry" onchange="setDryIcon()">
+                                                                                      ${washData.filter(s =>  s.Category == 'Dry').map(wash =>
+                                                                                                                 `<option value="${wash.ID}"  >
+                                                                                                              ${self.GetTranslation(wash)}
+                                                                                     </option>`
+                                                                                 ).join('')}
+                                                                             </select>
+                                                                              <img src="/images/download.png" class="dry-icon" style="width:24px;height:24px">
+                                                                              <div  class="indetgroup-ginetex dry-text" style="display:inline-block; width:30px;height:30px"></div>
+
+                                                   </div>
+                                               `;
+                                                     formHtml += `
+                                                          <div class="form-group">
+                                                                                 <select class="select-form instruccion iron" onchange="setIronIcon()">
+                                                                                             ${washData.filter(s =>  s.Category == 'Iron').map(wash =>
+                                                                                                                        `<option value="${wash.ID}"  >
+                                                                                                                     ${self.GetTranslation(wash)}
+                                                                                            </option>`
+                                                                                        ).join('')}
+                                                                                    </select>
+                                                                                     <img src="/images/download.png" class="iron-icon" style="width:24px;height:24px">
+                                                                                            <div  class="indetgroup-ginetex iron-text" style="display:inline-block; width:30px;height:30px"></div>
+
+                                                          </div>
+                                                      `;
+                                                     formHtml += `
+                                                          <div class="form-group">
+                                                                                        <select class="select-form instruccion drycleaning" onchange="setDryCleaningIcon()">
+                                                                                             ${washData.filter(s =>  s.Category == 'DryCleaning').map(wash =>
+                                                                                                                        `<option value="${wash.ID}"  >
+                                                                                                                     ${self.GetTranslation(wash)}
+                                                                                            </option>`
+                                                                                        ).join('')}
+                                                                                    </select>
+                                                                                           <img src="/images/download.png" class="drycleaning-icon" style="width:24px;height:24px">
+                                                                                                   <div  class="indetgroup-ginetex drycleaning-text" style="display:inline-block; width:30px;height:30px"></div>
+
+                                                          </div>
+                                                      `;
+                                                      
+        container.insertAdjacentHTML("beforeend", formHtml)
+        self.SetWashIcon();
+        self.SetBleachIcon(); 
+        self.SetDryIcon(); 
+        self.SetIronIcon(); 
+        self.SetDryCleaningIcon(); 
+               },
+        AddExceptionRow : function () 
+        {
+            let self = this
+            const container = document.querySelector('.excepciones-container');
+            let exceptionData = self.CareInstructionsData.filter(x => x.Category === 'Exception');
+            container.insertAdjacentHTML('beforeend', `
+                              <div class="form-group">
+                              <select class="select-form excepcion">
+                                                            ${exceptionData.map(exception =>
+                                                                `<option value="${exception.ID}" >
+                                                                           ${self.GetTranslation(exception)}
+                                                         </option>`
+                                                     ).join('')}
+                                                 </select>
+                                  <button class="remove-row-btn" onclick="removeExcepcion(this)">
+                                      <i class="fas fa-times"></i>
+                                  </button>
+                              </div>
+                          `);
+        },
+
+        AddAdditionalRow:  function ()
+        {
+           let self = this
+           const container = document.querySelector('.otras-instrucciones-container');
+           let additionalData = self.CareInstructionsData.filter(x => x.Category === 'Additional');
+           container.insertAdjacentHTML('beforeend', `
+                              <div class="form-group">
+                                                   <select class="select-form otra-instruccion">
+                                                        ${additionalData.map(additional =>
+                                                                              `<option value="${additional.ID}" >
+                                                                                         ${self.GetTranslation(additional)}
+                                                                </option>`
+                                                            ).join('')}
+                                                        </select>
+                                  <button class="remove-row-btn" onclick="removeOtraInstruccion(this)">
+                                      <i class="fas fa-times"></i>
+                                  </button>
+                              </div>
+                          `);
+        },
+        GenerateCompositionForm : function () 
+        {
+            let self = this;
+            self.AddSectionRow();
+            self.CreateCareInstructionsBlock();
+            
+        },
+
+        RemoveOtraInstruccion : function (btn) 
+        {
+             const group = btn.closest('.form-group');
+             group.remove();
+        }, 
+
+        RemoveExcepcion: function (btn) 
+        {
+           const group = btn.closest('.form-group');
+           group.remove();
+
+        },
+        RemoveFiber : function (btn) 
+        {
+          const group = btn.closest('.fibra-row');
+          group.remove();
+
+        }, 
+        RemoveSection : function (btn) 
+        {
+                 const group = btn.closest('.form-section');
+                 group.remove();
+
+        }, 
+
+        // return JQuery.Promise
+        Save: async function () {
+
+            let self = this;
+            let json = self.GetCompoData(); 
+            let auditCompo = {
+                OrderID : self.Options.OrderID, 
+                AuditCompo : json
+            };
+            console.log("Audit Compo", auditCompo);
+            var result = await AppContext.HttpPost(`/compositionaudit/save`, auditCompo, null, null, true);
+            if (result.Success) 
+            {
+                self.Close();
+            }
+        },
+
+        GetCompoData : function () 
+        {
+            let self = this;
+            const sections = [];
+            document.querySelectorAll('.form-section[data-section-index]').forEach(sectionEl => {
+                const fibras = [];
+                sectionEl.querySelectorAll('.fibra-row').forEach(fibraEl => {
+                                  const porcentaje = fibraEl.querySelector('.fibra-porcentaje').value + '%';
+                                  const nombre = fibraEl.querySelector('.fibra-nombre').selectedOptions[0].text;
+                                  const ID = fibraEl.querySelector('.fibra-nombre').selectedOptions[0].value;
+                                  if (nombre) {
+                                      fibras.push({ Porcentaje: porcentaje, Nombre: nombre, ID: ID});
+                                  }
+                              });
+
+                              const sectionName = sectionEl.querySelector('.section-name').selectedOptions[0].text;
+                                     const sectionID =sectionEl.querySelector('.section-name').selectedOptions[0].value;
+                              if (sectionName) {
+                                  sections.push({
+                                      Nombre: sectionName,
+                                      Fibras: fibras,
+                                      ID : sectionEl.querySelector('.section-name').selectedOptions[0].value
+                                  });
+                              }
+            });
+            console.log ("Secciones", sections);
+            const excepciones = Array.from(document.querySelectorAll('.excepcion'))
+                            .map(el => {
+                                         return {
+                                           Nombre :  el.selectedOptions[0].text,
+                                           ID : el.selectedOptions[0].value
+                                         }
+                                        })
+                            .filter(val => val);
+            console.log("Excepciones", excepciones)
+
+                          const instrucciones = Array.from(document.querySelectorAll('.instruccion'))
+                                     .map(el => {
+                                           return {
+                                                      Nombre : el.selectedOptions[0].text,
+                                                      ID : el.selectedOptions[0].value,
+                                                      Categoria :  this.CareInstructionsData.find(c=>c.ID == el.selectedOptions[0].value).Category
+                                                  }
+                                     })
+                                     .filter(val => val);                  
+        console.log("Instrucciones", instrucciones);
+
+               const otrasInstrucciones = Array.from(document.querySelectorAll('.otra-instruccion'))
+                                     .map(el => {
+                                         return {
+                                             Nombre: el.selectedOptions[0].text,
+                                             ID : el.selectedOptions[0].value
+                                         }
+
+                                     })
+                              .filter(val => val);
+        console.log("Adicionales", otrasInstrucciones) 
+
+        let json = {
+           "composicion_prenda" :
+           {
+               "Secciones" : sections, 
+               "Excepciones": excepciones
+           },
+            "instrucciones_conservacion" : instrucciones,
+            "otras_instrucciones_conservacion" : otrasInstrucciones 
+        }
+        return JSON.stringify(json); 
+        }, 
+
+        Exit: function () 
+        {
+            let self = this 
+            self.Close();
+
+        }, 
+
+
+        _solve: function () {
+            var self = this;
+
+//            return AppContext.Wizard.SolveShippingAddress(self.WorkSelection);
+        },
+
+
+
+ 
+
+
+
+ 
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        // TODO: ShowStatus method and GoBCGoToStepToStep method, could be better in parent object, to reuse for all wizards views
+    }
+
+/// </script>

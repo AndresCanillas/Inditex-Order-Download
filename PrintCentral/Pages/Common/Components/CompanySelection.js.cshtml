@@ -1,0 +1,43 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+	var isAdmin = User.IsAnyRole(Roles.SysAdmin, Roles.IDTLabelDesign); //add pending roles
+}
+//# sourceURL=https://Pages/Common/Components/CompanySelection.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var CompanySelection = function () {
+		FormView.Extend(this, "@g["Select Company"]", null);
+		this.Content = $(`
+		<viewcard>
+			<viewrow>
+				<viewcolumn>
+					<div name="CompanyList" component="CompanyListView" controller="/Common/Components/CompanyListView.js"></div>
+				</viewcolumn>
+			</viewrow>
+		</viewcard>`);
+        this.User = null;
+	};
+
+    CompanySelection.prototype = {
+        constructor: CompanySelection,
+
+		OnLoad: function () {
+			this.elements.CompanyList.ItemSelected.Subscribe(this.CompanySelected);
+            this.elements.CompanyList.LoadItems({ OpenOption: true });
+            this.elements.CompanyList.elements.FilterText.focus();
+		},
+
+		OnUnload: function () {
+			this.elements.CompanyList.ItemSelected.Unsubscribe(this.CompanySelected);
+		},
+
+        CompanySelected: function (e) {
+			window.location.href = `/Account/SelectCompany/${e.item.ID}`;
+		}
+    };
+//</script>

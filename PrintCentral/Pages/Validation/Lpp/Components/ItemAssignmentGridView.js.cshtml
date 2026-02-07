@@ -1,0 +1,629 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+
+//# sourceURL=https://Pages/Validation/Lpp/Components/ItemAssignmentGridView.js
+/// <script>
+/**
+    * Seletion = {
+    * Details:[],
+    * OrderGroupID:int,
+    * Orders:[],
+    * ProjectID: int
+    * }
+    * }
+    * @@param selection
+    */
+var ItemAssignmentGridView = function (args) {
+    this.ArticleList = [];
+    this.Selection = null;
+    this.SelectedArticles = [];
+    
+    this.Catalogs = []; // [{ Definition:'', Name:'', Data: [] }, { Definition:'', Name:'', Data: [] }]
+    this.Project = null;
+    this.ProductData = [];
+
+    // config values
+    this.UseInSetSeparator = '-';
+    this.SizeFieldName = 'Code';
+    this.SizeRangeValueSeparator = '@@';
+
+    FormView.Extend(this, "@g[" Assign Items "]", `@Url.Content("~/Validation/Lpp/Components/ItemAssignmentGridView")?ProjectID=${args.ProjectID}`);
+
+    this.OnLoaded.Subscribe(() => {
+        console.log('Gridview Loaded')
+    })
+
+}
+
+ItemAssignmentGridView.SelectPickerConfig = {
+    liveSearch: true,
+    liveSearchStyle: 'contains',
+    liveSearchNormalize: true,
+    style: 'btn-sm btn-light fixBorders',
+    sanitize: false,
+    //sanitizeFn: (el) => { return el; }
+},
+
+ItemAssignmentGridView.prototype = {
+
+    constructor: ItemAssignmentGridView,
+
+    OnLoad: function () {
+
+        let self = this;
+
+    },
+
+    LoadDataComponent: function (selection) {
+
+        let self = this;
+        let lstSelection = [];
+        lstSelection.push(selection);
+
+        AppContext.Wizard.GetGroupItemsAssigned({
+            selection: [selection],
+            productfields: ['Size', 'UseInSizes', 'SizeSetID','CertificationNumber','CertifyingCompany']
+        }).done((result) => {
+            if (result.Data.length != 1)
+                return false; // always return only one selection
+
+            result.Data.forEach((sel, idx, arr) => {
+
+                // unique details by articleCode
+                let resultDetails = [...new Map(sel.Details.map((item) => [item["ArticleCode"], item])).values()];
+                // looking for productData only for Articles With Variable Data (IsItem == false), and create custom ProductData
+                self.ProductData = [...new Map(sel.Details.filter(f => f.IsItem == false).map((item) => [item.ProductDataID, $.extend({
+                                        Articlecode: item.ArticleCode,
+                                        ProductDataID: item.ProductDataID
+                                    }, item.ProductData)])).values()]; // some projects has shared data
+                
+                //let result = uniqueObjArray.filter(f => f.ArticleCode != '@Article.EMPTY_ARTICLE_CODE');
+
+                if (!resultDetails)
+                    return false;
+
+                resultDetails
+                .filter(f => f.ArticleCode != '@Article.EMPTY_ARTICLE_CODE')
+                .forEach((art, idx, arr) => {
+
+                    let found = self.Labels.find(f => f.ID == art.ArticleID);
+
+                    let item = {
+                        ArticleID: found.ID,
+                        ArticleName: found.Description,
+                        ArticleCode: found.ArticleCode,
+                        ArticleType: found.LabelType,
+                        RFID: found.EncodeRFID,
+                        LabelID: found.LabelID
+                    }
+
+                    self.elements.Articles.Rows.Add(item);
+                    self.SelectedArticles.push(item);
+
+                });
+
+                // the product fields contain the same infor for all articles inner the order
+                let labelArticle = resultDetails.filter(f => !f.IsItem).first();
+
+                if(labelArticle){
+                    // set custom data
+                    let found = self.ProductData.filter(f => f.Articlecode == labelArticle.ArticleCode);
+                    self.SetSizeTemplates(found); // pass full details
+                    self.LoadData(labelArticle.ProductData);
+                }
+
+                self.CreateImagesCards();
+
+            });
+
+        });
+
+    },
+
+    /**
+     *
+     * @@param selection current selection
+     * @@param labels articles with labels
+     * @@param items articles with out labels
+     * @@param catalogs hashtable with catalogs data by catalogname: { MadeId: [MadeIn Data], Catalog2:[catalog2 data], ...}
+     */
+    Initialize: function (selection, labels, items, catalogs, project) {
+        // fill ArticleFinder compo
+        // load previously selected articles
+
+        let self = this;
+
+        self.Selection = selection;
+        self.Labels = labels;
+        self.Items = items;
+        self.Catalogs = catalogs;
+        self.Project = project;
+
+        self.elements.OrderNumber.text(selection.OrderNumber);
+
+        self.LoadDataComponent(selection);
+
+        self.PrepareFinder();
+
+        self.ConfigureCombos(); // custom fields
+    },
+
+    ConfigureCombos: function () {
+        let self = this;
+
+        self.elements.SizeSetID.selectpicker(ItemAssignmentGridView.SelectPickerConfig);
+    },
+
+    PrepareFinder: function () {
+        let self = this;
+
+        self.FillArticleCombo();
+
+        self.elements.ArticleFinder.selectpicker(ItemAssignmentGridView.SelectPickerConfig);
+    },
+
+    FillArticleCombo: function () {
+        let self = this;
+
+        let allOptions = [];
+
+        let labelsGroup = $('<optgroup>', {
+            label: '@g["Labels"]'
+        })
+            let itemsGroup = $('<optgroup>', {
+                label: '@g["Articles"]'
+            })
+            let labelsTokens = 'data-tokens="label labels etiqueta etiquetas"';
+        let itemsTokens = 'data-tokens="item items"'
+
+            self.Labels.forEach((art, idx, allLabels) => {
+                let isRfid = '';
+
+                if (art.EncodeRFID)
+                    isRfid = `<span class='badge badge-warning'>RFID</span>`;
+
+                let htmlOption = `<i class='fa fa-fw fa-tag'></i> ${art.Name} ${isRfid}`;
+
+                let opt = `<option value="${art.ID}" data-content="${htmlOption}" ${labelsTokens} >${art.Name}</option>`;
+                allOptions.push(opt)
+            });
+
+        labelsGroup.html(allOptions.join(''));
+
+        allOptions = [];
+
+        self.Items.forEach((art, idx, allItems) => {
+            let htmlOption = `<i class='fa fa-fw fa-shopping-cart'></i> ${art.Name}`;
+
+            let opt = `<option ${itemsTokens} data-content="${htmlOption}" value="${art.ID}">${art.Name}</option>`;
+            allOptions.push(opt)
+        });
+
+        itemsGroup.html(allOptions.join(''));
+
+        self.elements.ArticleFinder.html('');
+        self.elements.ArticleFinder.append(labelsGroup);
+        self.elements.ArticleFinder.append(itemsGroup);
+        //self.elements.ArticleFinder.selectpicker('refresh')
+    },
+
+    AddArticle: async function (e) {
+        let self = this;
+        let result = this.GetArticle();
+
+        if (result == null)
+            return AppContext.ShowError("@g[" You need to select an article first."]");
+        if (this.elements.Articles.Rows.DataSource.first(x => x.ArticleCode == result.ArticleCode))
+            return AppContext.ShowInfo("@g[" That article is already part of the order."]")
+
+            //add item to grid
+            self.elements.Articles.Rows.Add(result);
+
+        //clear control finder
+        let article = self.elements.ArticleFinder;
+        article.selectpicker('val', "");
+
+        self.SelectedArticles.push(result);
+
+        self.RemoveImageCards();
+
+        self.CreateImagesCards();
+
+        //bylabel
+        // http://localhost/labels/getpreview/3715
+
+        // byarticle
+        // http://localhost/articles/getfixedpreview/15311
+
+        //var articledetail = await AppContext.HttpPost(`/articles/addarticletoorder/${result.ArticleID}/${self.OrderId}`,null);
+    },
+
+    HasItems: function () {
+        let self = this;
+
+        return self.elements.Articles.Rows.Count > 0
+    },
+
+    GetGrid: function () {
+        let self = this;
+        return self.elements.Articles;
+    },
+
+    GetArticle: function () {
+
+        let self = this;
+        let item;
+        let article = self.elements.ArticleFinder;
+        let found = self.Labels.find(art => art.ID == article.val());
+
+        if (found != undefined) {
+            item = {
+                ArticleID: found.ID,
+                ArticleName: found.Description,
+                ArticleCode: found.ArticleCode,
+                ArticleType: found.LabelType,
+                RFID: found.EncodeRFID,
+                LabelID: found.LabelID
+            }
+        } else {
+            item = null;
+        }
+
+        return item;
+    },
+
+    RemoveArticle: function (e) {
+        e.preventDefault();
+        let self = this;
+        let idx = this.elements.Articles.Rows.SelectedIndex;
+        if (idx >= 0 && self.elements.Articles.Rows.Count > 0) {
+
+            var ArticleId = self.elements.Articles.Rows.Get(idx).ArticleID;
+
+            self.elements.Articles.Rows.Remove(idx);
+
+            const index = self.SelectedArticles.findIndex(object => {
+                return object.ArticleID === ArticleId;
+            });
+
+            self.RemoveArticleAndPreview(ArticleId, index);
+        }
+    },
+
+    RemoveArticleAndPreview(articleid, index) {
+        let self = this;
+        self.SelectedArticles.splice(index, 1);
+
+        //delete image
+        self.RemoveImageCards();
+        self.CreateImagesCards();
+    },
+
+    CreateImagesCards: function () {
+        let self = this;
+
+        for (var i = 0; i < self.SelectedArticles.length; i++) {
+            self._AddImage(self.SelectedArticles[i], i);
+        }
+
+        $('.carousel-item', self.elements.CarrouselContent).first().addClass('active');
+        $('> li', self.elements.CarrouselIndicator).first().addClass('active');
+        $('#articlesSelected').carousel();
+    },
+
+    RemoveImageCards: function () {
+        let self = this;
+        self.elements.CarrouselContent.html("");
+        self.elements.CarrouselIndicator.html("");
+    },
+
+    _AddImage: function (selectedarticle, position) {
+
+        let self = this;
+        let url = "";
+
+        let timeMark = (new Date()).valueOf();
+        //bylabel
+        // http://localhost/labels/getpreview/3715
+
+        // byarticle
+        // http://localhost/articles/getfixedpreview/15311
+
+
+        if (selectedarticle.LabelID == null) {
+            url = `/articles/getfixedpreview/${selectedarticle.ArticleID}?=${timeMark}`
+        } else {
+            url = `/articles/getpreview/${selectedarticle.ArticleID}?=${timeMark}`
+        }
+
+        $(`<div class="carousel-item text-center" data-ArticleCode="${selectedarticle.ArticleCode}">
+            <a href="${url}" data-title="${selectedarticle.ArticleCode}" data-position="${position}">
+                <img src="${url}" style="height: 350px;">
+            </a>
+            <div class="carousel-caption d-none d-md-block" style="color: black;text-shadow: 4px 4px 4px #ADADAD; position: static">
+                <h5>${selectedarticle.ArticleCode}</h5>
+                    ${selectedarticle.ArticleName}
+                <br>
+            </div>
+        </div>`).appendTo(self.elements.CarrouselContent)
+        $(`<li data-target="#articlesSelected" data-ArticleCode="${selectedarticle.ArticleCode}" data-slide-to="' + position + '"></li>`)
+		.appendTo(self.elements.CarrouselIndicator)
+    },
+
+    IsValid: function () {
+        let self = this;
+
+        //var deffered = $.Deferred();
+
+        if (!self.model.ValidState()) {
+
+            //deffered.reject(false);
+
+            return false;
+        };
+
+        //deffered.resolve(true);
+
+        //return deffered.promise();
+        return true;
+
+    },
+
+    GetSelectedArticles: function () {
+
+        let self = this;
+        // set triman logo for every article, is a monoprix rule,
+        // every article can contain differentes triman logo -> TODO: check this rule
+
+
+        var selected = $.extend([], self.SelectedArticles)
+
+            return selected;
+
+    },
+
+    // custom product fields
+    GetProductFields: function () {
+
+        let self = this;
+
+        let sizes = self.GetAvailabelSizesInSet();
+
+        let productFields = [];
+        productFields.push({
+            Name: 'SizeSetID',
+            Value: self.model['SizeSetID']
+        })
+        productFields.push({
+            Name: 'SizeSetRange',
+            Value: self.GetSizeSetRangeValue(sizes)
+        })
+        productFields.push({ Name: 'CertificationNumber', Value: this.elements.CertificationNumber[0].value })
+        productFields.push({ Name: 'CertifyingCompany', Value: this.elements.CertifyingCompany[0].value })
+        //productFields.push({ Name: 'SizesReferenceID', Value: self.GetSizeValue(sizes) })
+
+        return productFields;
+
+    },
+
+    GetSizeSetRangeValue: function (sizes) {
+        let self = this;
+
+        // calculate size range
+        // calculate sizes that will be appear on label
+
+
+        let UseInSizes = [... new Set(self.ProductData.map(m => m.UseInSizes))];
+
+        if (UseInSizes.length > 1) throw 'Multiple Size range';
+
+        let useInSet = UseInSizes[0].split(self.UseInSetSeparator);
+
+        if (useInSet.length != 2)
+            throw new Exception(`Invalid UseInSet Value [${self.ProductData['UseInSet']}], cannot split by [${self.UseInSetSeparator}]`);
+
+        let minIndex = sizes.findIndex(s => s[self.SizeFieldName] == useInSet[0]);
+        let maxIndex = sizes.findIndex(s => s[self.SizeFieldName] == useInSet[1]);
+
+        let sizeRangeValue = [];
+
+        sizes.forEach((sz, idx, arr) => {
+
+            if (idx < minIndex || idx > maxIndex)
+                return; // continue
+
+            sizeRangeValue.push(sz[self.SizeFieldName])
+
+        });
+
+        return sizeRangeValue.join(self.SizeRangeValueSeparator); // "S@M@L"
+    },
+
+    GetSizeValue: function () {
+        let self = this;
+
+        let sizes = self.GetAvailabelSizesInSet();
+        let postProductFieldsForSize = [];
+
+        self.ProductData.forEach((p) => {
+
+            if(sizes.length == 0){
+                AppContext.ShowError(`@g["A size needs to be selected."]`);
+                throw `@g["A size needs to be selected."]`;
+            }
+
+            const sizeFound = sizes.find(s => s[self.SizeFieldName] == p['Size']);
+            if (!sizeFound){
+                AppContext.ShowError(`@g["Bad Size Set Selected, is not found the Size: "] [${p['Size']}]`);
+                throw `@g["Bad Size Set Selected, is not found the Size: "] [${p['Size']}]`;
+            }    
+
+            p['SizeID'] = sizeFound['ID'];
+
+            postProductFieldsForSize.push({
+                ProjectID: self.Project.ID,
+                ProductDataID: p.ProductDataID,
+                ProductFields: [
+                    { Name: 'SizeID', Value: sizeFound['ID'] },
+                    { Name: 'CertificationNumber', Value: this.elements.CertificationNumber[0]?.value },
+                    { Name: 'CertifyingCompany', Value: this.elements.CertifyingCompany[0]?.value }
+                ]
+            })
+
+        });
+
+        //return JSON.stringify(self.ProductData.map(p => { ProductDataID: p.ProductDataID, SizeID: p['SizeID'] }))
+        return postProductFieldsForSize;
+
+    },
+
+    // create all options for the RSA combo
+
+    OnlyNumbers: function (evt) {
+
+        let self = this;
+        let key = event.which;
+        const rgx = /^(0[1-9]|1[1-2])([2][0-9])$/
+
+            if (key === 46 || key === 8 || key === 37 || key === 39)
+                return true;
+
+            if ((key >= 96 && key <= 105) || (key >= 48 && key <= 57)) {
+
+                const userInput = self.elements.LotNumber.val() + evt.key; // evt.target;
+
+                if (userInput.length === 1 && /^[0-1]$/.test(userInput))
+                    return true; // one digit
+                if (userInput.length === 2 && /^(0[1-9]|1[0-2])$/.test(userInput))
+                    return true; // two digits
+                if (userInput.length === 3 && /^(0[1-9]|1[0-2])2$/.test(userInput))
+                    return true; // three digits
+                if (userInput.length === 4 && /^(0[1-9]|1[0-2])(2[0-9])$/.test(userInput))
+                    return true; // four digits
+
+            }
+
+            evt.preventDefault();
+        return false;
+    },
+
+    SetSizeTemplates: function (productData) {
+
+        let self = this;
+        let uq = [...new Set(productData.map(x => x.Size))];
+        // looking only for Size Templates that contains order Sizes
+        let catalog = self.Catalogs.find(f => f.Name == 'SizeSubSet');
+        let templateCatalog = self.Catalogs.find(f => f.Name == 'SizesSet');
+
+        let sizesUsed = catalog.Data.filter(f => uq.includes(f[self.SizeFieldName]));
+        let sourcesID = [...new Set(sizesUsed.map(f => f.SourceID))];
+        let templates = templateCatalog.Data.filter(f => sourcesID.includes(f.ID));
+
+        self.FillSizesSetCompo(templates);
+
+    },
+
+    FillSizesSetCompo: function (data) {
+        let self = this;
+
+        let allOptions = [`<option value="-1" >@Html.Raw(g["Select option"])</option>`];
+
+        data.filter(f => f.IsActive == true).forEach(d => {
+            const opt = `<option value="${d.ID}" >${d.Name}</option>`;
+            allOptions.push(opt);
+        });
+        self.elements.SizeSetID.html('');
+        self.elements.SizeSetID.append(allOptions);
+        self.elements.SizeSetID.selectpicker('refresh')
+        self.elements.SizeSetID.selectpicker('val', '-1');
+    },
+
+    ShowSetValues_Event: function (evt) {
+        let self = this;
+
+        self.ShowSetValues(self.elements['SizeSetID'].val()); // self.model['SizesSetID']
+    },
+
+    ShowSetValues: function (sizeSetVal) {
+        let self = this;
+
+        let catalog = self.Catalogs.find(f => f.Name == 'SizeSubSet');
+
+        var sizes = catalog.Data.filter(f => f.SourceID == sizeSetVal);
+
+        // size come from server sorted by ID, for now not exist a sortColumn
+
+        let toDisplay = sizes.map(s => s[self.SizeFieldName])
+
+        self.elements['SizesToDisplay'].text(toDisplay.join(', '));
+    },
+
+    GetAvailabelSizesInSet: function () {
+
+        let self = this;
+
+        let currentSizeSetID = self.model['SizeSetID'];
+
+        let catalog = self.Catalogs.find(f => f.Name == 'SizeSubSet');
+
+        // availabel sizes
+        return catalog.Data.filter(f => f.SourceID == currentSizeSetID);
+    },
+    //Certifactions Sections
+
+        OpenCertificationManager: async function () {
+            let self = this;
+
+            AppContext.LoadJS("/Validation/Common/Components/CertificationsView.js").then(function () {
+                let certificationView = new CertificationsView();
+                certificationView.ShowDialog(function (certificationSelected, deleted) {
+                    if ((!certificationSelected || certificationSelected.length === 0) && !deleted) {
+                        AppContext.ShowError("@g["No certification was selected."]");
+                        return;
+                    }
+                    self.SetCertificationsValues(certificationSelected);
+                });
+            }).catch(error => {
+                console.error("Error cargando CertificationsView.js:", error);
+            });
+        },
+        SetCertificationsValues: function (certificationSelected){
+            let self = this;
+            let certificationNumberInput = document.querySelector('[name="CertificationNumber"]');
+            let certifyingCompanyInput = document.querySelector('[name="CertifyingCompany"]');
+
+            if(certificationSelected?.IsDeleted && certificationSelected?.CertificateNumber != certificationNumberInput.value && certificationSelected?.CertifyingCompany != certifyingCompanyInput.value)
+                return;
+
+            if(certificationSelected?.IsDeleted && certificationSelected?.CertificateNumber == certificationNumberInput.value && certificationSelected?.CertifyingCompany == certifyingCompanyInput.value){
+                certificationNumberInput.value = "";
+                certifyingCompanyInput.value = "";
+            }else {
+                certificationNumberInput.value = certificationSelected?.CertificateNumber;
+                certifyingCompanyInput.value = certificationSelected?.CertifyingCompany;
+            }
+            
+        },
+        LoadCertfications: function () {
+            return AppContext.Certifications.GetByVendorName("@userData.CompanyID") 
+                .then(certifications => {
+                    console.log("Certificaciones recibidas:", certifications);
+                    return certifications;
+                })
+                .catch(error => {
+                    console.error("Error al obtener certificaciones:", error);
+                    throw error;
+                });
+        }
+
+        //Fin Certifcations Sections
+
+};
+
+
+/// </script>
+

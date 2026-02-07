@@ -1,0 +1,80 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@inject ILocationRepository factoryRepo
+@inject IAddressRepository addRepo;
+@{
+    Layout = null;
+
+    List<Location> factories = new List<Location>();
+    List<object> erpInstances = new List<object>() { new { ID = 1, Name = "SAGE"} };
+    IEnumerable<IAddress> addresses = new List<IAddress>();
+    factories = factoryRepo.GetByCompanyID(1).Select(s => new Location() { ID = s.ID, Name = $"[{s.FactoryCode}] - {s.Name}" }).ToList();
+
+    if (Request.Query.ContainsKey("CompanyID"))
+    {
+        int companyID = Convert.ToInt32(Request.Query["CompanyID"].ToString());
+        addresses = addRepo.GetByCompany(companyID).ToList().Select(s => new Address() {
+            ID = s.ID,
+            Name = $"{(string.IsNullOrEmpty(s.SageRef)? "-" : s.SageRef)} -  {s.Name}"
+        });
+    }
+
+
+}
+
+    <viewcard>
+        <form>
+            <input model name="CompanyID" value="" type="hidden" data-type="int" />
+            @*<viewrow>
+                <viewcolumn>
+                    <select model name="ProductionLocationID" label="@g["IDT Factory Location"]" value="" options="@(OptionList.FromEnumerable(factories, "ID", "Name", null, g["Choose one"]))" />
+                    <select model name="ERPInstanceID" label="@g["ERP"]" value="" data options="@(OptionList.FromEnumerable(erpInstances, "ID", "Name", null, g["Choose one"]))" />
+                </viewcolumn>
+
+                <viewcolumn>
+                    <input model name="BillingFactoryCode" label="@g["ERP Sales Factory Code"]" value="" />
+                    <input model name="ProductionFactoryCode" label="@g["ERP Production Factory Code"]" value="" />
+                    <input model name="Currency" label="@g["Currency"]" value="" />
+                    <input model name="Currency" label="@g["Factory Address ID"]" value="" />
+                </viewcolumn>
+            </viewrow>*@
+
+            <viewrow>
+                <viewcolumn>
+
+                    <div class="form-subtitle">@g["ERP Company Configuration "]</div>
+                    <hr class="subtitle" />
+                    <div class="toolbar-body" style="width:100%">
+                        <span class="toolbar-grip"></span>
+                        <a href="#" title="@g["Add"]" action="AddConfig"><span class="fa fa-plus" style="color:green;"></span></a>
+                        <a href="#" title="@g["Remove"]" action="RemoveConfig"><span class="fa fa-trash"></span></a>
+                    </div>
+                    <div component="OrderGrid" class="" name="ERPCompanyConfigList" style="width:100%; min-height:250px; max-height:250px;">
+                        <template>
+                            <column width="150" field="ProductionLocationID" editable map="@Map.FromEnumerable(factories,"ID", "Name", false)">@g["Factory"]</column>
+                            <column width="150" field="ERPInstanceID" editable map="@Map.FromEnumerable(erpInstances, "ID", "Name", false)">@g["ERP"]</column>
+                            <column width="150" field="BillingFactoryCode" editable>@g["Sales F. Code"]</column>
+                            <column width="150" field="ProductionFactoryCode" editable>@g["Production F. Code"]</column>
+                            <column width="150" field="Currency" editable>@g["Currency"]</column>
+                            <column width="150" field="ExpeditionAddressCode" editable>@g["Exp. Address Code"]</column>
+                            <column width="150" field="DeliveryAddressID" editable map="@Map.FromEnumerable(addresses, "ID", "Name", false)">@g["Defaul Delivery Address"]</column>
+                        </template>
+
+                        <menu>
+                        </menu>
+
+                    </div>
+                </viewcolumn>
+            </viewrow>
+
+            <viewfooter>
+                <viewcolumn>
+                    <a href="#" class="btn btn-secondary" action="CheckToClose">@g["Close"]</a>
+                    <a href="#" class="btn btn-primary" action="Save">@g["Save"]</a>
+                </viewcolumn>
+            </viewfooter>
+        </form>
+    </viewcard>
+
+

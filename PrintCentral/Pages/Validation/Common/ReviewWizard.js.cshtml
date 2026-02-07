@@ -1,0 +1,401 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+
+//# sourceURL=https://Pages/Validation/ReviewWizard.js
+///<script>
+
+    var ReviewWizard = function (orderSelection, wizardStep, allSteps) {
+
+        var self = this;
+
+        //this.OrderRowInfo = orderRowInfo;
+        this.OrderSelection = orderSelection;
+        this.WizardStep = wizardStep;
+        this.AllSteps = allSteps;
+        this.WorkSelection = null;
+        this.Countries = {};
+
+        this.confirmOpen = false;
+
+        FormView.Extend(this, "@g["Review Wizard"]", `@Url.Content("~/Validation/common/ReviewWizard")`);
+
+    }
+
+
+    ReviewWizard.prototype = {
+
+        constructor: ReviewWizard,
+
+        OnLoad: async function () {
+
+            var self = this;
+
+            self.ShowStatus();
+            await self.LoadCountries();
+
+            // Update OrderNumber for every slide
+            self.elements.PreviewAndCaptions.on("slide.bs.carousel", function (ev) {
+                var cardItem = $(ev.relatedTarget)
+
+                var OrderNumber = cardItem.data('orderNumber')
+
+                self.elements.CurrentOrderNumber.text(OrderNumber);
+
+            });
+
+            self.LoadArticles().done((response) => {
+
+                if (response.Success == false) {
+                    return;
+                }
+
+                self.WorkSelection = response.Data;
+
+                var a = self.WorkSelection.map(x => x.Details.map(y => y.ArticleID));
+                var b = [].concat.apply([], a);
+                var articleids = [... new Set(b)];
+                AppContext.Articles.GetArtifactsByArticles(articleids, function (result) {
+                    if (result != null) {
+
+                        for (var i = 0; i < self.WorkSelection.length; i++) {
+                            var sel = self.WorkSelection[i].Details;
+
+                            for (var j = 0; j < sel.length; j++) {
+
+                                var found = result.Data.filter(x => x.ArticleID == sel[j].ArticleID);
+                                if (found != null) {
+                                    sel[j]["Artifacts"] = found[0].Artifacts;
+                                }
+                            }
+                        }
+                    }
+                }).always(() => {
+
+                    // if artifacts return a error, show only article images
+                    
+
+                    self.CreateImagesCards();
+
+                });
+
+
+
+            })
+
+            AppContext.LoadJS('/js/photoviewer.js').then(() => {
+
+            });
+            
+            
+        },
+
+        _solve: function () {
+            var self = this;
+            // work selection was grouped, here use OrderSelection
+            return AppContext.Wizard.SolveReview(self.OrderSelection);
+
+        },
+
+        SaveAndNext: function () {
+            let self = this;
+
+            if (self.confirmOpen) return;
+
+            let confirm = new ConfirmDialog("@g["Please Confirm Order Validation?"]", '@g["I Agree"]', '@g["Cancel"]', '/Validation/Common/Components/ConfirmReviewDialogView',this.Countries);
+
+            confirm.ShowDialog(function (result) {
+
+                self.confirmOpen = false;
+
+                if (!result) { return; }
+
+                let p = self._solve();
+
+                p.done((responseSolve) => {
+
+                    if (responseSolve.Success == true) {
+                        self.GetValidator().GetStep(self.WizardStep.Position + 1);
+                    }
+
+                })
+
+		    });
+
+            self.confirmOpen = true;
+
+        },
+
+        LoadCountries: async function () {
+            let self = this;
+
+            let groupIDs = self.OrderSelection.map(o => o.OrderGroupID);
+
+            let promises = groupIDs.map(id => {
+                return AppContext.Orders.GetCountryByOrderLocation(id);
+            });
+
+            let results = await Promise.all(promises);
+            if(results[0].Data == null || results[0].Data.Data == null)
+                return;
+
+            this.Countries = results.map(r => r?.Data?.Data?.CountryName.toUpperCase());
+
+        },
+
+        LoadArticles: function () {
+            var self = this;
+
+            return AppContext.Wizard.GetOrdersDetailsForReview(self.OrderSelection).done((result) => {
+                self._UpdateSelection(result)
+            });
+
+        },    
+
+        _UpdateSelection: function (result) {
+
+            var self = this;
+
+            for (var i = 0; i < result.Data.length; i++) {
+
+                var sel = result.Data[i]
+
+                var ordersInGroup = []
+
+                for (var j = 0; j < sel.Orders.length; j++) {
+                    ordersInGroup.push(sel.Orders[j])
+                }
+
+                self.OrderSelection[i].Orders = ordersInGroup;
+
+            }
+
+        },
+
+        CreateImagesCards: function () {
+
+            var self = this;
+
+            var k = 0;
+
+            for (var i = 0; i <self.WorkSelection.length; i++) {
+
+                var sel = self.WorkSelection[i]
+
+                if (sel.Details.length > 0) {
+
+                    for (var j = 0; j < sel.Details.length; j++) {
+                        sel.Details[j].DueDate = new Date(sel.DueDate).toLocaleDateString();
+                        self._AddImage(sel.Details[j], (k++));
+
+                        if (sel.Details[j].Artifacts != null && $.isArray(sel.Details[j].Artifacts)) {
+                            k = k + sel.Details[j].Artifacts.length;
+                        }
+                        
+                    }
+
+                    self.StartViewer();
+                }
+
+            }
+
+            $('.carousel-item', self.elements.CarrouselContent).first().addClass('active');
+            $('> li', self.elements.CarrouselIndicator).first().addClass('active');
+            $('#PreviewAndCaptions').carousel();
+
+            // set order number to fisrt display
+            self.elements.CurrentOrderNumber.text($('.carousel-item', self.elements.CarrouselContent).first().data('orderNumber'));
+            self.elements.CurrentOrderDueDate.text($('.carousel-item', self.elements.CarrouselContent).first().data('orderDuedate'));
+            
+        },
+
+        _AddImage: function (detail, position) {
+
+            var self = this;
+
+            //var srcAttr = 'data-scr';
+            var srcAttr = 'scr';
+
+            var classActive = '';
+
+            var description = '<p>&nbsp;</p>';
+
+            var timeMark = (new Date()).valueOf();
+
+            var url = `/labels/getarticlepreview/${detail.LabelID}/${detail.OrderID}/${detail.ProductDataID}?${timeMark}`
+
+            if (detail.IsItem) {
+                url = `/articles/getpreview/${detail.ArticleID}?_t=${timeMark}`
+            }
+
+            if (detail.UnitDetails != null && detail.UnitDetails.length > 0) {
+                description = `<p>${detail.UnitDetails}</p>`
+            }
+            
+            if (position == 0) {
+                srcAttr = 'src';
+                classActive = 'active';
+            }
+
+
+            $(`<div class="carousel-item text-center" data-order-number="${detail.OrderNumber}" data-order-duedate="${detail.DueDate}">
+                <a data-gallery="photoviewer" href="${url}" data-title="${detail.OrderNumber} - ${detail.Article} [${detail.ArticleCode}]" data-position="${position}">
+                        <img src="${url}" style="height: 350px;"> 
+                </a>
+                        <div class="carousel-caption d-none d-md-block" style="color: black;text-shadow: 4px 4px 4px #ADADAD; position: static">
+                            <h5>${detail.OrderNumber} - ${detail.Article} [${detail.ArticleCode}]</h5>
+                            ${description}
+                            <p><a href="/orders/actions/getpreviewdocument/${detail.OrderID}?_t=${timeMark}" target="_blank">@g["Document Preview"]</a></p>
+                            
+                        </div>
+                </div>`).appendTo(self.elements.CarrouselContent)
+                    //.appendTo('.carousel-inner');
+            $('<li data-target="#PreviewAndCaptions" data-slide-to="' + position + '"></li>')
+                .appendTo(self.elements.CarrouselIndicator)
+                    //.appendTo('.carousel-indicators')
+
+
+            ///artifacts
+            if (detail.Artifacts != null) {
+                detail.Artifacts.forEach((s,i) => {
+
+                           if(s.EnablePreview == false) return;// dont' show preview
+
+                    var idx = (i + 1) + position
+                    url = `/labels/getarticlepreview/${s.LabelID}/${detail.OrderID}/${detail.ProductDataID}?${timeMark}`
+
+                    $(`<div class="carousel-item text-center" data-order-number="${detail.OrderNumber}" data-order-duedate="${detail.DueDate}">
+                        <a data-gallery="photoviewer" href="${url}" data-title="${detail.OrderNumber} - ${detail.Article} [${detail.ArticleCode}]" data-position="${idx}">
+                                <img src="${url}" style="height: 350px;"> 
+                        </a>
+                                <div class="carousel-caption d-none d-md-block" style="color: black;text-shadow: 4px 4px 4px #ADADAD; position: static">
+                                    <h5>${detail.OrderNumber} - ${detail.Article} [${detail.ArticleCode}]</h5>
+                                    ${description}
+                                    <p><a href="/orders/actions/getpreviewdocument/${detail.OrderID}?_t=${timeMark}" target="_blank">@g["Document Preview"]</a></p>
+                                </div>
+                        </div>`).appendTo(self.elements.CarrouselContent)
+                            //.appendTo('.carousel-inner');
+                    $('<li data-target="#PreviewAndCaptions" data-slide-to="' + idx + '"></li>')
+                    .appendTo(self.elements.CarrouselIndicator)
+
+                });
+
+                
+            }
+
+        },
+
+        GoTo: function (evt) {
+
+            var self = this;
+
+            var stepBtn = $(evt.target);
+
+            var step = stepBtn.data('position')
+
+            self.GetValidator().GetStep(step);
+
+
+
+        },
+
+        GetValidator: function () {
+
+            var self = this;
+
+            var validator = new ValidatorHelper(self.OrderSelection);
+
+            validator.OnWizardCreated.Subscribe(this, this._validatorHelperOnCreateEvent)
+
+            return validator;
+
+        },
+
+        _validatorHelperOnCreateEvent: function (e) {
+            var self = this;
+
+            var wizard = e.wizardController;
+            var wizardStep = e.wizardStep
+
+            wizard.Show(self.ViewContainer);
+        },
+
+        // TODO: ShowStatus method and GoBCGoToStepToStep method, could be better in parent object, to reuse for all wizards views
+        ShowStatus: function() {
+            var self = this;
+            var breadCrumbs = new BreadCrumbsUI({
+                ContainerElm: this.elements.BreadcrumbContainer,
+	            Controller: self,
+                LinkClick: 'BCGoToStep',
+                Crumbs: $.map(self.AllSteps, (wzdStep) => {
+                    // Crumb Object {Text, Position, Href, State }
+                    return {
+                        Text: wzdStep.Name,
+                        Position: wzdStep.Position,
+                        Href: '#',
+                        State : self.WizardStep.ID == wzdStep.ID ? CrumbState.PROGRESS : ( wzdStep.IsCompleted ? CrumbState.COMPLETED :CrumbState.PENDING )
+                    } 
+                }),
+	            AutoRender: true,
+	            SizeCls: '', // not implemented
+	            AlignCls: '' // justify-content-center or justify-content-end
+            });
+
+        },
+
+        BCGoToStep: function (evt) {
+
+            var self = this;
+            var stepBtn = $(evt.target);
+            var step = stepBtn.data('position')
+            var wzdStepSelected = self.AllSteps.find((val) => val.Position == step)
+            var beforeStepSelected = self.AllSteps.find((val) => val.Position == step - 1)
+
+            if (!wzdStepSelected
+                || self.WizardStep.ID == wzdStepSelected.ID
+                || (wzdStepSelected.IsCompleted == false && beforeStepSelected && beforeStepSelected.IsCompleted == false)
+            ) { 
+                evt.preventDefault();
+                return;
+            }
+
+            self.GetValidator().GetStep(step);
+        },
+
+        StartViewer: function () {
+
+            $('[data-gallery=photoviewer]').click(function (e) {
+
+                e.preventDefault();
+
+                var items = [],
+                    // get index of element clicked
+                    options = {
+                        index: $(this).data("position"),
+                        resizable: false,
+                        initMaximized: true,
+                        title:true,
+                        headerToolbar: ['close'],                    
+                        footerToolbar: ['zoomIn', 'zoomOut', 'actualSize', 'rotateRight', 'prev', 'next','close']                   
+                    };
+
+                // looping to create images array
+                $('[data-gallery=photoviewer]').each(function () {
+                    let src = $(this).attr('href');
+                    items.push({
+                        src: src,
+                        title: $(this).attr('data-title')
+                    });
+                });
+
+                new PhotoViewer(items, options);
+
+            });
+        }
+
+    }
+
+/// </script>

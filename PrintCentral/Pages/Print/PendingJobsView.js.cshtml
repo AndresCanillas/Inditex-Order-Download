@@ -1,0 +1,444 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Production/PendingJobsView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var PendingJobsView = function () {
+		FormView.Extend(this, "@g["Pending Print Jobs"]", "/Print/PendingJobsView");
+        this.Orders = null;
+        this.selectedJobs = null;
+	};
+
+	PendingJobsView.prototype = {
+		constructor: PendingJobsView,
+
+        OnLoad: function () {
+			var self = this;
+			$(".toolbar-body a").attr("data-disabled", "true").addClass("toolbar-disabled");
+			this.FilterJobs();
+		},
+
+		FilterJobs: function () {
+			var self = this;
+			var filter = {
+				Status: this.model.JobStatusFilter,
+				CompanyID: this.model.JobCompanyFilter,
+                LocationID: this.model.JobLocationFilter,
+                OrderNumber: this.model.OrderNumber,
+				Date: this.model.JobDueDateFilter
+			};
+			AppContext.PrinterJobs.FilterPrinterJobs(filter, (result) => {
+				if (result.Success) {
+					self.Orders = result.Data;
+                    var grid = self.elements.OrdersTable.data('kendoGrid');
+                    if (grid != undefined) {
+                        grid.setDataSource(self.Orders)
+                    } else {
+                        self.LoadGrid(self.Orders);
+                    }
+				}
+			});
+        },
+
+        ShowLabelPreview: function () {
+            var jobs = this.selectedJobs;
+            var firstJob = _.head(jobs);
+            if (firstJob !== null) {
+                AppContext.LoadJS("/Common/LabelPreviewDialog.js").then(() => {
+                    var dialog = new LabelPreviewDialog(firstJob.LabelID);
+                    dialog.ShowDialog(function () { });
+                });
+            }
+        },
+
+        SetDueDate: function () {
+            var self = this;
+            var jobs = this.selectedJobs;
+            AppContext.LoadJS("/Print/AssignDueDateDialog.js").then(() => {
+                var dialog = new AssignDueDateDialog();
+                dialog.ShowDialog(function (dialogResult) {
+                    if (dialogResult) {
+                        //wait for this cycle to reload grid
+                        var promise = new Promise((resolve) => {
+                            var count = 1;
+                            _.forEach(jobs, function (j) {
+                                var job = self.GetSelectedJob(j.JobID);
+                                job.data.DueDate = dialogResult.DueDate;
+                                AppContext.HttpPost("/PrinterJobs/UpdateOrderDueDate", job.data, function (response) {
+                                    if (response.Success) {
+                                        count++;
+                                        if (count > jobs.length) {
+                                            resolve();
+                                        }
+                                    }
+                                });
+                            });
+                        });
+
+                        ////refresh grid after promise resolved
+                        promise.then(() => {
+							self.elements.OrdersTable.data('kendoGrid').dataSource.read();
+                        });
+                    }
+                });
+            });
+        },
+
+        AssignLocation: function () {
+            var self = this;
+            var jobs = this.selectedJobs;
+            var firstJob = _.head(jobs);
+            AppContext.LoadJS("/Print/AssignFactoryDialog.js").then(() => {
+                var dialog = new AssignFactoryDialog(firstJob.ProductionLocationID);
+                dialog.ShowDialog(function (dialogResult) {
+                    if (dialogResult && firstJob.ProductionLocationID !== dialogResult.LocationID) {
+                        //wait for this cycle to reload grid
+                        var promise = new Promise((resolve) => {
+                            var count = 1;
+                            _.forEach(jobs, function (j) {
+                                var job = self.GetSelectedJob(j.JobID);
+                                job.data.ProductionLocationID = dialogResult.LocationID;
+                                AppContext.HttpPost("/PrinterJobs/AssignLocation", job.data, function (response) {
+                                    if (response.Success) {
+                                        job.data.LocationName = dialogResult.LocationName;
+                                        if (job.data.AssignedPrinter !== null) {
+                                            job.data.AssignedPrinter = null;
+                                            job.data.PrinterName = null;
+                                        }
+                                        count++;
+                                        if (count > jobs.length) {
+                                            resolve();
+                                        }
+                                    }
+                                });
+                            });
+                        });
+
+                        ////refresh grid after promise resolved
+                        promise.then(() => {
+							self.elements.OrdersTable.data('kendoGrid').dataSource.read();
+                        });
+                    }
+                });
+            });
+        },
+
+        AssignPrinter: function () {
+            var self = this;
+            var jobs = this.selectedJobs;
+            var firstJob = _.head(jobs);
+            var missingLocation = jobs.first(p => p.ProductionLocationID === null);
+            var jobLocation = _.filter(_.groupBy(jobs, "ProductionLocationID")).length;
+            if (missingLocation || jobLocation > 1) {
+                AppContext.ShowError("@g["Need to assign a factory before assigning a printer."]");
+                return;
+            }
+
+            AppContext.LoadJS("/Print/AssignPrinterDialog.js").then(() => {
+                var dialog = new AssignPrinterDialog(firstJob.ProductionLocationID, firstJob.AssignedPrinter, firstJob.SendToHercules, firstJob.EncodeRFID);
+                dialog.ShowDialog(function (dialogResult) {
+                    if (dialogResult) {
+                        //wait for this cycle to reload grid
+                        var promise = new Promise((resolve) => {
+                            var count = 1;
+                            _.forEach(jobs, function(j) {
+                                var job = self.GetSelectedJob(j.JobID);
+                                job.data.AssignedPrinter = dialogResult.PrinterID;
+                                job.data.SendToHercules = dialogResult.EncodeInHercules;
+                                AppContext.HttpPost("/PrinterJobs/AssignPrinter", job.data, function (response) {
+                                    if (response.Success) {
+                                        job.data.PrinterName = dialogResult.PrinterName;
+                                        count++;
+                                        if (count > jobs.length) {
+                                            resolve();
+                                        }
+                                    }
+                                });
+                            });
+                        });
+
+                        ////refresh grid after promise resolved
+                        promise.then(() => {
+							self.elements.OrdersTable.data('kendoGrid').dataSource.read();
+                        });
+                    }
+                });
+            });
+        },
+
+        OpenPrinterQueue: function (e) {
+			var self = this;
+            var jobs = this.selectedJobs;
+            var firstJob = _.head(jobs);
+            if (!firstJob.AssignedPrinter)
+				AppContext.ShowError("@g["Job is not assigned to a printer."]");
+			else {
+				AppContext.LoadJS("/Production/PrinterQueueView.js").then(() => {
+                    var view = new PrinterQueueView(firstJob.AssignedPrinter);
+					view.Show(self.ViewContainer);
+				});
+			}
+		},
+
+        DiscardOrder: function (e) {
+			var self = this;
+            var jobs = this.selectedJobs;
+			var dialog = new ConfirmDialog("@g["Delete currently selected jobs? IMPORTANT: If these jobs are from any ongoing order, that order will be incomplete."]");
+            dialog.ShowDialog(function (dialogResult) {
+                if (dialogResult) {
+                    //wait for this cycle to reload grid
+                    var promise = new Promise((resolve) => {
+                        var count = 1;
+                        _.forEach(jobs, function (j) {
+                            var job = self.GetSelectedJob(j.JobID);
+                            AppContext.PrinterJobs.CancelJob(job.data.JobID);
+                            job.data.Status = 6;
+                            count++;
+                            if (count > jobs.length) {
+                                resolve();
+                            }
+                        });
+                    });
+
+                    ////refresh grid after promise resolved
+                    promise.then(() => {
+                        self.FilterJobs();
+                    });
+				}
+			});
+        },
+
+        ActivateJob: function (e) {
+			var self = this;
+            var jobs = this.selectedJobs;
+            var wrongStatus = jobs.first(p => (p.Status === null || (p.Status !== 5 && p.Status !== 6)));
+            if (wrongStatus) {
+                AppContext.ShowError("@g["Only Cancelled and Completed Jobs can be Activated."]");
+                return;
+            }
+			var dialog = new ConfirmDialog("@g["Activate currently selected jobs?"]");
+            dialog.ShowDialog(function (dialogResult) {
+                if (dialogResult) {
+                    //wait for this cycle to reload grid
+                    var promise = new Promise((resolve) => {
+                        var count = 1;
+                        _.forEach(jobs, function (j) {
+                            var job = self.GetSelectedJob(j.JobID);
+                            AppContext.PrinterJobs.ActivateJob(job.data.JobID);
+                            job.data.Status = 1;
+                            count++;
+                            if (count > jobs.length) {
+                                resolve();
+                            }
+                        });
+                    });
+
+                    ////refresh grid after promise resolved
+                    promise.then(() => {
+                        self.FilterJobs();
+                    });
+				}
+			});
+		},
+
+		ExportAccess: function (e) {
+			e.preventDefault();
+			var jobs = this.selectedJobs;
+			if (jobs.length == 0 || jobs.length > 1) {
+				AppContext.ShowError("@g["To execute this action you have to select one job from the list."]");
+			}
+			else {
+				var job = jobs[0];
+				window.open(`/orders/downloadmdb/${job.JobID}`);
+			}
+		},
+
+        //kenod grid configuration
+		LoadGrid: function (orders) {
+			var self = this;
+			this.elements.OrdersTable.kendoGrid({
+                dataSource: {
+                    data: orders,
+                    schema: {
+                        model: {
+                            id: "JobID"
+                        }
+                    },
+                },
+                sortable: {
+                    mode: "multiple",
+                    allowUnsort: true,
+                    showIndexes: true
+                },
+
+                resizable: true,
+                scrollable: true,
+                dataBound: handleDataBound,
+                change: handleOnChange,
+                columns: [
+                    { selectable: true },
+                    { field: "CompanyName", title: "@g["Company"]" },
+                    { field: "OrderNumber", title: "@g["Order"]" },
+                    { field: "OrderDate", title: "@g["Order Date"]", template: "#= (OrderDate !== null) ? kendo.toString(kendo.parseDate(OrderDate, 'yyyy-MM-dd'), 'dd/MM/yyyy') : '' #" },
+                    { field: "DueDate", title: "@g["Due By"]", template: "#= (DueDate !== null) ? kendo.toString(kendo.parseDate(DueDate, 'yyyy-MM-dd'), 'dd/MM/yyyy') : '' #" },
+                    { field: "MaterialName", title: "@g["Material"]" },
+                    { field: "LabelName", title: "@g["Label"]" },
+                    { field: "SendToCompany", title: "@g["Send To"]" },
+                    { field: "LocationName", title: "@g["Factory"]" },
+                    { field: "PrinterName", title: "@g["Printer"]" },
+                    { field: "Quantity", title: "@g["Quantity"]" },
+                    { field: "Printed", title: "@g["Progress"]" },
+                    { field: "Encoded", title: "@g["Encoded"]", template: "#= (EncodeRFID ? Encoded + ' %' : 'NA') #" },
+                    {
+                        field: "Status", title: "@g["Status"]", template: "#switch (Status) {case 1: #@g["Pending"]# break; case 2: #@g["Paused"]# break; case 3: #@g["Executing"]# break;" +
+                        "case 4: #@g["Error"]# break; case 5: #@g["Completed"]# break; case 6: #@g["Cancelled"]# break; case 7: #@g["Printed"]# break; default: #@g["Unknown"]# }#"
+                    }
+                ]
+			});
+
+
+			this.elements.OrdersTable.on("click", "tr", function (e) {
+				var rowElement = this;
+				var row = $(rowElement);
+				var grid = self.elements.OrdersTable.getKendoGrid();
+				if (row.hasClass("k-state-selected")) {
+					var selected = grid.select();
+					selected = $.grep(selected, function (x) {
+						var itemToRemove = grid.dataItem(row);
+						var currentItem = grid.dataItem(x);
+						return itemToRemove.OrderID != currentItem.OrderID
+					})
+					grid.clearSelection();
+					grid.select(selected);
+					e.stopPropagation();
+				} else {
+					grid.select(row)
+					e.stopPropagation();
+				}
+			});
+
+
+			//manage some conditions after grid refresh
+			function handleDataBound(e) {
+				var grid = this;
+				if (self.selectedJobs !== null) {
+					var jobs = self.selectedJobs.slice();
+				}
+
+				var selectedJobsCount = self.selectedJobs !== null ? self.selectedJobs.length : 0;
+
+				var promise = new Promise((resolve) => {
+					var count = 1;
+					_.forEach(jobs, function (job) {
+                        var dataItem = _.find(grid.dataSource._data, function (e) { return e.JobID == job.JobID });
+                        if (dataItem != undefined) {
+                            grid.select($('[data-uid=' + dataItem.uid + ']'));
+                        } else {
+                            _.remove(self.selectedJobs, function (j) {
+                                return j.JobID === job.JobID;
+                            });
+                        }
+
+						count++;
+						if (count > selectedJobsCount) {
+							resolve();
+						}
+					});
+				});
+
+				////refresh toolbar after update rows
+				promise.then(() => {
+					self.UpdateToolbar(self.selectedJobs);
+				});
+			}
+
+            //Triggered on Grid´s checkbox selection
+			function handleOnChange(e) {
+                self.selectedJobs = [];
+                var jobs = e.sender.select();
+                if (jobs.length === 0) {
+					self.UpdateToolbar(self.selectedJobs);
+                }
+
+                var promise = new Promise((resolve) => {
+                    var count = 1;
+					_.forEach(jobs, function (job) {
+						var grid = self.elements.OrdersTable.data("kendoGrid");
+                        var dataItem = grid.dataItem(job);
+
+                        if (!self.ObjectContains(self.selectedJobs, dataItem)) {
+                            self.selectedJobs.push(dataItem);
+                        }
+
+                        count++;
+                        if (count > jobs.length) {
+                            resolve();
+                        }
+                    });
+                });
+
+                promise.then(() => {
+					self.UpdateToolbar(self.selectedJobs);
+                });
+            }
+        },
+
+        //True if there is at least one selected row on grid
+        UpdateToolbar: function (rows) {
+            if (rows.length > 0) {
+                $(".toolbar-body a").attr("data-disabled", "false").removeClass("toolbar-disabled");
+
+                var cancelledJobs = _.find(rows, function (row) { return row.Status === 6; });
+                var activateJobs = _.every(rows, function (row) { return (row.Status === 6 || row.Status === 5) });
+
+                if (cancelledJobs) {
+                    $(".toolbar-body a:has(span.data-disabled-options)").attr("data-disabled", "true").addClass("toolbar-disabled");
+                } else {
+                    $(".toolbar-body a:has(span.data-disabled-options)").attr("data-disabled", "false").removeClass("toolbar-disabled");
+                }
+
+                if (!activateJobs) {
+                    $(".toolbar-body a:has(span.data-cancelled-options)").attr("data-disabled", "true").addClass("toolbar-disabled");
+                } else {
+                    $(".toolbar-body a:has(span.data-cancelled-options)").attr("data-disabled", "false").removeClass("toolbar-disabled");
+                }
+            }
+            else
+                $(".toolbar-body a").attr("data-disabled", "true").addClass("toolbar-disabled");
+
+        },
+
+        //Check if current array contains current object
+        ObjectContains: function (orders, obj) {
+            for (var i = 0; i < orders.length; i++) {
+                if (orders[i] === obj) {
+                    return true;
+                }
+            }
+            return false;
+        },
+
+        GetSelectedJob: function (jobId) {
+            if (jobId > 0) {
+				var job = _.find(this.Orders, function (m) { return m["JobID"] === jobId });
+				var jobIndex = _.findIndex(this.Orders, function (m) { return m["JobID"] === jobId });
+                return { "data": job, "index": jobIndex };
+            }
+            else return null;
+        },
+
+        GridFilter: function (field, value, operator) {
+            return {
+                field: field,
+                operator: operator,
+                value: value
+            };
+        },
+    };
+//</script>

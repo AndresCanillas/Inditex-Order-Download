@@ -1,0 +1,266 @@
+﻿@page
+@inject ILocalizationService g
+@inject ILabelRepository labelRepo
+@inject ICategoryRepository categoryRepo;
+@inject IUserData userData
+@inject ILocationRepository locationRepo
+
+@{
+    Layout = null;
+    List<ILabelData> labels;
+    List<ICategory> categories;
+    List<ILocation> locations;
+    if (Request.Query.ContainsKey("pid"))
+    {
+        int projectid = Convert.ToInt32(Request.Query["pid"].ToString());
+        labels = labelRepo.GetByProjectID(projectid);
+        categories = categoryRepo.GetByProject(projectid);
+        locations = locationRepo.GetIDTFactories();
+    }
+    else
+    {
+        labels = new List<ILabelData>();
+        categories = new List<ICategory>();
+        locations = new List<ILocation>();
+    }
+
+
+    var disabled = userData.Admin_Articles_CanEdit ? "" : "readonly disabled";
+    //var canEditMDSettings = userData.Admin_Articles_CanEditMDSettings ? "" : "readonly";
+
+    var errorMessagesLabelID = new { required = g["Required"], regex = g["Select a label from the list"] };
+}
+<viewcard>
+    <viewform>
+        <viewrow>
+            <viewcolumn>
+                <div model name="ID" label="ID:" data-type="int"></div>
+                <input model name="ProjectID" type="hidden" data-type="int" />
+                <input model name="LabelType" type="hidden" data-type="int" />
+                <input model name="MaterialID" type="hidden" data-type="int" />
+                <input model name="PrintCountSequence" type="hidden" />
+                <input model name="PrintCountSequenceType" type="hidden" />
+                <input model name="PrintCountSelectorField" type="hidden" />
+                <input model name="PrintCountSelectorType" type="hidden" />
+                <input model name="ExportBlockedLocationIds" type="hidden" />
+
+
+                @if (userData.Admin_Articles_CanEdit)
+                {
+                    <input model name="MaterialName" type="hidden" />
+                    <input model name="LabelName" type="hidden" />
+
+                    @if (userData.Admin_Articles_CanRename)
+                    {
+                        <input model name="Name" label="@g["Name"]:*" validation="required;maxlen(30)" type="text" />
+                    }
+                    else
+                    {
+                        <div model name="Name" label="@g["Name"]:*"></div>
+                    }
+
+                    <div class="form-group row" style="margin-bottom:5px;">
+                        <label class="col-sm col-form-label">@g["Article Type"]:</label>
+                        <div class="col-sm">
+                            <div class="article-type" name="ArticleTypeLabel" action="ArticleTypeClick">@g["Label"]</div>
+                            <div class="article-type" name="ArticleTypeItem" action="ArticleTypeClick">@g["Item"]</div>
+                        </div>
+                    </div>
+                    <select model name="CategoryID" label="@g["Article Category"]:" options="@(OptionList.FromEnumerable(categories, "ID", "Name"))"></select>
+                    <div name="LabelElementsLeft">
+                        <select model name="LabelID" label="@g["Main Label"]:" options="@(OptionList.FromEnumerable(labels, "ID", "Name"))" action="change:LabelChanged" data-type="int" validation="required;regex(^[1-9]\d*$)" error-messages="@Newtonsoft.Json.JsonConvert.SerializeObject(errorMessagesLabelID)"></select>
+                        <div class="mb-3"> @g["Label Info"]:  <small name="LabelInfoUI"></small> <span class="badge badge-secondary invisible" name="SHFlag">Shared</span>  </div>
+                        <div class="form-group row" style="margin-bottom:5px;">
+                            <label class="col-sm col-form-label">@g["Label Preview"]:</label>
+                            <div class="col-sm">
+                                @*<div class="preview-container" style="height: auto;">
+                                    <img name="LabelPreview" class="image-preview article-preview-256" style="margin:0;" />
+                                </div>*@
+                                <div class="fluid-image" style="width: 256px">
+                                    <img name="LabelPreview" class="ThumbImage2 image-preview " style="margin:0; width:256px;" />
+
+                                    @*<img name="_Icon_Img" src="/articles/getpreview/44?637251523016720000" class="ThumbImage2 article-image-preview ke-img-element" width="256">*@
+                                </div>
+                                <div class="fluid-image" style="width: 256px">
+                                    <input name="LabelFixedPreview" type="hidden" data-type="image" accept=".png,.jpg,.jpeg,.gif" />
+                                </div>
+
+                            </div>
+
+                        </div>
+                        <div class="form-group row invisible" style="margin-bottom:5px; height:51px;"><label class="col-sm col-form-label">&nbsp;</label><div class="col-sm"></div></div>
+
+                    </div>
+                    <div name="ItemElements">
+                        <div class="form-group row invisible" style="margin-bottom:5px;"><label class="col-sm col-form-label">&nbsp;</label><div class="col-sm"></div></div>
+                        <input name="ItemPreview" type="hidden" data-type="image" accept=".png,.jpg,.jpeg,.gif" />
+                        @*<textarea model name="Description" label="@g["Description"]:"></textarea>*@
+                        @*<input name="ItemPreview" label="@g["Article Image"]:" type="file" accept=".png,.jpg,.jpeg,.gif" data-type="image" />*@
+                    </div>
+                }
+                else
+                {
+                    <input model name="LabelID" type="hidden" />
+                    <div model name="Name" label="@g["Name"]:"></div>
+                    <div class="form-group row" style="margin-bottom:5px;">
+                        <label class="col-sm col-form-label">@g["Article Type"]:</label>
+                        <div class="col-sm">
+                            <div class="article-type" name="ArticleTypeLabel">@g["Label"]</div>
+                            <div class="article-type" name="ArticleTypeItem">@g["Item"]</div>
+                        </div>
+                    </div>
+                    <div name="LabelElementsLeft">
+                        <select model name="LabelID" label="@g["Main Label"]:" options="@(OptionList.FromEnumerable(labels, "ID", "Name"))" @disabled class="disabled" readonly data-type="int"></select>
+                        <div class="form-group row" style="margin-bottom:5px;">
+                            <label class="col-sm col-form-label">@g["Label Preview"]:</label>
+                            <div class="col-sm">
+                                <div class="preview-container" style="height: 256px;">
+                                    <img name="LabelPreview" class="image-preview article-preview-256 " />
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div name="ItemElements">
+                        <img class="image-preview article-preview" src="~/images/no_preview.png" />
+                    </div>
+
+                }
+
+            </viewcolumn>
+            <viewcolumn style="padding-top:39px">
+
+                @if (userData.Admin_Articles_CanEditMDSettings)
+                {
+                    <div class="form-subtitle">@g["Article codes"]</div>
+                    <hr class="subtitle" />
+                    <input model name="ArticleCode" label="@g["Article Code"]:*" validation="required;maxlen(25)" type="text" />
+                    <input model name="BillingCode" label="@g["Billing Code"]:*" validation="required;maxlen(25)" type="text" />
+                    <input model style="display:none" name="Shared" type="checkbox" data-type="bool" />
+                    <input model name="EnableLocalPrint" label="@g["Enable for local print?"]" type="checkbox" data-type="bool" />
+                    <input model name="EnableAddItems" label="@g["Enable to be added in add items ?"]" type="checkbox" data-type="bool" />
+                    <input model name="EnableConflicts" label="@g["Enable Conflicts?"]" type="checkbox" data-type="bool" />
+
+                    <input model name="SyncWithSage" label="" type="hidden" value="0" />
+                    <input model name="SyncWithSage" label="@g["Sync with SAGE ?"]" type="checkbox" action="change:EnableSageSync" value="1" />
+
+                    <div class="form-group row">
+                        <label class="col-sm col-form-label">@g["Reference"]:</label>
+                        <div class="col-sm">
+                            <div class="input-group input-group-sm">
+                                <input type="text" model name="SageRef" class="form-control" placeholder="@g["Item Ref"]" readonly no-transform>
+                                <div class="input-group-append">
+                                    <a href="#" disabled name="SyncArticle" action="SyncArticleFn" class="btn btn-primary btn-sm mb-2" title="@g["click to sync data with Sage"]">@g["Sync"]</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div model name="ArticleCode" label="@g["Article Code"]:"></div>
+                    <input model name="BillingCode" type="hidden" />
+                    <input model name="MaterialName" type="hidden" />
+                    <input model name="LabelName" type="hidden" />
+                    <input model name="SyncWithWage" type="hidden" data-type="bool" />
+                    <input model name="SageRef" type="hidden" />
+                    <input model name="EnableConflicts" type="hidden" data-type="bool" />
+                    <input model name="EnableAddItems" type="hidden" data-type="bool" />
+                }
+
+
+                <div name="AllArticles">
+                    <div class="form-subtitle">@g["Notes"]</div>
+                    <hr class="subtitle" />
+                    <textarea model name="Description" label="@g["Description"]:" style="height: 250px;" @disabled></textarea>
+                </div>
+
+                <div name="LabelElementsRight">
+
+                    <div class="form-subtitle">@g["How to use?"]</div>
+                    <hr class="subtitle" />
+
+                    <textarea model name="Instructions" label="@g["Instructions"]:" style="height: 250px;" @disabled></textarea>
+
+                </div>
+
+                <div name="ItemElementsRight">
+                    @*<div class="form-subtitle">@g["Could you add Notes?"]</div>
+                    <hr class="subtitle" />
+                    <textarea model name="Description" label="@g["Description"]:" style="height: 250px;" @disabled></textarea>*@
+                </div>
+
+            </viewcolumn>
+        </viewrow>
+
+
+        <viewrow>
+            <viewcolumn>
+                <div class="Artifacts">
+                    <div style="font-size:17px;">@g["Artifacts"]</div>
+                    <hr class="subtitle" />
+                    @if (userData.Admin_Articles_CanEdit)
+                    {
+
+                        <div class="input-group input-group-sm">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">@g["Search label"]:</span>
+                            </div>
+                            <input model name="LabelToAdd" no-transform action="keypress:HandleKeyPress" list="ArticleArtifactsList" type="text" class="form-control" />
+                            <div class="input-group-append">
+                                <span class="input-group-text" style="cursor:pointer" action="AddArtifact"><span class="fa fa-plus"></span></span>
+                            </div>
+
+                        </div>
+                        <datalist id="ArticleArtifactsList">
+                            @foreach (var a in labels)
+                            {
+                                <option value="@a.Name" labelid="@a.ID">[@a.Type]</option>
+                            }
+                        </datalist>
+
+
+                        <div class="input-group input-group-sm">
+                            <div class="input-group-prepend">
+                            </div>
+                        </div>
+                        <div class="toolbar-body" style="width:100%; margin-top:15px;">
+                            <span class="toolbar-separator"></span>
+                            <a href="#" title="@g["Remove"]" name="RemoveArtifactButton" action="RemoveArtifact"><span class="fa fa-trash"></span></a>
+                        </div>
+                    }
+                    <div component="OrderGrid" name="ArtifactTable" @(userData.Admin_Articles_CanEdit ? "action='dblclick:EditArticle'" : "") style="width:100%">
+                        <template>
+                            <column width="225" field="Name">@g["Label Name"]</column>
+                            <column width="120" field="SageRef" Render="RenderSageRef" editable>@g["Sage Ref."]</column>
+                            <column width="100" field="Actions" Render="RenderActions">@g["Sage Actions."]</column>
+                            <column width="300" field="Description" editable>@g["Description"]</column>
+                            <column width="100" field="EnablePreview" type="Bool" editable>@g["Enable Preview"]</column>
+                            <column width="100" field="UpdatedBy">@g["Added By"]</column>
+                            <column width="100" field="UpdatedDate">@g["Added Date"]</column>
+                        </template>
+                    </div>
+                </div>
+            </viewcolumn>
+        </viewrow>
+
+        <viewrow>
+            <viewcolumn>
+                <a name="btn_ValidationConfig" action="CompositionConfig" href="#" class="btn btn-outline-primary">@g["Composition Config"]</a>
+                <a name="btn_AccessBlockConfig" action="AccessBlockConfig" href="#" class="btn btn-outline-primary" style="margin-left:8px;">@g["Acces Block config"]</a>
+            </viewcolumn>
+        </viewrow>
+    </viewform>
+    <viewfooter>
+        @if (userData.Admin_Articles_CanEdit)
+        {
+            <a href="#" class="btn btn-primary" action="Save">@g["Save"]</a>
+            <a href="#" class="btn btn-outline-primary" action="OpenPrintCountSettings">@g["Counter"]</a>
+            <a href="#" class="btn btn-secondary" action="ReturnLastView">@g["Cancel"]</a>
+        }
+        else
+        {
+            <a href="#" class="btn btn-secondary" action="ReturnLastView">@g["Close"]</a>
+        }
+    </viewfooter>
+</viewcard>

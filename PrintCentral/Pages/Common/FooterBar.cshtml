@@ -1,0 +1,50 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+<footer class="main-panel-footer" style="">
+	<div class="container-fluid text-center text-md-left">
+		<div class="row mt-3 dark-grey-text">
+			<div class="col-md-4 col-lg-5 col-xl-4 mb-5">
+				<h6 class="text-uppercase font-weight-bold">IDT BY INDET GROUP</h6>
+				<hr class="teal accent-3 mb-4 mt-0 d-inline-block mx-auto" style="width: 60px;">
+				<p>
+					@g["Our company boasts over 20 years of experience in textiles. We specialize in providing full-package labeling solutions, including traceability, directly to our clients’ location."]
+				</p>
+			</div>
+
+			<div class="col-md-4 col-lg-3 col-xl-3 mx-auto mb-md-0 mb-4">
+				<h6 class="text-uppercase font-weight-bold">@g["Contact"]</h6>
+				<hr class="teal accent-3 mb-4 mt-0 d-inline-block mx-auto" style="width: 60px;">
+				<div class="row">
+					<div class="col-sm-1">
+						<span class="fa fa-home"></span>
+					</div>
+					<div class="col">
+						C/Solsonés, 61 Pol. Ind. Pla de la Bruguera 08211 Castellar del Vallés Barcelona – España
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-sm-1">
+						<span class="fa fa-envelope"></span>
+					</div>
+					<div class="col">
+						info@indetgroup.com
+					</div>
+				</div>
+			</div>
+
+			<div class="col-md-3 col-lg-2 col-xl-2 mx-auto mb-4">
+				<h6 class="text-uppercase font-weight-bold">@g["Links"]</h6>
+				<hr class="teal accent-3 mb-4 mt-0 d-inline-block mx-auto" style="width: 60px;">
+				<p style="margin-bottom:0px">
+					<a class="dark-grey-text" href="#!">@g["Your Account"]</a>
+				</p>
+				<p style="margin-bottom:0px">
+					<a class="dark-grey-text" href="#!">@g["Help"]</a>
+				</p>
+			</div>
+		</div>
+	</div>
+</footer>

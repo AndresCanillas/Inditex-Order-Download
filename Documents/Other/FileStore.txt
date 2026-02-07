@@ -1,0 +1,83 @@
+FileStore
+
+Main File
+Given its ID, the file will be placed in a set of subdirectories.
+The file content is stored in _content.dat
+
+RC00\SC00\TC00\F000001\_content.dat
+
+
+File Metadata
+-------------
+
+By default the file metadata includes the original name of the file (since the file is renamed)
+and if the file is compressed and encrypted.
+
+Additionally, each file can include a set of properties defined by the user as part of the metadata.
+All these properties are saved as json.
+
+The file metadata is stored in:  _meta.dat
+
+
+Backup History
+---------------
+
+Each time the file is updated, the current "_content.dat" is renamed to "_v[versionNumber].dat"
+And then the new content is placed in the file directory. For example after having updated a
+file 5 times after its initial creation, the file directory will look like this:
+
+_content.dat
+_meta.dat
+_v1.dat
+_v2.dat
+_v3.dat
+_v4.dat
+_v5.dat
+
+
+Version files are automatically deleted once they are 30 days old, so long as there are at least three
+backup files left in the directory.
+
+So after 30 days, the directory may look like this:
+
+_content.dat
+_meta.dat
+_v3.dat
+_v4.dat
+_v5.dat
+
+v1 and v2 have been deleted, while v3, v4 and v5 are keept around due to the at least 3 backups
+rule, this is regardless of how old they might be.
+
+
+
+Attached files
+--------------
+
+Files might have other files attached to them. Those files can be arranged in categories. Each category will have
+a subfolder (Category names cannot include characters that are not valid in file or directory names).
+
+For instance, you can create a category called "Preview", and then attach an image to the file for that category.
+
+Said image would be stored in the following directory:
+
+
+RC00\SC00\TC00\F000001\[category]\[filename]
+
+Attached files can also have metadata associated to them, the metadata is stored in:
+
+RC00\SC00\TC00\F000001\[category]\[filename]_meta.dat
+
+Like the main file, attached files can also be compressed/encrypted if requested by the programmers through the FileStore API
+
+
+
+
+
+		
+
+
+
+
+
+

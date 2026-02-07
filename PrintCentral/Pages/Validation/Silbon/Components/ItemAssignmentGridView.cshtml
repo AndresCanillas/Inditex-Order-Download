@@ -1,0 +1,95 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+
+@{
+    Layout = null;
+}
+<viewform>
+    <!-- Made In -->
+    <viewrow>
+        <viewcolumn>
+            
+            <input model name="FullMadeIn" type="hidden" maxlength="256" />
+            <div id="madeInContainer" style="display: none;">
+                <input model name="Importer" type="text" label="@g["Importer"]" validation="required;"/>
+                <select model name="MadeIn" label="@g["Made In"]" class="form-control form-control-sm" validation="required;range(0,1000000);" />
+            </div>
+            
+        </viewcolumn>
+    </viewrow>
+    <viewrow>
+        <viewcolumn>
+
+            <!--<div class="form-group packfindercontainer">
+                <label style="margin-right:10px">Packs Text:</label>
+                <div name="PackFinderContainer" class="input-group input-group-sm">
+
+                    <select name="PackFinder" data-live-search="true" class="form-control custom-select-sm  " no-transform>
+                    </select>
+
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" type="button" action="ExpandPack"><span class="fa fa-plus"></span></button>
+                    </div>
+                </div>
+            </div>-->
+            <div class="form-group">
+                <label style="margin-right:10px">Article Text:</label>
+                <div name="ArticleFinderContainer" class="input-group input-group-sm ">
+
+                    <select name="ArticleFinder" data-live-search="true" class="form-control custom-select-sm " no-transform>
+                    </select>
+
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" name="ArticleFinderButton" type="button" action="AddArticle"><span class="fa fa-plus"></span></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- grid  -->
+            <div class="article-grid-container mt-2">
+                <div class="toolbar-body" style="width:100%; margin-top:15px;">
+                    <span class="toolbar-grip"></span><a href="#" title="Remove" action="RemoveArticle"><span class="fa fa-trash"></span></a>
+                </div>
+                <div component="OrderGrid" name="Articles">
+
+                    <template>
+
+                        <column width="120" field="ArticleName">@g["Article"]</column>
+                        <column width="120" field="ArticleCode">@g["Article Code"]</column>
+                        <column width="120" field="ArticleType">@g["Article Type"]</column>
+                        <column width="120" field="RFID">@g["RFID"]</column>
+                        <column width="120" field="PackCode">@g["PackCode"]</column>
+
+                    </template>
+
+                </div>
+            </div>
+        </viewcolumn>
+
+        <viewcolumn>
+
+            <!-- carrusel of images  -->
+            <div name="article-carousel" id="articlesSelected" class="carousel slide" data-ride="carousel" style=" width:60%; margin: 5px auto;">
+                <ol name="CarrouselIndicator" class="carousel-indicators">
+                </ol>
+
+                <div name="CarrouselContent" class="carousel-inner">
+                </div>
+
+                <a class="carousel-control-prev" href="#articlesSelected" role="button" data-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="sr-only">>@g["Previous"]</span>
+                </a>
+                <a class="carousel-control-next" href="#articlesSelected" role="button" data-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="sr-only">@g["Next"]</span>
+                </a>
+
+            </div>
+
+        </viewcolumn>
+
+    </viewrow>
+
+</viewform>

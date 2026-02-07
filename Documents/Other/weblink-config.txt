@@ -1,0 +1,39 @@
+-- Get related device settings
+
+! U1 getvar "device.unique_id"
+! U1 getvar "weblink.ip.conn1.location"
+
+-- CONFIG WebLink
+
+! U1 setvar "weblink.restore_defaults" ""
+! U1 setvar "weblink.logging.max_entries" "50"
+! U1 setvar "weblink.ip.conn1.location" "https://81.25.127.175:4430/Weblink"
+! U1 setvar "weblink.ip.conn2.location" ""
+
+^XZ
+! U1 setvar "device.reset" ""
+
+
+-- Get log for troubleshooting
+
+! U1 getvar "weblink.logging.entries"
+
+
+-- A typical problem with certificates is due to errors in the Date & Time of the printer, check the weblink log for this:
+[09-28-2018 00:02:46.212][Info][80020002][conn1.1] SSLv3, TLS alert, Server hello
+[09-28-2018 00:02:46.215][Error][82090086][conn1.1] SSL certificate problem: certificate is not yet valid
+[09-28-2018 00:02:46.218][Info][00010039][conn1.1] Closing connection 0
+
+If you find this problem then update the printer date/time:
+
+
+-- How to get/set printer date
+
+! U1 getvar "rtc.date"
+! U1 setvar "rtc.date" "06-26-2020"
+! U1 setvar "device.reset" ""
+
+-- Clear log
+
+! U1 do "weblink.logging.clear" ""
+

@@ -1,0 +1,94 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/Projects/Catalogs/CatalogsRootNode.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+/// <reference path="/js/AppContext.AppDomain.js" />
+
+//<script>
+    var CatalogsRootNode = function (projectid) {
+        TreeNode.Extend(this, "CatalogsRootNode", 0, "@g["Catalogs"]");
+		this.ProjectID = projectid;
+		this.CanEdit = false;
+		@if (userData.Admin_Catalogs_CanAdd)
+		{
+		<text>
+		this.menu = {
+			MenuWidth: "200px",
+            Options: [
+
+				{ Text: "@Html.Raw(g["New Catalog"])", OnClick: this.CreateCatalog }
+            ]
+        };
+		</text>
+		}
+	};
+
+	CatalogsRootNode.prototype = {
+		constructor: CatalogsRootNode,
+
+        loadDependencies: function (callback) {
+            AppContext.LoadJS(
+                "/Common/AskNameDialog.js",
+				"/Admin/Brands/Projects/Catalogs/CatalogNode.js").then(()=>callback());
+        },
+
+        GetContextMenu: function () {
+            return this.menu;
+        },
+
+
+		@if (userData.Admin_Catalogs_CanAdd)
+		{
+		<text>
+		CreateCatalog: function () {
+			var self = this;
+			this.loadDependencies(function () {
+				var dialog = new AskNameDialog("@g["New Catalog"]");
+				dialog.ShowDialog(function (dlgData) {
+					if (!dlgData) return;
+					dlgData.CompanyID = self.FindParent("CompanyNode").EntityID;
+					dlgData.ProjectID = self.ProjectID;
+					AppContext.Catalogs.Insert(dlgData, function (result) {
+						if (result.Success) {
+							var node = new CatalogNode(result.Data);
+							self.AddNode(node);
+							node.OnDoubleClick();
+							if (!self.Expanded)
+								self.Expand();
+						}
+					});
+				});
+			});
+		},
+		</text>
+		}
+
+
+        OnExpanded: function () {
+			var self = this;
+			this.loadDependencies(function (){
+				if (!self.IsLoaded) {
+					self.IsLoaded = true;
+					AppContext.Catalogs.GetByProjectID(self.ProjectID, function (data) { self.loadNodes(data); });
+				}
+			});
+		},
+
+        loadNodes: function (data) {
+			var catalog, node;
+			for (var index = 0; index < data.length; index++) {
+				catalog = data[index];
+				if (!this.FindNode("CatalogNode", catalog.ID, false)) {
+					node = new CatalogNode(catalog);
+					this.AddNode(node);
+				}
+			}
+		}
+    };
+//</script>

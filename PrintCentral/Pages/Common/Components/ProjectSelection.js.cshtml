@@ -1,0 +1,66 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+	var isAdmin = User.IsAnyRole(Roles.SysAdmin, Roles.IDTLabelDesign);
+	var uilang = CultureInfo.CurrentUICulture.Name;
+}
+//# sourceURL=https://Pages/Common/Components/ProjectSelection.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var ProjectSelection = function (companyid) {
+		FormView.Extend(this, "@g["Select a brand"]", `/Common/Components/ProjectSelection`);
+		if (companyid == null)
+			this.CompanyID = @userData.SelectedCompanyID;
+		else
+			this.CompanyID = companyid;
+	};
+
+	ProjectSelection.prototype = {
+		constructor: ProjectSelection,
+
+		OnLoad: function () {
+			var self = this;
+            AppContext.Users.GetByID(self.model.UserId, function (result) {
+                if (result) {
+                    self.User = result;
+                }
+            });
+			this.elements.Brands.LoadItems({ CompanyID: this.CompanyID, AddOption: false, OpenOption: true, DeleteOption: false });
+			this.elements.Brands.ItemSelected.Subscribe(this, this.OpenBrand);
+			this.elements.Projects.ItemSelected.Subscribe(this, this.OpenProject);
+		},
+
+		OnUnload: function () {
+			this.elements.Brands.ItemSelected.Unsubscribe(this, this.OpenBrand);
+			this.elements.Projects.ItemSelected.Unsubscribe(this, this.OpenProject);
+		},
+
+		OpenBrand: function (e) {
+			this.brand = e.item;
+			FormView.UpdateMainTitle(e.item.Name);
+			this.elements.BrandsRow.hide();
+			this.elements.Projects.LoadItems({ BrandID: e.item.ID, AddOption: false, OpenOption: true, DeleteOption: false });
+			this.elements.ProjectsRow.show();
+			this.elements.NavBrand.text(e.item.Name);
+			this.elements.NavBrand.show();
+			FormView.UpdateMainTitle("@g["Select a project"]");
+		},
+
+		OpenProject: function (e) {
+			window.location.href = `/Account/SelectProject/${e.item.ID}`;
+		},
+
+		BackToBrands: function (e) {
+			e.preventDefault();
+			FormView.UpdateMainTitle("@g["Select a brand"]");
+			this.elements.ProjectsRow.hide();
+			this.elements.NavBrand.hide();
+			this.elements.BrandsRow.show();
+		}
+	};
+//</script>

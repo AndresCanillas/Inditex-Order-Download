@@ -1,0 +1,67 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData  userData
+@inject IOrderRepository  orderRepo
+@inject IProjectRepository projectRepo
+@inject IEventQueue events
+@{
+    Layout = null;
+
+    //if (Request.Query.ContainsKey("projectid"))
+    //{
+    //    var id = Convert.ToInt32(Request.Query["projectid"].ToString());
+
+    //    var info = orderRepo.GetProjectInfo(id);
+
+    //    events.Send(new ReviewStepStartedEvent(id, info.OrderNumber, info.CompanyID, info.BrandID, info.ProjectID));
+    //}
+}
+
+<viewform>
+
+    <viewcard>
+
+        <viewrow>
+
+            <viewcolumn>
+
+                <div name="BreadcrumbContainer"></div>
+
+                <h5>@g["Order "] <span name="CurrentOrderNumber"></span> <small>(@g["Due Date"] <span name="CurrentOrderDueDate"></span>)</small></h5>
+
+            </viewcolumn>
+
+        </viewrow>
+
+        <viewrow>
+            
+            <viewcolumn>
+                @*<div name="DocumentPreview" style="width:100%; height:70vh;" />*@
+                @*<div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel" style="width:100%; min-height:450px;"></div>*@
+                <div id="PreviewAndCaptions" name="PreviewAndCaptions" class="carousel slide" data-ride="carousel" style=" width:60%; margin: 5px auto;">
+                    <ol name="CarrouselIndicator" class="carousel-indicators">
+                    </ol>
+                    <div name="CarrouselContent" class="carousel-inner">
+
+                    </div>
+                    <a class="carousel-control-prev" href="#PreviewAndCaptions" role="button" data-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="sr-only">>@g["Previous"]</span>
+                    </a>
+                    <a class="carousel-control-next" href="#PreviewAndCaptions" role="button" data-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="sr-only">@g["Next"]</span>
+                    </a>
+                </div>
+            </viewcolumn>
+        </viewrow>
+
+        <viewfooter>
+                <div class="row justify-content-end" name="AvailableActions">
+                    <div class="col-4 text-right">
+                        <a href="#" class="btn btn-sm btn-primary" action="SaveAndNext">@g["Validate Order"] <span class="fa fa-fw fa-chevron-right" aria-hidden="true"></span></a>
+                    </div>
+                </div>
+        </viewfooter>
+    </viewcard>
+</viewform>

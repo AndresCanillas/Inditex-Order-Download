@@ -1,0 +1,35 @@
+﻿pfx Key: SMD-poWer$f091Q:SDF1
+
+Method to change symmetric key:
+
+
+		public void PrepareKey()
+		{
+			X509Store store = new X509Store(StoreName.My, StoreLocation.LocalMachine);
+			store.Open(OpenFlags.ReadOnly);
+			foreach (X509Certificate cert in store.Certificates)
+			{
+				if (cert.Subject.Contains("SMD"))
+				{
+					var keyData = new EncryptionKey()
+					{
+						Key = "oS3vieXo2RXZTLuC/rtbQa==",
+						IV = "EizFaRFuNjmYgn6CoOS6h1==",
+						Other = "@1B2cde4e5F6g7h8"
+					};
+					var json = JsonConvert.SerializeObject(keyData);
+					var data = Encoding.UTF8.GetBytes(json);
+					RSACng rsa = (cert as X509Certificate2).PrivateKey as RSACng;
+					var encrypted = rsa.Encrypt(data, RSAEncryptionPadding.OaepSHA512);
+					File.WriteAllBytes("C:\\temp\\rijndael.dat", encrypted);
+					return;
+				}
+			}
+		}
+
+	class EncryptionKey
+	{
+		public string Key;
+		public string IV;
+		public string Other;
+	}

@@ -1,0 +1,102 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/Projects/Articles/ArticlePreviewSageData.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+
+    var ArticleSageTarget = {
+        ARTICLE: 'ARTICLE',
+        ARTIFACT: 'ARTIFACT'
+    };
+
+    var ArticlePreviewSageData = function (options) {
+        FormView.Extend(this, "@g["Sage Item"]", `/Admin/Brands/Projects/Articles/ArticlePreviewSageData`);
+
+        this.ArticleOrArtifact = options.ArticleOrArtifact;
+        this.TargetID = options.TargetID;
+        this.Reference = options.Reference;
+        this.Data = null;
+        this.SageItem = null;
+        
+	};
+
+
+    ArticlePreviewSageData.prototype = {
+        constructor: ArticlePreviewSageData,
+
+		OnLoad: function () {
+            var self = this;
+
+			AppContext.Sage.GetArticle(self.ArticleID, self.Reference)
+                .fail((a, b, c) => {
+                    console.log(a, b, c)
+                })
+                .done((response) => {
+                    if (response.Success == false) {
+                        AppContext.ShowError(response.Message);
+                        return;
+                    }
+                    // sage item
+                    self.LoadData(response.Data);
+
+                    if (response.Data.HasImage) {
+                        self.elements.ImageContainer.append(`<img src="/ws/sage/getarticleimage/${self.ArticleID}/${self.Reference}" alt="" title="" />`)
+                    }
+
+                });
+        },
+
+        SyncFn: function () {
+            var self = this;
+
+            switch (self.ArticleOrArtifact) {
+
+                case ArticleSageTarget.ARTICLE:
+                    AppContext.Sage.SyncArticle(self.TargetID, self.Reference)
+                        .done((response) => {
+
+                            if (response.Success == false) {
+                                return;
+                            }
+                            // printweb article
+                            self.Data = response.Data;
+
+                            self.Close();
+                        });
+                    break;
+
+                case ArticleSageTarget.ARTIFACT:
+                    AppContext.Sage.SyncArtifact(self.TargetID, self.Reference)
+                        .done((response) => {
+
+                            if (response.Success == false) {
+                                return;
+                            }
+                            // printweb artifact
+                            self.Data = response.Data;
+
+                            self.Close();
+                        })
+                    break;
+
+                default:
+
+                    AppContext.ShowError('@g["Unknow Target"]');
+
+                    break;
+
+
+            }
+
+            
+        }
+
+	};
+//</script>

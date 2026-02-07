@@ -1,0 +1,302 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData  userData
+@inject IOrderRepository  orderRepo
+@inject IProjectRepository projectRepo
+@inject IEventQueue events
+@{
+    Layout = null;
+
+
+}
+//# sourceURL=https://Pages/Validation/Monoprix/ItemAssignmentWizard.js
+/// <script>
+
+    var ItemAssignmentWizard = function (orderSelection, wizardStep, allSteps) {
+        
+        this.OrderSelection = orderSelection;
+        this.WizardStep = wizardStep;
+        this.AllSteps = allSteps;
+        this.BreadCrumbs = null;
+        //this.OrderGroups = [];
+        this.ArticleList = {};
+        this.ArticleSelected = [];
+        this.ProjectIDList = [];
+        this.ComponentBaseName = "ArticleSelection_";
+        this.Catalogs = []; // [{ Definition:'', Name:'', Data: [] }, { Definition:'', Name:'', Data: [] }]
+
+        let self = this;
+
+        AWizardBaseView.Extend(this, "@g["Assign Items"]", `@Url.Content("~/Validation/Monoprix/ItemAssignmentWizard")?n=${self.OrderSelection.length}&ProjectID=${self.OrderSelection[0].ProjectID}`, wizardStep, allSteps);
+        ExtendObj(this, ItemAssignmentWizard.prototype);// override base class methods - uggly version, but simple
+    }
+
+    ItemAssignmentWizard.prototype = {
+
+        constructor: ItemAssignmentWizard,
+
+        OnLoad: async function () {
+
+            var self = this;
+
+            self.ShowStatus();
+            await self.LoadArticles();
+            await self.LoadCatalogs();
+            self.InitializeComponents();
+            
+        },
+
+        InitializeComponents: function () {
+            let self = this;
+
+            self.OrderSelection.forEach((sel, idx, arr) => {
+
+                let cmp = self.elements[self.ComponentBaseName + idx];
+
+                let labels = self.ArticleList[sel.ProjectID.toString()].filter(article => article.LabelID > 0)
+                let items = []; //self.ArticleList[sel.ProjectID.toString()].filter(article => article.LabelID == null)
+                console.log("Catalogs", self.Catalogs);
+                cmp.Initialize(sel, labels, items, self.Catalogs);
+
+            });
+        },
+
+        LoadArticles: async function () {
+
+            let self = this;
+
+            let projectsIDs = []
+
+            self.OrderSelection.forEach((sel, idx, arr) => {
+
+                projectsIDs.push(sel.ProjectID)
+
+            });
+
+            self.ProjectIDList = [...new Set(projectsIDs)];
+            //let uniqueProjectsIDs = [59,81,102,127] // testing
+
+            // Sample execute multiple ajax request asyn way
+            // this cases never happened because 
+            // wizard validation only allow validate multiple orders only belong to the same projectID
+            await Promise.all(self.ProjectIDList.map(async (i) => {
+
+                return await AppContext.Articles.GetFullByProjectIDFiltered({ ProjectID: parseInt(i), ArticleType: 1 }).then((result) => {
+                    self.ArticleList[i.toString()] = result; 
+                })
+                //var articles = await AppContext.Articles.GetFullByProjectIDFiltered({ ProjectID: parseInt(self.ProjectID), ArticleType: 1 });
+                //self.ArticleList[i.toString()] = articles;
+                //console.log('Project ' + i);
+            })).then(self.ArticlesLoadedOK, self.ArticlesCantLoad)
+            
+        },
+
+        GetRequiredCatalogs: function () {
+            return [ 'TrimanSymbols', 'Rayons', 'Gammas', 'Distribution' ]
+        },
+
+        // /**
+        //  * Customized function to return hashtable with catalogs required for this Custom Wizard
+        //  * hashtable with catalogs data by catalogname: { MadeId: [MadeIn Data], Catalog2:[catalog2 data], ...}
+        //  */
+        // LoadCatalogs: async function () {
+
+        //     let self = this;
+
+        //     let requiredCatalogs = [{ Name: 'TrimanSymbols' }, { Name: 'Rayons' }]// rayons in french, deparments or Gamma in english
+
+        //     await Promise.all(requiredCatalogs.map(async (catalog) => {
+
+        //         return await AppContext.Catalogs.GetByName(
+        //             self.OrderSelection[0].ProjectID,
+        //             catalog.Name,
+        //             null,
+        //             null,
+        //             false,
+        //             false
+        //         ).then((response) => {
+        //             let found = requiredCatalogs.find(f => f.Name == catalog.Name)
+        //             found.Definition = response.Data;
+        //         })
+
+        //     }));
+
+        //     await Promise.all(requiredCatalogs.map(async (catalog) => {
+
+        //         return await AppContext.CatalogData.GetByCatalogID(
+        //             catalog.Definition.CatalogID,
+        //             null,
+        //             null,
+        //             false
+        //         ).then(response => {
+
+        //             let found = requiredCatalogs.find(f => f.Name == catalog.Name)
+        //             found.Data = JSON.parse(response);
+
+        //         })
+
+        //     }));
+
+        //     self.Catalogs = requiredCatalogs;
+
+        // },
+
+        Save: function () {
+
+            let self = this;
+
+            let deffered = $.Deferred();
+
+            if (!self.model.ValidState() || !self.CompleteOrderSelection()) {
+
+                deffered.reject();
+
+                return deffered.promise();
+            };
+
+
+
+            let promise = AppContext.Wizard.SaveAssigmentItems({ selection: self.OrderSelection, productfields: ["Triman"] })
+                .then((rq) => {
+
+                    AppContext.Wizard.GetOrdersDataAssigment(self.OrderSelection).done((result) => {
+                        self._UpdateSelection(result)
+                    });
+
+                    AppContext.ShowSuccess("@g["State Saved"]");
+                })
+
+            return promise;
+
+        },
+
+        _solve: function () {
+            let self = this;
+
+            let deffered = $.Deferred();
+
+            let componentsAreValid = self.CompleteOrderSelection();
+
+            if (!componentsAreValid) {
+
+                deffered.reject();
+
+                return deffered.promise();
+            };
+            console.log("_solve Order Selection", self.OrderSelection) 
+
+            let promise = AppContext.Wizard.SolveAssigmentItems({ selection: self.OrderSelection, productfields: ["Triman","CertificationNumber","CertifyingCompany"] })
+                .then((result) => {
+                    self._UpdateSelection({ Data: { OrderData: result.Data } })
+                })
+
+            return promise;
+
+        },
+
+        SaveAndNext: function () {
+
+			var self = this;
+
+            if (!self.ComponentsValidation()) {
+                  AppContext.ShowError("@g["You must add at least 1 item to continue"]");
+                return;
+            }
+
+            var p = self._solve();
+
+            p.done(() => {
+
+                self.GetValidator().GetStep(self.WizardStep.Position + 1);
+
+            })
+
+        },
+
+        CompleteOrderSelection() {
+            let self = this;
+
+            let isValid = true;
+
+            
+
+            self.OrderSelection.forEach((sel, idx, arr) => {
+
+                let cmp = self.elements[self.ComponentBaseName + idx];
+
+
+                if (!cmp.IsValid()) {
+
+                    isValid = false;
+
+                    return true;// continue with next
+                }
+
+
+                if (isValid) {
+                    sel.SelectedArticles = cmp.GetSelectedArticles();
+
+                    sel.ProductFields = cmp.GetProductFields();
+                }
+                
+            });
+
+
+            return isValid
+        },
+
+        _UpdateSelection: function (result) {
+
+            var self = this;
+
+            for (var i = 0; i < result.Data.OrderData.length; i++) {
+
+                var sel = result.Data.OrderData[i]
+
+                var ordersInGroup = []
+
+                for (var j = 0; j < sel.Orders.length; j++) {
+                    self.OrderSelection[i].Orders.push(sel.Orders[j])
+                }
+
+                self.OrderSelection[i].Orders = [... new Set(self.OrderSelection[i].Orders)];
+            }
+
+        },
+
+        ComponentsValidation: function () {
+            var self = this;
+            var flag = true;
+
+            self.OrderSelection.every((sel, idx, arr) => {
+
+                let cmp = self.elements[self.ComponentBaseName + idx];
+
+                if (!cmp.HasItems()) {
+                    flag = false;
+                    return false;
+                }
+                return true;
+            });  
+
+            return flag;
+
+        },
+
+        /// #region Articles Handlers
+        // this is use like promise function, the arguments alwasy be: promise1, promise2,... promiseN
+        ArticlesLoadedOK: function() {
+            
+            // all articles are loaded ok
+        },
+
+        ArticlesCantLoad: function() {
+            console.log('error', a,b,c)
+        },
+
+        /// #endregion Article Handlers
+
+    };
+
+/// </script>
+

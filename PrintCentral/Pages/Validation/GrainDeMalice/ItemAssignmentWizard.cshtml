@@ -1,0 +1,64 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@inject IOrderRepository orderRepo
+@inject IProjectRepository projectRepo
+@inject IEventQueue events
+@{
+    Layout = null;
+    int n = 0;
+
+    if (Request.Query.ContainsKey("n"))
+    {
+        n = Convert.ToInt32(Request.Query["n"]);
+    }
+}
+<form name="addarticles-wizard-frm" method="post" onsubmit="return false;">
+    <viewform>
+        <viewcard>
+        </viewcard>
+        <viewcard>
+
+            <viewrow>
+                <viewcolumn>
+                    <div name="BreadcrumbContainer">
+                        <!-- Javacript controller must inherit from AWizardBaseView to generate automatically breadrumbs -->
+                    </div>
+                </viewcolumn>
+            </viewrow>
+
+
+
+            <viewrow>
+                <viewcolumn>
+
+                    <div name="ComponentContainer">
+
+                        @for (var i = 0; i < n; i++)
+                        {
+                            <div component="FormView" name="ArticleSelection_@i" controller="/Validation/GrainDeMalice/Components/ItemAssignmentGridView.js"></div>
+                        }
+                    </div>
+
+
+                </viewcolumn>
+
+            </viewrow>
+
+            <viewfooter>
+
+                <div class="row justify-content-end" name="AvailableActions">
+                    <div class="col-4 text-center">
+                        <a href="#" class="btn btn-sm btn-outline-primary" action="Save"> <span class="fa fa-fw fa-save" aria-hidden="true"></span> @g["Save"]</a>
+                    </div>
+                    <div class="col-4 text-right">
+                        <a href="#" class="btn btn-sm btn-primary" action="SaveAndNext">@g["Save And Next"] <span class="fa fa-fw fa-chevron-right" aria-hidden="true"></span></a>
+                    </div>
+                </div>
+
+            </viewfooter>
+
+        </viewcard>
+
+    </viewform>
+</form>

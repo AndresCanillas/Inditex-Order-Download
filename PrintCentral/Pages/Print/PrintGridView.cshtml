@@ -1,0 +1,33 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+<viewcard name="GridDisplay">
+	<viewrow>
+		<viewcolumn>
+			<div class="toolbar-body" style="width:100%">
+				<span class="toolbar-grip"></span>
+				<a href="#" title="@g["Add record"]" action="AddRecord"><span class="fa fa-plus" style="color:green;"></span></a>
+				<a href="#" title="@g["Show Preview"]" action="ShowPreview"><span class="fa fa-image"></span></a>
+				<a href="#" title="@g["Show Articles"]" action="ShowArticles"><span class="fa fa-tags"></span></a>
+				<a name="ImportFileBtn" href="#" title="@g["Import File"]" action="ImportFile"><span class="fa fa-file-excel-o"></span></a>
+				<span class="toolbar-separator"></span>
+				<a href="#" title="@g["Delete record"]" action="DeleteRecord"><span class="fa fa-trash" style="color:darkred;"></span></a>
+			</div>
+			<div name="Grid" component="GridView" style="width:100%; height:60vh"></div>
+		</viewcolumn>
+	</viewrow>
+	<viewfooter>
+		<button action="PrintLabels" class="btn btn-primary" type="button">@g["Print"]</button>
+	</viewfooter>
+</viewcard>
+<viewcard name="MessageDisplay" style="display:none;">
+	<viewrow>
+		<viewcolumn>
+			<h2 name="MsgTitle"></h2>
+			<hr class="my-4" />
+			<div name="MsgContent" class="lead"></div>
+		</viewcolumn>
+	</viewrow>
+</viewcard>

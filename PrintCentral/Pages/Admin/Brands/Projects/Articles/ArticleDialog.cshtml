@@ -1,0 +1,33 @@
+﻿@page
+@inject ILocalizationService g
+@inject IMaterialRepository materialRepo
+@inject ILabelRepository labelRepo
+@inject IUserData userData
+@{
+	Layout = null;
+	var materials = materialRepo.GetList();
+	var labels = labelRepo.GetList();
+}
+<viewrow>
+	<viewcolumn>
+		<viewform>
+			<input model name="Name" label="@g["Name"]:" validation="required;maxlen(30)" type="text" />
+			<select model name="MaterialID" label="@g["Material"]:" options="@(OptionList.FromEnumerable(materials, "ID", "Name"))"></select>
+			<select model name="LabelID" label="@g["Design"]:" options="@(OptionList.FromEnumerable(labels, "ID", "Name"))"></select>
+			@if (userData.Admin_Articles_CanEditMDSettings)
+			{
+				<input model name="ArticleCode" label="@g["Article Code"]:" validation="required;maxlen(25)" type="text" />
+				<input model name="BillingCode" label="@g["Billing Code"]:" validation="required;maxlen(25)" type="text" />
+			}
+			else
+			{
+				<input model name="ArticleCode" type="hidden" />
+				<input model name="BillingCode" type="hidden" />
+			}
+		</viewform>
+	</viewcolumn>
+</viewrow>
+<viewfooter>
+	<button type="button" class="btn btn-primary" action="Ok">@g["OK"]</button>
+	<button type="button" class="btn btn-secondary" action="Cancel">@g["Cancel"]</button>
+</viewfooter>

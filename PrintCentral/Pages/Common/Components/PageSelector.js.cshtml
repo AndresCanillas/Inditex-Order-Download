@@ -1,0 +1,77 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Common/Components/PageSelector.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var PageSelector = function () {
+		FormView.Extend(this);
+		this.Content = $(`
+		<div name="OuterContainer" style="margin:auto;">
+			<div name="InnerContainer" class="btn-group" role="group">
+				<button type="button" class="btn btn-default" style="margin:0px;" action="PreviousPage"><span class="ti ti-arrow-left"></span></button>
+				<button name="CurrentPageDisplay" type="button" class="btn btn-default" style="margin:0px; width:100px;">1/10</button>
+				<button type="button" class="btn btn-default" style="margin:0px;" action="NextPage"><span class="ti ti-arrow-right"></span></button>
+			</div>
+		</div>`);
+		this.PageSelected = new AppEvent();
+		this.Pages = 0;
+		this.CurrentPage = 0
+	};
+
+	PageSelector.prototype = {
+		constructor: PageSelector,
+
+		OnLoad: function () {
+		},
+
+		OnUnload: function () {
+            this.PageSelected.Dispose();
+		},
+
+		LoadPages: function (records, pagesize) {
+			this.CurrentPage = 0
+			if (records != null && records.length > 0) {
+				this.Pages = Math.floor(records.length / pagesize);
+
+				if (records.length % pagesize != 0)
+					this.Pages++;
+
+				this.elements.CurrentPageDisplay.text(`1/${this.Pages}`);
+			}
+		},
+
+		UpdatePagesCount: function (recordnumber, pagesize)
+		{
+			if (pagesize>0)	{
+				this.Pages = Math.floor(recordnumber / pagesize);
+					  if (recordnumber % pagesize != 0)
+					this.Pages++;
+
+				this.elements.CurrentPageDisplay.text(`1/${this.Pages}`);
+			}
+		},
+
+		PreviousPage: function (e) {
+			if (this.CurrentPage > 0) {
+				this.CurrentPage--;
+				this.elements.CurrentPageDisplay.text(`${this.CurrentPage+1}/${this.Pages}`);
+				this.PageSelected.Raise(this.CurrentPage);
+			}
+		},
+
+		NextPage: function (e) {
+			if (this.CurrentPage < this.Pages - 1) {
+				this.CurrentPage++;
+				this.elements.CurrentPageDisplay.text(`${this.CurrentPage+1}/${this.Pages}`);
+				this.PageSelected.Raise(this.CurrentPage);
+			}
+		}
+	};
+//</script>

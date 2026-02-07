@@ -1,0 +1,470 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/WF/WFManagerView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var WFManagerView = function (workflowid, text) {
+		FormView.Extend(this, text, `/Admin/WF/WFManagerView`);
+		this.WorkflowID = workflowid;
+		this.PageSize = 50;
+	};
+
+	WFManagerView.prototype = {
+		constructor: WFManagerView,
+
+		OnLoad: async function () {
+            let ctrl = this;
+			this.elements.ItemGrid.Rows.MultiSelect = true;
+			this.elements.Paginator.PageSelected.Subscribe(this, this.LoadItemPage);
+			this.elements.ItemGrid.RowClick.Subscribe(this, this.LoadItemData);
+			
+
+			const startDate = new Date();
+			const endDate = new Date();
+			startDate.setDate(endDate.getDate() - 1);
+			
+			this.model.FromDate = startDate;
+			this.model.ToDate = endDate;
+
+			await refreshCounters(this, true);
+
+            await cycle();
+
+            async function cycle() {
+                await refreshCounters(ctrl, false)
+                this.timerid = setTimeout(cycle, 4000, this);  
+            };
+
+			async function refreshCounters(self, firstTime) {
+
+				var response = await AppContext.HttpGet(`/wf/tasks/${self.WorkflowID}`);
+				if (response.Success === true) {
+					self.Tasks = response.Data;
+					self.elements.Tasks.Rows.LoadData(response.Data);
+					if (firstTime == true)
+						AppContext.LoadComboBox(self.elements.TaskID, response.Data, "TaskID", "TaskName", "Any");
+				}
+
+				response = await AppContext.HttpGet(`/wf/tasks/${self.WorkflowID}/counters`);
+				if (response.Success === true) {
+					self.model.TotalActive = response.Data.Active;
+					self.model.TotalWaiting = response.Data.Waiting;
+					self.model.TotalDelayed = response.Data.Delayed;
+					self.model.TotalRejected = response.Data.Rejected;
+					self.model.TotalCompleted = response.Data.Completed;
+					self.model.TotalCancelled = response.Data.Cancelled;
+				}
+                
+			}
+			this.model.TaskID = 0;
+		},
+
+		OnUnload: function () {
+			clearInterval(this.timerid);
+			this.Tasks = null;
+			this.FoundItems = null;
+			this.elements.Paginator.PageSelected.Unsubscribe(this, this.LoadItemPage);
+			this.elements.ItemGrid.RowClick.Unsubscribe(this, this.LoadItemData);
+            
+		},
+
+		SetRowCssClass: function (rowIdx, data) {
+			if (data.IsDetached) {
+				return 'detached-task';
+			}
+			return '';
+		},
+
+		ActiveLink: function (val, row, col, dataType, data) {
+			return this.getLink("LoadActiveItems", data.TaskID, val);
+		},
+
+		WaitingLink: function (val, row, col, dataType, data) {
+			  return this.getLink("LoadWaitingItems", data.TaskID, val);
+		},
+
+		DelayedLink: function (val, row, col, dataType, data) {
+			  return this.getLink("LoadDelayedItems", data.TaskID, val);
+		},
+
+		RejectedLink: function (val, row, col, dataType, data) {
+			  return this.getLink("LoadRejectedItems", data.TaskID, val);
+		},
+
+		CompletedLink: function (val, row, col, dataType, data) {
+			  return this.getLink("LoadCompletedItems", data.TaskID, val);
+		},
+
+		CancelledLink: function (val, row, col, dataType, data) {
+			  return this.getLink("LoadCancelledItems", data.TaskID, val);
+		},
+
+		SelectAll: function (e) {
+			e && e.preventDefault();
+
+			var count = this.elements.ItemGrid.Rows.Count;
+			for (var i = 0; i < count; i++) {
+				var currentValue = this.elements.ItemGrid.Rows.IsSelected(i);
+				if (!currentValue)
+					this.elements.ItemGrid.Rows.IsSelected(i, true);
+			}
+		},
+
+		InvertSelection: function (e) {
+			e && e.preventDefault();
+
+			var count = this.elements.ItemGrid.Rows.Count;
+			for (var i = 0; i < count; i++) {
+				var currentValue = this.elements.ItemGrid.Rows.IsSelected(i);
+				this.elements.ItemGrid.Rows.IsSelected(i, !currentValue);
+			}
+		},
+
+		ClearSelection: function (e) {
+			e && e.preventDefault();
+			this.elements.ItemGrid.Rows.ClearSelection();
+		},
+
+		MoveItems: async function (e) {
+			var self = this;
+			e && e.preventDefault();
+			if (self.elements.ItemGrid.Rows.SelectedIndex < 0) {
+				AppContext.ShowError("There are no items selected");
+			}
+			else {
+				await AppContext.LoadJS("/Admin/WF/ItemMoveDialog.js");
+				var dlg = new ItemMoveDialog(this.WorkflowID);
+				dlg.ShowDialog(async (data) => {
+					if (data != null) {
+						data.Items = [];
+						var rows = self.elements.ItemGrid.Rows.GetSelected();
+						for (var row of rows) {
+							data.Items.push(row.ItemID);
+						}
+						var result = await AppContext.HttpPost(`/wf/${this.WorkflowID}/moveitems`, data);
+						if (result.Success === true)
+							self.FindItems();
+					}
+				}, "50%");
+			}
+		},
+
+
+		RetryItems: async function (e) {
+			var self = this;
+			e && e.preventDefault();
+			if (self.elements.ItemGrid.Rows.SelectedIndex < 0) {
+				AppContext.ShowError("There are no items selected");
+			}
+			else {
+				var dlg = new ConfirmDialog("@g["Are you sure you want to retry execution of all selected items?"]");
+				dlg.ShowDialog(async (result) => {
+					if (result != null) {
+						var data = {};
+						data.Items = [];
+						var rows = self.elements.ItemGrid.Rows.GetSelected();
+						for (var row of rows) {
+							data.Items.push(row.ItemID);
+						}
+						result = await AppContext.HttpPost(`/wf/${this.WorkflowID}/retry`, data);
+						if (result.Success === true)
+							self.FindItems();
+					}
+				}, "50%");
+			}
+		},
+
+		DelayItems: async function (e) {
+			var self = this;
+			e && e.preventDefault();
+			if (self.elements.ItemGrid.Rows.SelectedIndex < 0) {
+				AppContext.ShowError("There are no items selected");
+			}
+			else {
+				await AppContext.LoadJS("/Admin/WF/ItemDelayDialog.js");
+				var dlg = new ItemDelayDialog();
+				dlg.ShowDialog(async (data) => {
+					if (data != null) {
+						data.Items = [];
+						var rows = self.elements.ItemGrid.Rows.GetSelected();
+						for (var row of rows) {
+							data.Items.push(row.ItemID);
+						}
+						var result = await AppContext.HttpPost(`/wf/${this.WorkflowID}/delay`, data);
+						if (result.Success === true)
+							self.FindItems();
+					}
+				}, "50%");
+			}
+		},
+
+		RejectItems: async function (e) {
+			var self = this;
+			e && e.preventDefault();
+			if (self.elements.ItemGrid.Rows.SelectedIndex < 0) {
+				AppContext.ShowError("There are no items selected");
+			}
+			else {
+				await AppContext.LoadJS("/Admin/WF/ReasonDialog.js");
+				var dlg = new ReasonDialog("Reject Item(s)", "Reject");
+				dlg.ShowDialog(async (data) => {
+					if (data != null) {
+						data.Items = [];
+						var rows = self.elements.ItemGrid.Rows.GetSelected();
+						for (var row of rows) {
+							data.Items.push(row.ItemID);
+						}
+						var result = await AppContext.HttpPost(`/wf/${this.WorkflowID}/reject`, data);
+						if (result.Success === true)
+							self.FindItems();
+					}
+				}, "50%");
+			}
+		},
+
+		ChangeStatus: async function (e) {
+			var self = this;
+			e && e.preventDefault();
+			if (self.elements.ItemGrid.Rows.SelectedIndex < 0) {
+				AppContext.ShowError("There are no items selected");
+			}
+			else {
+				await AppContext.LoadJS("/Admin/WF/ItemStatusDialog.js");
+				var dlg = new ItemStatusDialog();
+				dlg.ShowDialog(async (data) => {
+					if (data != null) {
+						data.Items = [];
+						var rows = self.elements.ItemGrid.Rows.GetSelected();
+						for (var row of rows) {
+							data.Items.push(row.ItemID);
+						}
+						var result = await AppContext.HttpPost(`/wf/${this.WorkflowID}/changestatus`, data);
+						if (result.Success === true)
+							self.FindItems();
+					}
+				});
+			}
+		},
+
+		ChangePriority: async function (e) {
+			var self = this;
+			e && e.preventDefault();
+			if (self.elements.ItemGrid.Rows.SelectedIndex < 0) {
+				AppContext.ShowError("There are no items selected");
+			}
+			else {
+				await AppContext.LoadJS("/Admin/WF/ItemPriorityDialog.js");
+				var dlg = new ItemPriorityDialog();
+				dlg.ShowDialog(async (data) => {
+					if (data != null) {
+						data.Items = [];
+						var rows = self.elements.ItemGrid.Rows.GetSelected();
+						for (var row of rows) {
+							data.Items.push(row.ItemID);
+						}
+						var result = await AppContext.HttpPost(`/wf/${this.WorkflowID}/changepriority`, data);
+						if (result.Success === true)
+							self.FindItems();
+					}
+				});
+			}
+		},
+
+		CompleteItems: async function (e) {
+			var self = this;
+			e && e.preventDefault();
+			if (self.elements.ItemGrid.Rows.SelectedIndex < 0) {
+				AppContext.ShowError("There are no items selected");
+			}
+			else {
+				await AppContext.LoadJS("/Admin/WF/ReasonDialog.js");
+				var dlg = new ReasonDialog("Complete Item(s)", "Complete Items");
+				dlg.ShowDialog(async (data) => {
+					if (data != null) {
+						data.Items = [];
+						var rows = self.elements.ItemGrid.Rows.GetSelected();
+						for (var row of rows) {
+							data.Items.push(row.ItemID);
+						}
+						var result = await AppContext.HttpPost(`/wf/${this.WorkflowID}/complete`, data);
+						if (result.Success === true)
+							self.FindItems();
+					}
+				}, "50%");
+			}
+		},
+
+		CancelItems: async function (e) {
+			var self = this;
+			e && e.preventDefault();
+			if (self.elements.ItemGrid.Rows.SelectedIndex < 0) {
+				AppContext.ShowError("There are no items selected");
+			}
+			else {
+				await AppContext.LoadJS("/Admin/WF/ReasonDialog.js");
+				var dlg = new ReasonDialog("Cancel Item(s)", "Ok");
+				dlg.ShowDialog(async (data) => {
+					if (data != null) {
+						data.Items = [];
+						var rows = self.elements.ItemGrid.Rows.GetSelected();
+						for (var row of rows) {
+							data.Items.push(row.ItemID);
+						}
+						var result = await AppContext.HttpPost(`/wf/${this.WorkflowID}/cancel`, data);
+						if (result.Success === true)
+							self.FindItems();
+					}
+				}, "50%");
+			}
+		},
+
+		ReactivateItems: async function (e) {
+			var self = this;
+			e && e.preventDefault();
+			if (self.elements.ItemGrid.Rows.SelectedIndex < 0) {
+				AppContext.ShowError("There are no items selected");
+			}
+			else {
+
+				var rows = self.elements.ItemGrid.Rows.GetSelected();
+				for (var row of rows) {
+					if (row.ItemStatus != 16 && row.ItemStatus != 32) {
+						AppContext.ShowError("Items to be reinserted need to be in the Complete or Cancelled state.");
+						return;
+					}
+				}
+
+				await AppContext.LoadJS("/Admin/WF/ItemMoveDialog.js");
+				var dlg = new ItemMoveDialog(this.WorkflowID, "Reactivate Items");
+				dlg.ShowDialog(async (data) => {
+					if (data != null) {
+						data.Items = [];
+						for (var row of rows) {
+							data.Items.push(row.ItemID);
+						}
+						var result = await AppContext.HttpPost(`/wf/${this.WorkflowID}/reactivate`, data);
+						if (result.Success === true)
+							self.FindItems();
+					}
+				}, "50%");
+			}
+		},
+
+		LoadActiveItems: function (e) {
+			e && e.preventDefault();
+			var taskid = e.currentTarget.attributes["data-taskid"].value;
+			this.LoadTaskItemsWithGivenStatus(taskid, 1);
+		},
+
+		LoadWaitingItems: function (e) {
+			e && e.preventDefault();
+			var taskid = e.currentTarget.attributes["data-taskid"].value;
+			this.LoadTaskItemsWithGivenStatus(taskid, 2);
+		},
+
+		LoadDelayedItems: function (e) {
+			e && e.preventDefault();
+			var taskid = e.currentTarget.attributes["data-taskid"].value;
+			this.LoadTaskItemsWithGivenStatus(taskid, 4);
+		},
+
+		LoadRejectedItems: function (e) {
+			e && e.preventDefault();
+			var taskid = e.currentTarget.attributes["data-taskid"].value;
+			this.LoadTaskItemsWithGivenStatus(taskid, 8);
+		},
+
+		LoadTaskItemsWithGivenStatus: function (taskid, itemstatus) {
+			this.model.TaskID = taskid;
+			this.model.ItemStatus = itemstatus;
+			this.model.ItemID = "";
+			this.model.ItemName = "";
+			this.model.Keywords = "";
+			this.model.FromDate = "";
+			this.model.ToDate = "";
+			this.FindItems();
+		},
+
+		FindItems: async function (e) {
+			e && e.preventDefault();
+			var itemStatus;
+			if (this.model.ItemStatus == null || this.model.ItemStatus == "null" || this.model.ItemStatus.length == 0)
+				itemStatus = null;
+			else
+				itemStatus = parseInt(this.model.ItemStatus, 10);
+
+			var fromDate =kendo.toString(this.model.FromDate, 'yyyy-MM-dd');
+			var toDate =kendo.toString(this.model.ToDate, 'yyyy-MM-dd');
+
+			if (fromDate.length>0) 
+				fromDate = fromDate + ' 00:00:00';
+
+			if (toDate.length>0)
+				toDate = toDate + ' 23:59:59';
+
+			var filter = {
+				WorkflowID: this.WorkflowID,
+				TaskID: parseInt(this.model.TaskID, 10),
+				ItemStatus: itemStatus,
+				ItemID: this.model.ItemID,
+				ItemName: this.model.ItemName,
+				Keywords: this.model.Keywords,
+				FromDate: fromDate,
+				ToDate: toDate
+			};
+			var response = await AppContext.HttpPost("/wf/finditems", filter, null, null, true, "Searching...");
+			if (response.Success) {
+				this.FoundItems = response.Data;
+				this.elements.Paginator.LoadPages(this.FoundItems, this.PageSize);
+
+				for (var item of this.FoundItems) {
+					var task = this.Tasks.First(t => t.TaskID == item.TaskID);
+					if(task != null)
+						item.TaskName = task.TaskName;
+					else
+						item.TaskName = "";
+				}
+		
+				this.LoadItemPage(0);
+			}
+		},
+
+		LoadItemPage: function (pagenumber)
+		{
+			this.elements.ItemGrid.Rows.ClearSelection();
+			if (this.FoundItems == null || this.FoundItems.length === 0) {
+				this.elements.ItemGrid.Rows.Clear();
+			}
+			else {
+				this.elements.Paginator.LoadData(this.FoundItems, this.PageSize);
+				var startIdx = pagenumber * this.PageSize;
+				var endIdx = startIdx + this.PageSize;
+				var page = this.FoundItems.slice(startIdx, endIdx);
+				this.elements.ItemGrid.Rows.LoadData(page);
+			}
+		},
+
+		LoadItemData: function (e) {
+			if (e && e.rowData) {
+				console.log(JSON.stringify(e.rowData));
+				this.elements.ItemData.LoadItemData(e.rowData);
+			}
+		},
+
+		getLink: function (action, taskID, val) {
+			var style = `padding: 0; color:#4040A0; background: #AAFFAA; text-align: center; cursor: pointer`;
+			var link = `<div action="${action}" data-taskid="${taskID}" style="${style}"><b>${val}</b></div>`;
+			if (val > 0) {
+				return link
+			}
+			return "";
+		}
+	};
+//</script>

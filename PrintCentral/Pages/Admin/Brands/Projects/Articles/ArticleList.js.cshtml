@@ -1,0 +1,45 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/Projects/Articles/ArticleList.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var ArticleList = function (projectid) {
+		FormView.Extend(this, "@g["Articles"]", `/Admin/Brands/Projects/Articles/ArticleList`);
+		this.ProjectID = projectid;
+	};
+
+
+	ArticleList.prototype = {
+		constructor: ArticleList,
+
+		OnLoad: function () {
+			if (this.ProjectID == null)
+				this.ProjectID = parseInt(this.elements.SelectedProjectID.val(), 10);
+			this.elements.Articles.LoadItems({ ProjectID: this.ProjectID, ShowFilters: true, AddOption: true, OpenOption: true, DeleteOption: true });
+			this.elements.Articles.ItemSelected.Subscribe(this, this.OpenArticle);
+		},
+
+		OnUnload: function () {
+			this.elements.Articles.ItemSelected.Unsubscribe(this, this.OpenArticle);
+		},
+
+		OpenArticle: function (e) {
+			var self = this;
+			AppContext.LoadJS("/Admin/Brands/Projects/Articles/ArticleView.js").then(() => {
+				var view = new ArticleView(e.item.ID, self.ProjectID, self);
+				//dlg.ShowDialog(null, "85%");
+                var container = self.ViewContainer;
+				
+                view.Show(container);
+			});
+		}
+    };
+//</script>
+
+

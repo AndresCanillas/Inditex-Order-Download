@@ -1,0 +1,207 @@
+﻿@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+
+//# sourceURL=https://Pages/Admin/Utilities/ServicesStatus.js
+///<reference path="/js/jquery-3.0.0.min.js" />
+///<reference path="/js/Kendo.all.min.js" />
+///<reference path="/js/AppContext.js" />
+
+
+//<script>
+    var ServicesStatus = function () {
+
+        /*if (!options) {
+            options = {};
+        }*/
+
+        this.CurrentSelectedRow = null;
+        this.CurrentChecked = {};
+        this.CurrentPage = 1;
+        this.PageSize = 20;
+
+        FormView.Extend(this, "@g["ServiceStatus"]", "/Admin/Utilities/ServicesStatus");
+
+    };
+
+    ServicesStatus.prototype = {
+        constructor: ServicesStatus,
+
+        OnLoad: function () {
+            var self = this;
+            self.StatusService();
+
+            AppContext.LoadJS('/Admin/Utilities/ServicesStatusContextMenu.js').then(() => {
+                self.GetGrid().BeforeShowContextMenu.Subscribe(self, self.ConfigureRowContextMenu)
+            });
+        },
+
+        StatusService: async function () {
+            var self = this;
+            var services = []
+            services.push("SmartDots");
+
+            var statusservice = await AppContext.HttpGet(`/utility/getstatusservice/${services[0]}`);
+
+            self.elements.ServiceStatusTable.Rows.LoadData(JSON.parse(statusservice));
+            new Paginator({
+                ContainerElm: self.elements.PaginationContainer,
+                Controller: self,
+                PageSize: self.PageSize,
+                CurrentPage: 1,
+                TotalRecords: 20,
+                AlignCls: 'justify-content-center'
+            }).Render();
+
+        },
+
+        GetGrid: function () {
+            return this.elements.ServiceStatusTable;
+        },
+
+        GetCurrentRow: function () {
+            return this.GetGrid().Rows.Get(this.GetGrid().Rows.SelectedIndex);
+        },
+
+        GetSelectedRowData: function () {
+            var self = this;
+            var rowsChecked = [];
+            var keys = Object.keys(self.CurrentChecked);
+            for (var i = 0; i < keys.length; i++) {
+                var positionKey = keys[i];
+                var item = self.CurrentChecked[positionKey];
+                var row = self.GetGrid().Rows.Get(positionKey)
+                if (item.Selected == false || row.IsGroup == true) {
+                    continue;
+                }
+
+                rowsChecked.push(self.GetGrid().Rows.Get(positionKey));
+            }
+            return rowsChecked;
+        },
+
+        CheckboxSelectOrder: function (e) {
+            var self = this;
+            var elm = $(e.currentTarget);
+            var idx = elm.data('rowIdx');
+
+            var toSelectRow = self.GetGrid().Rows.Get(idx);
+
+            // current Selection
+            var keys = Object.keys(self.CurrentChecked)
+            // looking for first Selected
+            var firstSelected = null;
+
+            for (var i = 0; i < keys.length; i++) {
+                if (self.CurrentChecked[keys[i]].Selected) {
+
+                    var firstSelected = self.GetGrid().Rows.Get(keys[i])
+
+                    break;
+                }
+            }
+
+            self.CurrentChecked[idx] = { Selected: elm.prop('checked'), ID: toSelectRow.ID, ServiceName: toSelectRow.ServiceName, Status: toSelectRow.Status, rowIdx: idx };
+
+            return true;
+        },
+
+        CheckAll: async function (e) {
+            var checked = e.target ? e.target.checked : e.checked;
+
+            var orderList = this.elements.OrderTable.Rows.DataSource;
+            for (var i = 0; i < orderList.length; i++) {
+                orderList[i].Selected = checked;
+            }
+
+            this.elements.OrderTable.Rows.LoadData(orderList);
+        },
+
+        RenderSelectBox: function (value, rowIdx, colIdx, dataType, data) {
+            var checked = '';
+
+            if (data.Selected) {
+                checked = 'checked="checked"';
+            }
+
+            return `<div class="form-check" title="${data.NameService}">
+                        <input class="form-check-input" type="checkbox" ${checked} value="${data.ID}" data-row-idx="${rowIdx}" action="CheckboxSelectOrder">
+                    </div>`
+        },
+
+        ConfigureRowContextMenu: function (e) {
+            var self = this;
+            var menu = e.ContextMenu;
+            var options = [];
+            var rowData = self.GetCurrentRow();
+            var rows = self.GetSelectedRowData();
+
+            // si el rigth click no esta en la seleccion, modificar la seleccion
+            var found = rows.find((r) => {
+                return rowData.ServiceName == r.ServiceName;
+            });
+
+            if (found == undefined) {
+                // borrar la seleccion y agregar la nueva
+                var keys = Object.keys(self.CurrentChecked);
+                for (var i = 0; i < keys.length; i++) {
+                    self.CurrentChecked[keys[i]].Selected = false;
+                    $(`input:checkbox[value="${self.CurrentChecked[keys[i]].ID}"]`).prop('checked', false);
+                }
+                $(`input:checkbox[value="${rowData.ID}"]`).trigger('click');
+            }
+
+            //if (rowData.Status == "Running") {
+            options = self._ConfigureItemsContextMenu(e);
+            menu.Options = options;
+            //} else {
+            //    e.preventDefault();
+            //    return;              
+            //}
+        },
+
+        _ConfigureItemsContextMenu: function (e) {
+            var self = this;
+            var menu = e.ContextMenu;
+            var options = [];
+            var rows = self.GetSelectedRowData();
+
+            if (rows.length > 0) {
+                var actions = ServiceStatusActions.GetSelectionActions(rows)
+                actions.forEach((item, idx) => {
+                    var op = {}
+                    if (item.Action == ActionType.Separator) {
+                        op.IsSeparator = true;
+                    }
+                    else {
+                        op.Text = item.Text;
+                        var fnName = Object.getOwnPropertyNames(ActionType)[item.Action];
+                        var handler = self[fnName];
+                        if (handler)
+                            op.OnClick = handler;
+                    }
+                    options.push(op);
+                });
+            }
+
+            return options;
+        },
+
+        Start: async function () {
+            var self = this;
+            var rowData = self.GetCurrentRow();
+
+            var dlg = new ConfirmDialog("@g["Are you sure to start this Service?"]");
+            dlg.ShowDialog(async (response) => {
+				if (response) {
+                    var result = await AppContext.HttpPost(`/utility/startservice/${rowData.ServiceName}`);
+                    if (result.Success === true) {
+                        self.OnLoad();
+                    }
+				}
+			});
+        }
+    };
+//</script>

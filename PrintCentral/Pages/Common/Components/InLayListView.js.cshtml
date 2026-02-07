@@ -1,0 +1,56 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+
+//# sourceURL=https://Pages/Common/Components/InLayListView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var InLayListView = function () {
+        this.options = {};
+        this.ProjectID = null;
+        this.ShowFilters = null;
+        this.ShowNewOption = null;
+        this.ShowOpenOption = null;
+        this.ShowDeleteOption = null;
+
+        FormView.Extend(this);
+        this.Content = $(`
+			<inlineform name="FilterForm" style="display:none; margin-bottom:10px;">
+				<input type="text" model name="FilterText" label="@g["Search"]:" action="keyup:ApplyFilters" />
+			</inlineform>
+			<div name="FileDropArea" style="margin-bottom:10px;"></div>
+			<div name="ListContainer"></div>`);
+		this.dataSource = null;
+        this.ItemSelected = new AppEvent();
+    };
+
+    InLayListView.prototype = {
+        contructor: InLayListView,
+
+        OnLoad: function () {
+        },
+
+        OnUnload: function () {
+            this.ItemSelected.Dispose();
+        },
+        OpenClicked: function (e) {
+            var self = this;
+            e.preventDefault();
+            var cardElm = $(e.target).closest("[data-entityid]");
+            var filename = cardElm.attr("data-entityid");
+            var cardData = this.dataSource.first(p => p.FileName == filename);
+            this.ItemSelected.Raise({ target: this, item: cardData });
+        },
+
+        Download: function (e) {
+            e.stopPropagation();
+        }
+    }
+    
+//</script>

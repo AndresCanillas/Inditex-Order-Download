@@ -1,0 +1,302 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData  userData
+@inject ICountryRepository ctrRepo
+
+@{
+    Layout = null;
+}
+
+<form name="composition-wizard-frm" method="post" onsubmit="return false;">
+    <viewform>
+
+        <input model name="ID" type="hidden" value="" />
+        <input model name="MaxSectionsPercentage" type="hidden" />
+        <input model name="KeyName" type="hidden" value="" />
+        <input model name="KeyValue" type="hidden" value="" />
+        <input model name="OrderID" type="hidden" value="" />
+        <input model name="ProductDataID" type="hidden" value="" />
+        <input model name="OrderGroupID" type="hidden" value="" />
+        <input model name="OrderDataID" type="hidden" value="" />
+        <input model name="CareInstructionsSorted" type="hidden" />
+        <input model name="ArticleID" type="hidden" />
+
+        <viewcard>
+
+            <viewrow>
+                <viewcolumn>
+                    <!--  esta es la zona que cambia en el wizard  -->
+
+                    <h3 class="border-bottom">
+                        <span name="Title">@g["Composition"]</span>
+                        <span class="text float-right ">
+                            <a href="#collapseCompo" class="text-muted clearfix collapse-compo" role="button" aria-expanded="true" data-toggle="collapse" aria-controls="collapseCompo">
+                                <i class="c-open fa fa-fw fa-minus-square-o"></i>
+                                <i class="c-close fa fa-fw fa-plus-square-o"></i>
+                            </a>
+                        </span>
+                    </h3>
+                    @*<div name="EnableCompositionContainer">
+                        <select name="EnableComposition" label="@g["Enable Composition"]" action="change:EnableComposition">
+                            <option value="1">@g["Yes"]</option>
+                            <option value="0">@g["No"]</option>
+                        </select>
+                    </div>*@
+
+                </viewcolumn>
+            </viewrow>
+
+            <div id="collapseCompo" class="collapse show" data-toggle="collapse">
+                <div name="CompoOptionsSection" class="d-none">
+                    <viewrow>
+                        <div class="col-sm-12">
+
+                            <select model name="TargetArticle" label="@g["Shoes Composition Type"]" action="change:ChangeTargetArticle_Event"></select>
+
+                        </div>
+                        <div class="col-sm-12">
+                            <div class="alert alert-warning" role="alert">
+                                @g["After change '{0}', need to reload to recover composition storage previously", @g["Shoes Composition Type"]]
+                            </div>
+                        </div>
+                    </viewrow>
+                </div>
+
+                <viewrow>
+                    <viewcolumn>
+                        <div name="Composition"></div>
+                    </viewcolumn>
+                </viewrow>
+
+                <viewrow>
+                    <viewcolumn>
+                        <button type="button" class="btn btn-sm btn-success float-right add-section" action="click:AddSectionEvent">@g["Add Section"] <i class="fa fa-fw fa-plus"></i></button>
+                    </viewcolumn>
+                </viewrow>
+
+            </div>
+
+            <div name="CareInstructionsContainer" class="d-none">
+                <viewrow>
+                    <viewcolumn>
+                        <div class="">
+                            <h3 class="border-bottom">
+                                @g["Care Instructions"]
+                                <span class="text float-right ">
+                                    <a href="#collapseWashingRules" class="text-muted clearfix  collapse-compo" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseWashingRules">
+                                        <i class="c-open fa fa-fw fa-minus-square-o"></i>
+                                        <i class="c-close fa fa-fw fa-plus-square-o"></i>
+                                    </a>
+                                </span>
+                            </h3>
+                        </div>
+                    </viewcolumn>
+                </viewrow>
+                <div id="collapseWashingRules" class="collapse show" data-toggle="collapse">
+
+                    @*<viewrow>
+                        <viewcolumn>
+                            <select model name="EnableWashingRules" label="@g["Enable Washing Rules"]" action="change:EnableWashingRules">
+                                <option value="1">@g["Si"]</option>
+                                <option value="0">@g["No"]</option>
+                            </select>
+                        </viewcolumn>
+                    </viewrow>*@
+
+                    <viewrow>
+                        <viewcolumn>
+
+                            <div name="TemplatesContainer" style="display:none">
+                                <select model name="WrTemplate" action="change:FilterElements" label="@g["Templates"]:" validation="required;range(0, 1000)" />
+                            </div>
+
+                        </viewcolumn>
+                    </viewrow>
+
+                    <viewrow>
+                        <viewcolumn>
+                            <div name="WashinRules">
+
+
+
+
+                                <div name="TemplatesLeftZone">
+                                    <div class="form-group row" style="margin-bottom:5px;">
+                                        <label class="col-sm col-form-label">@g["Washed"]</label>
+                                        <div class="input-group input-group-sm col-sm">
+                                            
+
+                                            <input model id="Wash" name="UICareInstructions[0].Instruction" data-idx="1" no-transform class="form-control form-control-sm wr-code" />
+                                            <input model hidden no-transform name="CareInstructions[0].Category" value="Wash" />
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group row" style="margin-bottom:5px;">
+                                        <label class="col-sm col-form-label">@g["Bleached"]</label>
+                                        <div class="input-group input-group-sm col-sm">
+                                            
+                                            <input model id="Bleach" name="UICareInstructions[1].Instruction" data-idx="2" no-transform class="form-control form-control-sm wr-code" />
+                                            <input model hidden no-transform name="CareInstructions[1].Category" value="Bleach" />
+                                        </div>
+                                    </div>
+
+
+
+                                    <div class="form-group row" style="margin-bottom:5px;">
+                                        <label class="col-sm col-form-label">@g["Dry"]</label>
+                                        <div class="input-group input-group-sm col-sm">
+                                            
+                                            <input id="Dry" model name="UICareInstructions[2].Instruction" data-idx="3" no-transform class="form-control form-control-sm wr-code" />
+                                            <input model hidden no-transform name="CareInstructions[2].Category" value="Dry" />
+
+                                        </div>
+                                    </div>
+
+
+                                </div>
+                            </div>
+                        </viewcolumn>
+
+                        <viewcolumn>
+
+                            <div name="TemplatesRightZone">
+
+                                <div class="form-group row" style="margin-bottom:5px;">
+                                    <label class="col-sm col-form-label">@g["Dryer"]</label>
+                                    <div class="input-group input-group-sm col-sm">
+                                        <input model id="Dryer" name="UICareInstructions[3].Instruction" data-idx="4" no-transform class="form-control form-control-sm wr-code" />
+                                        <input model hidden no-transform name="CareInstructions[3].Category" value="Dryer" />
+                                    </div>
+                                </div>
+                               
+                                <div class="form-group row" style="margin-bottom:5px;">
+                                    <label class="col-sm col-form-label">@g["Ironed"]</label>
+                                    <div class="input-group input-group-sm col-sm">
+                                        <input model id="Iron" name="UICareInstructions[4].Instruction" data-idx="5" no-transform class="form-control form-control-sm wr-code" />
+                                        <input model hidden no-transform name="CareInstructions[4].Category" value="Iron" />
+                                    </div>
+                                </div>
+
+                                <div class="form-group row" style="margin-bottom:5px;">
+                                    <label class="col-sm col-form-label">@g["Dry Cleaning"]</label>
+                                    <div class="input-group input-group-sm col-sm">
+                                        <input model id="DryCleaning" name="UICareInstructions[5].Instruction" data-idx="6" no-transform class="form-control form-control-sm wr-code" />
+                                        <input model hidden no-transform name="CareInstructions[5].Category" value="DryCleaning" />
+                                    </div>
+                                </div>
+
+                                <div class="form-group row" style="margin-bottom:5px">
+                                    <label class="col-sm col-form-label">@g["Symbols"]</label>
+                                    <div class="input-group input-group-sm col-sm">
+                                        <div class="" name="wsymbols"> </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </viewcolumn>
+                    </viewrow>
+                </div>
+            </div>
+
+            <div name="AdditionlasContainer" class="d-none">
+                <viewrow>
+                    <viewcolumn>
+                        <div class="">
+                            <h3 class="border-bottom">
+                                @g["Additionals"]
+                                <span class="text float-right ">
+                                    <a href="#collapseAdditionals" class="text-muted clearfix  collapse-compo" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseAdditionals">
+                                        <i class="c-open fa fa-fw fa-minus-square-o"></i>
+                                        <i class="c-close fa fa-fw fa-plus-square-o"></i>
+                                    </a>
+                                </span>
+                            </h3>
+                        </div>
+                    </viewcolumn>
+                </viewrow>
+
+                <div id="collapseAdditionals" class="collapse show" data-toggle="collapse">
+
+                    <viewrow>
+
+                        <viewcolumn>
+
+                            <div class="form-group row" style="margin-bottom:5px;">
+                                <label class="col-sm col-form-label">@g["Add Addionals"]</label>
+                                <div class="input-group input-group-sm col-sm">
+                                    
+                                    <select model id="Additionals" name="UICareInstructions[6].Instruction" data-idx="6" data-category="Additional" no-transform class="form-control form-control-sm swr-code swr-additionals"></select>
+                                </div>
+                            </div>
+
+
+                        </viewcolumn>
+                    </viewrow>
+
+                </div>
+
+
+            </div>
+
+
+            <div name="ExceptionsContainer" class="d-none">
+                <viewrow>
+                    <viewcolumn>
+                        <div class="">
+                            <h3 class="border-bottom">
+                                @g["Exceptions"]
+                                <span class="text float-right ">
+                                    <a href="#collapseExceptions" class="text-muted clearfix  collapse-compo" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseExceptions">
+                                        <i class="c-open fa fa-fw fa-minus-square-o"></i>
+                                        <i class="c-close fa fa-fw fa-plus-square-o"></i>
+                                    </a>
+                                </span>
+                            </h3>
+                        </div>
+                    </viewcolumn>
+                </viewrow>
+
+                <div id="collapseExceptions" class="collapse show" data-toggle="collapse">
+
+                    <viewrow>
+
+                        <viewcolumn>
+
+                            <div class="form-group row" style="margin-bottom:5px;">
+                                <label class="col-sm col-form-label">@g["Add Exceptions"]</label>
+                                <div class="input-group input-group-sm col-sm">
+                                    
+                                    <select model id="Exceptions" name="UICareInstructions[7].Instruction" data-idx="7" data-category="Exception" no-transform class="form-control form-control-sm swr-code swr-exceptions"></select>
+                                </div>
+                            </div>
+
+
+                        </viewcolumn>
+                    </viewrow>
+
+                </div>
+
+
+            </div>
+
+            <!--         <input model name="CareInstruction[0].Instruction" value="" />       -->
+            <div class="d-none" name="SortedCareInstructions"></div>
+
+
+            <viewfooter>
+
+                <div class="row justify-content-end" name="AvailableActions">
+                    @*<div class="col-4 text-center">
+                        <a href="#" class="btn btn-sm btn-outline-primary" action="Save"> <span class="fa fa-fw fa-save" aria-hidden="true"></span> @g["Save"]</a>
+                    </div>*@
+                    <div class="col text-right">
+                        <a href="#" class="btn btn-sm btn-primary" action="SaveDefinition">@g["Save"] <span class="fa fa-fw fa-chevron-right" aria-hidden="true"></span></a>
+                    </div>
+                </div>
+
+            </viewfooter>
+
+        </viewcard>
+    </viewform>
+
+</form>

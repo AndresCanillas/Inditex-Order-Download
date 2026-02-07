@@ -1,0 +1,38 @@
+﻿@page
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Upload/AddressComponent.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+
+//<script>
+	var LocationSelectionComponent = function () {
+		FormView.Extend(this, "", "/Upload/LocationSelectionComponent");
+	};
+
+	LocationSelectionComponent.prototype = {
+		constructor: LocationSelectionComponent,
+
+		OnLoad: function () {
+			this.LoadLocation();
+		},
+
+		LoadLocation: function (e) {
+			var self = this;
+			AppContext.Locations.GetByID(this.model.LocationID, function (data) {
+				self.LoadData(data);
+			});
+		},
+
+		AddLocation: function (e) {
+
+		},
+
+		SaveLocation: function (e) {
+
+		}
+	};
+//</script>

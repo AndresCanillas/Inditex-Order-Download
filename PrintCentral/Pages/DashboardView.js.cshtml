@@ -1,0 +1,24 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/DashboardView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var DashboardView = function () {
+		FormView.Extend(this, "@g["Home"]", "/DashboardView");
+	};
+
+
+	DashboardView.prototype = {
+		constructor: DashboardView,
+
+		OnLoad: function () {
+
+		}
+	};
+//</script>

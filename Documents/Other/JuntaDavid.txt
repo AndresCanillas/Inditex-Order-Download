@@ -1,0 +1,112 @@
+Platica David  07/Feb/2019
+
+Identificacion de tipo de archivo en base a contenido
+  Ej. Punto roma, envia differentes formatos para diferentes tipos de producto y la única forma de identificar el tipo 
+      de archivo es examinando el contentido del archivo mismo.
+
+
+Contenedor de datos genérico
+	A) Definición de catálogos de datos de cliente. Se debe definir:
+		- El catálogo principal de datos de producto
+		- El catálogo principal de orden de produccion
+		- Y catálogos satelites (0 - N)
+		- Cada uno de los campos que componen estos catalogos debe incluir:
+			> Nombre
+			> Tipo de dato
+			> Si el campo es primary key
+			> Si el valor del campo debe ser único en todo el catálogo
+			> Validaciones básicas (longitud, rangos, numero de decimales, vacio o no)
+			> Funciones de transformacion básicas (setlockup, valuemap, EAN13, trim)
+
+	B) Publicación de etiquetas
+		- Al subir una etiqueta a la plataforma se deberá realizar un mapeo entre las variables definidas en la etiqueta
+		  y los campos de los catálogos del cliente.
+		- Para este efecto el sistema deberá ser capaz de generar una vista plana de la estructura de datos de los catálogos
+		  del cliente, de forma que sea posible referenciar cualquier campo de cualquier tabla.
+		- La tablas principales o pivotes será siempre la tabla de orden y la de datos de producto, partiendo
+		  de ahí todas las demas relaciones con el resto de las tablas satélite.
+	
+	C) Configuracion de archivos de entrada. Los catálogos definidos en A se pueden nutrir por diferentes medios:
+		- Archivos subidos por la web (por medio de la opcion carga de archivos), WebAPI o FTP. Por cada archivo que el 
+		  sistema deba ser capaz de procesar se requiere:
+			- Configurar Formato del archivo (excel, delimited, fixed)
+			- Proporcionar otros datos de configuracion pertinentes para el procesamiento del archivo como 
+			  delimitador, cultura, encoding, etc.
+			- Definir los campos presentes en el archivo (nombre, tipo, validaciones básicas)
+			- Definir mapeo entre los campos del archivo y los catálogos definidos en A. Nota: Para esto se utilizará 
+			  un mecanismo similar a como se define el mapeo entre una label y los catalogos.
+
+			NOTA: El sistema debe ser capaz de identificar el tipo de archivo en base a su contenido, para tal efecto se
+			podrá definir código que 
+
+		- Entrada manual por medio de la WEB (interface gráfica)
+			- En algunos casos será necesario que un usuario (asociado al cliente) acceda al sistema a complementar
+			  los datos de una orden.
+
+			- Es importante notar que las ordenes pueden ser asignadas directamente a un usuario o grupo de usuarios,
+                          esto es importante porque tener acceso a la web de un cliente no significa que todos los usuarios con acceso puedan
+			  ver y complementar todas las ordenes que existan para ese cliente.
+
+			- Los formularios a presentarse en la web podran ser creados dinámicamente en base a los catálogos definidos en A.
+
+			- Por medio de estos formularios, los usuarios que hallan sido autorizados para accesar ordenes específicas podran
+			  llenar (complementar) los datos de una orden.
+
+	C) Envio a produccion y facturación
+		- Una vez una orden ha sido completada (criterio depende de la configuración), se crearan los print jobs necesarios para imprimir
+		  la orden y se creará la facturación correspondiente.
+
+
+
+
+
+Impresion PDF (carton)
+
+
+Impresion SATO con RFID
+
+
+Comunicacion con MD
+	- Facturas (tablas intermedias)
+	- Consulta de articulos, empresas (INDET), clientes
+
+	Tablas Proveedor
+	---------------------------------------
+	- EMPRESA						Cliente Fuente del Pedido (Mango, Brownie, etc)
+	- Proveedor						Codigo de taller (es lo que biene en CSV para relacionar a una empresa a Facturar A)
+	- GST Empresa (es empresa de IDT, quien factura)  	Ejemplos: SMD, IDT (indet), IDT_CN (china)
+	- GST Cliente (es el cliente MD a quien se factura)	ID de cliente de MD (taller en MD)
+	- IDT_ZONA						Zona de produccion EUROPA, ASIA, etc... Deberia cambiarse a un codigo de fabrica.
+
+	- Email		El mismo taller puede tener diferentes personas para cada empresa... 
+			Ejemplo: TallerA que trabaja para Brownie y Mango puede tener differents contactos para cada cliente del taller.
+
+	- Campos Entrega - Permitir que usuario pueda cambiar la direccion si es necesario.
+
+	Direccion de entrega debe ser abierta, la web debe permitir cambiarla.
+
+	Tabla Empresas
+	---------------------------------------
+	CODI 		- EMPRESA (cliente fuente de pedido) Mango, Brownie
+
+
+Dashboard de produccion
+	- Debe mostrar pedidos atorados por errores. La intencion es que produccion presione para que el error se arregle.
+
+
+System Notificaciones, Tickets de soporte
+
+Contactos Estructuras gerárquicas de contactos y responsabilidades para resolver problemas en el sistema.
+Areas
+	IT
+	Diseño
+	Costumer
+	Producción
+
+	CEO
+	Deberia ser posible saber quien es el reponsable de produccion en cada fabrica
+	Quienes son los costumer por marca (cliente)
+	Responsable de costumer
+	Responsable de IT
+	Responsabel de soporte
+

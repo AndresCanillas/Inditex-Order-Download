@@ -1,0 +1,26 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/WF/WFManagerNode.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var WFManagerNode = function (id, text) {
+        TreeNode.Extend(this, "WFManagerNode", id, text);
+        this.CanEdit = false;
+	};
+
+    WFManagerNode.prototype = {
+        constructor: WFManagerNode,
+
+		OnDoubleClick: async function () {
+			await AppContext.LoadJS("/Admin/WF/WFManagerView.js");
+			var view = new WFManagerView(this.EntityID, this.nodeText);
+			view.Show(this.getViewContainer());
+		}
+    };
+//</script>

@@ -1,0 +1,26 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/FileStores/FSStoreNode.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var FSStoreNode = function (storeName) {
+		TreeNode.Extend(this, "FSStoreNode", storeName, storeName);
+        this.CanEdit = false;
+	};
+
+	FSStoreNode.prototype = {
+        constructor: FSStoreNode,
+
+		OnDoubleClick: async function () {
+			await AppContext.LoadJS("/Admin/FileStores/FSStoreView.js");
+			var view = new FSStoreView(this.EntityID);
+			view.Show(this.getViewContainer());
+		}
+    };
+//</script>

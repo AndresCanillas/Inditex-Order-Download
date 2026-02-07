@@ -1,0 +1,18 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+<viewcard>
+	<viewform>
+		<viewrow>
+			<viewcolumn>
+				<div style="width:100%; height:60vh; border:1px solid #D0D0D0; border-radius:3px;"></div>
+			</viewcolumn>
+		</viewrow>
+	</viewform>
+	<viewfooter>
+		<a href="#" class="btn btn-primary" action="Save">@g["Save"]</a>
+		<a href="#" class="btn btn-secondary" action="Cancel">@g["Cancel"]</a>
+	</viewfooter>
+</viewcard>

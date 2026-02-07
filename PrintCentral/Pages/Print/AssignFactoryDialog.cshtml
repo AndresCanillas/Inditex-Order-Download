@@ -1,0 +1,39 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@inject ILocationRepository repo
+@{
+    Layout = null;
+    string currentLocation = Request.Query["LID"];
+    bool isOrderView = Convert.ToBoolean(Request.Query["IsOrderView"]);
+    var id = isOrderView ? 1 : userData.SelectedCompanyID;
+
+    var locations = repo.GetByCompanyID(id).Select(s => new { Name = $"[{s.FactoryCode}] {s.Name}", Value = s.ID }).ToList();
+}
+	<viewcard>
+        <viewform>
+            <viewrow>
+                <viewcolumn>
+                    <viewform>
+                        @if (isOrderView)
+                        {
+                            <h5>@g["Selected Orders will be moved to this Factory for production."]</h5>
+                        }
+                    </viewform>
+                </viewcolumn>
+            </viewrow>
+            <viewrow>
+                <viewcolumn>
+                    <select model name="LocationID" label="@g["Location"]:"
+                            validation="required"
+                            action="change:LocationChanged"
+                            options="@OptionList.FromEnumerable(locations, "Value", "Name", currentLocation)" />
+                    <input model name="LocationName" type="hidden" />
+                </viewcolumn>
+            </viewrow>
+            <viewfooter>
+                <button type="button" class="btn btn-primary" action="Ok">@g["OK"]</button>
+                <button type="button" class="btn btn-secondary" action="Cancel">@g["Cancel"]</button>
+            </viewfooter>
+        </viewform>
+	</viewcard>

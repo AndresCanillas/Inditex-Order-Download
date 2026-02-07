@@ -1,0 +1,28 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@inject ILocationRepository locationRepo
+@{
+    Layout = null;
+    var locations = locationRepo.GetByCompanyID(userData.SelectedCompanyID);
+    locations.Add(new Location() { ID = 0, Name = g["No Locations Registered"]});
+}
+<viewrow>
+	<viewcolumn>
+		<viewform>
+			<input model name="CompanyID" type="hidden" value="@userData.SelectedCompanyID" />
+			<select model name="ProductionType" label="@g["Production Type"]:" action="change:ProductionTypeChanged" validation="required">
+				<option value="1">@g["Indet Group Factory"]</option>
+				<option value="2" selected>@g["Local Printer"]</option>
+			</select>
+			<div name="SelectPrinterUI">
+				<select model name="LocationID" label="@g["Location"]:" action="change:LocationChanged" validation="required" options="@(OptionList.FromEnumerable(locations, "ID", "Name"))" />
+				<select model name="PrinterID" label="@g["Printer"]:" validation="required" class="modal-form-input" />
+			</div>
+		</viewform>
+	</viewcolumn>
+</viewrow>
+<viewfooter>
+	<button type="button" class="btn btn-primary" action="Ok">@g["Ok"]</button>
+	<button type="button" class="btn btn-secondary" action="Cancel">@g["Cancel"]</button>
+</viewfooter>

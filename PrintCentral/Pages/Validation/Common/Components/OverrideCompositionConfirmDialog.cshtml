@@ -1,0 +1,29 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+<viewrow>
+	<viewcolumn>
+		<div style="display:flex">
+
+			<div style="flex:64px"><span class="fa fa-question" style="font-size:2rem; color:dodgerblue;"></span></div>
+			<div name="Message" style="flex:95%"></div>
+			<input model name="Result" type="hidden" value="true" />
+			
+		</div>
+		<div>
+			<!-- TODO: counter with pending compositions to defined and already defined  -->
+			<div class="form-check mt-1 mr-sm-3" style="line-height:1;"> 
+				<input model name="Override" class="form-check-input" type="checkbox" id="__inlineFormOverwriteComposition" no-transform>
+				<label class="form-check-label" for="__inlineFormOverwriteComposition">
+					@g["Overwrite Existing Compositions?"]
+				</label>
+			</div>
+		</div>
+	</viewcolumn>
+</viewrow>
+<viewfooter>
+	<button name="OkText" type="button" class="btn btn-primary" action="Ok">@g["OK"]</button>
+	<button name="CancelText" type="button" class="btn btn-secondary" action="Cancel">@g["Cancel"]</button>
+</viewfooter>

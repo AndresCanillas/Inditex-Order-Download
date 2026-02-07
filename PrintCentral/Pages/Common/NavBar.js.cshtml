@@ -1,0 +1,87 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Common/NavBar.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var NavBar = function (showToggleButton) {
+		if (showToggleButton)
+			FormView.Extend(this, "", "/common/NavBar?t=1");
+		else
+			FormView.Extend(this, "", "/common/NavBar");
+		this.MenuOptionClicked = new AppEvent();
+	};
+
+	NavBar.prototype = {
+		constructor: NavBar,
+
+		OnLoad: function () {
+			AppContext.AppEventListener.Subscribe(this, this.HandleNotificationEvent);
+		},
+
+		HandleNotificationEvent: function (e) {
+			if (e.EventName === "EntityEvent") {
+				if (e.EntityName === "Notification") {
+					if (e.Operation === 0 || e.Operation === 2) {
+						this.UpdateNotificationCount();
+					}
+				}
+			}
+		},
+
+		UpdateNotificationCount: function () {
+			var self = this;
+			AppContext.HttpGet("/notifications/getcount", function (data) {
+				if (data >= 0) {
+					if (data > 0) {
+						self.elements.NotificationCount.show();
+						if (data < 100)
+							self.elements.NotificationCount.text(data);
+						else
+							self.elements.NotificationCount.text("99+");
+					}
+					else self.elements.NotificationCount.hide();
+				}
+			})
+		},
+
+		UserProfile: function (e) {
+			var jqe = this.ViewContainer.find('.navbar-collapse');
+			this.ViewContainer.find('.show').removeClass('show');
+			if (jqe.hasClass("show"))
+				jqe.collapse('toggle');
+			this.MenuOptionClicked.Raise({ option: "UserProfile" });
+		},
+
+		ShowNotifications: function (e) {
+			var jqe = this.ViewContainer.find('.navbar-collapse');
+			if (jqe.hasClass("show"))
+				jqe.collapse('toggle');
+			this.MenuOptionClicked.Raise({ option: "Notifications" });
+        },
+
+        CompanySelection: function (e) {
+            var jqe = this.ViewContainer.find('.navbar-collapse');
+            this.ViewContainer.find('.show').removeClass('show');
+            if (jqe.hasClass("show"))
+                jqe.collapse('toggle');
+            this.MenuOptionClicked.Raise({ option: "CompanySelection" });
+        },
+
+        ProjectSelection: function (e) {
+            var jqe = this.ViewContainer.find('.navbar-collapse');
+            if (jqe.hasClass("show"))
+                jqe.collapse('toggle');
+            this.MenuOptionClicked.Raise({ option: "ProjectSelection" });
+        },
+
+		ToggleMenu: function (e) {
+			window.toggleMenu();
+		}
+	};
+//</script>

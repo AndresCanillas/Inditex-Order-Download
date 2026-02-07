@@ -1,0 +1,89 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+//# sourceURL=https://Admin/Brands/Projects/Labels/SetComparerFieldView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var SetComparerFieldView = function (labelData) {
+        var projectId = labelData.ProjectID || 0;
+        FormView.Extend(this, "@g["Select Comparer Field"]", `/Admin/Brands/Projects/Labels/SetComparerFieldView?projectid=${projectId}&labelid=${labelData.ID}`);
+        this.ProjectID = labelData.ID;
+        this.Data = labelData;
+        this.Selections = 0;
+        this.AllowedOptions = 1;
+        this.ComparerField = "";
+	};
+
+
+    SetComparerFieldView.prototype = {
+        constructor: SetComparerFieldView,
+
+		OnLoad: function () {
+            this.LoadDisplayFields();
+        },
+
+        LoadDisplayFields: function (increaseSelection = true) {
+            var self = this;
+            $.each(self.elements, function (index, item) {
+                if (item[0].checked) {
+                    self.ComparerField = item[0].name;
+                    if (increaseSelection) {
+                        self.Selections++;
+                    }
+                }
+            });
+
+        },
+
+        SetField: function (e) {
+            var self = this;
+            if (e.target.checked) {
+                self.Selections++;
+
+                if (self.Selections > self.AllowedOptions) {
+                    self.RemoveSelection(e);
+                }
+            }
+            else {
+                self.RemoveSelection(e);
+            }
+
+            self.LoadDisplayFields(false);
+        },
+
+        RemoveSelection: function (e) {
+            var self = this;
+            self.Selections--;
+            e.target.checked = false;
+            self.ComparerField = null;
+        },
+
+		@if (userData.Admin_Projects_CanEdit)
+		{
+		<text>
+
+		Save: function (e) {
+            var self = this;
+            if (!this.model.ValidState()) return;
+
+            if (self.Selections == self.AllowedOptions && self.ComparerField) {
+                AppContext.Labels.UpdateComparerField(this.Data.ID, self.ComparerField, function (result) {
+                    if (result.Success) {
+                        self.Close();
+                    }
+                });
+            }
+            else
+                return AppContext.ShowError("@g["You need to select one field to in order to comapre orders with conflicts."]");
+        },
+
+		</text>
+		}
+	};
+//</script>

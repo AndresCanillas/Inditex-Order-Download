@@ -1,0 +1,49 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/Projects/Labels/LabelsList.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var LabelsList = function (projectid) {
+		FormView.Extend(this, "@g["Labels"]", `/Admin/Brands/Projects/Labels/LabelsList`);
+		if (projectid == null)
+			this.ProjectID = @userData.SelectedProjectID;
+		else
+			this.ProjectID = projectid;
+	};
+
+	LabelsList.prototype = {
+        constructor: LabelsList,
+
+		OnLoad: function () {
+			this.elements.Labels.LoadItems({ ProjectID: this.ProjectID, ShowFilters: true, AddOption: true, OpenOption: true, DeleteOption: true });
+			this.elements.Labels.ItemSelected.Subscribe(this, this.OpenLabel);
+		},
+
+		OnUnload: function () {
+			this.elements.Labels.ItemSelected.Unsubscribe(this, this.OpenLabel);
+		},
+
+		OpenLabel: function (e) {
+			var self = this;
+			AppContext.LoadJS("/Admin/Brands/Projects/Labels/LabelView.js").then(() => {
+				var dlg = new LabelView(e.item.ID, self.ProjectID);
+				dlg.ShowDialog(null, "85%");
+			});
+		},
+
+		OpenDesigner: function (e) {
+			var self = this;
+			AppContext.LoadJS("/Admin/Brands/Projects/Labels/LabelDesigner.js").then(() => {
+				var view = new LabelDesigner();
+				view.Show(self.ViewContainer);
+			});
+		}
+    };
+//</script>

@@ -1,0 +1,271 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+
+//# sourceURL=https://Pages/Upload/ConfirmDialogs/ConfirmChangeProviderView.js
+//  <script>
+    
+    var ConfirmChangeProviderView = function (options) {
+        FormView.Extend(this, "@g["Confirm your action"]", "/Upload/ConfirmDialogs/ConfirmChangeProviderView")
+
+        //this.OrderData = orderData;
+        this.OrderGroup = options.OrderGroup;
+
+
+        this.Accepted = false;
+
+        this.ProviderList = [];
+    }
+
+
+    ConfirmChangeProviderView.prototype = {
+
+        constructor: ConfirmChangeProviderView,
+
+        OnLoad: function () {
+            let self = this;
+
+            self.EnableSubmit();
+
+            self.model.OrderGroupID = self.OrderGroup.OrderGroupID;
+            self.elements.OrderNumberTitle.text(self.OrderGroup.OrderNumber);
+
+            self.elements.ProviderID.selectpicker({
+                style: 'btn-sm btn-light fixBorders-providers',
+                container: 'body'
+            });
+
+            // check if current vender is provider to load his providers
+            AppContext.Providers.CheckIsBroker(self.OrderGroup.SendToCompanyID)
+                .then((response1) => {
+
+                    if (!response1.Success) {
+                        return;
+                    }
+
+                    // looking available list off providers from: current broker assigned or from main customer assigned
+                    let companyId = response1.Data.IsBroker ? self.OrderGroup.SendToCompanyID : self.OrderGroup.CompanyID;
+
+                    let d1 = AppContext.Providers.GetByCompanyID(self.OrderGroup.CompanyID);
+                    
+                    let d2;
+
+                    if (response1.Data.IsBroker && self.OrderGroup.SendToCompanyID != self.OrderGroup.CompanyID )
+                        d2 = AppContext.Providers.GetByCompanyID(companyId);
+                    else {
+                        d2 = $.Deferred()
+                        d2.resolve([[], 'success']);
+                    }
+                        
+
+                    $.when(d1, d2).done((companyProviders, brokerProviders) => {
+
+                        // fill combo to select
+                        let options = [];
+
+                        let itemsTokens = '' // broker or vendor
+
+                        let defaultOption = `<option value="-1">@g["Select new provider"]</option>`;
+
+                        let setSelected = -1;
+
+                        let groupKeys = [self.OrderGroup.CompanyID];
+
+                        self.ProviderList = []
+
+                        if (brokerProviders[0].length > 0) {
+                            
+                            groupKeys.unshift(self.OrderGroup.SendToCompanyID)
+
+                            self.ProviderList = brokerProviders[0]
+
+                        }
+                        
+                        self.ProviderList = self.ProviderList.concat(companyProviders[0]);
+
+                        for(let groupID of groupKeys) {
+
+                            options.push('<optgroup>')
+
+                            for (let provider of self.ProviderList.filter(f => f.CompanyID == groupID)) {
+                                //var opt = `<option value="[${provider.ClientReference}] - ${provider.CompanyName}" ProviderCompanyID="${provider.ProviderCompanyID}" action="click:AfterSelectProvider"></option>`;
+                                let htmlContent = `[${provider.ClientReference}] -  ${provider.CompanyName}`;
+
+                                let selected = '';
+
+                                if (provider.ProviderCompanyID == self.OrderGroup.SendToCompanyID) {
+                                    selected = 'selected';
+                                    setSelected = provider.ID;
+                                }
+
+                                let opt = `<option ${selected} data-tokens="${itemsTokens}" data-content="${htmlContent}" value="${provider.ID}">${provider.CompanyName}</option>`;
+                                options.push(opt);
+                            }
+
+                            options.push('</optgroup>')
+
+                        }
+
+
+                        // for (provider of self.ProviderList) {
+
+                        //     if (provider == '-') {
+                        //         options.push('<option data-divider="true"></option>');
+                        //         continue;
+                        //     }
+
+                        //     //var opt = `<option value="[${provider.ClientReference}] - ${provider.CompanyName}" ProviderCompanyID="${provider.ProviderCompanyID}" action="click:AfterSelectProvider"></option>`;
+                        //     let htmlContent = `[${provider.ClientReference}] -  ${provider.CompanyName}`;
+
+                        //     let selected = '';
+
+                        //     if (provider.ProviderCompanyID == self.OrderGroup.SendToCompanyID) {
+                        //         selected = 'selected';
+                        //         setSelected = provider.ProviderCompanyID;
+                        //     }
+                            
+                        //     let opt = `<option ${selected} ${itemsTokens} data-content="${htmlContent}" value="${provider.ProviderRecordID}">${provider.CompanyName}</option>`;
+                        //     options.push(opt);
+                        // }
+
+                        //self.elements.ProviderID.html(options.join(''));
+                        let html = $(options.join(''));
+                        //AppContext.BindActions(html, this);
+                        self.elements.ProviderID.html(html);
+                        self.elements.ProviderID.selectpicker('refresh');
+
+                        if (setSelected > 0)
+                            self.elements.ProviderID.selectpicker('val', setSelected);
+
+
+                    });
+
+
+                });
+
+        },
+
+        OnUnload: function () { 
+            let self = this;
+            self.elements.ProviderID.selectpicker('destroy');
+        },
+
+
+        Save: function () {
+            let self = this;
+
+            let providerID = self.GetProviderIdSelected();
+
+            if (providerID == null) {
+                return;
+            }
+
+            let providerObject = self.ProviderList.find(f => f.ID == providerID);
+
+            AppContext.Orders.ChangeProvider({ 
+                OrderGroupId: self.OrderGroup.OrderGroupID, 
+                ProviderCompanyID: providerObject.ProviderCompanyID, 
+                ProviderRecordID: providerObject.ID 
+            })
+            .done((response) => {
+                if (response.Success == false) {
+                    //AppContext.ShowError('@g["Try Again, cannot execute action"]')
+                    // keep in confirm window
+                    return;
+                }
+
+                self.Close(response);
+            })
+
+            
+
+        },
+
+        IsEnableSubmit: function () {
+            return this.Accepted && this.GetProviderIdSelected() > 0;
+        },
+
+        ClickConfirm: function () {
+            let self = this;
+
+            self.Accepted = self.elements.Confirm.prop('checked');
+
+            self.EnableSubmit();
+        },
+
+
+        EnableSubmit: function () {
+
+            let self = this;
+
+            let btn = self.elements.SubmitButton;
+
+            if (self.IsEnableSubmit()) {
+                //btn.prop('disabled', false);
+                btn.removeClass('disabled')
+            } else {
+                //btn.prop('disabled', true);
+                btn.addClass('disabled')
+            }
+
+        },
+
+        FilterOrders: function (e) {
+			let self = this;
+            let filter = {};
+			filter.CompanyID = "0";
+            filter.InConflict = 2;
+            filter.IsBilled = 2;
+            filter.IsStopped = 2;
+			filter.ProductionType = 0;
+            filter.OrderDate = self.model.OrderDate;
+			filter.OrderStatus = "0";
+			filter.OrderNumber = self.model.OrderNumber;
+            filter.CurrentPage = 1;
+            filter.PageSize = 500;
+            filter.ProjectID = 0;
+
+
+            return AppContext.Orders.GetOrderGroups(filter)
+                .done((response) => {
+                    if (response.Success) {
+                        self.elements.OrderTableDetails.Rows.LoadData(response.Data.Records, true);
+				    }
+                })
+        },
+
+        HandleKeyPress: function (e) {
+            // empty
+		},
+
+        GetProviderIdSelected: function () {
+            let provider = this.elements.ProviderID.val();
+
+            if (provider < 1) {
+    
+                this.elements.ProviderID[0].setCustomValidity("Invalid Provider");
+
+    			return null;
+            }
+
+            return provider;
+
+        },
+
+        GetProviderObjectSelected: function () { 
+        
+        },
+
+        AfterSelectProvider: function (evt) {
+            
+            this.EnableSubmit();
+
+            return true;
+        }
+    }
+
+
+// </script>

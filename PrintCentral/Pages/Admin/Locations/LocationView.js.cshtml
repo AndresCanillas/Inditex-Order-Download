@@ -1,0 +1,62 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Locations/LocationView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var LocationView = function (locationid) {
+		FormView.Extend(this, "@g["Location"]", `/admin/Locations/LocationView?locationid=${locationid}`);
+		this.LocationID = locationid;
+	};
+
+
+    LocationView.prototype = {
+        constructor: LocationView,
+
+		@if (userData.Admin_Locations_CanEdit)
+		{
+		<text>
+		Save: function (e) {
+			var self = this;
+            if (!this.model.ValidState()) return;
+            var data = this.GetData();
+			console.log("Data", data)
+
+			if (this.model.CompanyID == 1) {
+				if (!this.elements.HolidaysView.model.ValidState()) return;
+
+                var holidays = this.elements.HolidaysView.GetHolidays();
+				data.Holidays = holidays.Holidays;
+				data.WorkingDays = holidays.WeekDays;
+				data.CutoffTime = holidays.CutoffTime;
+			
+            }
+            
+			AppContext.Locations.Update(data, function (result) {
+				if (result.Success) {
+					self.OnSaved.Raise(data);
+					if (self.dialog === true)
+						self.Close(data);
+				}
+			});
+		},
+		</text>
+		}
+
+		OnLoad: function () {
+			var holidays = [];
+			if (this.model.Holidays != null && this.model.Holidays.length > 0) {
+				holidays = JSON.parse(this.model.Holidays);
+            }
+            if (this.model.CompanyID == 1) {
+                this.elements.HolidaysView.SetHolidays(holidays, this.model.WorkingDays, this.model.CutoffTime);
+            }
+		}
+	};
+//</script>

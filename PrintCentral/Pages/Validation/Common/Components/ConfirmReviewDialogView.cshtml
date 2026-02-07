@@ -1,0 +1,34 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+<viewrow>
+	<viewcolumn>
+		<div style="display:flex">
+            <div style="flex:95%">
+			
+            <h4>
+                    <span class="fa fa-exclamation-triangle" style="font-size:2.5rem; color:goldenrod;"></span>
+                @g["Please carefully review the data and preview before confirming the order."]</h4>
+            
+            <div>
+                <p>
+                    @g["By validating, you confirm that the order exactly matches the requested specifications, that you have verified the integrity of the data, and that you fully accept responsibility for its content."]</div>
+                </p>
+                <p>
+                    @g["Remember, you can download the PDF containing all the previews of the labels, where you can check all the information before validation."]
+                </p>
+                <p>
+                    <b style="display:none;" name="messageCountries">@g["The order will be manufactured in:"] </b><b name="Countries"></b>
+                </p>
+            </div>
+			
+		</div>
+        <input model name="Result" type="hidden" value="true" />
+	</viewcolumn>
+</viewrow>
+<viewfooter>
+	<button name="CancelText" type="button" class="btn btn-secondary float-left" action="Cancel">@g["Cancel"]</button>
+	<button name="OkText" type="button" class="btn btn-primary float-right" action="Ok">@g["OK"]</button>
+</viewfooter>

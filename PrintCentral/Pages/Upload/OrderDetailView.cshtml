@@ -1,0 +1,42 @@
+﻿@page
+@inject ILocalizationService g
+@inject ICompanyRepository repo
+@inject IUserData  userData
+@{
+	Layout = null;
+	var isIDT = userData.IsIDT;
+	var isAdmin = User.IsInRole(Roles.SysAdmin);
+}
+<viewcard>
+	
+	<viewrow>
+		<viewcolumn>
+			<div class="toolbar-body" style="width:100%">
+				<span class="toolbar-grip"></span>
+			</div>
+			<div component="OrderGrid" name="OrderDetailTable" style="width:100%; max-height:60vh;">
+                <template>
+                    <column width="100" field="ArticleID">@g["ArticleID"]</column>
+                    <column width="100" field="Article" sortable="true">@g["Article"]</column>
+                    <column width="100" field="Description" render="RenderArticleDescription">@g["Description"]</column>
+                    <column width="100" field="UnitDetails" render="RenderArticleDetail">@g["Unit Description"]</column>
+                    <column width="100" field="Size" sortable="true">@g["Size"]</column>
+                    <column width="100" field="Color">@g["Color"]</column>
+                    <column width="100" field="PackCode" sortable="true">@g["PackCode"]</column>
+                    @if (userData.IsIDT)
+                    {
+                        <text>
+                            <column width="100" field="ArticleBillingCode">@g["Code"]</column>
+                            <column width="100" field="Label">@g["Label"]</column>
+                        </text>
+                    }
+                    <column width="100" field="LabelType">@g["Materials"]</column>
+                    <column width="100" field="ItemType" render="RenderItemType">@g["Item Type"]</column>
+                    <column width="100" field="Quantity">@g["Quantity"]</column>
+
+
+                </template>
+			</div>
+		</viewcolumn>
+	</viewrow>
+</viewcard>

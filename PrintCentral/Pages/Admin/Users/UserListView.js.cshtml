@@ -1,0 +1,147 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Users/UserListView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var UserListView = function (companyid) {
+		FormView.Extend(this, "@g["Users"]", "/Admin/Users/UserListView");
+		this.CompanyID = companyid;
+		this.users = null;
+	};
+
+
+	UserListView.prototype = {
+		constructor: UserListView,
+
+		OnLoad: function () {
+			var self = this;
+			if (this.CompanyID == null)
+				this.CompanyID = parseInt(this.elements.SelectedCompanyID.val(), 10);
+			AppContext.Users.GetByCompanyID(this.CompanyID, function(data) {
+				self.users = data;
+				self.LoadUsers();
+			});
+		},
+
+		LoadUsers: function (e) {
+			var self = this;
+			this.elements.UserContainer.empty();
+			@(userData.Admin_Users_CanAdd? "this.NewUserCard();" : "")
+			if (this.users != null) {
+				for (var i = 0; i < this.users.length; i++) {
+					this.CreateUserCard(this.users[i]);
+				}
+			}
+		},
+
+		OpenUser: function (e) {
+			var self = this;
+			var card = $(e.target).closest("[data-entityid]");
+			var id = card.attr("data-entityid");
+			var user = this.users.find(function (e) { return e.Id == id; });
+			AppContext.LoadJS("/Admin/Users/UserView.js").then(() => {
+				var dialog = new UserView(user.Id);
+				dialog.ShowDialog(function (data) {
+					if (data) {
+						self.UpdateCard(card, data);
+					}
+				});
+			});
+		},
+
+		UpdateCard: function (card, data) {
+			var idx = this.users.findIndex(function (e) { return e.Id == data.Id; });
+			if (idx >= 0) {
+				this.users[idx] = data;
+				card.find("[name='UserName']").text(data.UserName);
+				card.find("[name='ActualName']").text(data.LastName + " " + data.FirstName);
+				card.find("[name='Email']").text(data.Email);
+				card.find("[name='Phone']").text(data.PhoneNumber);
+			}
+		},
+
+		@if(userData.Admin_Users_CanAdd)
+		{
+		<text>
+		NewUserCard: function () {
+			var self = this;
+			var html = $(`
+			<div class="new-item-card">
+				<div>
+					<div style="padding-top:15px;">
+						<div class="btn btn-outline-secondary btn-sm" action="CreateUser" style="display:block; margin:auto; width:140px;"><span class="fa fa-plus"></span>&nbsp;&nbsp;@g["New User"]</div>
+					</div>
+				</div>
+			</div>`);
+			AppContext.BindActions(html, this);
+			self.elements.UserContainer.append(html);
+		},
+
+		CreateUser: function (e) {
+			var self = this;
+			AppContext.LoadJS("/Common/AskNameDialog.js").then(() => {
+				var dialog = new AskNameDialog("@g["New User"]");
+				dialog.ShowDialog(function (dlgData) {
+					if (dlgData) {
+						AppContext.Users.Insert({ UserName: dlgData.Name, CompanyID: self.CompanyID, ShowAsUser: true }, function (result) {
+							if (result.Success) {
+								var card = self.CreateUserCard(result.Data);
+								self.users.push(result.Data);
+								self.OpenUser({ target: card });
+							}
+						});
+					}
+				});
+			});
+		},
+		</text>
+		}
+
+		@if (userData.Admin_Users_CanDelete)
+		{
+		<text>
+		DeleteUser: function (e) {
+			var self = this;
+			var card = $(e.target).closest("[data-entityid]");
+			var id = card.attr("data-entityid");
+			var confirm = new ConfirmDialog("@g["Delete user? IMPORTANT: This operation cannot be undone."]");
+			confirm.ShowDialog(function (response) {
+				if (response) {
+					AppContext.Users.Delete(id, function (result) {
+						if (result.Success) {
+							card.off();
+							card.remove();
+							var idx = self.users.findIndex(function (e) { return e.Id == id; });
+							self.users.splice(idx, 1);
+						}
+					});
+				}
+			});
+		},
+		</text>
+		}
+
+		CreateUserCard: function (data) {
+			var self = this;
+			var html = $(`
+			<div class="item-card user-card" data-entityid="${data.Id}" @(userData.Admin_Users_CanSee? "action=OpenUser" : "")>
+				<span class="fa fa-id-card"></span>
+				<span class="ti ti-close card-right card-close" @(userData.Admin_Users_CanDelete? "action=DeleteUser" : "")></span>
+				<div name="UserName">${data.UserName}</div>
+				<div name="ActualName">${data.LastName} ${data.FirstName}</div>
+				<div name="Email">${data.Email}</div>
+				<div name="Phone">${data.PhoneNumber}</div>
+			</div>`);
+			AppContext.BindActions(html, this);
+			self.elements.UserContainer.append(html);
+			return html;
+		}
+	};
+//</script>

@@ -1,0 +1,30 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Print/AssignFactoryDialog.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+
+//<script>
+    var AssignFactoryDialog = function (locationid, isOrderView = false) {
+        FormView.Extend(this, "@g["Assign Factory"]", `/Print/AssignFactoryDialog?LID=${locationid}&IsOrderView=${isOrderView}`);
+	};
+
+	AssignFactoryDialog.prototype = {
+		constructor: AssignFactoryDialog,
+
+		OnLoad: function () {
+			var location = this.elements.LocationID.text();
+			this.model.LocationName = location;
+		},
+
+		LocationChanged: function () {
+			var location = this.elements.LocationID.text();
+			this.model.LocationName = location;
+		}
+	};
+//</script>

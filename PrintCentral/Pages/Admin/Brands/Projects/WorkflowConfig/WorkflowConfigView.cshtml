@@ -1,0 +1,203 @@
+﻿@page
+@using Service.Contracts.PrintCentral
+@using WebLink.Contracts.Models;
+@inject ILocalizationService g
+@inject IProjectRepository repo
+@inject IPluginManager<IWizardCompositionPlugin> wizardPluginManager;
+@inject IPluginManager<IOrderSetValidatorPlugin> setValidatorPluginManager;
+
+@{
+    Layout = null;
+
+    var plugins = new List<IPluginInfo>()
+    {
+        new PluginInfo() { Description= g["No asigned"], Name = "" }
+    };
+
+    var pluginsFound = wizardPluginManager.GetList();
+
+    plugins.AddRange(pluginsFound);
+
+
+    // force to use a plugin always
+    var setValidatorPlugins = new List<IPluginInfo>();
+
+    setValidatorPlugins.AddRange(setValidatorPluginManager.GetList());
+
+
+    IProject data = repo.Create();
+
+    //if (Request.Query.ContainsKey("projectId"))
+    //{
+    //    int id = Convert.ToInt32(Request.Query["projectId"]);
+    //    data = repo.GetByID(id);
+    //}
+
+    // TODO: create Enum
+    var thresholdOptions = new List<Object>() {
+        new { value=0, desc=g["No"] },
+        new { value=1, desc=g["Fixed Value"] },
+        new { value=2, desc=g["Percentaje"] },
+        new { value=3, desc=g["Both"]}
+    };
+
+    var thresholdArticleExtrasOptions = new List<Object>() {
+        new { value=0, desc=g["No"] },
+        new { value=1, desc=g["Fixed Value"] },
+        new { value=2, desc=g["Percentaje"] }
+
+    };
+
+    var MadeInEditionOptions = Enum.GetValues(typeof(MadeInEnable)).Cast<MadeInEnable>().Select(s => new
+    {
+        desc = g[s.GetText()],
+        value = (int)s
+    }).ToList();
+
+    var templateConfiguration = Enum.GetValues(typeof(CITemplateConfig)).Cast<CITemplateConfig>().Select(s => new
+    {
+        desc = g[s.GetText()],
+        value = (int)s
+    }).ToList();
+
+    var showLabelPreviewsOptions = Enum.GetValues(typeof(DocumentDownloadOption)).Cast<DocumentDownloadOption>().Select(s => new
+    {
+        desc = g[s.GetText()],
+        value = (int)s
+    }).ToList();
+}
+<viewform>
+
+    <viewrow>
+
+        <viewcolumn>
+            <div class="form-subtitle">@g["Do incoming orders require item assignment?"]</div>
+            <hr class="subtitle" />
+
+            <input model name="RequireItemAssignment" type="hidden" value="0" data-type="bool" />
+            <input model name="RequireItemAssignment" label="@g["Yes, it's required"]" type="checkbox" @(data.RequireItemAssignment == true ? "checked" : "") value="1" data-type="bool" />
+
+        </viewcolumn>
+
+    </viewrow>
+
+    <viewrow>
+        <viewcolumn>
+
+            <div class="form-subtitle">@g["Quantities Wizard"]</div>
+            <hr class="subtitle" />
+            <select model action="change:QuantityOptionSelected" name="AllowQuantityEdition" label="@g["Allow Quantity Wizard"] :" options="@(OptionList.FromEnumerable(thresholdOptions, "value", "desc", data.AllowQuantityEdition))" />
+            <div class="qo @(data.AllowQuantityEdition != 2 ? "" : "d-none")">
+                <!-- https://regex101.com/r/hANKEz/1 | https://regex101.com/r/RlZICJ/1 | https://regex101.com/r/RlZICJ/2/ -->
+                <input model name="MaxQuantity" label="@g["Quantity threshold"]:" type="number" validation="regex(^\d+$)" @(data.AllowQuantityEdition != 1 ? "readonly" : "") value="@data.MaxQuantity" />
+            </div>
+            <div class="qo @(data.AllowQuantityEdition == 2 ? "" : "d-none")">
+                <input model name="MaxQuantityPercentage" label="@g["Quantity threshold"] (%):" type="number" validation="regex(^([1-9]?[0-9]|100)$)" value="@data.MaxQuantityPercentage" />
+            </div>
+            <select model name="AllowUpdateMadeIn" label="@g["Allow Made In Edition"] :" options="@(OptionList.FromEnumerable(MadeInEditionOptions, "value", "desc", data.AllowUpdateMadeIn))" />
+            <select model name="DocumentPreviewDownloadOption" label="@g["Allow preview document"] :" options="@(OptionList.FromEnumerable(showLabelPreviewsOptions, "value", "desc", data.DocumentPreviewDownloadOption))" />
+            <div class="qo">
+                <input model name="IsApplyAutomaticPercentage" label="@g["Apply automatically"] (%)" type="checkbox" />
+                <input model name="AllowEditQuantity" label="@g["Allow User Edit quantity"]" type="checkbox" />
+                <input model name="AllowQuantityZero" label="@g["Allow User add/edit quantity zero"]" type="checkbox" />
+            </div>
+            <div class="form-subtitle">@g["Articles Extras Wizard"]</div>
+            <hr class="subtitle" />
+            <select model action="change:ExtrasOptionSelected" name="AllowExtrasDuringValidation" label="@g["Allow Extras Wizard"] :" options="@(OptionList.FromEnumerable(thresholdArticleExtrasOptions, "value", "desc", data.AllowExtrasDuringValidation))" />
+            <div class="eo @(data.AllowExtrasDuringValidation != 2 ? "to-show" : "d-none")">
+                <!-- https://regex101.com/r/hANKEz/1 | https://regex101.com/r/RlZICJ/1 | https://regex101.com/r/RlZICJ/2/ -->
+                <!-- '@data.AllowExtrasDuringValidation'   is != 2 @((data.AllowExtrasDuringValidation != 2).ToString()) -->
+                <input model name="MaxExtras" label="@g["Extras threshold"] :" type="number" validation="regex(^\d+$)" @(data.AllowExtrasDuringValidation != 1 ? "readonly" : "") value="@data.MaxExtras" />
+            </div>
+            <div class="eo @(data.AllowExtrasDuringValidation == 2 ? "to-show" : "d-none")">
+                <input model name="MaxExtrasPercentage" label="@g["Extras threshold"] (%):" type="number" validation="regex(^([1-9]?[0-9]|100)$)" value="@data.MaxExtrasPercentage" />
+            </div>
+            <div class="eo">
+                <input model name="IsApplyAutomaticExtraIncrement" label="@g["Apply automatically"] (%)" type="checkbox" />
+                <input model name="AllowUserEditExtraQuantities" label="@g["Allow User Edit quantity"]" type="checkbox" />
+            </div>
+
+
+            <div class="form-subtitle">@g["Composition Wizard"]</div>
+            <hr class="subtitle" />
+
+            <input model name="AllowAddOrChangeComposition" type="hidden" value="0" />
+            <input model name="AllowAddOrChangeComposition" label="@g["Allow Update Composition"]" type="checkbox" @(data.AllowAddOrChangeComposition == true ? "checked" : "") value="1" />
+
+            <select model name="WizardCompositionPlugin" label="@g["Composition Plugin"] :" options="@(OptionList.FromEnumerable(plugins, "Name", "Description", data.WizardCompositionPlugin))"></select>
+
+            <select model name="TemplateConfiguration" label="@g["Template Configuration"] :" options="@(OptionList.FromEnumerable(templateConfiguration, "value", "desc", data.TemplateConfiguration))"></select>
+
+
+            <input model name="AllowExceptions" label="@g["Allow Exceptions"]" type="checkbox" @(data.AllowExceptions == true ? "checked" : "") value="1" />
+            <input model name="AllowAdditionals" label="@g["Allow Additionals"]" type="checkbox" @(data.AllowAdditionals == true ? "checked" : "") value="1" />
+            <input model name="EnableSectionWeight" label="@g["Enable Section Weight"]" type="checkbox" @(data.EnableSectionWeight == true ? "checked" : "") value="1" />
+            <input model name="EnableShoeComposition" label="@g["Enable Shoe Composition"]" type="checkbox" @(data.EnableShoeComposition == true ? "checked" : "") value="1" />
+            <input model name="AllowMadeInCompoShoesFiber" label="@g["Allow MadeIn Compo Shoe Fiber"]" type="checkbox" @(data.AllowMadeInCompoShoesFiber == true ? "checked" : "") value="1" />
+
+            <div class="form-subtitle">@g["Separator for each Composition item"]</div>
+            <hr class="subtitle" />
+            <input model name="EnableAllLangs" type="hidden" value="0" data-type="bool" />
+            <input model name="EnableAllLangs" label="@g["Enable All Langs"]" type="checkbox" @(data.EnableAllLangs == true ? "checked" : "") value="1" />
+
+            <input model name="RemoveDuplicateTextFromComposition" type="hidden" value="0" data-type="bool" />
+            <input model name="RemoveDuplicateTextFromComposition" label="@g["Remove Duplicated Text"]" type="checkbox" @(data.RemoveDuplicateTextFromComposition == true ? "checked" : "") value="1" />
+
+            <viewrow>
+                <viewcolumn>
+                    <input model name="SectionsSeparator" label="@g["Sections"] :" placeholder="\n" />
+                    <input model name="SectionLanguageSeparator" label="@g["Section Language"] :" placeholder="/" />
+                    <input model name="FibersSeparator" label="@g["Fibers"] :" placeholder="\m" />
+
+                </viewcolumn>
+                <viewcolumn>
+                    <input model name="FiberLanguageSeparator" label="@g["Fiber Language"] :" placeholder="/" />
+                    <input model name="CISeparator" label="@g["Care Instruction"] :" placeholder="/" />
+                    <input model name="CILanguageSeparator" label="@g["Care Instruction Language"] :" placeholder="*" />
+                </viewcolumn>
+            </viewrow>
+            @*<div class="form-subtitle">@g["Delivery Address Wizard"]</div>
+                <hr class="subtitle" />
+
+                <input model name="AllowChangeDeviveryAddress" type="hidden" value="0" />
+                <input model name="AllowChangeDeviveryAddress" label="@g["Allow Change Delivery Address"]" type="checkbox" @(data.AllowChangeDeviveryAddress == true ? "checked" : "") value="1" />*@
+
+
+        </viewcolumn>
+    </viewrow>
+    <viewrow>
+
+        <viewcolumn>
+            <div class="form-subtitle">@g["Validation"]</div>
+            <hr class="subtitle" />
+
+
+            <select model name="OrderSetValidatorPlugin" label="@g["Set Validator Plugin"] :" options="@(OptionList.FromEnumerable(setValidatorPlugins, "Name", "Description", data.OrderSetValidatorPlugin))"></select>
+
+            @*  
+                Take as Valid = true, require to select a Plugin
+                TODO: Update Interfaz for better UI
+            *@
+            <input model name="TakeOrdersAsValid" type="hidden" value="0" data-type="bool" />
+            <input model name="TakeOrdersAsValid" label="@g["Take Orders As Valid?"]" type="checkbox" @(data.TakeOrdersAsValid == true ? "checked" : "") value="1" data-type="bool" />
+
+        </viewcolumn>
+
+    </viewrow>
+    <viewrow>
+
+        <viewcolumn>
+            <div class="form-subtitle">@g["Support Files"]</div>
+            <hr class="subtitle" />
+
+            <input model name="IncludeFiles" type="hidden" value="0" data-type="bool" />
+            <input model name="IncludeFiles" label="@g["Include Files?"]" type="checkbox" @(data.IncludeFiles == true ? "checked" : "") value="1" data-type="bool" />
+
+        </viewcolumn>
+
+    </viewrow>
+
+    <viewfooter>
+        <a href="#" class="btn btn-primary" action="Save">@g["Save"]</a>
+    </viewfooter>
+</viewform>

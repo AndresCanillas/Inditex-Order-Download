@@ -1,0 +1,30 @@
+﻿@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+
+//# sourceURL=https://Pages/Admin/InLay/InLayNode.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var InLayNode = function () {
+        TreeNode.Extend(this, "InLay", 0, "@g["InLay"]");
+        this.CanEdit = false;
+        this.Expand();
+    };
+
+    InLayNode.prototype = {
+        constructor: InLayNode,
+        OnDoubleClick: function (e) {
+            var self = this;
+            AppContext.LoadJS("/Admin/InLay/InLayList.js").then(() => {
+                var view = new InLayList();
+                view.Show(self.getViewContainer());
+            });
+        }
+    }
+
+//</script>

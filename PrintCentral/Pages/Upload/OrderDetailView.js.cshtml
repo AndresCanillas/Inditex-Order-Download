@@ -1,0 +1,65 @@
+﻿@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages/Upload/OrderDetailView.js
+//<script>
+
+
+
+	var OrderDetailView = function (orderGroupID) {
+		FormView.Extend(this, "@g["Order Detail"]", "/Upload/OrderDetailView");
+        this.Orders = null;
+        this.OrderGroupID = orderGroupID;
+	};
+
+
+	OrderDetailView.prototype = {
+		constructor: OrderDetailView,
+
+		OnLoad: function () {
+            var self = this;
+
+            self.GetDetails();
+
+        },
+
+        GetDetails: function () {
+			var self = this;
+
+            AppContext.Orders.GetAllArticles(self.OrderGroupID)
+                .done(function (response) {
+
+                    if (!response.Success) {
+                        return;
+                    }
+
+                    self.elements.OrderDetailTable.Rows.LoadData(response.Data);
+                })
+        },
+
+        RenderItemType: function (value, rowId, colIdx, dataType, data) {
+
+            var type = '<span class="badge badge-secondary">Label</span>'
+
+            if (!data['LabelID'] || data['LabelID'].length < 1) {
+                type = '<span class="badge badge-secondary">Item</span>'
+            }
+
+            return type;
+        },
+
+        RenderArticleDescription: function (value, rowIdx, colIdx, dataType, data) {
+            return value ? value : "";
+        },
+
+        RenderArticleDetail:function (value, rowIdx, colIdx, dataType, data) {
+            return value ? value : "";
+        }
+
+
+
+
+	};
+//</script>

@@ -1,0 +1,40 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+	<link href="/css/wf.css" rel="stylesheet">
+	<viewcard>
+		<viewrow>
+			<viewcolumn class="col-sm-12 col-md-12 col-lg-12 col-xl-5">
+				<div style="font-size:17px;">@g["File Search"]</div>
+				<hr class="subtitle" />
+				<inlineform compact>
+					<div style="max-width:295px">
+						<input model name="FileID" label="FileID:" style="min-width:190px;" validation="required;numeric" class="custom-select-sm" />
+					</div>
+					<div style="max-width:80px">
+						<a class="btn" title="Find File" action="FindFile" style="padding-top:12px;"><span class="fa fa-search"></span></a>
+					</div>
+				</inlineform>
+				<viewform compact name="FileProperties" style="margin-top:15px; margin-left:20px; display:none;">
+					<div model name="FileName" label="File Name:"></div>
+					<div model name="FileSize" label="File Size:"></div>
+					<div model name="CreateDate" label="Created:"></div>
+					<div model name="UpdateDate" label="Last Update:"></div>
+					<a href="#" action="DownloadFile">Download File</a>
+				</viewform>
+			</viewcolumn>
+			<viewcolumn class="col-sm-12 col-md-12 col-lg-12 col-xl-7">
+				<div>
+					<div style="font-size:17px;">@g["Categories"]</div>
+					<hr class="subtitle" />
+					<div name="CategoryContainer" style="display:none">
+					</div>
+					<div name="FileContainer" style="margin-top:15px; font:normal 12px Consolas, Courier New; white-space:nowrap; overflow:auto; display:none;">
+					</div>
+				</div>
+			</viewcolumn>
+		</viewrow>
+	</viewcard>
+

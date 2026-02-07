@@ -1,0 +1,34 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData u
+@{
+    Layout = null;
+}
+
+<div style="margin-top:10px">
+	<div style="margin:10px">
+		<input type="text" model name="Search" label="@g["Search"]:" style="min-width:120px;max-width:160px;" autocomplete="off" />
+		<a href="#" title="@g["Search"]" action="DoSearch"><span class="fa fa-search"></span></a>
+	</div>
+	<div component="OrderGrid" name="Articles" style="padding:0 5px 5px 5px; overflow:auto; max-height:500px;" rowcssclass="SetRowCssClass">
+		<template>
+			<column width="180" field="CompanyName">@g["Company"]</column>
+			<column width="140" field="BrandName">@g["Brand"]</column>
+			<column width="140" field="ProjectName">@g["Project"]</column>
+			<column width="200" field="ArticleCode">@g["Article"]</column>
+			<column width="200" field="Description">@g["Description"]</column>
+		</template>
+	</div>
+	<div name="PageSelector" style="margin:auto;">
+		<div name="InnerContainer" role="group" class="btn-group">
+			<button type="button" class="btn btn-default" style="margin:0px;" action="PreviousPage"><span class="ti ti-arrow-left"></span></button>
+			<div name="CurrentPageDisplay" class="text-center" style="margin:10px; width:100px;">1/1</div>
+			<button type="button" class="btn btn-default" style="margin:0px;" action="NextPage"><span class="ti ti-arrow-right"></span></button>
+		</div>
+	</div>
+	<div style="margin-top:10px">
+		<button type="button" class="btn btn-primary" action="AddArticles">@g["Add"]</button>
+		<button type="button" class="btn btn-secondary" action="Cancel">@g["Close"]</button>
+	</div>
+</div>
+

@@ -1,0 +1,29 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData u
+@{
+    Layout = null;
+}
+<div name="ErrorContainer" style="font-size:11pt; height:70vh; width:100%">
+
+	<div class="toolbar-body" style="width:100%">
+		<span class="toolbar-grip"></span>
+		<a id="RetryItemsButton" href="#" title="@g["Retry"]" action="RetryItems"><span class="fa fa-repeat"></span></a>
+		<a href="#" title="@g["Cancel"]" action="CancelItems"><span class="fa fa-trash"></span></a>
+		<span class="toolbar-separator"></span>
+		<a href="#" title="@g["Download Order File"]" action="DownloadFile"><span class="fa fa-download"></span></a>
+	</div>
+
+	<div component="OrderGrid" name="ItemGrid" style="padding:0 5px 5px 5px; overflow:auto; height:80%" rowcssclass="SetRowCssClass">
+		<template>
+			<column width="60" field="ItemName">@g["Item"]</column>
+			<column width="100" field="CompanyName">@g["Company"]</column>
+			<column width="100" field="BrandName">@g["Brand"]</column>
+			<column width="100" field="ProjectName">@g["Project"]</column>
+			<column width="140" field="LastErrorDate" render="RenderLastErrorDate">@g["Date"]</column>
+			<column width="200" field="Reference">@g["Reference"]</column>
+			<column width="900" field="LastErrorMessage">@g["Message"]</column>
+		</template>
+	</div>
+	<div name="Paginator" component="PageSelector" controller="/Common/Components/PageSelector.js"></div>
+</div>

@@ -1,0 +1,49 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/AddressList.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var AddressList = function (companyId) {
+		FormView.Extend(this, "@g["Addresses"]", `/Admin/AddressList`);
+        this.CompanyID = companyId;
+	};
+
+
+    AddressList.prototype = {
+        constructor: AddressList,
+
+		OnLoad: function () {
+            if (this.CompanyID == null)
+                this.CompanyID = parseInt(this.elements.SelectedCompanyID.val(), 10);
+            this.elements.Addresses.LoadItems({ CompanyID: this.CompanyID, ShowFilters: true, AddOption: true, OpenOption: true, DeleteOption: true });
+            this.elements.Addresses.ItemSelected.Subscribe(this, this.OpenAddress);
+            this.elements.Addresses.DefaultItemSelected.Subscribe(this, this.DefaultItem);
+		},
+
+		OnUnload: function () {
+            this.elements.Addresses.ItemSelected.Unsubscribe(this, this.OpenAddress);
+            this.elements.Addresses.DefaultItemSelected.Unsubscribe(this, this.DefaultItem);
+
+		},
+
+        OpenAddress: function (e) {
+			var self = this;
+            AppContext.LoadJS("/Admin/AddressView.js").then(() => {
+                var dialog = new AddressView(e.item.ID, self.CompanyID, self);
+                dialog.ShowDialog(null, "60%");
+			});
+        },
+
+        DefaultItem: function (e) {
+            AppContext.Addresses.SetDefaultAddress(this.CompanyID, e.item.ID, !e.item.Default);
+        }
+    };
+//</script>
+
+

@@ -1,0 +1,143 @@
+﻿@page
+@inject ILocalizationService g
+@inject ICompanyRepository repo
+@inject IUserData  userData
+@inject IOrderRepository  orderRepo
+@inject IProjectRepository projectRepo
+@inject IEventQueue events
+@{
+    Layout = null;
+    int n = 0;
+
+    if(Request.Query.ContainsKey("n"))
+    {
+        n = Convert.ToInt32(Request.Query["n"]);
+    }
+
+    List<ICompany> companies = new List<ICompany>();
+    companies.Add(repo.GetSelectedCompany());
+
+
+}
+    <form name="dataentry-frm" method="post" onsubmit="return false;">
+        <viewform>
+            <viewcard>
+
+            
+                <viewrow>
+                    <viewcolumn>
+                    <select model class="combodisabled" name="CompanyID" label="@g["Company"]:" action="change:CompanyChanged" options="@(OptionList.FromEnumerable(companies, "ID", "Name", null))"></select>
+                    <select model class="combodisabled"  name="BrandID" label="*@g["Brand"]:" validation="required" action="change:LoadSeasons" type="int"></select>
+                    <select model class="combodisabled"  name="SeasonID" label="*@g["Season"]:" validation="required" action="change:LoadCatalogs" type="int"></select>
+
+
+                    <div class="form-group row">
+                        <div class="col-sm col-form-label">
+                            <span>*@g["Provider"]:</span>
+                        </div>
+                        <div class="col-sm-8">
+                            <div class="input-group mb-3">
+                                <select model name="ProviderReference" class="form-control form-control-sm" no-transform action="change:SetProviderCompanyID" validation="required" type="text"></select>
+                                <div class="input-group-append" style="height: 31px;">
+                                    <span class="input-group-text" class="form-control form-control-sm" style="cursor:pointer"><span style="margin-left: 10px;"><a href="#" title="@g["Refresh"]" action="RefreshProvider"><span class="fa fa-refresh"></span></a></span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group row" style="margin-bottom:10px;height:31px">
+                        <label class="col-sm col-form-label">*@g["Article"]:</label>
+                        <div class="col-8">
+                            <div class="input-group input-group-sm mb-3">
+                                <input type="text" no-transform model name="ArticleQuality1" validation="required;maxlen(4);minlen(4);numeric;regex(^\d+$);" class="form-control" style="min-width:auto;max-width: 50px;" autocomplete="off" type="int" />
+                                <span class="input-group-text" style="background-color:transparent;height:31px;border: none;">/</span>
+                                <input type="text" no-transform class="form-control" model name="ArticleQuality2" validation="required;maxlen(3);minlen(3);numeric;regex(^\d+$);" style="min-width:auto;max-width: 40px;" autocomplete="off" type="int" />
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <input type="text" model name="OrderNumber" label="*@g["Order Number"]:" validation="required" autocomplete="off" />
+
+                    
+
+                    </viewcolumn>
+                <viewcolumn>
+
+
+                </viewcolumn>
+
+ 
+                </viewrow>
+            <viewrow>
+                <viewcolumn>
+                    <div style="font-size:17px;">@g["Articles"]</div>
+                    <hr class="subtitle" />
+                    <div name="ByArticleElement" class="input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">@g["Search article"]:</span>
+                        </div>
+                        <input model name="ArticleToAdd" no-transform action="keypress:HandleKeyPress" list="ArticleList" type="text" class="form-control" />
+                        <div class="input-group-append">
+                            <span class="input-group-text" style="cursor:pointer"><span class="fa fa-plus" action="AddArticle"></span><span style="margin-left: 10px;"><a href="#" title="@g["Refresh"]" action="RefreshArticle"><span class="fa fa-refresh"></span></a></span></span>
+                        </div>
+                    </div>
+                    <datalist id="ArticleList" name="ArticleList"></datalist>
+                    <div class="toolbar-body" style="width:100%; margin-top:15px;">
+                        <span class="toolbar-grip"></span>
+                        <a href="#" title="@g["Remove"]" action="RemoveArticle"><span class="fa fa-trash"></span></a>
+                    </div>
+                    <div component="GridView" name="ArticlesGrid" style="width:100%; height:150px;">
+                        <template>
+                            <column width="80" field="ArticleID">@g["ArticleID"]</column>
+                            <column width="120" field="Name">@g["Name"]</column>
+                            <column width="100" field="ArticleCode">@g["Article Code"]</column>
+                            <column width="100" field="LabelID">@g["LabelID"]</column>
+                            <column width="100" field="PackCode">@g["PackCode"]</column>
+                        </template>
+                    </div>
+                </viewcolumn>
+                <viewcolumn>
+                    <div style="font-size:17px;">@g["Sizes"]</div>
+                    <hr class="subtitle" />
+                    <select model name="SizeSetID"  action="change:LoadSizes" style="visibility:hidden"></select>
+
+                    <div class="order-groups-grid">
+                        <div class="toolbar-body" style="width:100%; margin-top:15px;">
+                            <span class="toolbar-grip"></span>
+                            <a href="#" title="@g["New"]" action="AddRowSize"><span class="fa fa-plus"></span></a>
+                            <span class="toolbar-separator"></span>
+                            <a href="#" title="@g["Remove"]" action="RemoveSizes"><span class="fa fa-trash"></span></a>
+                        </div>
+                        <div component="GridView" name="SizeGrid" style="width:100%; max-height:50vh;" rowcssclass="GridViewSetRowCssClass">
+                            <template>
+                                <column width="80" editable="True" field="ColorCode">@g["Color code"]</column>
+                                <column width="120" editable="True" field="Size">@g["Size"]</column>
+                                <column width="100" editable="True"  field="Quantity">@g["Quantity"]</column>
+                            </template>
+
+                        </div>
+                        <br />
+                        <div component="GridView" name="ChinaGrid" style="width:100%; max-height:50vh;" rowcssclass="GridViewSetRowCssClass"></div>
+                        <div name="instructions" style="display:none">
+                        </div>
+                    </div>
+                </viewcolumn>
+            </viewrow>
+                <viewfooter>
+
+                    <div class="row justify-content-end" name="AvailableActions">
+                        <div class="col-4 text-center">
+                          @*   <a href="#" class="btn btn-sm btn-outline-primary" action="Save"> <span class="fa fa-fw fa-save" aria-hidden="true"></span> @g["Save"]</a> *@
+                        </div>
+                        <div class="col-4 text-right">
+                            <a href="#" class="btn btn-sm btn-primary" action="SaveAndNext">@g["Save And Next"] <span class="fa fa-fw fa-chevron-right" aria-hidden="true"></span></a>
+                        </div>
+                    </div>
+
+                </viewfooter>
+
+            </viewcard>
+
+        </viewform>
+    </form>

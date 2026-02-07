@@ -1,0 +1,88 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/Projects/Mappings/MappingsRootNode.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var MappingsRootNode = function (projectid) {
+        TreeNode.Extend(this, "MappingsRootNode", 0, "@g["Mappings"]");
+		this.ProjectID = projectid;
+		this.CanEdit = false;
+		@if (userData.Admin_Mappings_CanAdd)
+		{
+			@:this.menu = {
+			@:	MenuWidth: "200px",
+			@:	Options: [{ Text: "@Html.Raw(g["New Mapping"])", OnClick: this.CreateMapping }]
+	        @:};
+		}
+	};
+
+	MappingsRootNode.prototype = {
+		constructor: MappingsRootNode,
+
+        loadDependencies: function (callback) {
+            AppContext.LoadJS(
+                "/Common/AskNameDialog.js",
+                "/Admin/Brands/Projects/Mappings/MappingsNode.js").then(()=>callback());
+        },
+
+		GetContextMenu: function () {
+			return this.menu;
+		},
+
+
+		@if (userData.Admin_Mappings_CanAdd)
+		{
+		<text>
+		CreateMapping: function () {
+			var self = this;
+			this.loadDependencies(function() {
+				var dialog = new AskNameDialog("@g["New Mapping"]");
+				dialog.ShowDialog(function(dlgData) {
+					if (!dlgData) return;
+					dlgData.CompanyID = self.FindParent("CompanyNode").EntityID;
+					dlgData.ProjectID = self.ProjectID;
+					AppContext.Mappings.Insert(dlgData, function(result) {
+						if (result.Success)
+						{
+							var node = new MappingsNode(result.Data.ID, result.Data.Name);
+							self.AddNode(node);
+							node.OnDoubleClick();
+							if (!self.Expanded)
+								self.Expand();
+						}
+					});
+				});
+			});
+		},
+		</text>
+		}
+
+        OnExpanded: function () {
+            var self = this;
+            this.loadDependencies(function (){
+                if (!self.IsLoaded) {
+                    self.IsLoaded = true;
+                    AppContext.Mappings.GetByProjectID(self.ProjectID, function (data){ self.loadNodes(data); });
+                }
+            });
+        },
+
+        loadNodes: function (data){
+            var mapping, node;
+			for (var index = 0; index < data.length; index++) {
+				mapping = data[index];
+				if (!this.FindNode("MappingsNode", mapping.ID, false)) {
+					node = new MappingsNode(mapping.ID, mapping.Name);
+                    this.AddNode(node);
+                }
+            }
+        }
+    };
+//</script>

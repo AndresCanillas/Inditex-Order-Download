@@ -1,0 +1,30 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/Projects/Articles/ArticlesRootNode.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var ArticlesRootNode = function (project) {
+        TreeNode.Extend(this, "ArticlesRootNode", 0, "@g["Articles"]");
+		this.Project = project;
+        this.CanEdit = false;
+		this.Expand();
+	};
+
+	ArticlesRootNode.prototype = {
+		constructor: ArticlesRootNode,
+
+		OnDoubleClick: function (e) {
+			var self = this;
+			AppContext.LoadJS("/Admin/Brands/Projects/Articles/ArticleList.js").then(() => {
+				var view = new ArticleList(self.Project.ID);
+				view.Show(self.getViewContainer());
+			});
+		}
+    };
+//</script>

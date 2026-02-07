@@ -1,0 +1,23 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+	<viewcard>
+		<viewrow>
+			<viewcolumn>
+				<viewform>
+					<input model name="CompanyID" type="hidden" />
+					<div model name="FtpServer" label="@g["FTP Server"]:"></div>
+					<div model name="FtpPort" label="@g["FTP Port"]:"></div>
+					<div model name="FtpsPort" label="@g["FTPS Port"]:"></div>
+					<input model name="FtpUser" label="@g["FTP User"]:" validation="required;maxlen(20);chars(abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789)" type="text" />
+					<input model name="FtpPassword" label="@g["FTP Password"]:" validation="required;maxlen(12)" type="text" />
+				</viewform>
+			</viewcolumn>
+		</viewrow>
+		<viewfooter>
+			<button type="button" class="btn btn-primary" action="Save">@g["Save"]</button>
+			<button type="button" class="btn btn-secondary" action="Cancel">@g["Cancel"]</button>
+		</viewfooter>
+	</viewcard>

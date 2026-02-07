@@ -1,0 +1,133 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+<viewform>
+	<viewcard>
+		<viewrow>
+			<viewcolumn class="col-sm-12 col-md-12 col-lg-5 col-xl-5">
+				<viewtitle>@g["Printer status"]</viewtitle>
+				<input model name="ID" type="hidden" />
+				<div class="badge-container">
+					<span style="font-size:24px" class="fa fa-print"></span>
+					<span name="Name" style="font-weight:600"></span>
+					<div name="DeviceID"></div>
+					<span name="Connected" class="badge badge-success">Online</span>
+					<span name="Paused" class="badge badge-secondary">Paused</span>
+					<span name="PaperOut" class="badge badge-secondary">PaperOut</span>
+					<span name="RibbonOut" class="badge badge-secondary">RibbonOut</span>
+					<span name="HeadOpen" class="badge badge-secondary">HeadOpen</span>
+				</div>
+				<viewtitle style="margin-top:20px;">@g["Queued jobs"]</viewtitle>
+				<div class="toolbar-body" style="width:100%">
+					<span class="toolbar-grip"></span>
+					<a href="#" title="@g["Preview label"]" action="PreviewLabel"><span class="fa fa-image"></span></a>
+					<a href="#" title="@g["Printer Settings"]" action="PrinterSettings" always-enabled><span class="fa fa-cogs"></span></a>
+					<a href="#" title="@g["Sort Order"]" action="SortPrinterQueue"><span class="fa fa-sort-alpha-asc"></span></a>
+					<a href="#" title="@g["Print Sample"]" action="PrintSample"><span class="fa fa-clone"></span></a>
+					<a href="#" title="@g["Change Printer"]" action="ChangePrinter"><span class="fa fa-print"></span></a>
+					<a href="#" title="@g["Reset progress"]" action="ResetProgress"><span class="fa fa-undo"></span></a>
+					<span class="toolbar-separator"></span>
+					<a href="#" title="@g["Start Job"]" action="StartJob"><span class="fa fa-play-circle" style="color:green;"></span></a>
+					<a href="#" title="@g["Pause Job"]" action="PauseJob"><span class="fa fa-pause-circle" style="color:dodgerblue;"></span></a>
+					<span class="toolbar-separator"></span>
+					<a href="#" title="@g["Cancel Job"]" action="CancelJob"><span class="fa fa-trash" style="color:darkred;"></span></a>
+				</div>
+				<div component="TableView" name="JobsTable" style="width:100%; max-height:65vh;">
+					<template>
+						<column width="80" field="CompanyName">@g["Company"]</column>
+						<column width="50" field="OrderNumber">@g["Order"]</column>
+						<column width="100" field="MaterialName">@g["Material"]</column>
+						<column width="80" field="LabelName">@g["Label"]</column>
+						<column width="50" field="Printed">@g["Progress"]</column>
+						<column width="50" field="Status" map='{ "1": "@g["Pending"]", "2": "@g["Paused"]", "3": "@g["Executing"]", "4": "@g["Error"]", "5": "@g["Completed"]", "6": "@g["Cancelled"]", "7": "@g["Printed"]" }'>@g["Status"]</column>
+					</template>
+				</div>
+			</viewcolumn>
+			<viewcolumn name="JobDetails" class="col-sm-12 col-md-12 col-lg-7 col-xl-7" style="display:none;">
+				<viewtitle>@g["Job Details"]</viewtitle>
+				<input model name="JobID" type="hidden" />
+				<div class="container-fluid" no-transform style="font-size:0.8rem; white-space:nowrap">
+					<div class="row">
+						<div class="col-7">
+							<div class="row">
+								<div class="col-sm-5">@g["Company"]:</div>
+								<div class="col-sm-7" model name="CompanyName"></div>
+							</div>
+							<div class="row">
+								<div class="col-sm-5">@g["Order"]:</div>
+								<div class="col-sm-7" model name="OrderNumber"></div>
+							</div>
+							<div class="row">
+								<div class="col-sm-5">@g["Due Date"]:</div>
+								<div class="col-sm-7" style="max-width:300px; overflow:hidden;" model name="DueDate" data-type="Date"></div>
+							</div>
+							<div class="row">
+								<div class="col-sm-5">@g["Article"]:</div>
+								<div class="col-sm-7"><span model name="ArticleName"></span></div>
+							</div>
+							<div class="row">
+								<div class="col-sm-5">@g["Material"]:</div>
+								<div class="col-sm-7" model name="MaterialName"></div>
+							</div>
+							<div class="row">
+								<div class="col-sm-5">@g["Label"]:</div>
+								<div class="col-sm-7" model name="LabelName"></div>
+							</div>
+						</div>
+						<div class="col-5">
+							<div class="row">
+								<div class="col-sm-5">@g["Status"]:</div>
+								<div class="col-sm-7" model name="Status" data-map='{ "1": "Pending", "2": "Paused", "3": "Executing", "4": "Error", "5": "Completed", "6": "Cancelled" }'></div>
+							</div>
+							<div class="row">
+								<div class="col-sm-5">@g["Progress"]:</div>
+								<div class="col-sm-7"><span model name="Printed"></span> / <span model name="Quantity"></span></div>
+							</div>
+							<div class="row">
+								<div class="col-sm-5">@g["Errors"]:</div>
+								<div class="col-sm-7" model name="Errors"></div>
+							</div>
+							<div class="row">
+								<div class="col-sm-5">@g["Extras"]:</div>
+								<div class="col-sm-7" model name="Extras"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<br />
+				<div component="TableView" name="JobDetailsTable" style="width:100%">
+					<template>
+						<column width="30"></column>
+						<column width="110" field="Barcode">@g["Barcode"]</column>
+						<column width="110" field="TXT1">TXT1</column>
+						<column width="110" field="TXT2">TXT2</column>
+						<column width="110" field="TXT3">TXT3</column>
+						<column width="60" field="Size">@g["Size"]</column>
+						<column width="60" field="Quantity">@g["Quantity"]</column>
+						<column width="60" field="Printed" editable>@g["Printed"]</column>
+						<column width="60" field="Errors">@g["Errors"]</column>
+						<column width="60" field="Extras">@g["Extras"]</column>
+						<menu>
+							<menuitem data-icon="fa fa-plus" action="AddExtrasInDetail">@Html.Raw(g["Add Extras"])</menuitem>
+						</menu>
+					</template>
+				</div>
+				<div class="input-group input-group-sm" no-transform>
+					<div class="input-group-prepend">
+						<span class="input-group-text" style="font-size:.8rem;">@g["Barcode"]:</span>
+					</div>
+					<input type="text" class="form-control" style="font-size:.8rem;" model name="NewRowBarcode" readonly="readonly" validation="numeric;maxlen(13)">
+					<div class="input-group-prepend">
+						<span class="input-group-text" style="font-size:.8rem;">@g["Quantity"]:</span>
+					</div>
+					<input type="text" class="form-control" style="font-size:.8rem;" model name="NewRowQuantity" validation="numeric;maxlen(3)" action="keyup:ExtraKeyUp">
+					<div class="input-group-append">
+						<span class="input-group-text" style="cursor:pointer" action="AddExtra2"><span class="fa fa-plus"></span></span>
+					</div>
+				</div>
+			</viewcolumn>
+		</viewrow>
+	</viewcard>
+</viewform>

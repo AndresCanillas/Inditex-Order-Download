@@ -1,0 +1,73 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+
+
+    var mandatoryComment = userData.IsIDT ? "" : "validation=required;minLen(20)";
+}
+
+@if (userData.Can_Orders_Delete)
+{
+    <viewcard>
+
+        <viewrow>
+            <viewcolumn>
+                <input name="SelectedCompanyID" type="hidden" value="@userData.SelectedCompanyID" />
+
+                <input model name="OrderID" type="hidden" data-type="int" />
+
+                <div>@g["Selected order will be cancelled, please confirm this action."]</div>
+
+            </viewcolumn>
+        </viewrow>
+
+        <viewrow>
+            <viewcolumn>
+                <label>@g["please write your justification"] (@g["min len: 20 characteres"])</label>
+                <textarea model name="Comments" rows="3" cols="80" action="keyup:CommentReceived" placeholder="@g["Type a justification"]" @mandatoryComment></textarea>
+                <span class="pull-right label label-default" name="count_message"></span>
+            </viewcolumn>
+        </viewrow>
+
+        <viewfooter>
+
+            <viewrow>
+
+                <viewcolumn>
+                    <inlineform class="form-inline">
+
+                        <a href="#" class="btn btn-secondary btn-sm" action="Close">@g["Cancel"]</a>
+
+                    </inlineform>
+                </viewcolumn>
+
+                <viewcolumn>
+
+                    <inlineform class="form-inline pull-right">
+
+                        <div class="form-check mt-1 mr-sm-3">
+                            <input model name="Confirm" class="form-check-input" type="checkbox" id="__inlineFormCheck" no-transform action="click:ClickConfirm">
+                            <label class="form-check-label" for="__inlineFormCheck">
+                                @g["Confirm action?"]
+                            </label>
+                        </div>
+
+                        <a href="#" name="SubmitButton" class="btn btn-sm btn-primary" action="Save">@g["Accept"]</a>
+
+                    </inlineform>
+                </viewcolumn>
+
+            </viewrow>
+        </viewfooter>
+
+    </viewcard>
+
+}
+else
+{
+
+    <p> @g["Action is not available"] </p>
+
+}

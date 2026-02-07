@@ -1,0 +1,15 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+<viewcard>
+	<viewrow>
+		<viewcolumn>
+			<input name="SelectedProjectID" type="hidden" value="@userData.SelectedProjectID" />
+			<div name="Articles" component="FormView" controller="/Common/Components/ArticleListView.js"></div>
+		</viewcolumn>
+	</viewrow>
+</viewcard>
+

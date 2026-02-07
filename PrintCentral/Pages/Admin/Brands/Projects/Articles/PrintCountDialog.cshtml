@@ -1,0 +1,23 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+<viewcard>
+	<viewform>
+		<viewrow>
+			<viewcolumn>
+				<select model name="PrintCountSequenceType" action="change:SequenceTypeChanged" label="@g["Sequence Type"]:" options="@(OptionList.FromEnum<PrintCountSequenceType>())"></select>
+				<input model name="PrintCountSelectorField" label="@g["Selector Field"]:" validation="required" disabled />
+				<select model name="PrintCountSelectorType" label="@g["Selector Type"]:" validation="required" disabled>
+					<option value="0">String</option>
+					<option value="1">EAN13</option>
+				</select>
+			</viewcolumn>
+		</viewrow>
+	</viewform>
+	<viewfooter>
+		<a href="#" class="btn btn-primary" action="Save">@g["OK"]</a>
+		<a href="#" class="btn btn-secondary" action="Cancel">@g["Cancel"]</a>
+	</viewfooter>
+</viewcard>

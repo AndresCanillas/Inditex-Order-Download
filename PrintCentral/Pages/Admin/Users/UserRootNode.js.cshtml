@@ -1,0 +1,88 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Users/UserRootNode.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var UserRootNode = function (companyid) {
+        TreeNode.Extend(this, "UserRootNode", 0, "@g["Users"]");
+		this.CompanyID = companyid;
+        this.CanEdit = false;
+		this.menu = {
+			MenuWidth: "200px",
+			Options: [
+                @if(userData.Admin_Users_CanAdd)
+				{
+					@:{ Text: "@Html.Raw(g["New User"])", OnClick: this.CreateUser }
+				}
+            ]
+        };
+	};
+
+    UserRootNode.prototype = {
+        loadDependencies: function (callback) {
+            AppContext.LoadJS(
+                "/Common/AskNameDialog.js",
+				"/Admin/Users/UserNode.js").then(()=>callback());
+        },
+
+        GetContextMenu: function () {
+            return this.menu;
+        },
+
+		@if(userData.Admin_Users_CanAdd)
+		{
+		<text>
+		CreateUser: function () {
+			var self = this;
+			this.loadDependencies(function () {
+				var dialog = new AskNameDialog("@g["New User"]");
+				dialog.ShowDialog(function (dlgData) {
+					if (!dlgData) return;
+					AppContext.Users.Insert({ UserName: dlgData.Name, CompanyID: self.CompanyID }, function (result) {
+						if (result.Success) {
+							var node = new UserNode(result.Data.Id, result.Data.UserName);
+							self.AddNode(node);
+							node.OnDoubleClick();
+							if (!self.Expanded)
+								self.Expand();
+						}
+					});
+				});
+			});
+		},
+		</text>
+		}
+
+        OnExpanded: function () {
+			var self = this;
+			this.loadDependencies(function () {
+				if (!self.IsLoaded) {
+					self.IsLoaded = true;
+					AppContext.Users.GetByCompanyID(self.CompanyID, function (data){ self.loadNodes(data); });
+				}
+			});
+		},
+
+        loadNodes: function (data){
+			var user, node;
+            for (var index = 0; index < data.length; index++) {
+                user = data[index];
+                if (!this.FindNode("UserNode", user.ID, false)) {
+
+                    var name = user.FirstName && user.FirstName.length > 0 ? user.FirstName + ` (<span>${user.UserName}</span>)` : user.UserName;
+
+					node = new UserNode(user.Id, name);
+					this.AddNode(node);
+				}
+			}
+		}
+    };
+
+//</script>

@@ -1,0 +1,76 @@
+﻿@page
+@inject ILocalizationService g
+@inject RequestLocalizationOptions langOptions
+@inject IPrinterRepository printerRepo
+@inject ILocationRepository locationRepo
+@inject IUserData userData
+@{
+	Layout = null;
+	int printerid = Convert.ToInt32(Request.Query["printerid"]);
+	var data = printerRepo.GetByID(printerid);
+	var location = locationRepo.GetByID(data.LocationID);
+	var locations = locationRepo.GetByCompanyID(location.CompanyID);
+	var drivers = printerRepo.GetPrinterDrivers();
+}
+	<viewcard>
+		<viewrow>
+			<viewcolumn>
+				<viewform>
+					<div model name="ID" label="ID:">@data.ID</div>
+					@if (userData.Admin_Printers_CanRename)
+					{
+						<input model name="Name" label="@g["Name"]:*" validation="required;maxlen(35)" type="text" value="@data.Name" />
+					}
+					else
+					{
+						<div model name="Name" label="@g["Name"]:*">@data.Name</div>
+					}
+					@if (userData.Admin_Printers_CanEdit)
+					{
+						<select model name="LocationID" label="@g["Location ID"]:" options="@(OptionList.FromEnumerable(locations, "ID", "Name", data.LocationID.ToString()))" />
+					}
+					else
+					{
+						<input model name="LocationID" type="hidden" value="@data.LocationID" />
+						<input label="@g["Location ID"]:" type="text" value="@location.Name" readonly />
+					}
+					<input model name="DeviceID" label="@g["DeviceID"]:*" validation="required;maxlen(20)" type="text" value="@data.DeviceID" @(userData.IsIDT ? "" : "readonly") style="text-transform: uppercase;" />
+					@if (userData.Admin_Printers_CanEdit)
+					{
+						<select model name="DriverName" label="@g["Driver Name"]:*" validation="required" options="@(OptionList.FromEnumerable(drivers, "Name", "Name", data.DriverName))" @(userData.Admin_Printers_CanEdit ? "" : "readonly")></select>
+					}
+					else
+					{
+						<input model name="DriverName" label="@g["Driver Name"]:*" type="text" value="@data.DriverName" readonly />
+					}
+					<input model name="ProductName" label="@g["Product Name"]:" type="text" value="@data.ProductName" readonly />
+					<input model name="FirmwareVersion" label="@g["Firmware Version"]:" type="text" value="@data.FirmwareVersion" readonly />
+					<input label="@g["Last Seen Online"]:" type="text" value="@(data.LastSeenOnline.HasValue?data.LastSeenOnline.Value.ToString("yyy-MM-ddTHH:mm:ss"):"")" readonly />
+				</viewform>
+			</viewcolumn>
+			<viewcolumn>
+				@if (userData.Admin_Printers_CanSendCommand)
+				{
+					<viewform>
+						<div style="font-size:17px;">@g["Send Raw Command"]</div>
+						<hr class="subtitle" />
+						<textarea name="RawCommand" label="@g["Command"]:" />
+						<a href="#" class="btn btn-secondary" action="SendCommand">@g["Send Command"]</a>
+					</viewform>
+				}
+			</viewcolumn>
+		</viewrow>
+		@if (userData.Admin_Printers_CanEdit || userData.Admin_Printers_CanChangeCompany)
+		{
+			<viewfooter>
+				@if (userData.Admin_Printers_CanEdit)
+				{
+					<a href="#" class="btn btn-primary" action="Save">@g["Save"]</a>
+				}
+				@if (userData.Admin_Printers_CanChangeCompany)
+				{
+					<a href="#" class="btn btn-secondary" action="ChangeCompany">@g["Change Company"]</a>
+				}
+			</viewfooter>
+		}
+	</viewcard>

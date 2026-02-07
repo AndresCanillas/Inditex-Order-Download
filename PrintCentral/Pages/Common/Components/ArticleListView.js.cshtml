@@ -1,0 +1,464 @@
+﻿ @page
+ @inject ILocalizationService g
+ @inject IUserData userData
+ @{
+    Layout = null;
+}
+//# sourceURL=https://Pages/Common/Components/ArticleListView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+var ArticleListView = function (setup,itemsExtras = false) {
+
+    FormView.Extend(this, "@g[" List of articles "]");
+
+    this.AlreadyConfigured = false;
+
+    if (setup)
+        this.AlreadyConfigured = true;
+
+    this.Setup = ArticleListView.GetDefaultOptions(setup);
+
+    let formString = `
+            <inlineform name="FilterForm" style="display:none; margin-bottom:10px;">
+                <select model name="ArticleType" label="@g["Article Type"]:" action="change:ApplyFilters" style="max-width:200px;">
+                    <option value="1">@g["All"]</option>
+                    <option value="2">@g["Shared"]</option>
+                    <option selected value="3">@g["Custom"]</option>
+                </select>
+            <input model name="SearchText" label="@g["Search"]:" action="keyup:FilterItems" />`;
+
+    if (this.Setup.CanSelectMultipleItems) {
+        formString += `<a href="#" class="btn btn-sm btn-secondary" action="Close">@g["Cancel"] </a> `
+        formString += `<a href="#" class="btn btn-sm btn-primary" action="AddItems">@g["Add +"] </a> `
+
+    }
+    formString += `</inlineform><div name="ListContainer"></div>`
+    this.Content = $(formString)
+        this.dataSource = null;
+    this.ItemSelected = new AppEvent();
+    this.ItemsChecked = [];
+    this.FilterApplied = false;
+};
+
+ArticleListView.GetDefaultOptions = function (setup) {
+    return $.extend({
+        ShowFilters: false,
+        AddOption: false,
+        OpenOption: false,
+        DeleteOption: false,
+        CanSelectMultipleItems: false,
+        ProjectID:  @userData.SelectedProjectID
+    }, setup);
+}
+
+ArticleListView.prototype = {
+    constructor: ArticleListView,
+
+    OnLoad: function () {
+        AppContext.AppEventListener.Subscribe(this, this.HandleNotifications);
+        this.model.ArticleType = 3;
+        if (this.AlreadyConfigured)
+                  this.LoadItems(this.Setup);
+    },
+
+    OnUnload: function () {
+        AppContext.AppEventListener.Unsubscribe(this, this.HandleNotifications);
+        this.ItemSelected.Dispose();
+    },
+
+    HandleNotifications: function (e) {
+        if (e.EventName === "EntityEvent") {
+            if (e.EntityName === "Article") {
+                if (e.Operation === 2)
+                    this.HandleDeleteNotification(e.Entity);
+                if (e.Operation === 1)
+                    this.HandleUpdateNotification(e.Entity);
+            }
+        }
+    },
+
+    HandleDeleteNotification(entity) {
+        let card = this.ViewContainer.find(`[data-entityid='${entity.ID}']`);
+        if (card.length === 1) {
+            card.off();
+            card.remove();
+        }
+    },
+
+    HandleUpdateNotification(entity) {
+        this.UpdateCard(entity);
+    },
+
+    ApplyFilters: function () {
+        let self = this;
+        let cards = this.elements.ListContainer.find("[data-entityid]");
+        $.each(cards, function (index, card) {
+            card = $(card);
+            let visible = true;
+            let badge = card.find("span[name='SHFlag']");
+            let isShared = badge.hasClass("badge-warning");
+            switch (self.model.ArticleType) {
+            case "1":
+                break;
+            case "2":
+                visible = visible && isShared;
+                break;
+            case "3":
+                visible = visible && !isShared;
+                break;
+            }
+
+            let searchText = self.model.SearchText;
+            if (searchText != null && searchText.length > 0) {
+                let articleCode = card.find('[name="ArticleCode"]').text();
+                let name = card.find('[name="TypeName"]').text();
+                let material = card.find('[name="Material"]').text();
+                let rgx = new RegExp(`${searchText}`, 'gi');
+                visible = visible && (rgx.test(articleCode) || rgx.test(name) || rgx.test(material));
+            }
+            if (visible)
+                card.show();
+            else
+                card.hide();
+        });
+    },
+
+    FilterItems: function (e) {
+        let self = this;
+        if (self.model.SearchText.length > 0) {
+            self.ApplyFilters(e);
+            self.FilterApplied = true;
+            return;
+        }
+        if (self.FilterApplied == true) {
+            self.ApplyFilters(e);
+            self.FilterApplied = false;
+        }
+    },
+
+          LoadItems: function (setup) {
+
+        this.Setup = ArticleListView.GetDefaultOptions(setup); // override config
+
+        this.ProjectID = setup.ProjectID;
+        this.ShowFilters = setup.ShowFilters == true;
+        this.ShowNewOption = setup.AddOption == true;
+        this.ShowOpenOption = setup.OpenOption == true;
+        this.ShowDeleteOption = setup.DeleteOption == true;
+        //this.IsForSelect = setup.SelectOption == true;
+        //this.Parent = setup.Parent;
+
+        if (setup.ArticleType != null)
+            this.model.ArticleType = setup.ArticleType;
+        if (this.ShowFilters)
+            this.elements.FilterForm.show();
+        else
+            this.elements.FilterForm.hide();
+        let self = this;
+
+        if (setup.ArticleID != null) {
+            AppContext.Articles.GetFullArticle(setup.ArticleID, function (data) {
+                if (data != null) {
+                          self.LoadArticles(setup, [data]);
+                }
+            });
+        } else if (setup.ArticleTypeFilter) {
+            // Label Or Item
+            AppContext.Articles.GetFullByProjectIDFiltered({
+                ProjectID: parseInt(self.ProjectID),
+                ArticleType: setup.ArticleTypeFilter
+            }, function (data) {
+                if (data != null) {
+                          self.LoadArticles(setup, data);
+                }
+            })
+        } else {
+            AppContext.Articles.GetFullByProjectID(this.ProjectID, function (data) {
+                if (data != null) {
+                          self.LoadArticles(setup, data);
+                }
+            });
+        }
+    },
+          AddItemsWizardExtras: function (setup,i,data) {
+              if (setup.ArticleType == null || setup.ArticleType == data[i].ArticleType) {
+                  if (setup.HideIfNotLabel == null || (setup.HideIfNotLabel != null && data[i].LabelID != null)){
+                      if (data[i].EnableAddItems == true){
+                          this.CreateItemCard(data[i]);
+                      }  
+                  } 
+              }
+          },
+
+          AddItemsGeneral: function (setup,i,data) {
+              if (setup.ArticleType == null || setup.ArticleType == data[i].ArticleType) {
+                  if (setup.HideIfNotLabel == null || (setup.HideIfNotLabel != null && data[i].LabelID != null))
+                      this.CreateItemCard(data[i]);
+              }
+          },
+    LoadArticles: function (setup, data) {
+        this.dataSource = data;
+        this.elements.ListContainer.empty();
+
+        //this.Setup = ArticleListView.GetDefaultOptions(setup);// override setup
+
+         @if(userData.Admin_Articles_CanAdd) {
+             @:if (this.ShowNewOption) this.CreateNewCard();
+        }
+        if (data != null) {
+            for (let i = 0; i < data.length; i++) {
+                if (setup.ItemsExtras == true) {
+                          this.AddItemsWizardExtras(setup,i,data);
+                }else{
+                          this.AddItemsGeneral(setup,i,data);
+                }
+            }
+        }
+        this.ApplyFilters();
+    },
+    
+     @if(userData.Admin_Articles_CanAdd) {
+         <text>
+        CreateNewCard: function () {
+            let self = this;
+            let html = $(`
+                <div class="new-item-card article-card">
+                    <div style="padding-top:10px;">
+                        <div class="btn btn-outline-secondary btn-sm" action="CreateItem" style="display:block; margin:auto; width:140px;"><span class="fa fa-plus"></span>&nbsp;&nbsp;@g["New Article"]</div>
+                    </div>
+                    <img action="CreateItem" src="/images/newitem.png" class="image-preview article-preview" style="margin-top:48px" />
+                </div>`);
+            AppContext.BindActions(html, this);
+            self.elements.ListContainer.append(html);
+        },
+
+        CreateItem: function (e) {
+            let self = this;
+            AppContext.LoadJS("/common/AskNameDialog.js").then(() => {
+                let dialog = new AskNameDialog("@g[" New Article "]");
+                dialog.ShowDialog(function (dlgData) {
+                    if (dlgData) {
+                        dlgData.ProjectID = self.ProjectID;
+                        dlgData.ArticleCode = dlgData.Name;
+                        AppContext.Articles.Insert(dlgData, function (result) {
+                            if (result.Success) {
+                                self.CreateItemCard(result.Data);
+                                self.dataSource.push(result.Data);
+                                let card = self.ViewContainer.find(`[data-entityid='${result.Data.ID}']`);
+                                self.ItemSelected.Raise({
+                                    target: self,
+                                    item: result.Data
+                                });
+                            }
+                        });
+                    }
+                });
+            })
+        },
+         </text>
+    }
+
+     @if (userData.Admin_Articles_CanDelete) {
+         <text>
+        DeleteItem: function (e) {
+            let self = this;
+            let card = $(e.target.parentNode);
+            let id = card.attr("data-entityid");
+            let confirm = new ConfirmDialog("@g[" Delete Article ? IMPORTANT : This operation cannot be undone."]");
+            confirm.ShowDialog(function (response) {
+                if (response) {
+                    AppContext.Articles.Delete(id, function (result) {
+                        if (result.Success) {
+                            card.off();
+                            card.remove();
+                            let idx = self.dataSource.findIndex(function (e) {
+                                return e.ID == id;
+                            });
+                            self.dataSource.splice(idx, 1);
+                        }
+                    });
+                }
+            });
+        },
+         </text>
+    }
+
+    CreateItemCard: function (data) {
+        let self = this;
+        let openAction = this.ShowOpenOption ? " action=OpenClicked" : " style='cursor:default;'";
+         @if (!userData.IsIDT) {
+             @:openAction = self.Setup ? openAction : "";
+        }
+
+         @if (userData.Admin_Articles_CanDelete) {
+             @: let deleteAction = this.ShowDeleteOption ? '<span class="ti ti-close card-right card-close" action=DeleteItem></span>' : "";
+        } else {
+             @: let deleteAction = "";
+        }
+        let html = null;
+        if (data.LabelID != null && data.LabelID > 0)
+            html = this.CreateLabelItem(data, openAction, deleteAction);
+        else
+            html = this.CreateArticleItem(data, openAction, deleteAction);
+        AppContext.BindActions(html, this);
+        self.elements.ListContainer.append(html);
+    },
+
+    CreateLabelItem: function (data, openAction, deleteAction) {
+
+        let rfid = data.EncodeRFID == true ? "badge-warning" : "badge-secondary";
+        let shared = data.ProjectID != null ? "badge-secondary" : "badge-warning";
+        let self = this
+            let formString = `<div class="item-card article-card" data-entityid="${data.ID}"${openAction}>
+				<span class="fa fa-tag"></span>${deleteAction}
+				<div style="cursor:pointer" name="ArticleCode" title="${data.ArticleCode}">`
+
+            if (self.Setup.CanSelectMultipleItems) {
+                formString += ` <input type="checkbox" class="selectedvalue" id="${data.ID}" action="ItemChecked"/>`
+            }
+            formString += ` ${data.ArticleCode}</div>
+					  <div name="TypeName">${data.LabelType} ${data.Name}</div>
+					  <div name="Material">${data.MaterialName}</div>
+					  <span class="badge ${rfid}" name="RFFlag">RFID</span>
+					  <span class="badge ${shared}" name="SHFlag">Shared</span>
+					  <div class="preview-container"><img src="/labels/getpreview/${data.LabelID}?${new Date().getTime()}" class="image-preview article-preview" /></div>
+				  </div>`
+
+            let html = $(formString);
+        return html;
+    },
+
+    CreateArticleItem: function (data, openAction, deleteAction) {
+
+        let self = this
+            let shared = data.ProjectID != null ? "badge-secondary" : "badge-warning";
+        let materialName = data.Description ? data.Description : '';
+        let formString = `
+			<div class="item-card article-card" data-entityid="${data.ID}"${openAction}>
+				<span class="fa fa-tag"></span>${deleteAction}
+				<div style="cursor:pointer" name="ArticleCode">`
+
+            if (self.Setup.CanSelectMultipleItems) {
+                formString += ` <input type="checkbox" class="selectedvalue" id="${data.ID}" action="ItemChecked"/>`
+            }
+            formString += ` ${data.ArticleCode}</div>
+			  <div name="TypeName"${data.Name}</div>
+				  <div name="Material"> ${materialName}</div>
+					  <span class="badge ${shared}" name="SHFlag">Shared </span>
+						  <div class="preview-container"> <img src="/articles/getpreview/${data.ID}?${new Date().getTime()}" class="image-preview article-preview"/></div>
+							  </div>`
+
+            let html = $(formString);
+        return html;
+    },
+
+    ItemChecked: function (e) {
+
+        let self = this
+            self.ItemCheckedHandler(e.target.id, e.target.checked)
+
+    },
+
+    ItemCheckedHandler: function (id, checked) {
+        let self = this
+            if (checked) {
+
+                let cardData = this.dataSource.first(p => p.ID == id)
+                    self.ItemsChecked.push({
+                        id: id,
+                        item: cardData
+                    })
+
+            } else {
+                let indexToRemove = self.ItemsChecked.findIndex(item => item.id === id);
+                if (indexToRemove !== -1) {
+                    self.ItemsChecked.splice(indexToRemove, 1);
+                }
+            }
+            console.log("Items Checked", self.ItemsChecked)
+    },
+
+    AddItems: function (e) {
+        let self = this
+            console.log("Add Items", self.ItemsChecked)
+            this.ItemSelected.Raise({
+                target: this,
+                items: self.ItemsChecked
+            })
+    },
+    Close: function (e) {
+        self.ItemsChecked = [];
+        this.ItemSelected = [];
+        AppContext.AppEventListener.Unsubscribe(this, this.HandleNotifications);
+        this.ItemSelected.Dispose();
+    },
+    OpenClicked: function (e) {
+        let self = this;
+        e.preventDefault();
+
+        let cardElm = $(e.target).closest("[data-entityid]");
+        let id = cardElm.attr("data-entityid");
+        let cardData = this.dataSource.first(p => p.ID == id);
+        if (!self.Setup.CanSelectMultipleItems) {
+            this.ItemSelected.Raise({
+                target: this,
+                item: cardData
+            });
+        } else {
+
+            let target = e.target;
+            while (target && !target.classList.contains("item-card")) {
+                target = target.parentElement
+            }
+            let checkbox = target.querySelector(".selectedvalue")
+            checkbox.checked = !checkbox.checked
+            self.ItemCheckedHandler(id, checkbox.checked)
+        }
+        //
+
+
+        //if (this.IsForSelect == true) {
+        //    this.Parent.Show(this.ViewContainer);
+        //}
+    },
+
+    UpdateCard: function (data) {
+        let idx = this.dataSource.findIndex(p => p.ID == data.ID);
+        if (idx >= 0) {
+            let self = this;
+            AppContext.Articles.GetFullArticle(data.ID, (data) => {
+                self.dataSource[idx] = data;
+                let card = self.ViewContainer.find(`[data-entityid='${data.ID}']`);
+                card.find("[name='ArticleCode']").text(data.ArticleCode);
+                if (data.LabelID != null) {
+                    card.find("[name='TypeName']").text(data.LabelType + " " + data.Name);
+                    card.find("[name='Material']").text(data.MaterialName);
+                } else {
+                    card.find("[name='TypeName']").text(data.Name);
+                    card.find("[name='Material']").text(data.Description);
+                }
+                let rfBadge = card.find("[name='RFFlag']");
+                if (data.EncodeRFID) {
+                    rfBadge.removeClass("badge-secondary");
+                    rfBadge.addClass("badge-warning");
+                } else {
+                    rfBadge.addClass("badge-secondary");
+                    rfBadge.removeClass("badge-warning");
+                }
+                let sharedBadge = card.find("[name='SHFlag']");
+                if (data.ProjectID == null) {
+                    sharedBadge.removeClass("badge-secondary");
+                    sharedBadge.addClass("badge-warning");
+                } else {
+                    sharedBadge.addClass("badge-secondary");
+                    sharedBadge.removeClass("badge-warning");
+                }
+                card.find(".image-preview").attr("src", `/articles/getpreview/${data.ID}?${new Date().getTime()}`)
+            });
+        }
+    }
+};
+//</script>

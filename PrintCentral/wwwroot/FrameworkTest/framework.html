@@ -1,0 +1,205 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+	<meta name="viewport" content="width=device-width" />
+	<link rel="stylesheet" href="/css/bootstrap.css" />
+	<link rel="stylesheet" href="/css/fa.css">
+	<link rel="stylesheet" href="/css/themify-icons.css">
+	<link rel="stylesheet" href="/css/AppContext.css" />
+	<link rel="stylesheet" href="/styles/kendo.common.min.css" />
+	<link rel="stylesheet" href="/styles/kendo.default.min.css" />
+	<title>@ViewBag.Title</title>
+	<script src="/js/jquery-3.0.0.min.js"></script>
+	<script src="/js/jquery.validate.min.js"></script>
+	<script src="/js/jquery.validate.unobtrusive.min.js"></script>
+	<script src="/js/bootstrap.min.js"></script>
+	<script src="/js/kendo.all.min.js"></script>
+	<script src="/js/AppContext.js"></script>
+	<script src="/common/ConfirmDialog.js"></script>
+</head>
+<body>
+
+	<nav class="navbar navbar-expand-lg navbar-dark" style="position:fixed; top:0px; left:0px; z-index:10001; width:100%; background-color:#3F454A; color:#ffffff; border-bottom:solid 1px #000000;">
+		<a href="/"><img src="/images/LOGO_IDT_BY_INDET_GROUP.png" width="140" height="12" /></a>
+		<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+			<span class="navbar-toggler-icon"></span>
+		</button>
+		<div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+			<ul class="navbar-nav ml-auto">
+				<li class="nav-item dropdown">
+					<a class="nav-link dropdown-toggle" style="width:120px; text-align:left; padding-left:10px; cursor:pointer;" id="navbarDropdown2" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+						&nbsp;Language
+					</a>
+					<div class="dropdown-menu" aria-labelledby="navbarDropdown2">
+						<a class="dropdown-item" href="/Account/Lang/@culture.Name?returnURL=@Context.Request.Path"><span class="fa fa-flag"></span>&nbsp;English</a>
+						<a class="dropdown-item" href="/Account/Lang/@culture.Name?returnURL=@Context.Request.Path"><span class="fa fa-flag"></span>&nbsp;Spanish</a>
+					</div>
+				</li>
+				<li class="nav-item dropdown">
+					<a class="nav-link dropdown-toggle" style="padding-left:10px; cursor:pointer;" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+						<span class="fa fa-user"></span>&nbsp;@User.Identity.Name
+					</a>
+					<div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
+						<a class="dropdown-item" href="/Account/Profile"><span class="fa fa-address-card"></span>&nbsp;@g["Profile"]</a>
+						<a class="dropdown-item" href="/admin"><span class="fa fa-cog"></span>&nbsp;@g["Administration"]</a>
+						<div class="dropdown-divider"></div>
+						<a class="dropdown-item" href="/Account/Logout"><span class="fa fa-power-off"></span>&nbsp;@g["Logout"]</a>
+					</div>
+				</li>
+			</ul>
+		</div>
+	</nav>
+
+	<!--
+		<div id="vMenuContainer" component="VMenuBar">
+			<template>
+				<menu>
+					<menuitem data-icon="ti ti-cloud-up">
+						<menu data-header="Upload">
+							<menuitem data-icon="ti ti-package" data-url="/Upload/1">Product data</menuitem>
+							<menuitem data-icon="ti ti-package" data-url="/Upload/3">Order</menuitem>
+							<menuitem data-icon="ti ti-package" data-url="/Upload/2">Order + Data</menuitem>
+							<menuitem>-</menuitem>
+							<menuitem data-icon="ti ti-bookmark-alt" data-url="/Orders">See Orders</menuitem>
+						</menu>
+					</menuitem>
+					<menuitem data-icon="ti ti-printer">
+						<menu data-header="Printing">
+							<menuitem data-icon="ti ti-ticket" data-url="/Reprint">Single product</menuitem>
+							<menuitem data-icon="ti ti-ticket" data-url="/Upload/4">Batch print</menuitem>
+							<menuitem>-</menuitem>
+							<menuitem data-icon="ti ti-bookmark-alt" data-url="/Production">Pending Jobs</menuitem>
+							<menuitem>-</menuitem>
+							<menuitem data-icon="ti ti-printer" data-url="/Production/Printers">All Printers</menuitem>
+						</menu>
+					</menuitem>
+				</menu>
+			</template>
+		</div>
+	-->
+
+	<div class="menubar">
+		<div id="uploadOp" class="menubar-item"><a href="#" title="Upload"><span class="ti ti-cloud-up"></span></a></div>
+		<div class="submenubar hidden" style="top:63px">
+			<div class="submenubar-header">Upload</div>
+			<a class="submenubar-item" href="/Upload/1"><span class="ti ti-package"></span>Product data</a>
+			<a class="submenubar-item" href="/Upload/3"><span class="ti ti-package"></span>Order</a>
+			<a class="submenubar-item" href="/Upload/2"><span class="ti ti-package"></span>Order + Data</a>
+			<div class="submenubar-item submenubar-separator"></div>
+			<a class="submenubar-item" href="/Orders"><span class="ti ti-bookmark-alt"></span>See Orders</a>
+		</div>
+		<div id="printingOp" class="menubar-item"><a href="#" title="Printing"><span class="ti ti-printer"></span></a></div>
+		<div class="submenubar hidden" style="top:113px;">
+			<div class="submenubar-header">Printing</div>
+			<a class="submenubar-item" href="/Reprint"><span class="ti ti-ticket"></span>Product by product</a>
+			<a class="submenubar-item" href="/Upload/4"><span class="ti ti-ticket"></span>Batch print</a>
+			<div class="submenubar-item submenubar-separator"></div>
+			<a class="submenubar-item" href="/Production"><span class="ti ti-bookmark-alt"></span>Pending Jobs</a>
+			<div class="submenubar-item submenubar-separator"></div>
+			<a class="submenubar-item" href="/Production/Printers"><span class="ti ti-printer"></span>All Printers</a>
+		</div>
+	</div>
+
+	<div class="main-panel2">
+		<div class="main-panel-header">&nbsp;</div>
+		<div id="mainContainer" class="main-panel-content">
+		</div>
+
+
+		<footer class="main-panel-footer" style="">
+			<div class="container-fluid text-center text-md-left">
+				<div class="footer-copyright text-center text-black-50 py-3">
+					<a href="https://www.smartdots.es/">www.smartdots.es</a>
+				</div>
+
+				<div class="row mt-3 dark-grey-text">
+					<div class="col-md-4 col-lg-5 col-xl-4 mb-5">
+						<h6 class="text-uppercase font-weight-bold">SmartDots</h6>
+						<hr class="teal accent-3 mb-4 mt-0 d-inline-block mx-auto" style="width: 60px;">
+						<p>
+							@g["Our company boasts over 20 years of experience in textiles. We specialize in providing full-package labeling solutions, including traceability, directly to our clients’ location."]
+						</p>
+					</div>
+
+					<div class="col-md-4 col-lg-3 col-xl-3 mx-auto mb-md-0 mb-4">
+						<h6 class="text-uppercase font-weight-bold">@g["Contact"]</h6>
+						<hr class="teal accent-3 mb-4 mt-0 d-inline-block mx-auto" style="width: 60px;">
+						<div class="row">
+							<div class="col-sm-1">
+								<span class="fa fa-home"></span>
+							</div>
+							<div class="col">
+								C/Solsonés, 61 Pol. Ind. Pla de la Bruguera 08211 Castellar del Vallés Barcelona – España
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-sm-1">
+								<span class="fa fa-envelope"></span>
+							</div>
+							<div class="col">
+								info@smartdots.es
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-sm-1">
+								<span class="fa fa-mobile"></span>
+							</div>
+							<div class="col">
+								+34 935 686 954
+							</div>
+						</div>
+					</div>
+
+					<div class="col-md-3 col-lg-2 col-xl-2 mx-auto mb-4">
+						<h6 class="text-uppercase font-weight-bold">@g["Links"]</h6>
+						<hr class="teal accent-3 mb-4 mt-0 d-inline-block mx-auto" style="width: 60px;">
+						<p style="margin-bottom:0px">
+							<a class="dark-grey-text" href="#!">@g["Your Account"]</a>
+						</p>
+						<p style="margin-bottom:0px">
+							<a class="dark-grey-text" href="#!">@g["Help"]</a>
+						</p>
+					</div>
+				</div>
+			</div>
+		</footer>
+	</div>
+	<script>
+		$(document).ready(function () {
+			$("#uploadOp").click(toggleUploadMenu);
+			$("#printingOp").click(togglePrintingMenu);
+			$("BODY").click(handleGlobalClick);
+		});
+
+		function toggleUploadMenu(e) {
+			var op1 = $("#uploadOp");
+			var op2 = $("#printingOp");
+			op1.addClass("active");
+			op2.removeClass("active");
+			op1.next().removeClass("hidden");
+			op2.next().addClass("hidden");
+			e.stopPropagation();
+		}
+
+		function togglePrintingMenu(e) {
+			var op1 = $("#uploadOp");
+			var op2 = $("#printingOp");
+			op2.addClass("active");
+			op1.removeClass("active");
+			op2.next().removeClass("hidden");
+			op1.next().addClass("hidden");
+			e.stopPropagation();
+		}
+
+		function handleGlobalClick() {
+			var op1 = $("#uploadOp");
+			var op2 = $("#printingOp");
+			op1.removeClass("active");
+			op2.removeClass("active");
+			op1.next().addClass("hidden");
+			op2.next().addClass("hidden");
+		}
+	</script>
+</body>
+</html>
+

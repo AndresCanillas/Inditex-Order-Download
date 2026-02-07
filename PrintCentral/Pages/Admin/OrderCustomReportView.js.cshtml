@@ -1,0 +1,330 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages/Admin/OrderCustomReportView.js
+///<reference path="/js/jquery-3.0.0.min.js" />
+///<reference path="/js/Kendo.all.min.js" />
+///<reference path="/js/AppContext.js" />
+///<reference path="/js/AppContext.AppDomain.js" />
+
+// <script>
+    var OrderCustomReportView = function (options) {
+
+        if (!options) {
+            options = {};
+        }
+
+        this.options = OrderCustomReportView.GetDefaults(options);
+
+        this.CurrentPage = 1;
+        this.PageSize = 100;
+        this.ProductFields = [];
+        this.CompositionFields = [];
+
+        this.Storage = new ClientStorage('OrderCustomReportView_@(userData.SelectedProjectID)_@(userData.Id)', localStorage);
+
+        if (options.Filter === undefined && this.Storage.GetItem('Filter')) {
+            this.options.Filter = this.Storage.GetItem('Filter')
+        }
+
+        this.DisabledFieldEvents = true;
+
+        FormView.Extend(this, "@g["Custom Report"]", `/Admin/OrderCustomReportView`);
+    };
+
+
+    // public static method
+    OrderCustomReportView.GetDefaults = function (options) {
+
+        return $.extend({
+            Title: '@g["Custom Report"]',
+            Filter: {},
+            EnableStorageFilter: true,
+        }, options);
+    };
+
+
+    OrderCustomReportView.prototype = {
+        constructor: OrderCustomReportView,
+        
+		OnLoad: function () {
+            var self = this;
+             // update grid headers
+
+            AppContext.Projects.GetByID(self.model.ProjectID).done((result) => {
+                self.Project = result;
+                try {
+                    self.CustomReportColumns = JSON.parse(result.CustomOrderDataReport);
+                    self.ProductFields = self.CustomReportColumns.Config.filter(f => f.CatalogName == '@Catalog.VARIABLEDATA_CATALOG');
+                    self.CompositionFields = self.CustomReportColumns.Config.filter(f => f.CatalogName == '@Catalog.COMPOSITIONLABEL_CATALOG');
+
+                    self.AddCustomColumns();
+
+                    self.LoadData(self.options.Filter);
+                    if (self.elements.OrderDate.val().length < 1) {
+                        self.model.OrderDate = self.model.DefaultDate;
+                    }
+
+                    self.FilterOrders();
+                    self.DisabledFieldEvents = false;
+                } catch (_ex) {
+                    console.log(_ex);
+                    AppContext.ShowError('@g["Please, Report Config is not correct, notify it to the customer service."]');
+                }
+
+            })
+           
+            
+            
+        },
+
+        AddCustomColumns: function () {
+            var self = this;
+
+            try {
+                //var customConfig = JSON.parse(self.Project.CustomOrderDataReport);
+
+                var sortedColumns = self.CustomReportColumns.Config.sort((a, b) => a.Position - b.Position);
+
+                sortedColumns.forEach((col, idx, arr) => {
+
+                    let Render = null;
+
+                    if (typeof self['Render' + col.Column] === 'function')
+                        Render = self['Render' + col.Column] ;
+
+                    self.GetGrid().Headers.Add({
+                        Text: col.Display ? col.Display : col.Column,
+                        Field: col.Column,
+                        Sortable: true,
+                        Width: col.Width ? col.Width : 120,
+                        Render: Render
+                    })
+                })
+
+            } catch (_ex) {
+                AppContext.ShowInfo('@g["No Custom Columns Configured, Please, Contact to Customer Server"]');
+            }
+        },
+
+        GetGrid: function () {
+            var self = this;
+            return self.elements.OrderCustomReport;
+        },
+
+        FilterChanged: function (evt) {
+
+            var self = this;
+
+            self.CurrentPage = 1;
+
+            var filter = self.GetData();
+            filter.CurrentPage = self.CurrentPage;
+            filter.PageSize = self.PageSize;
+            if (self.options.EnableStorageFilter) {
+                self.Storage.SetItem('Filter', filter);
+            }
+
+            if (self.DisabledFieldEvents) {
+                evt.preventDefault();
+                return false;
+            }
+
+            self.FilterOrders().then(() => { self.ResetScrollbar(); });
+
+        },
+
+        FilterOrders: function () {
+            var self = this;
+            var filter = self.GetData();
+
+            // Dates for JSON.stringify are converted to ISO, avoid to use time
+            filter["OrderDate"] = kendo.toString(self.model.OrderDate, 'yyyy-MM-dd') + " 00:00:00"
+            filter["OrderDateTo"] = kendo.toString(self.model.OrderDateTo, 'yyyy-MM-dd') + " 23:59:59"
+
+            filter.CurrentPage = self.CurrentPage;
+            filter.PageSize = self.PageSize;
+            filter.ProductFields = self.ProductFields.map((f) => f.Column);
+            filter.CompositionFields = self.CompositionFields.map((f) => f.Column);
+
+            self.ShowLoading(true);
+
+            return AppContext.Orders.GetCustomReport(filter)
+                .done((response) => {
+
+                    self.ShowLoading(false);
+                    if (!response.Success) return;
+
+                    var records = self.MappingOrderRecords(response)
+
+                    self.GetGrid().Rows.LoadData(records);
+
+                    new Paginator({
+                        ContainerElm: self.elements.PaginationContainer,
+                        Controller: self,
+                        LinkClick: 'GoToPage', // controller action method
+                        PageSize: response.Data.Filter.PageSize,
+                        CurrentPage: response.Data.Filter.CurrentPage,
+                        TotalRecords: response.Data.Filter.TotalRecords
+                    }).Render();
+
+                })
+                .fail(() => {
+                    self.ShowLoading(false);
+                });
+        },
+
+        ShowLoading: function(isLoading){
+            if(isLoading){
+                   var overlay = null;
+                   overlay = $('<div id="overlayWrapper"><div id="overlay"></div><div id="overlaymessage">Loading...</div></div>');
+                   overlay.appendTo(document.body)
+            }else{
+                $('#overlayWrapper').remove(); 
+            }
+        },
+
+        GetCSVReport: function (e) {
+            var self = this;
+            var filter = self.GetData();
+
+            // Dates for JSON.stringify are converted to ISO, avoid to use time
+            filter['OrderDate'] = kendo.toString(self.model.OrderDate, 'yyyy-MM-dd') + ' 00:00:00';
+            filter['OrderDateTo'] = kendo.toString(self.model.OrderDateTo, 'yyyy-MM-dd') + ' 23:59:59';
+
+            filter.CurrentPage = 0;
+            filter.PageSize = 1000000;
+
+            filter.ProductFields = self.ProductFields.map((f) => f.Column);
+            filter.CompositionFields = self.CompositionFields.map((f) => f.Column);
+
+            // Max date range 6months -> 180 days -> Use 181 days to avoid user errors
+            //var maxRange = 184*24*60*60*1000;
+            var d1 = new Date(filter['OrderDate']).valueOf();
+            var d2 = new Date(filter['OrderDateTo']).valueOf();
+
+            filter['CSV'] = true;
+
+            /*if ((d2 - d1) > maxRange) {
+                AppContext.ShowError('@g["Please Try Again, the max date range is 180 days (6 months) "]');
+                return;
+            }*/
+
+            // disable report button
+            return AppContext.Orders.GetFileCSVCustomReport(filter)
+                .done(res => {
+
+                    if ($('iframe[name="downloadCSVReport"]').length)
+                        $('iframe[name="downloadCSVReport"]').remove();
+
+                    $('body').append(`<iframe name="downloadCSVReport" width="0" height="0" tabindex="-1" title="empty" class="hidden" src="/fsm/TempStore/files/${res.Data}/content">`)
+
+
+                })
+        },
+
+        MappingOrderRecords: function (result) {
+            var self = this;
+            //console.log(result);
+            //var allFields = self.ProductFields.concat(self.CompositionFields);
+            
+            return result.Data.Records.map((rc) => $.extend({},rc, rc.ProductData));
+
+        },
+
+        HasMinimunChangeOrderNumber: function () {
+
+        },
+
+        HasMinimunChangeOrderDate: function () {
+
+        },
+
+        ResetScrollbar: function () {
+            var me = this;
+            $(me.elements.OrderCustomReport.Element).animate({ scrollTop: 0 }, 250);
+
+        },
+
+        RenderProviderClientReference: function (value, rowIdx, colIdx, dataType, data) {
+            if (data.IsGroup) {
+                return value && value.length ? value : '';
+            }
+
+            return '';
+        },
+
+        RenderOrderStatus: function (value, rowIdx, colIdx, dataType, data) {
+            
+            var status = this.GridViewStatusRender(value, rowIdx, colIdx, dataType, data);
+            return [status].join()
+        },
+
+        GridViewStatusRender: function (value, rowIdx, colIdx, dataType, data) {
+            var clickable = ''
+            var action = ''
+            var badgeCss = 'secondary'
+            var statusText = OrderUtils.GetOrderStatusText(data.OrderStatus);
+
+            var IsNewOrder = [OrderStatus.Received, OrderStatus.Processed];
+            var IsInflow = [OrderStatus.InFlow]
+            var IsValidatedOrder = [OrderStatus.Validated, OrderStatus.Billed, OrderStatus.ProdReady, OrderStatus.Printing, OrderStatus.Completed]// validated, billed, prodready, printing, completed
+            var IsCanceled = [OrderStatus.Cancelled]
+            var IsCompleted = [OrderStatus.Completed]
+
+
+            if (IsNewOrder.indexOf(data.OrderStatus) >= 0) {
+                badgeCss = 'secondary';
+            }
+
+
+            if (IsInflow.indexOf(data.OrderStatus) >= 0) {
+                badgeCss = 'warning'; // waiting for user interaction
+            }
+
+            if (IsValidatedOrder.indexOf(data.OrderStatus) >= 0) {
+                badgeCss = 'primary'
+            }
+
+            if (IsCompleted.indexOf(data.OrderStatus) >= 0) {
+                badgeCss = 'success'
+            }
+
+            if (IsCanceled.indexOf(data.OrderStatus) >= 0) {
+                badgeCss = 'light'
+            }
+
+            return `<span class="badge badge-${badgeCss}">${statusText}</span>`;
+        },
+        GoToPage: function (e, x, y) {
+            var self = this;
+            var selectedPage = $(e.currentTarget).data('position');
+            self.CurrentPage = selectedPage
+            // reset scroll position
+            self.FilterOrders().then(() => { self.ResetScrollbar(); });
+        },
+
+        RenderOrdeDate: function (value, rowIdx, colIdx, dataType, data) {
+
+            if (value == null || value.length === 0) return "";
+            var d = new Date(value);
+            return d.toLocaleString();
+        },
+
+        RenderOrderDueDate: function (value, rowIdx, colIdx, dataType, data) {
+
+            if (value== null || value.length === 0) return "";
+            var d = new Date(value);
+            return d.toLocaleString();
+        },
+        RenderValidatedDate: function (value, rowIdx, colIdx, dataType, data) {
+            
+            if (value == null || value.length === 0) return "";
+            var d = new Date(value);
+            return d.toLocaleString();
+        },
+	};
+//</script>

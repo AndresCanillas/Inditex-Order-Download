@@ -1,0 +1,88 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+
+//# sourceURL=https://Pages/Admin/Orders/ChangeOrderStatusView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/AppContext.js" />
+/// <reference path="/js/AppContext.AppDomain.js" />
+
+//  <script>
+    @* orderData is a CompanyOrderDTO  *@
+    var ConfirmStopOrderView = function (orderSelection) {
+        FormView.Extend(this, "@g["Confirm to stop selected order(s)"]", "/Admin/Orders/ConfirmStopOrderView")
+
+        //this.OrderData = orderData;
+        this.OrderSelection = orderSelection;
+
+        this.Accepted = false;
+    }
+
+
+    ConfirmStopOrderView.prototype = {
+
+        constructor: ConfirmStopOrderView,
+
+        OnLoad: function () {
+            var self = this;
+
+            self.EnableSubmit();
+
+            //self.elements.OrderNumber.text(self.OrderData.OrderNumber)
+
+        },
+
+
+        Save: function () {
+            var self = this;
+
+            AppContext.Orders.StopByGroup(self.OrderSelection)
+            .done((response) => {
+                if (response.Success == false) {
+                    //AppContext.ShowError('@g["Try Again, cannot stop order"]')
+                    // keep in confirm window
+                    return;
+                }
+
+                self.Close(response);
+            })
+
+            
+
+        },
+
+        IsEnableSubmit: function () {
+            return this.Accepted;
+        },
+
+        ClickConfirm: function () {
+            var self = this;
+
+            self.Accepted = self.elements.Confirm.prop('checked');
+
+            self.EnableSubmit();
+        },
+
+
+        EnableSubmit: function () {
+
+            var self = this;
+
+            var btn = self.elements.SubmitButton;
+
+            if (self.IsEnableSubmit()) {
+                //btn.prop('disabled', false);
+                btn.removeClass('disabled')
+            } else {
+                //btn.prop('disabled', true);
+                btn.addClass('disabled')
+            }
+
+        },
+    }
+
+
+// </script>

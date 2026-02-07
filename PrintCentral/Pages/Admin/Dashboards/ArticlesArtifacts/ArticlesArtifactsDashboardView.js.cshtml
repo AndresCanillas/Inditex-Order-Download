@@ -1,0 +1,254 @@
+@page
+@inject ILocalizationService g
+@inject IUserData u
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Dashboards/ArticlesArtifacts/ArticlesArtifactsDashboardView.js
+///<reference path="/js/jquery-3.0.0.min.js" />
+///<reference path="/js/Kendo.all.min.js" />
+///<reference path="/js/AppContext.js" />
+
+//<script>
+	  var ArticlesArtifactsDashboardView = function () {
+		  FormView.Extend(this, "@g["Articles Artifacts Dashboard"]", `/Admin/Dashboards/ArticlesArtifacts/ArticlesArtifactsDashboardView`);
+		  this.PageSize = 14;
+		  this.CurrentPage = 1;
+		  this.Pages = 1;
+		  this.TotalRecords = 0;
+		  this.Headers = [];
+	  };
+
+	  ArticlesArtifactsDashboardView.prototype = {
+		  constructor: ArticlesArtifactsDashboardView,
+		  
+		  OnLoad: function () {
+			  var self = this;
+
+			  self.Headers = [...document.querySelectorAll('#ArticlesArtifactsGrid .gvheader-cell')]
+							.map(h => h.childNodes[0].textContent.trim())
+							.filter((h, i) => i === 0 || i === 2 || i === 4); //Solo Codigos de articulos y labels y campo validation
+
+			  self.ProjectId = null;
+			  self.elements.FieldSelector.SetFields(self.Headers);
+			  //this.SetFields();
+		//	  this.elements.Articles.Rows.MultiSelect = true;
+		//	  this.FilterData();
+		  },
+
+		  FilterData: async function () {
+			  var self = this;
+			  let search = encodeURIComponent(self.ProjectID);
+			  
+			  let url = `/Dashboards/ArticlesArtifacts/GetArticlesArtifacts?Page=${this.CurrentPage}&&PageSize=${this.PageSize}`
+			  url += `&&projectid=${search}`
+			  var response = await AppContext.HttpGet(url);
+
+			  if (response.Success === true) {
+				  this.Articles = response.Data;
+				  this.elements.Articles.Rows.LoadData(response.Data);
+				  this.Pages = Math.ceil(response.TotalCount / this.PageSize);
+				  this.elements.CurrentPageDisplay.text(`${this.CurrentPage}/${this.Pages}`);
+				  const headers = [...document.querySelectorAll(".gvheader-cell")].map(h => h.childNodes[0].textContent.trim());
+			  }
+		  },
+
+		PreviousPage: function (e) {
+			  if (this.CurrentPage > 1) {
+				  this.CurrentPage--;
+				  if(!this.IsFiltering)
+					this.FilterData();
+				  else
+					  this.ChangePageFilteredCatalog();
+			  }
+		},
+
+		NextPage: function (e) {
+			  if (this.CurrentPage < this.Pages) {
+				  this.CurrentPage++;
+				   if(!this.IsFiltering)
+					this.FilterData();
+				  else
+					  this.ChangePageFilteredCatalog();
+			  }
+		},
+
+		  FilterCatalog: async function (e) {
+
+			var self = this;
+			var searchterm = this.elements.SearchTerm.val();
+			let btn = document.querySelector('.btn.btn-secondary.btn-sm.dropdown-toggle').innerText;
+			let fieldSearching = document.querySelectorAll('[name="FieldSelector"] > [name="Buttons"] > .dropdown-menu > .dropdown-item');
+			let match = Array.from(fieldSearching).find(item => item.innerText.trim() === btn.trim());
+			let pos = null;
+			this.IsFiltering = true;
+			this.CurrentPage = 1;
+
+			if (match)
+				pos = match.getAttribute('data-pos');
+			else 
+				return;
+
+			var table = "";
+
+			if(pos == "0")
+				table = "ArticleCode"
+			else if (pos == "1")
+				table = "LabelCode"
+			else 
+				table = "LabelValidation"
+
+			let url = `/Dashboards/ArticlesArtifacts/Search?Value=${searchterm}&&Table=${table}&&ProjectID=${self.ProjectID}&&Page=${this.CurrentPage}&&PageSize=${this.PageSize}`
+			var response = await AppContext.HttpGet(url);
+
+			if(response.Success){
+				this.Pages = Math.ceil(response.TotalCount / this.PageSize);
+				this.elements.CurrentPageDisplay.text(`${this.CurrentPage}/${this.Pages}`);
+				this.elements.Articles.Rows.LoadData(response.Data);
+			}
+		},
+
+		
+		ChangePageFilteredCatalog: async function () {
+			var self = this;
+			var searchterm = this.elements.SearchTerm.val();
+			let btn = document.querySelector('.btn.btn-secondary.btn-sm.dropdown-toggle').innerText;
+			let fieldSearching = document.querySelectorAll('[name="FieldSelector"] > [name="Buttons"] > .dropdown-menu > .dropdown-item');
+			let match = Array.from(fieldSearching).find(item => item.innerText.trim() === btn.trim());
+			let pos = null;
+			this.IsFiltering = true; 
+
+			if (match)
+				pos = match.getAttribute('data-pos');
+			else 
+				return;
+
+			var table = "";
+
+			if(pos == "0")
+				table = "ArticleCode"
+			else if (pos == "1")
+				table = "LabelCode"
+			else 
+				table = "LabelValidation"
+
+			let url = `/Dashboards/ArticlesArtifacts/Search?Value=${searchterm}&&Table=${table}&&ProjectID=${self.ProjectID}&&Page=${this.CurrentPage}&&PageSize=${this.PageSize}`
+			var response = await AppContext.HttpGet(url);
+
+			if(response.Success){
+				this.Pages = Math.ceil(response.TotalCount / this.PageSize);
+				this.elements.CurrentPageDisplay.text(`${this.CurrentPage}/${this.Pages}`);
+				this.elements.Articles.Rows.LoadData(response.Data);
+			}
+		},
+		 
+		 
+		RenderQuantity: function (value) {
+			return `<div class="text-right pr-1">${value}</div>`;
+		},
+
+		RenderDate: function (value, rowIdx, colIdx, dataType, data) {
+			var d = new Date(value);
+			return d.toLocaleString();
+		},
+		OnChangedRegisters: function (){
+			var self = this;
+			let registers = self.elements["NumbersRegisters"].val();
+			this.PageSize = parseInt(registers, 10);
+		},
+
+		  OnUnload: function () {
+		  },
+		  ShowComments: async function(e){
+			  e && e.preventDefault();
+			  var self = this;
+			  var row = self.GetCurrentRow();
+			  if(row == null)
+			  {
+				  AppContext.ShowError('@g["Please select one row first!"]');
+				  return;
+			  }
+			  await AppContext.LoadJS("/Admin/WF/LabelCommentsDialog.js");
+			  var dlg = new LabelCommentsDialog(row);
+			  dlg.ShowDialog();
+
+		  },
+
+		  GetGrid: function () { return this.elements.Articles; },
+				CompanyChanged: function (evt) {
+
+				  var self = this;
+				  var combo = self.elements["ProjectID"][0]  // document.getElementById("ProjectCombo")
+				  combo.innerHTML=''
+
+				  var projectList = document.getElementById("ProjectList")
+
+				  var filter = self.GetData();
+
+				  for (i = 0; i < projectList.options.length; i++) {
+					  var opts = projectList.options[i].text.split(";")
+
+					  if (i == 0 || filter.CompanyID == opts[1] || filter.CompanyID == "0") {
+						  var option = document.createElement("option");
+						  option.text = opts[0];
+						  option.value = projectList.options[i].value;
+						  if (option.value==filter.ProjectID) {
+							  option.selected = true;
+						  }
+						  combo.add(option)
+					  }
+				  }
+
+				  self.model.ProjectID = 0
+			},
+			FilterChanged: function (evt) {
+            
+            var self = this;
+
+            if (self.DisabledFieldEvents) {
+                evt.preventDefault();
+                return false;
+            }
+
+            self.CurrentPage = 1;
+
+            var filter = self.GetData();
+
+			if(filter.ProjectID != "0"){
+				self.ProjectID = filter.ProjectID;
+				self.FilterData();
+				return;
+			}
+
+            filter.CurrentPage = self.CurrentPage;
+            filter.PageSize = self.PageSize;
+
+        },
+
+		RenderSelectBox: function (value, rowIdx, colIdx, dataType, data) {
+            var checked = '';
+
+            if (data?.IsValid) {
+                checked = 'checked="checked"';
+            }
+
+            return `<div class="form-check pull-right">
+                    <input class="form-check-input" type="checkbox" ${checked} action="CheckboxSelect" data-label-id="${data.LabelID}">
+                    </div>`
+        },
+
+		CheckboxSelect: async function(e){
+		    var self = this;
+			var data = {};
+            var elm = $(e.currentTarget);
+            data.LabelID = elm.data('label-id');
+			data.IsValid = elm.is(":checked");
+			
+			let url = `/Dashboards/ArticlesArtifacts/SaveValidationLabel`;
+			await AppContext.HttpPost(url,data);
+		},
+
+		  GetCurrentRow: function () { return this.GetGrid().Rows.Get(this.GetGrid().Rows.SelectedIndex); }
+
+	  };
+//</script>

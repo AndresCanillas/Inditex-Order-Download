@@ -1,0 +1,64 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+
+}
+
+    <viewcard>
+
+        <viewrow>
+            <viewcolumn>
+                <viewform>
+                    <input name="SelectedCompanyID" type="hidden" value="@userData.SelectedCompanyID" />
+
+                    <input model name="OrderID" type="hidden" data-type="int" />
+
+                    @if (userData.IsIDT)
+                    {
+                        <input model name="IsBillable" type="checkbox" label="@g["Invoice Required"]" checked type="bool" />
+                    }
+                    else
+                    {
+                        <input model name="IsBillable" type="checkbox" checked type="bool" class="d-none" />
+                        <input name="display_to_externals" type="checkbox" label="@g["Invoice Required"]" checked type="bool" readonly disabled />
+                    }
+</viewcolumn>
+        </viewrow>
+
+        <viewfooter>
+
+            <viewrow>
+
+                <viewcolumn>
+                    <inlineform class="form-inline">
+
+                        <a href="#" class="btn btn-secondary btn-sm" action="Close">@g["Cancel"]</a>
+
+                    </inlineform>
+                </viewcolumn>
+
+                <viewcolumn>
+
+                    <inlineform class="form-inline pull-right">
+
+                        @*<input model name="Confirm" action="ClickConfirm" label="@g["Confirm action?"]" type="checkbox" />*@
+
+                        <div class="form-check mt-1 mr-sm-3">
+                            <input model name="Confirm" class="form-check-input" type="checkbox" id="__inlineFormCheck" no-transform action="click:ClickConfirm">
+                            <label class="form-check-label" for="__inlineFormCheck">
+                                @g["Confirm action?"]
+                            </label>
+                        </div>
+
+                        <a href="#" name="SubmitButton" class="btn btn-sm btn-primary" action="Save">@g["Repeat"]</a>
+
+                    </inlineform>
+                </viewcolumn>
+
+            </viewrow>
+        </viewfooter>
+
+    </viewcard>
+

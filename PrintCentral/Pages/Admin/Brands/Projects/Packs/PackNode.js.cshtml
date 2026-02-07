@@ -1,0 +1,91 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/Projects/Packs/PackNode.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var PackNode = function (id, text) {
+		TreeNode.Extend(this, "PackNode", id, text);
+		this.CanEdit = true;
+		this.menu = {
+			MenuWidth: "250px",
+			Options: [
+				{ Text: "@Html.Raw(g["Open"])", OnClick: this.OnDoubleClick }
+				@if (userData.Admin_Packs_CanRename)
+				{
+				@:, { Text: "@Html.Raw(g["Rename"])", OnClick: this.Rename }
+				}
+				@if (userData.Admin_Packs_CanDelete)
+				{
+				@:, { IsSeparator: true }
+				@:, { Text: "@Html.Raw(g["Delete"])", OnClick: this.Delete }
+				}
+			]
+		};
+		this.Expand();
+	};
+
+	PackNode.prototype = {
+		constructor: PackNode,
+
+		loadDependencies: function (callback) {
+			AppContext.LoadJS("/Admin/Brands/Projects/Packs/PackView.js").then(()=>callback());
+		},
+
+		GetContextMenu: function () {
+			return this.menu;
+		},
+
+		@if (userData.Admin_Packs_CanRename)
+		{
+		<text>
+		Rename: function () {
+			this.BeginEdit();
+		},
+
+		OnEditEnding: function (value) {
+			return AppContext.Packs.Rename(this.EntityID, value);
+		},
+		</text>
+		}
+
+
+		@if (userData.Admin_Packs_CanDelete)
+		{
+		<text>
+		Delete: function () {
+			var self = this;
+			var confirm = new ConfirmDialog("@g["Delete Pack? IMPORTANT: This operation will also delete all records associated with this Pack."]");
+			confirm.ShowDialog(function (response) {
+				if (response) {
+					AppContext.Packs.Delete(self.EntityID, function (result) {
+						if (result.Success)
+							self.Remove();
+					});
+				}
+			});
+		},
+		</text>
+		}
+
+
+		OnDoubleClick: function () {
+			var self = this;
+			this.loadDependencies(function () {
+				var view = new PackView(self.EntityID);
+				view.NodeID = self.NodeID;
+				view.OnSaved.Subscribe(self, function (data) { this.setText(data.Name); });
+				view.Show(self.getViewContainer());
+			});
+		}
+	};
+//</script>
+
+
+

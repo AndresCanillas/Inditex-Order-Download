@@ -1,0 +1,465 @@
+﻿@page
+@inject ILocalizationService g
+@inject ICompanyRepository repo
+@inject IUserData  userData
+@inject IOrderRepository  orderRepo
+@inject IProjectRepository projectRepo
+@inject IEventQueue events
+@{
+    Layout = null;
+    int n = 0;
+
+    if(Request.Query.ContainsKey("n"))
+    {
+        n = Convert.ToInt32(Request.Query["n"]);
+    }
+
+    List<ICompany> companies = new List<ICompany>();
+    companies.Add(repo.GetSelectedCompany());
+
+    
+
+
+    <div class="tabs">
+
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 20px;
+            }
+
+            .tabs {
+                display: flex;
+                cursor: pointer;
+                margin-bottom: 10px;
+            }
+
+            .tab {
+                padding: 10px;
+                background: #ddd;
+                margin-right: 5px;
+                border-radius: 5px 5px 0 0;
+            }
+
+                .tab.active {
+                    background: #fff;
+                    font-weight: bold;
+                }
+
+            .tab-content {
+                display: none;
+                padding: 20px;
+                border: 1px solid #ddd;
+            }
+
+            .tab-content.active {
+                    display: block;
+            }
+
+            .container-provider-info {
+                font-family: Arial, sans-serif;
+                background-color: #f9f9f9;
+                margin: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+
+            .provider-info-box {
+                background-color: #d3d3d3;
+                padding: 20px;
+                border-radius: 8px;
+                width: 50vw;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+
+            h3 {
+                margin-top: 0;
+                font-size: 18px;
+                color: #333;
+            }
+
+            .info-grid {
+                display: flex;
+                justify-content: space-between;
+            }
+
+            .left-column, .right-column {
+                font-size: 14px;
+                line-height: 1.5;
+            }
+
+            p {
+                margin: 5px 0;
+            }
+
+            strong {
+                color: #000;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 20px;
+            }
+
+            th, td {
+                padding: 12px;
+                text-align: left;
+                border: 1px solid #ddd;
+            }
+
+            th {
+                background-color: #f4f4f4;
+            }
+
+            .action-buttons button {
+                padding: 8px 12px;
+                margin: 0 5px;
+                border: none;
+                cursor: pointer;
+                border-radius: 4px;
+            }
+
+            .setup-button {
+                background-color: #007bff;
+                color: white;
+            }
+
+            .setup-button:hover {
+                background-color: #ec026d;
+            }
+
+            .edit-button {
+                background-color: #c82333;
+                color: white;
+            }
+
+            .delete-button {
+                background-color: #dc3545;
+                color: white;
+            }
+
+            .edit-button:hover {
+                background-color: #0056b3;
+            }
+
+            .delete-button:hover {
+                background-color: #c82333;
+            }
+        </style>
+        <div class="tab active" onclick="showTab('gestion-ordenes')">Gestión de Órdenes</div>
+        <div class="tab" onclick="showTab('gestion-proveedores')">Gestión de Proveedores</div>
+    </div>
+
+    <div id="gestion-ordenes" class="tab-content active">
+      
+        
+        <form name="dataentry-frm" method="post" onsubmit="return false;">
+            <viewform>
+                <viewcard>
+                    <viewrow>
+                        <viewcolumn>
+                            <input type="text" model name="SearchOrderNumber" label="@g["Order Number to search"]:" autocomplete="on" />
+                        </viewcolumn>
+                        <viewcolumn>
+                            <input type="text" model name="SearchArticleCode" label="@g["Article to search"]:" autocomplete="on" />
+                        </viewcolumn>
+                        <viewcolumn>
+                            <a href="#" class="btn btn-sm btn-primary" action="click:SearchOrderEvt">@g["Search"] <span class="fa fa-fw fa-chevron-right" aria-hidden="true"></span></a>
+                        </viewcolumn>
+                    </viewrow>
+                </viewcard>
+                <viewcard>
+                    <div id="SearchingTool">
+                        <viewrow>
+                            <viewcolumn>
+                                <table id="ResultsGrid">
+                                    <thead>
+                                        <tr>
+                                            <th style="display: none;">ID</th>
+                                            <th>Order Number</th>
+                                            <th>Article Code</th>
+                                            <th>Date</th>
+                                            <th>Sent to Print Date</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </viewcolumn>
+                        </viewrow>
+                    </div>
+
+                    <div id="AssignProvider" style="display:none">
+                        <viewrow>
+                            <viewcolumn>
+                                <h5>@g["Selected order detail"]</h5>
+                                <hr />
+                            </viewcolumn>
+                        </viewrow>
+
+                        <viewrow>
+                            <viewcolumn>
+                                <span>@g["Order Number"] :</span>
+                                <span id="SelectedOrder"><b>9489454544</b></span>
+                            </viewcolumn>
+                        </viewrow>
+                        <viewrow>
+                            <viewcolumn>
+                                <span>@g["Article"] :</span>
+                                <span id="SelectedArticleCode"><b>soble</b></span>
+                            </viewcolumn>
+                        </viewrow>
+                        <hr />
+                        <viewrow>
+                            <viewcolumn>
+
+                                <div class="form-group row">
+                                    <div class="col-sm col-form-label">
+                                        <span>*@g["Provider"]:</span>
+                                    </div>
+                                    <div class="col-sm-8">
+                                        <div class="input-group mb-3">
+                                            <select model name="ProviderReference" class="form-control form-control-sm" no-transform action="change:SetProviderCompanyID" validation="required" type="text"></select>
+                                            <div class="input-group-append" style="height: 31px;">
+                                                <span class="input-group-text" class="form-control form-control-sm" style="cursor:pointer"><span style="margin-left: 10px;"><a href="#" title="@g["Refresh"]" action="RefreshProvider"><span class="fa fa-refresh"></span></a></span></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </viewcolumn>
+
+                        </viewrow>
+                        <hr />
+                        <style>
+
+
+                        </style>
+
+
+                        <div class="container-provider-info">
+                            <div class="provider-info-box">
+                                <h3>Selected provider information</h3>
+                                <div class="info-grid">
+                                    <div class="left-column">
+                                        <p><strong>Factory Address:</strong> <span class="SelectedProviderAddress1"></span></p>
+                                        <p><strong>City:</strong> <span class="SelectedProviderCity"> </span></p>
+                                        <p><strong>State:</strong> <span class="SelectedProviderState"></span></p>
+                                        <p><strong>ZipCode:</strong><span class="SelectedProviderZipCode"></span></p>
+                                    </div>
+                                    <div class="right-column">
+                                        <p><strong>Country:</strong> <span class="SelectedProviderCountry"></span></p>
+                                        <p><strong>Phone:</strong> <span class="SelectedProviderPhone"></span></p>
+                                        <p><strong>Tax ID:</strong> </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <viewfooter>
+
+                            <div class="row justify-content-end" name="AvailableActions">
+                                <div class="col-4 text-center">
+                                    @*   <a href="#" class="btn btn-sm btn-outline-primary" action="Save"> <span class="fa fa-fw fa-save" aria-hidden="true"></span> @g["Save"]</a> *@
+                                </div>
+                                <div class="col-4 text-right">
+                                    <a href="#" class="btn btn-sm btn-primary" action="click:SaveAndNext">@g["Assing Provider"] <span class="fa fa-fw fa-chevron-right" aria-hidden="true"></span></a>
+                                </div>
+                            </div>
+
+                        </viewfooter>
+                    </div>
+
+                </viewcard>
+            </viewform>
+        </form>
+    </div>
+
+    <div id="gestion-proveedores" class="tab-content">
+        <form name="providers-frm" method="post" onsubmit="return false;">
+            <viewform>
+
+                <div id="SearchingBrokerTool">
+                    <viewcard>
+                        <viewrow>
+                            <viewcolumn>
+                                <div class="form-group row">
+                                    <div class="col-sm col-form-label">
+                                        <span>@g["Trader"]:</span>
+                                    </div>
+                                    <div class="col-sm-8">
+                                        <div class="input-group mb-3">
+                                            <select model name="BrokerReference" class="form-control form-control-sm" no-transform action="change:FilterVendors" validation="required" type="text"></select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </viewcolumn>
+                        </viewrow>
+                    </viewcard>
+                    <viewcard>
+                    <viewrow>
+                            <viewcolumn>
+                                <table id="ResultsVendorsGrid">
+                                    <thead>
+                                        <tr>
+                                            <th style="display: none;">ID</th>
+                                            <th>Trader Code</th>
+                                            <th>Trader</th>
+                                            <th>Vendor Code</th>
+                                            <th>Vendor Name</th>
+                                            <th>Importer Text</th>
+                                            <th>Country</th>
+
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </viewcolumn>
+                        </viewrow>
+                    </viewcard>
+
+                        
+                </div>
+                   
+               </viewform>
+        </form>
+        <div id="EditProvider" style="display:none">
+        <viewcard>
+            <viewrow>
+                 <viewcolumn>
+                        <h5>
+                            @g["Edit Provider - "]<b>
+                                <span id="SelectedProvider"></span></b>
+
+                        </h5>
+                     <hr />
+                  </viewcolumn>
+           </viewrow>
+
+    <viewrow>
+
+        <viewcolumn>
+                        <viewrow>
+                            <viewcolumn>
+                                <div style="text-align:left">
+                                    <label><b>@g["Importers"] </b></label>
+                                </div>
+
+                            </viewcolumn>
+                        </viewrow>
+                <viewrow>
+                <viewcolumn>
+                      <textarea model style="width: 100%;" rows="6" name="Importers" class="form-control form-control-sm"></textarea>
+                </viewcolumn>
+                
+                </viewrow>
+              
+        </viewcolumn>
+
+        <viewcolumn>
+
+                                <viewrow>
+                                       <viewcolumn>
+                                        <div style="text-align:left">
+                                    <label><b>@g["Made In"] </b></label>
+                                        </div>
+                                        
+                                    </viewcolumn>
+                                </viewrow>
+        <viewrow>
+            <viewcolumn>
+                 <select model name="MadeIn" class="form-control form-control-sm w-100" required></select>
+            </viewcolumn>
+        </viewrow>
+        
+        </viewcolumn>
+                    <viewcolumn>
+                    </viewcolumn>
+    </viewrow>
+
+
+
+        </viewcard>
+
+
+                        
+                        <style>
+                            .container-provider-info {
+                                font-family: Arial, sans-serif;
+                                background-color: #f9f9f9;
+                                margin: 0;
+                                display: flex;
+                                justify-content: center;
+                                align-items: center;
+
+                            }
+
+                            .provider-info-box {
+                                background-color: #d3d3d3;
+                                padding: 20px;
+                                border-radius: 8px;
+                                width: 50vw;
+                                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                            }
+
+                            h3 {
+                                margin-top: 0;
+                                font-size: 18px;
+                                color: #333;
+                            }
+
+                            .info-grid {
+                                display: flex;
+                                justify-content: space-between;
+                            }
+
+                            .left-column, .right-column {
+                                font-size: 14px;
+                                line-height: 1.5;
+                            }
+
+                            p {
+                                margin: 5px 0;
+                            }
+
+                            strong {
+                                color: #000;
+                            }
+
+                        </style>
+
+                        <viewfooter>
+
+                            <div class="row justify-content-end" name="AvailableActions">
+                                <div class="col-4 text-center">
+                        @*   <a href="#" class="btn btn-sm btn-outline-primary" action="Save"> <span class="fa fa-fw fa-save" aria-hidden="true"></span> @g["Save"]</a> *@
+                                </div>
+                                <div class="col-4 text-right">
+                                     <a href="#" class="btn btn-sm btn-secondary" action="click:CancelEditProvider">@g["Cancel"] <span class="fa fa-fw fa-chevron-right" aria-hidden="true"></span></a>
+                                    <a href="#" class="btn btn-sm btn-primary" action="click:SaveVendor">@g["Save"] <span class="fa fa-fw fa-chevron-right" aria-hidden="true"></span></a>
+                                </div>
+                            </div>
+
+                        </viewfooter>
+                        </div>
+    </div>
+
+
+
+    <script>
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`.tab[onclick="showTab('${tabId}')"]`).classList.add('active');
+        }
+    </script>
+
+
+}
+   

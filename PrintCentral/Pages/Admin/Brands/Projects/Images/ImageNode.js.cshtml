@@ -1,0 +1,32 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/Projects/Image/ImageNode.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+
+    var ImageNode = function (projectId) {
+        TreeNode.Extend(this, "ImageNode", 0, "@g["Images"]");
+		this.ProjectID = projectId;
+        this.CanEdit = false;
+		this.Expand();
+	};
+
+	ImageNode.prototype = {
+		constructor: ImageNode,
+
+		OnDoubleClick: function (e) {
+			var self = this;
+			AppContext.LoadJS("/Admin/Brands/Projects/Images/ImageList.js").then(() => {
+				var view = new ImageList(self.ProjectID);
+				view.Show(self.getViewContainer());
+			});
+		}
+    };
+
+//</script>

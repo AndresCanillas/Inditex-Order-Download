@@ -1,0 +1,30 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+	<viewcard>
+		<viewrow>
+			<viewcolumn>
+				<viewform>
+					<div model name="ID" label="ID:"></div>
+					<div model name="Source" label="@g["Source"]:"></div>
+					<div model name="Title" label="@g["Title"]:"></div>
+					<div model name="Message" label="@g["Message"]:"></div>
+					<div model name="CreatedDate" label="@g["Created"]:"></div>
+					<div model name="UpdatedDate" label="@g["Last Updated"]:"></div>
+					<div model name="Count" label="@g["Counter"]:"></div>
+				</viewform>
+			</viewcolumn>
+		</viewrow>
+		<viewrow>
+			<viewcolumn>
+				<div name="DataContainer" style="width:100%; height:350px; overflow:auto;"></div>
+			</viewcolumn>
+		</viewrow>
+		<viewrow>
+			<viewcolumn>
+				<a href="#" class="btn btn-primary" action="DismissNotification">@g["Dismiss"]</a>
+			</viewcolumn>
+		</viewrow>
+	</viewcard>

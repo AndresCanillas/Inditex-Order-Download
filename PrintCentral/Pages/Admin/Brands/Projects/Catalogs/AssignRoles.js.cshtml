@@ -1,0 +1,41 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+//# sourceURL=https://Pages/Admin/Brands/Projects/Catalogs/AssignRoles.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var AssignRoles = function (catalogid) {
+		FormView.Extend(this, "@g["Assign Roles"]", `/Admin/Brands/Projects/Catalogs/AssignRoles?catalogid=${catalogid}`);
+		this.CatalogID = catalogid;
+	};
+
+	AssignRoles.prototype = {
+        constructor: AssignRoles,
+		@if (userData.Admin_Catalogs_CanEdit)
+		{
+		<text>
+		Save: function () {
+			var self = this;
+			if (!this.model.ValidState()) return;
+			var i = 0, elm, roles = [];
+			this.model.Roles = "";
+			do {
+				elm = this.elements[`role_${i++}`];
+				if (elm != null && elm.prop("checked") == true) {
+					roles.push(elm.prop("value"));
+				}
+			} while (elm != null);
+			this.model.Roles = roles.join(",");
+			AppContext.Catalogs.AssignRoles(this.CatalogID, this.model.data, (result) => {
+				if (result.Success) {
+					self.Close(this.model.Roles);
+				}
+			});
+		}
+		</text>
+		}
+	};
+//</script>

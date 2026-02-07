@@ -1,0 +1,50 @@
+﻿@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+<div class="main-panel-content">
+
+    <div class="row" style="margin-bottom:4px;">
+        <div class="col-50" style="margin-left:20px;">
+            <viewform>
+                <div style="margin-bottom:4px; margin-top:4px;">
+                    <div model name="trackingNumber" label="@g["Tracking number"]:"/>
+                    <div model name="shipmentReference" label="@g["Shipment reference"]:" />
+                    <div model name="courierCode" label="@g["Courier code"]:" />
+                    <div model name="statusCode" label="@g["Status"]:" />
+                    <div model name="estimatedDeliveryDate" label="@g["Estimated delivery date"]:"/>
+                </div>
+
+            </viewform>
+        </div>
+        <div class="col-auto">
+            <viewform>
+                <div style="margin-bottom:4px; margin-top:4px;">
+                    <div model name="statusCategory" label="@g["Category"]:" />
+                    <div model name="statusMilestone" label="@g["Milestone"]:" />
+                    <div model name="originCountryCode" label="@g["Origin country"]:" />
+                    <div model name="destinationCountryCode" label="@g["Destination country"]:" />
+                    <div model name="deliveredDatetime" label="@g["Delivered date"]:" />
+                </div>
+            </viewform>
+        </div>
+
+    </div>    
+    <div class="row" style="margin-bottom:10px; margin-top:10px;">
+    
+        <div class="col-12">
+            <div style="margin-bottom:4px; margin-top:4px;">@g["Shipment history"]</div>
+
+            <div component="OrderGrid" name="EventsTable" style="width:100%; height:100%; border-bottom:1px solid #bdbdbd">
+                <template>
+                    <column width="140" field="trackingNumber" sortable="true">@g["Tracking number"]</column>
+                    <column width="160" field="occurrenceDatetime" sortable="true">@g["Date"]</column>
+                    <column width="180" field="location" sortable="true">@g["Location"]</column>
+                    <column width="100" field="courierCode" sortable="true">@g["Courier code"]</column>
+                    <column width="360" field="status" sortable="true">@g["Status"]</column>
+                </template>
+            </div>
+        </div>
+    </div>
+</div>

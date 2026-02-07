@@ -1,0 +1,471 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@inject IPrinterRepository printerRepo
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Common/js/OrderUtils.js
+//<script>
+    @*  CLONED TEXT FROM  EnumExtensions.cs:GetTextForCustomers *@
+	// Manually translation
+    var OrderStatusTranslations = [
+         '@g["All"]'
+        ,'@g["Received"]'
+        ,'@g["Processed"]'
+        ,'@g["In Validation"]'
+        ,'@g["Validated"]'
+        ,'@g["Sync With ERP"]'
+        ,'@g["Ready to Print"]'
+        ,'@g["Printing"]'
+        ,'@g["Completed"]'
+        ,'@g["Cancelled"]'
+        ,'@g["Unknown status"]'
+        , '@g["Composition Audit Needed"]'
+    ]
+
+    var ActionType = {
+        Separator:          0, // separator in toolbar or separator in context menu
+        Validate:           1,
+        Stop:               2,
+        Continue:           3,
+        Cancel:             4,
+        SolveConflict:      5,
+        PrintPackage:       6,
+        DraftInvoiceDoc:    7,
+        DownloadPreview:    8,
+		DownloadProdSheet:  9,
+        UpdateDocuments:    10,
+        SendNotifications:  11,
+        Repeat:             12,
+        GetLog:             13,
+        Details:            14,
+        EntryFile:          15,
+        Invoice:            16,
+        Delete:             17,
+        Text:               18,
+        ChangeState:        19,
+        SetAsValidated:     20,
+        ResetValidation:    21,
+        ChangeFactory:      22,
+        ChangeProvider:     23,
+        CustomerProductionSheet: 24,
+        ChangeProductionType: 25,
+		Derive:				26,
+        DownloadPrintPackage: 27,
+        ChangeDueDate:      28,
+        CreateOrderDetail: 29,
+        GetOrderDetail:30,
+        ShowItemLog:31,
+        SetOrderPriority:32, 
+        ShowShippingAddress : 33, 
+        ShowDelivery: 34,
+        AuditComposition : 35,
+        GetOrderPDF : 36
+    }
+
+    //TODO: Armar objeto dinamicamente
+    @* must be syncked with OrderStatus enum *@
+    var OrderStatus = {
+        None: 0,
+        Received: 1,
+        Processed: 2,
+        InFlow: 20,
+        Validated: 30,
+        Billed: 40,
+        ProdReady: 50,
+        Printing: 3,
+        Completed: 6,
+        Cancelled: 7, 
+        CompositionAuditNeeded:31
+    }
+
+    // class only for actions properties reference
+    var UserAction = function () {
+
+        this.Action = Actions.Separator;
+
+        this.Icon = '';
+
+        this.Text = '';
+
+        this.IsForSingle = true,
+
+        this.IsDefault = false;
+    }
+
+    var UserActions = {
+        0: { Action: ActionType.Separator, Text: '-', IsForSingle: false, Icon: '' }
+        , 1: { Action: ActionType.Validate, Text: '@g["Start Validation Process"]', IsForSingle: false, Icon: 'fa-check-circle-o' }
+        , 2: { Action: ActionType.Stop, Text: '@g["Stop"]', IsForSingle: false, Icon: 'fa-pause' }
+        , 3: { Action: ActionType.Continue, Text: '@g["Continue"]', IsForSingle: false, Icon: 'fa-play' }
+        , 4: { Action: ActionType.Cancel, Text: '@g["Cancel"]', IsForSingle: false, Icon: 'fa-times-circle-o' }
+        , 5: { Action: ActionType.SolveConflict, Text: '@g["Solve Conflict"]', IsForSingle: true, Icon: 'fa-code-fork fa-rotate-270' }
+        , 6: { Action: ActionType.PrintPackage, Text: '@g["Create Print Package"]', IsForSingle: true, Icon: 'fa-file-archive-o' }
+        , 7: { Action: ActionType.DraftInvoiceDoc, Text: '@g["Invoice Draft"]', IsForSingle: true, Icon: 'fa-file-o' }
+        , 8: { Action: ActionType.DownloadPreview, Text: '@g["Download Preview"]', IsForSingle: true, Icon: 'fa-file-pdf-o' }
+        , 9: { Action: ActionType.DownloadProdSheet, Text: '@g["Download Production Sheet"]', IsForSingle: true, Icon: 'fa-file-pdf-o' }
+        , 10: { Action: ActionType.UpdateDocuments, Text: '@g["Update Documents"]', IsForSingle: true, Icon: 'fa-file' }
+        , 11: { Action: ActionType.SendNotifications, Text: '@g["Send Notifications"]', IsForSingle: true, Icon: 'fa-paper-plane-o' }
+        , 12: { Action: ActionType.Repeat, Text: '@g["Repeat"]', IsForSingle: false, Icon: 'fa-clone' }
+        , 13: { Action: ActionType.GetLog, Text: '@g["Get Log"]', IsForSingle: true, Icon: 'fa-history' }
+        , 14: { Action: ActionType.Details, Text: '@g["Details"]', IsForSingle: true, Icon: 'fa-shopping-cart' }
+        , 15: { Action: ActionType.EntryFile, Text: '@g["Download Entry File"]', IsForSingle: true, Icon: 'fa-file-text' }
+        , 16: { Action: ActionType.Invoice, Text: '@g["Register Invoice"]', IsForSingle: true, Icon: 'fa-eur' }
+        , 17: { Action: ActionType.Delete, Text: '@g["Cancel"]', IsForSingle: true, Icon: 'fa-trash-o' }
+        , 18: { Action: ActionType.Text, Text: '', IsForSingle: false, Icon: '' }
+        , 19: { Action: ActionType.ChangeState, Text: '@g["Set New State"]', IsForSingle: true, Icon: 'fa-map-signs' }
+        , 20: { Action: ActionType.SetAsValidated, Text: '@g["Set As Validated"]', IsForSingle: false, Icon: 'fa-angle-double-right' }
+        , 21: { Action: ActionType.ResetValidation, Text: '@g["Reset Validation"]', IsForSingle: false, Icon: 'fa-angle-double-left' }
+        , 22: { Action: ActionType.ChangeFactory, Text: '@g["Change Factory"]', IsForSingle: false, Icon: 'fa-globe' }
+        , 23: { Action: ActionType.ChangeProvider, Text: '@g["Change Provider"]', IsForSingle: false, Icon: 'fa-building' }
+        //, 24: { Action: ActionType.CustomerProductionSheet  , Text: '@g["Validation Sheet Temporal"]',IsForSingle: true		, Icon: 'fa-file-excel-o' }
+        , 25: { Action: ActionType.ChangeProductionType, Text: '@g["Change Production Type"]', IsForSingle: true, Icon: 'fa fa-arrow-circle-right' }
+        , 26: { Action: ActionType.Derive, Text: '@g["Derive"]', IsForSingle: true, Icon: 'fa-copy' }
+        , 27: { Action: ActionType.DownloadPrintPackage, Text: '@g["Download Print Package"]', IsForSingle: false, Icon: 'fa fa-cube' }
+        , 28: { Action: ActionType.ChangeDueDate, Text: '@g["Change Due Date"]', IsForSingle: true, Icon: 'fa fa-calendar' }
+        , 29: { Action: ActionType.CreateOrderDetail, Text: '@g["Create order detail document"]', IsForSingle: true, Icon: 'fa fa-calendar' }
+        , 30: { Action: ActionType.GetOrderDetail, Text: '@g["Get order detail document"]', IsForSingle: true, Icon: 'fa fa-calendar' }
+        , 31: { Action: ActionType.ShowItemLog, Text: '@g["Item log"]', IsForSingle: true, Icon: 'fa fa-eye' }
+        , 32: { Action: ActionType.SetOrderPriority, Text: '@g["Change priority"]', IsForSingle: false, Icon: 'fa fa-list-ol' }
+        , 33: { Action: ActionType.ShowShippingAddress, Text: '@g["Show shipping address"]', IsForSingle: false, Icon: 'fa fa-address-card' }
+        , 34: { Action: ActionType.ShowDelivery, Text: '@g["Show delivery"]', IsForSingle: true, Icon: 'fa fa-truck' }
+        , 35: { Action: ActionType.AuditComposition, Text: '@g["Audit Composition"]', IsForSingle: true, Icon: 'fa fa-address-card' }
+        , 36: { Action: ActionType.GetOrderPDF, Text: '@g["Get Order PDF"]', IsForSingle: false, Icon: 'fa fa-file-pdf-o' }
+    };
+
+    // available for every selected orders
+    var BulkActions = {
+
+    }
+
+    var OrderUtils = (function(){
+
+        return {
+
+            GetMenuActions: function (rowData) {
+
+                var actions = [];
+                      // Primero manejamos roles exclusivos
+            @if (userData.IsSysAdmin)
+            {
+              <text>
+              actions.push(UserActions[ActionType.ChangeState])
+              actions.push(UserActions[ActionType.Separator])
+              actions.push(UserActions[ActionType.ChangeDueDate])
+
+              if (rowData.WFItemID != null)
+                  actions.push(UserActions[ActionType.SetOrderPriority])
+              </text>
+            }
+            else if (userData.IsIDTAdminRoles)
+            {
+              <text>
+              actions.push(UserActions[ActionType.ChangeDueDate])
+              </text>
+            }
+
+         
+            @if (userData.IsSysAdmin || userData.UserRoles.Contains("IDTCommercial"))
+            {
+              <text>
+              actions.push(UserActions[ActionType.GetOrderPDF])
+              </text>
+            }
+               
+                if (rowData.WFItemID != null) 
+                {
+                    actions.push(UserActions[ActionType.ShowItemLog])
+                }
+
+                if (rowData.IsInConflict) {
+
+                    actions.push(UserActions[ActionType.SolveConflict]);
+
+                    return actions;
+
+                }
+
+                if (rowData.IsStopped) {
+                    actions.push(UserActions[ActionType.Continue]);
+                }else {
+                    actions.push(UserActions[ActionType.Stop]);
+                }
+
+
+                switch (rowData.OrderStatus) {
+
+                    case OrderStatus.Received: // Received
+                    case OrderStatus.Processed: // Proccesed
+
+                        break;
+
+
+                    case OrderStatus.InFlow: // In Validation Flow
+
+						var validate = $.extend({}, UserActions[ActionType.Validate]);
+                        validate.IsDefault = true;
+
+                        actions.push(validate);
+
+                     
+
+                        if (rowData.ArticleCode != '@Article.EMPTY_ARTICLE_CODE' )
+                            actions.push(UserActions[ActionType.SetAsValidated]);
+
+                        @if (userData.IsIDT)
+                        {
+                        <text>
+                        actions.push(UserActions[ActionType.Derive]);
+                        </text>
+                        }
+
+                        break;
+
+                    case OrderStatus.Validated: // Validated
+
+						//var draft = $.extend({}, UserActions[ActionType.DraftInvoiceDoc]);
+                        //draft.IsDefault = true;
+
+						//actions.push(draft);
+						//actions.push(UserActions[ActionType.DownloadPreview]);
+						//actions.push(UserActions[ActionType.DownloadProdSheet]);
+						//actions.push(UserActions[ActionType.UpdateDocuments]);
+
+                        break;
+
+                    case OrderStatus.Billed: // Billed, this state is not user visible
+						//var draft = $.extend({}, userActions[ActionType.DraftInvoiceDoc]);
+                        //draft.IsDefault = true;
+
+						//actions.push(draft);
+						//actions.push(UserActions[ActionType.DownloadPreview]);
+						//actions.push(UserActions[ActionType.DownloadProdSheet]);
+						//actions.push(UserActions[ActionType.UpdateDocuments]);
+						//actions.push(UserActions[ActionType.Validate]);
+						//actions.push(UserActions[ActionType.Stop]);
+						//actions.push(UserActions[ActionType.Cancel]);
+                        break;
+
+                    case OrderStatus.CompositionAuditNeeded:
+                          
+                        @if (userData.IsCompositionChecker)
+                        {
+                            <text>
+                               actions.push(UserActions[ActionType.AuditComposition])
+                               actions.push(UserActions[ActionType.ResetValidation]);
+                            </text>
+                        }
+                        break; 
+
+                    case OrderStatus.Printing: // Printing
+                    case OrderStatus.ProdReady: // Prod Ready
+
+
+                        actions.push(UserActions[ActionType.DownloadPreview]);
+
+                         @if (userData.IsIDT)
+                         {
+                            <text>
+
+                        if (rowData.ProductionType == 1) {
+                            actions.push(UserActions[ActionType.DownloadProdSheet]);
+                        }
+
+						actions.push(UserActions[ActionType.DownloadPrintPackage]);
+
+                        var printpkg = $.extend({}, UserActions[ActionType.PrintPackage]);
+                        printpkg.IsDefault = true;
+                        actions.push(printpkg);
+						//actions.push(UserActions[ActionType.DraftInvoiceDoc]);
+
+                        actions.push(UserActions[ActionType.UpdateDocuments]);
+                        
+
+                        /////For debbuging ijsanchezm
+                        //actions.push(UserActions[ActionType.CreateOrderDetail]);
+                        //actions.push(UserActions[ActionType.GetOrderDetail]);
+
+                        if (rowData.RequireValidation) {
+                            actions.push(UserActions[ActionType.ResetValidation]);
+                        }
+
+
+                        //actions.push(UserActions[ActionType.Delete]);
+                            </text>
+                        }
+
+                        actions.push(UserActions[ActionType.Repeat]);
+                        actions.push(UserActions[ActionType.ShowShippingAddress])
+
+                             break;
+
+                    case OrderStatus.Completed: // Completed
+                        actions.push(UserActions[ActionType.DownloadPreview]);
+                @if(userData.IsIDT)
+                {
+                <text >
+                        actions.push(UserActions[ActionType.UpdateDocuments]);
+                </text>
+                }
+                        actions.push(UserActions[ActionType.Repeat]);
+                        actions.push(UserActions[ActionType.GetLog]);
+                        
+                        break;
+                }
+                @{
+                    var printers = printerRepo.GetList();
+                }
+                @if (printers.Count > 0)
+                {
+                    <text>
+                        if (rowData.OrderStatus != OrderStatus.Received ||
+                            rowData.OrderStatus != OrderStatus.Processed) {
+
+                            actions.push(UserActions[ActionType.ChangeFactory]);
+                            actions.push(UserActions[ActionType.ChangeProductionType]);
+                        }
+                    </text>
+                }
+
+                @if (userData.IsIDT)
+                {
+                    <text>
+                   
+                    
+                if (rowData.OrderStatus != OrderStatus.Received || rowData.OrderStatus != OrderStatus.Processed) {
+
+                    actions.push(UserActions[ActionType.ChangeFactory]);
+                    //actions.push(UserActions[ActionType.ChangeProvider]);
+                    actions.push(UserActions[ActionType.ChangeProductionType]);
+                    //actions.push(UserActions[ActionType.CustomerProductionSheet]);
+                }
+
+                    </text>
+                }
+
+                // refacturar - maybe only specific role
+
+                if (rowData.IsBilled) {
+
+
+
+                }
+
+                // Delivery
+                if (rowData.DeliveryStatusId > 0){
+                    actions.push(UserActions[ActionType.ShowDelivery]);
+                }
+
+                return actions;
+            },
+
+
+            GetGroupMenuActions: function (rowGroupData) {
+
+                var actions = [UserActions[ActionType.GetLog]];
+
+                @if(userData.IsSysAdmin || userData.Can_Change_Provider)
+                {
+                    <text>
+                    actions.push(UserActions[ActionType.ChangeProvider])
+                    </text>
+                }
+
+                return actions;
+            },
+
+            GetSelectionActions: function (selectionRowData) {
+
+               
+
+                var actions = [];
+
+                // find all available actions
+                for (var i = 0; i < selectionRowData.length; i++) {
+
+                    var row = selectionRowData[i];
+
+                    var rowActions = OrderUtils.GetMenuActions(row);
+
+                    AppContext.Printers.GetList(function (data) {
+                        self.printers = data;
+                        if(data.length == 0){
+
+                        }
+                        console.log(data);
+                    });
+
+                    actions.push(rowActions);
+
+                }
+
+                // intercept all actions by order/item
+
+                var interception = actions[0];
+
+                for (var i = 1; i < actions.length; i++) {
+
+                    var arrayB = actions[i]
+
+                    var result = interception.filter(elementA => arrayB.find(elementB => elementB.Action == elementA.Action))
+
+                    interception = result;
+
+                }
+
+                if (selectionRowData.length > 1) {
+                    // remove actions for single
+                    interception = interception.filter((action) => { return !action.IsForSingle; })
+
+                }
+
+                return interception;
+
+            },
+
+            GetOrderStatusText: function (status) {
+            switch (status) {
+                case 0:
+                    return "@g[OrderStatus.None.GetText()]";
+                case 1:
+                    return "@g[OrderStatus.Received.GetText()]";
+                case 2:
+                    return "@g[OrderStatus.Processed.GetText()]";
+                case 3:
+                    return "@g[OrderStatus.Printing.GetText()]";
+                case 6:
+                    return "@g[OrderStatus.Completed.GetText()]";
+                case 7:
+                    return "@g[OrderStatus.Cancelled.GetText()]";
+                case 20:
+                    return "@g[OrderStatus.InFlow.GetText()]";
+                case 30:
+                    return "@g[OrderStatus.Validated.GetText()]";
+                case 31:
+                       return "@g[OrderStatus.CompoAuditNeeded.GetText()]";
+                case 40:
+                    return "@g[OrderStatus.Billed.GetText()]";
+                case 50:
+                    return "@g[OrderStatus.ProdReady.GetText()]";
+                default:
+                    return "@g["Unknown status"]";
+			}
+		},
+
+            CommonActions: [
+                  UserActions[ActionType.Separator]
+                , UserActions[ActionType.Details]
+                //, UserActions[ActionType.SendNotifications]
+                , UserActions[ActionType.GetLog]
+                , UserActions[ActionType.EntryFile]
+                , UserActions[ActionType.Delete]
+
+                ]
+
+        }
+
+    })()
+
+
+//</script>

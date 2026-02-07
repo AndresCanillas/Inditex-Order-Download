@@ -1,0 +1,101 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+	var isAdmin = User.IsAnyRole(Roles.SysAdmin, Roles.IDTLabelDesign);
+	var uilang = CultureInfo.CurrentUICulture.Name;
+}
+//# sourceURL=https://Pages/Common/Components/CatalogNavigation.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var CatalogNavigation = function (companyid) {
+		FormView.Extend(this, "@g["Brands"]", `/Common/Components/CatalogNavigation`);
+		this.CompanyID = companyid;
+	};
+
+	CatalogNavigation.prototype = {
+        constructor: CatalogNavigation,
+
+		OnLoad: function () {
+			if (this.CompanyID == null)
+				this.CompanyID = parseInt(this.elements.SelectedCompanyID.val(), 10);
+			this.elements.Brands.LoadItems({ CompanyID: this.CompanyID, AddOption: false, OpenOption: true, DeleteOption: false });
+			this.elements.Brands.ItemSelected.Subscribe(this, this.OpenBrand);
+			this.elements.Projects.ItemSelected.Subscribe(this, this.OpenProject);
+			this.elements.Catalogs.ItemSelected.Subscribe(this, this.OpenCatalog);
+		},
+
+		OnUnload: function () {
+			this.elements.Brands.ItemSelected.Unsubscribe(this, this.OpenBrand);
+			this.elements.Projects.ItemSelected.Unsubscribe(this, this.OpenProject);
+			this.elements.Catalogs.ItemSelected.Unsubscribe(this, this.OpenCatalog);
+		},
+
+		OpenBrand: function (e) {
+			this.brand = e.item;
+			FormView.UpdateMainTitle(e.item.Name);
+			this.elements.BrandsRow.hide();
+			this.elements.Projects.LoadItems({ BrandID: e.item.ID, AddOption: false, OpenOption: true, DeleteOption: false });
+			this.elements.ProjectsRow.show();
+			this.elements.NavBrand.find("a").text(e.item.Name);
+			this.elements.NavBrand.show();
+		},
+
+		OpenProject: function (e) {
+			this.project = e.item;
+			FormView.UpdateMainTitle(e.item.Name);
+			this.elements.ProjectsRow.hide();
+			this.elements.Catalogs.LoadItems({ ProjectID: e.item.ID, AddOption: false, OpenOption: true, DeleteOption: false });
+			this.elements.CatalogsRow.show();
+			this.elements.NavProject.find("a").text(e.item.Name);
+			this.elements.NavProject.show();
+		},
+
+		OpenCatalog: function (e) {
+			var self = this;
+			this.catalog = e.item;
+			FormView.UpdateMainTitle(e.item.Name);
+			this.elements.CatalogsRow.hide();
+			this.elements.CatalogGrid.LoadCatalog(e.item.CatalogID, "@uilang").then(() => {
+				self.elements.GridRow.show();
+				self.elements.NavCatalog.text(e.item.Name);
+				self.elements.NavCatalog.show();
+			});
+		},
+
+		BackToCatalogs: function (e) {
+			e.preventDefault();
+			if (this.project != null)
+				FormView.UpdateMainTitle(this.project.Name);
+			this.elements.GridRow.hide();
+			this.elements.CatalogsRow.show();
+			this.elements.NavCatalog.hide();
+		},
+
+		BackToProjects: function (e) {
+			e.preventDefault();
+			if (this.brand != null)
+				FormView.UpdateMainTitle(this.brand.Name);
+			this.elements.GridRow.hide();
+			this.elements.CatalogsRow.hide();
+			this.elements.NavCatalog.hide();
+			this.elements.NavProject.hide();
+			this.elements.ProjectsRow.show();
+		},
+
+		BackToBrands: function (e) {
+			e.preventDefault();
+			FormView.UpdateMainTitle("@g["Brands"]");
+			this.elements.ProjectsRow.hide();
+			this.elements.CatalogsRow.hide();
+			this.elements.GridRow.hide();
+			this.elements.NavCatalog.hide();
+			this.elements.NavProject.hide();
+			this.elements.NavBrand.hide();
+			this.elements.BrandsRow.show();
+		}
+	};
+//</script>

@@ -1,0 +1,71 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@inject ILocationRepository locationRepo
+@{
+	Layout = null;
+	var locations = locationRepo.GetByCompanyID(userData.SelectedCompanyID);
+}
+<div class="form-group row">
+	<label class="col-4 col-form-label">@g["Select address"]:</label>
+	<div class="col-8">
+		<div class="input-group">
+			<div class="input-group-prepend">
+				<span class="input-group-text" style="cursor:pointer;" action="AddLocation"><span class="fa fa-plus"></span></span>
+			</div>
+			<select model name="LocationID" action="change:LoadLocation" options="@(OptionList.FromEnumerable(locations, "ID", "Name"))"></select>
+		</div>
+	</div>
+</div>
+
+<div class="form-group row">
+	<label class="col-4 col-form-label">@g["Address name"]:</label>
+	<div class="col-8">
+		<input model name="Name" type="text" class="form-control form-control-sm" validation="required;maxlen(30)" />
+	</div>
+</div>
+<div class="form-group row">
+	<label class="col-4 col-form-label">@g["Deliver to"]:</label>
+	<div class="col-8">
+		<input model name="Contact" type="text" class="form-control form-control-sm" validation="required;maxlen(35)" />
+	</div>
+</div>
+<div class="form-group row">
+	<label class="col-4 col-form-label">@g["Address line 1"]:</label>
+	<div class="col-8">
+		<input model name="AddressLine1" type="text" class="form-control form-control-sm" validation="required;maxlen(40)" />
+	</div>
+</div>
+<div class="form-group row">
+	<label class="col-4 col-form-label">@g["Address line 2"]:</label>
+	<div class="col-8">
+		<input model name="AddressLine2" type="text" class="form-control form-control-sm" validation="required;maxlen(40)" />
+	</div>
+</div>
+<div class="form-group row">
+	<label class="col-4 col-form-label">@g["City or town"]:</label>
+	<div class="col-8">
+		<input model name="CityOrTown" type="text" class="form-control form-control-sm" validation="required;maxlen(25)" />
+	</div>
+</div>
+<div class="form-group row">
+	<label class="col-4 col-form-label">@g["State or province"]:</label>
+	<div class="col-8">
+		<input model name="StateOrProvince" type="text" class="form-control form-control-sm" validation="required;maxlen(25)" />
+	</div>
+</div>
+<div class="form-group row">
+	<label class="col-4 col-form-label">@g["Country"]:</label>
+	<div class="col-8">
+		<input model name="Country" type="text" class="form-control form-control-sm" validation="required;maxlen(25)" />
+	</div>
+</div>
+<div class="form-group row">
+	<label class="col-4 col-form-label">@g["Zip code"]:</label>
+	<div class="col-8">
+		<input model name="ZipCode" type="text" class="form-control form-control-sm" validation="required;maxlen(8)" />
+	</div>
+</div>
+<div class="form-group row">
+	<input type="button" value="@g["Save"]" class="btn btn-primary" style="display:none;" action="SaveLocation" />
+</div>

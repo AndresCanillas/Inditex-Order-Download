@@ -1,0 +1,74 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Production/SelectArticleDialog.js
+
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var SelectArticleDialog = function () {
+		FormView.Extend(this, "@g["Select Article"]", "/Production/SelectArticleDialog");
+	};
+
+	SelectArticleDialog.prototype = {
+		constructor: SelectArticleDialog,
+
+		ProductFound: false,
+
+		OnLoad: function () {
+			var self = this;
+			AppContext.Articles.GetByProjectID(this.model.ProjectID, function (data) {
+				var addedSeparator = false;
+				if (data && data.length > 0) {
+					$.each(data, function (i, item) {
+						if (item.LabelID == null) return;
+						if (item.ProjectID == null && !addedSeparator && i > 0) {
+							addedSeparator = true;
+							self.elements.ArticleID.append($('<option style="font-size: 1px; background-color:#b9b0b0;" disabled>', { value: "_________", text: "&nbsp;" }));
+						}
+						self.elements.ArticleID.append($('<option>', { value: item.ID, text: item.Name }));
+					});
+					self.model.ArticleID = data[0].ID;
+					self.LoadPreview();
+				}
+			});
+		},
+
+		ValidateProduct: function (e) {
+			var self = this;
+			var code = this.model.ProductCode;
+			if (code.length < 13) return;
+			AppContext.VariableData.GetByCode(this.model.ProjectID, code, function (data) {
+				if (!data) {
+					self.ProductFound = false;
+					self.elements.ProductData.LoadData({ TXT1: "Product not found", TXT2: "", TXT3: "", Barcode: "", Size: "", Price: "" });
+				}
+				else {
+					self.model.ProductDataID = data.ID;
+					self.ProductFound = true;
+					self.elements.ProductData.LoadData(data.Data);
+					self.model.ClearErrors();
+				}
+			});
+		},
+
+		LoadPreview: function (e) {
+			this.elements.ImagePreviewContainer.show();
+			this.elements.ImagePreview.attr("src", `/articles/getpreview/${this.model.ArticleID}?${new Date().getTime()}`);
+		},
+
+		Accept: function (e) {
+			var self = this;
+			if (!this.model.ValidState()) return;
+			if (!this.ProductFound || this.model.ProductCode.length !== 13) {
+				this.model.SetError("ProductCode", "Invalid product code.");
+				return;
+			}
+			this.Close(this.GetData());
+		}
+	};
+//</script>

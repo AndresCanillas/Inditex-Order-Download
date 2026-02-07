@@ -1,0 +1,111 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@inject IAddressRepository repo
+@inject ICountryRepository ctrRepo
+
+
+@{
+
+
+    Layout = null;
+
+    //int id = -1;
+
+    IAddress data = new Address();
+
+    List<ICountry> countries = ctrRepo.GetList();
+
+    var countriesForCombo = countries.Select(s => new OptionListElement { Value = (s.ID == 0 ? "" : s.ID.ToString()), Name = s.Name }).ToList();
+
+    if (Request.Query.ContainsKey("addressid"))
+    {
+        //id = Convert.ToInt32(Request.Query["addressid"]);
+
+        // to create new Address from ShippingAddressWizard
+        //if (id > 0)
+        //{
+        //    data = repo.GetByID(id);
+        //}
+
+    }
+
+    //int companyid = Convert.ToInt32(Request.Query["companyid"].ToString());
+
+    //var disabled = userData.Admin_Articles_CanEdit ? "" : "readonly";
+}
+<viewcard>
+    <viewform>
+        <viewrow>
+            <viewcolumn>
+                <input model name="ID" data-type="int" type="hidden" no-transform />
+
+                @if (userData.IsIDT)
+                {
+                    <div class="form-subtitle">@g["SAGE X3"]</div>
+                    <hr class="subtitle" />
+
+                    <input model name="SageRef" label="@g["Address Code"]:" type="text" readonly />
+                    <input model name="SageProvinceCode" label="@g["Province Code"]:" type="text" readonly />
+
+                }
+
+            </viewcolumn>
+        </viewrow>
+
+        <viewrow>
+
+            <viewcolumn>
+
+                <div class="form-subtitle">@g["Identifier"]</div>
+                <hr class="subtitle" />
+                <input model name="Name" label="@g["Your Reference"]:*" validation="required;maxlen(30)" type="text" />
+
+                <div class="form-subtitle">@g["Address Detail"]</div>
+                <hr class="subtitle" />
+                <input model name="AddressLine1" label="@g["Address Line 1"]:*" validation="required;maxlen(128)" type="text" value="@data.AddressLine1" />
+                <input model name="AddressLine2" label="@g["Address Line 2"]:" validation="maxlen(128)" type="text" value="@data.AddressLine2" />
+                <input model name="AddressLine3" label="@g["Address Line 3"]:" validation="maxlen(128)" type="text" value="@data.AddressLine3" />
+                <input model name="ZipCode" label="@g["ZipCode"]:*" validation="required;numeric;maxlen(8)" type="text" value="@data.ZipCode" />
+                <input model name="StateOrProvince" label="@g["State / Province"]:" validation="maxlen(50)" type="text" value="@data.StateOrProvince" />
+                <input model name="CityOrTown" label="@g["City / Town"]:*" validation="maxlen(50)" type="text" value="@data.CityOrTown" />
+                @*<input model name="Country" label="@g["Country"]:*" validation="required;maxlen(30)" type="text" value="@data.Country" />*@
+                <select model name="CountryID" label="@g["Country"]:*" validation="required;numeric;range(1, 1000, true, @g["Must be select a country"])" options="@(OptionList.FromEnumerable(countriesForCombo, "Value", "Name", data.CountryID, g["Select option"]))" />
+
+
+            </viewcolumn>
+
+            <viewcolumn>
+
+                <div class="form-subtitle">@g["Conctact Info"]</div>
+                <hr class="subtitle" />
+                <input model name="BusinessName1" label="@g["Business Name"]:" validation="maxlen(128)" />
+                <input model name="BusinessName2" label="@g["Person Name"]:" validation="maxlen(128)" />
+                <input model name="Telephone1" label="@g["Phone #1"]:" validation="maxlen(128)" />
+                <input model name="Telephone2" label="@g["Phone #2"]" validation="maxlen(128)" />
+                <input model name="Email1" label="@g["Email #1"]" validation="maxlen(128)" />
+                <input model name="Email2" label="@g["Email #2"]" validation="maxlen(128)" />
+
+            </viewcolumn>
+
+        </viewrow>
+
+        <viewrow>
+
+            <viewcolumn>
+                <textarea model name="Notes" label="@g["Notes"]:" type="text" value="@data.Notes" />
+                <input model name="Default" action="SetDefaultAddress" label="@g["Set as default?"]" checked="@data.Default" type="checkbox" value="@data.Default" />
+            </viewcolumn>
+
+        </viewrow>
+    </viewform>
+    <viewfooter>
+        <div name="AvailableActions">
+
+            <a href="#" name="Save" class="btn btn-primary user-action" action="Save">@g["Save"]</a>
+            <a href="#" name="Cancel" class="btn btn-secondary user-action" action="Cancel">@g["Cancel"]</a>
+
+
+        </div>
+    </viewfooter>
+</viewcard>

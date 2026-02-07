@@ -1,0 +1,16 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	string labelid = Request.Query["LID"];
+	var rnd = new Random();
+}
+<viewrow>
+	<viewcolumn>
+		<div class="preview-container" style="margin:auto;">
+			<img src="/labels/getpreview/@labelid?@rnd.Next(0,1000)" class="image-preview label-preview" />
+		</div>
+	</viewcolumn>
+</viewrow>
+<viewfooter>
+	<button type="button" class="btn btn-primary" action="Ok">@g["OK"]</button>
+</viewfooter>

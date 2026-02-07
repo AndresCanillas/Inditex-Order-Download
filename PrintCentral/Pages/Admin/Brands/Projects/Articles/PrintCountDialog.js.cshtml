@@ -1,0 +1,46 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/Projects/Articles/PrintCountDialog.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var PrintCountDialog = function (articleData) {
+		FormView.Extend(this, "@g["Print Count Settings"]", "/Admin/Brands/Projects/Articles/PrintCountDialog");
+		this.ArticleData = articleData;
+	};
+
+
+	PrintCountDialog.prototype = {
+		constructor: PrintCountDialog,
+
+		OnLoad: async function () {
+			this.LoadData(this.ArticleData);
+		},
+
+		SequenceTypeChanged: function (e) {
+			if (this.model.PrintCountSequenceType == 0) {
+				this.elements.PrintCountSelectorField.prop("disabled", true);
+				this.elements.PrintCountSelectorType.prop("disabled", true);
+			}
+			else {
+				this.elements.PrintCountSelectorField.prop("disabled", false);
+				this.elements.PrintCountSelectorType.prop("disabled", false);
+			}
+		},
+
+		Save: function (e) {
+			e.preventDefault();
+			if (!this.model.ValidState())
+				return;
+			this.ArticleData.PrintCountSequenceType = this.model.PrintCountSequenceType;
+			this.ArticleData.PrintCountSelectorField = this.model.PrintCountSelectorField;
+			this.ArticleData.PrintCountSelectorType = this.model.PrintCountSelectorType;
+			this.Close();
+		}
+	};
+//</script>

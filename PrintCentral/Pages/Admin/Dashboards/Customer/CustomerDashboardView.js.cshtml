@@ -1,0 +1,53 @@
+@page
+@inject ILocalizationService g
+@inject IUserData u
+@{
+    Layout = null;
+}
+///# sourceURL=https://Pages/Admin/Dashboards/Customer/CustomerDashboardView.js
+///<reference path="/js/jquery-3.0.0.min.js" />
+///<reference path="/js/Kendo.all.min.js" />
+///<reference path="/js/AppContext.js" />
+
+//<script>
+
+	  let waitingstatus = 2;
+	  let rejectedstatus = 8;
+
+
+	  var CustomerDashboardView = function () {
+		  FormView.Extend(this, "@g["Customer Dashboard"]", `/Admin/Dashboards/Customer/CustomerDashboardView`);
+		  this.PageSize = 50;
+	  };
+
+	  CustomerDashboardView.prototype = {
+		  constructor: CustomerDashboardView,
+
+		  OnLoad: async function () {
+			  var GeneralView = this.elements.General;
+			  if (GeneralView!=null) {
+				  this.elements.General.show();
+				  this.elements.Customer.hide();
+			  }
+		  },
+
+		  DashboardTypeChanged: function (e) { 
+			  
+			  var selectedOption = document.getElementById("DashboardType").value;
+			 
+			  switch (selectedOption) { 
+				  case "0":
+					  this.elements.Customer.hide();
+					  this.elements.General.show();
+					  break;
+				  case "1": 
+					  this.elements.Customer.show();
+					  this.elements.General.hide();
+					  break;
+			  }
+		  },
+
+		  OnUnload: function () {
+		  }
+	  };
+//</script>

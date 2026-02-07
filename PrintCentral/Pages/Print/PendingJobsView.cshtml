@@ -1,0 +1,73 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@inject ILocationRepository locationRepo
+@inject ICompanyRepository companyRepo
+
+@{
+    Layout = null;
+    var locations = locationRepo.GetByCompanyID(userData.SelectedCompanyID);
+    var companies = companyRepo.GetList();
+}
+<viewcard>
+	<viewrow class="pending-job-table-row">
+		<viewcolumn style="padding:0px;">
+			<inlineform>
+				@if (userData.CanSeeCompanyFilter)
+				{
+					<select model name="JobCompanyFilter" label="@g["Company"]:" action="change:FilterJobs" data-type="Int"
+							options="@(OptionList.FromEnumerable(companies, "ID", "Name", null, g["All"]))" style="max-width:200px;"></select>
+				}
+				else
+				{
+					<input model name="JobCompanyFilter" type="hidden" value="@userData.SelectedCompanyID" />
+				}
+				<select model name="JobStatusFilter" label="@g["Status"]:" action="change:FilterJobs" data-type="Int" style="max-width:200px;">
+					<option value="0">@g["All"]</option>
+					<option selected value="4">@g["Active"]</option>
+					<option value="5">@g["Completed"]</option>
+					<option value="6">@g["Cancelled"]</option>
+				</select>
+				<select model name="JobLocationFilter" label="@g["Factory"]:" action="change:FilterJobs" data-type="Int"
+						validation="required" options="@(OptionList.FromEnumerable(locations, "ID", "Name", null, g["All"]))" />
+				<input model name="OrderNumber" label="@g["Order"]:" type="text" action="change:FilterJobs" />
+				<input model name="JobDueDateFilter" label="@g["Order Date"]:" validation="required" data-type="Date" value="@DateTime.Now.AddDays(-30).ToString("yyyy-MM-dd")" action="change:FilterJobs" />
+			</inlineform>
+		</viewcolumn>
+	</viewrow>
+	<viewrow>
+		<viewcolumn>
+			<div class="toolbar-body" style="width:100%">
+				<span class="toolbar-grip"></span>
+				<a href="#" title="@g["Show label details"]" action="ShowLabelPreview"><span class="fa fa-image"></span></a>
+				@if (userData.PrintJobs_CanAssignDueDate)
+				{
+					<a href="#" title="@g["Set Due Date"]" action="SetDueDate"><span class="fa fa-calendar data-disabled-options"></span></a>
+				}
+				@if (userData.PrintJobs_CanAssignFactory)
+				{
+					<a href="#" title="@g["Assign factory"]" action="AssignLocation"><span class="fa fa-globe data-disabled-options"></span></a>
+				}
+				@if (userData.PrintJobs_CanAssignPrinter)
+				{
+					<a href="#" title="@g["Assign printer"]" action="AssignPrinter"><span class="fa fa-print data-disabled-options"></span></a>
+				}
+				<a href="#" title="@g["Open printer queue"]" action="OpenPrinterQueue"><span class="fa fa-stack-overflow"></span></a>
+				<a href="#" title="@g["Reactivate Job"]" action="ActivateJob"><span class="fa fa-undo data-cancelled-options"></span></a>
+				@if (userData.PrintJobs_CanDownloadMDB)
+				{
+					<span class="toolbar-separator"></span>
+					<a href="#" title="@g["Export to Access"]" action="ExportAccess"><span class="fa fa-th"></span></a>
+				}
+				@if (userData.PrintJobs_CanCancel)
+				{
+					<span class="toolbar-separator"></span>
+					<a href="#" title="@g["Cancel Job"]" action="DiscardOrder"><span class="fa fa-trash data-disabled-options" style="color:red;"></span></a>
+				}
+			</div>
+			<div name="OrdersTable">
+			</div>
+		</viewcolumn>
+	</viewrow>
+</viewcard>
+

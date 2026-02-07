@@ -1,0 +1,59 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Upload/UploadStep2.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var UploadStep2 = function (title, target) {
+		FormView.Extend(this, title, "/Upload/UploadStep2");
+		this.Target = target;
+	};
+
+
+	UploadStep2.prototype = {
+		constructor: UploadStep2,
+
+		OnLoad: function () {
+			var self = this;
+			this.elements.ProgressBar.kendoProgressBar({
+				min: 0,
+				max: 100,
+				type: "percent",
+				complete: function () { self.DocumentProcessingComplete(); }
+			});
+			var pb = this.elements.ProgressBar.data("kendoProgressBar");
+			pb.value(0);
+			this.handle = setInterval(()=>self.GetProgress(), 1000);
+		},
+
+		GetProgress: function () {
+			var self = this;
+			AppContext.HttpGet("/upload/progress", (progress) => {
+				if (progress != null) {
+					if (progress.ReadProgress > 0) {
+						var pb = self.elements.ProgressBar.data("kendoProgressBar");
+						pb.value(progress.ReadProgress);
+					}
+				}
+			},
+			(error) => {
+				clearInterval(this.handle);
+				AppContext.ShowError("Error while communicating with the server.");
+			});
+		},
+
+		DocumentProcessingComplete: function () {
+			var self = this;
+			clearInterval(this.handle);
+			AppContext.LoadJS("/Upload/UploadStep3.js").then(() => {
+				var step3 = new UploadStep3(self.Title, self.Target);
+				step3.Show(self.ViewContainer);
+			});
+		},
+	};
+//</script>

@@ -1,0 +1,208 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Common/Components/FontListView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var FontListView = function () {
+
+        this.options = {};
+        this.ProjectID = null;
+		this.ShowFilters = null;
+		this.ShowNewOption = null;
+		this.ShowOpenOption = null;
+		this.ShowDeleteOption = null;
+
+
+		FormView.Extend(this);
+        this.Content = $(`
+			<inlineform name="FilterForm" style="display:none; margin-bottom:10px;">
+				<input type="text" model name="FilterText" label="@g["Search"]:" action="keyup:ApplyFilters" />
+			</inlineform>
+			<div name="FileDropArea" style="margin-bottom:10px;"></div>
+			<div name="ListContainer"></div>`);
+		this.dataSource = null;
+        this.ItemSelected = new AppEvent();
+
+
+	};
+
+ 
+
+	FontListView.prototype = {
+        constructor: FontListView,
+
+		OnLoad: function () {
+		},
+
+		OnUnload: function () {
+			this.ItemSelected.Dispose();
+		},
+
+		ApplyFilters: function (e) {
+			var self = this;
+			var cards = this.elements.ListContainer.find("[data-entityid]");
+			var searchText = self.model.FilterText.toLowerCase();
+			$.each(cards, function (index, card) {
+				card = $(card);
+				var displayElm = card.find("em[data-display='1']");
+				var displayText = displayElm.text().toLowerCase();
+				if (displayText.includes(searchText))
+					card.show();
+				else
+					card.hide();
+			});
+		},
+
+        LoadItems: function (setup) {
+			var self = this;
+
+			if (setup == null) setup = { };
+
+			self.ShowFilters = setup.ShowFilters == true;
+			self.ShowNewOption = setup.AddOption == true;
+			self.ShowOpenOption = setup.OpenOption == false;
+			self.ShowDeleteOption = setup.DeleteOption == true;
+
+			if (self.ShowFilters)
+				self.elements.FilterForm.show();
+			else
+				self.elements.FilterForm.hide();
+
+            AppContext.HttpGet(`/font/getlist`).then((data) => {
+				self.dataSource = data;
+				self.elements.ListContainer.empty();
+				@if (userData.Admin_Fonts_CanAdd)
+				{
+					@:if (self.ShowNewOption) self.CreateNewCard();
+				}
+				if (data != null) {
+					for (var i = 0; i < data.length; i++) {
+						self.CreateItemCard(data[i]);
+					}
+				}
+			});
+		},
+
+
+		@if (userData.Admin_Fonts_CanAdd)
+		{
+		<text>
+		CreateNewCard: function () {
+			var self = this;
+			var html = $(`<input name="files" type="file" accept=".png,.gif,.jpg,.tif,.tiff" style="margin-bottom:10px;" />`);
+			AppContext.BindActions(html, this);
+	        self.elements.FileDropArea.append(html);
+			html.kendoUpload({
+				async: {
+					saveUrl: `/font/uploadfont`,
+					autoUpload: true
+				},
+				multiple: false,
+                success: function (e) {
+                    $(".k-upload-files").hide();
+                    $(".k-upload-status").hide();
+					if (!e.response.success) {
+						e.preventDefault();
+						AppContext.ShowError(e.response.message);
+					}
+                    else {
+                        if (!self.dataSource.includes(e.response.Data, 0)) {
+                            self.dataSource.push(e.response.Data);
+                            self.CreateItemCard(e.response.Data);
+                        }
+                        AppContext.ShowSuccess(e.response.message);
+					}
+				},
+				error: function () { AppContext.ShowError("@g["Error uploading file"]"); },
+				localization: {
+					select: '@g["Upload Font"]',
+					remove: '@g["Remove"]',
+					cancel: '@g["Cancel"]',
+					headerStatusUploading: "@g["Uploading..."]",
+					headerStatusUploaded: "@g["Done"]"
+				}
+			});
+		},
+		</text>
+		}
+
+
+		@if (userData.Admin_Fonts_CanDelete)
+		{
+		<text>
+        DeleteItem: function (e) {
+			var self = this;
+            var card = $(e.target.parentNode.parentNode);
+			var filename = card.attr("data-entityid");
+			var confirm = new ConfirmDialog("@g["Delete Font? IMPORTANT: This operation cannot be undone."]");
+			confirm.ShowDialog(function (response) {
+				if (response) {
+					AppContext.HttpPost(`/font/delete/${filename}`).then((result) =>
+					{
+						if (result.Success) {
+							card.off();
+							card.remove();
+                            var idx = self.dataSource.findIndex(function (e) { return e == filename; });
+                            self.dataSource.splice(idx, 1);
+						}
+					});
+				}
+			});
+		},
+		</text>
+		}
+
+
+		CreateItemCard: function (data) {
+			var self = this;
+			var openAction = this.ShowOpenOption ? " action=\"OpenClicked\"" : " style='cursor:default;'";
+			@if (userData.Admin_Fonts_CanDelete)
+			{
+			@:var deleteAction = this.ShowDeleteOption ? '<a style="cursor: pointer;"><div style="cursor: pointer;" class="ti ti-close font-card-delete" action=DeleteItem></div></a>' : "";
+			}
+			else
+			{
+			@:var deleteAction = "";
+			}
+			var displayName = data;
+			if (displayName.length > 30)
+				displayName = displayName.substring(0, 30) + "...";
+
+			var html = $(`
+			<div class="font-card" data-entityid="${data}"${openAction}>
+				${deleteAction}
+				<div style="margin:auto; padding-top:10px;">
+					<img src="/images/font.png" style="width:64px; height:64px;" />
+				</div>
+				<div>
+					<div style="float:right">
+						<a action="Download" href="/font/get/${data}" download target="_blank"><i class="fa fa-download fa-fw" style="color:black;" title="@g["Download"]"></i></a>
+					</div>
+					<span style="font-size: 12px"><em data-display="1">${displayName}</em></span>
+				</div>
+			</div>`);
+			AppContext.BindActions(html, this);
+		    self.elements.ListContainer.append(html);
+        },
+
+        OpenClicked: function (e) {
+			var self = this;
+			e.preventDefault();
+			var cardElm = $(e.target).closest("[data-entityid]");
+			var filename = cardElm.attr("data-entityid");
+			var cardData = this.dataSource.first(p => p.FileName == filename);
+			this.ItemSelected.Raise({ target: this, item: cardData });
+		},
+
+        Download: function (e) {
+            e.stopPropagation();
+        }
+	};
+//</script>

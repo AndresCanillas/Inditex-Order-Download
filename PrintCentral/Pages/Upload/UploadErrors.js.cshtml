@@ -1,0 +1,214 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Upload/UploadErrors.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var UploadErrors = function () {
+		FormView.Extend(this, "", "/Upload/UploadErrors");
+	};
+
+
+	UploadErrors.prototype = {
+		constructor: UploadErrors,
+
+		OnLoad: function () {
+
+		},
+
+		LoadErrors: function (errors, tableView) {
+			this.Errors = errors;
+			this.TableView = tableView;
+			this.Headings = {};
+			for (var i = 0; i < errors.length; i++) {
+				var error = errors[i];
+				var headingName = "heading_" + error.ErrorCode;
+				var ctrl = this.Headings[headingName];
+				if (ctrl == null)
+					ctrl = this.Headings[headingName] = this.CreateErrorHeading(error, i);
+				this.AppendErrorToDisplay(ctrl, error, i);
+			}
+		},
+
+		CreateErrorHeading: function (error, errorNum) {
+			var self = this;
+			var heading = {};
+			var title = this.GetErrorMessage(error.ErrorCode);
+			var description = this.GetErrorDescription(error.ErrorCode);
+			var classAttr = errorNum === 0? "": "class='collapse'";
+			heading.TitleElm = $(`<div class="alert alert-danger" style="cursor:pointer; padding:5px 5px 5px 5px; margin-bottom:1px;">${title}</div>`);
+                        heading.ContentElm = $(`<div data-x="error" ${classAttr}><small>${description}</small> <span class="fa fa-fw fa-info-circle fa-1" title="${error.ErrorMessage}"></span><br /></div>`);
+			heading.TitleElm.click(function (e) {
+				self.elements.ErrorList.find("[data-x='error']").addClass("collapse");
+				heading.ContentElm.toggleClass("collapse");
+			});
+			this.elements.ErrorList.append(heading.TitleElm);
+			this.elements.ErrorList.append(heading.ContentElm);
+			return heading;
+		},
+
+		AppendErrorToDisplay: function (heading, error, errorNum) {
+			var self = this;
+			var badge = $(`<span class="badge badge-secondary" style="cursor:pointer; margin-right:5px;" data-row="${error.Row}" data-column="${error.FieldName}" data-col="${(error.Column)}">@g["Row"] ${error.Row}, @g["Field"] ${error.FieldName}</span></div>`);
+			heading.ContentElm.append(badge);
+			badge.mouseenter(function (e) { self.handleErrorBadgeMouseEnter(e); });
+			badge.mouseleave(function (e) { self.handleErrorBadgeMouseLeave(e); });
+		},
+
+		handleErrorBadgeMouseEnter: function (e) {
+			var source = $(e.target);
+			source.removeClass("badge-secondary");
+			source.addClass("badge-warning");
+			var row = Number(e.target.attributes["data-row"].value);
+			var col = e.target.attributes["data-column"].value;
+			var colNum = this.TableView.columns.index((p) => p.Field == col);
+			if (colNum > 0) {
+				this.TableView.HighlightCell(row, colNum, true);
+				this.TableView.EnsureCellVisible(row, colNum);
+			}
+		},
+
+		handleErrorBadgeMouseLeave: function (e) {
+			var source = $(e.target);
+			source.removeClass("badge-warning");
+			source.addClass("badge-secondary");
+			var row = Number(e.target.attributes["data-row"].value);
+			var col = e.target.attributes["data-column"].value;
+			var colNum = this.TableView.columns.index((p) => p.Field == col);
+			if (colNum > 0)
+			{
+				this.TableView.HighlightCell(row, colNum, false);
+			}
+		},
+
+		GetErrorMessage: function (code) {
+			switch (code) {
+				case 0:
+					return "@g["Operation cancelled"]";
+				case 1:
+					return "@g["Unexpected error"]";
+				case 2:
+					return "@g["Cell range error"]";
+				case 3:
+					return "@g["No worksheet error"]";
+				case 4:
+					return "@g["Unexpected column"]";
+				case 5:
+					return "@g["Indeterminate cell value"]";
+				case 6:
+					return "@g["Column name mismatch"]";
+				case 7:
+					return "@g["Empty cell value"]";
+				case 8:
+					return "@g["Min length error"]";
+				case 9:
+					return "@g["Max length error"]";
+				case 10:
+					return "@g["Not a boolean"]";
+				case 11:
+					return "@g["Not an integer"]";
+				case 12:
+					return "@g["Not a large integer"]";
+				case 13:
+					return "@g["Not a decimal number"]";
+				case 14:
+					return "@g["Not a valid date"]";
+				case 15:
+					return "@g["Min value error"]";
+				case 16:
+					return "@g["Max value error"]";
+				case 17:
+					return "@g["Min date error"]";
+				case 18:
+					return "@g["Max date error"]";
+				case 19:
+					return "@g["Decimal places error"]";
+				case 20:
+					return "@g["Cell validation error"]";
+				case 21:
+					return "@g["Missing column"]";
+				case 40:
+				case 41:
+					return "@g["System configuration error"]";
+				case 42:
+					return "@g["Error while writing data to database"]";
+                case 43:
+					return "@g["Error while writing data to database"]";
+                case 44:
+					return "@g["Error executing custom plugin"]";
+                case 45:
+					return '@g["Missing Value in Lookup Catalogs"]';
+                case 46:
+					return '@g["Invalid Encoding Content"]';
+				default:
+					return "@g["System error"]";
+			}
+		},
+
+		GetErrorDescription: function (code) {
+			switch (code) {
+				case 0:
+					return "@g["Operations was cancelled."]";
+				case 1:
+					return "@g["Is tipically caused by an internal system error, please contact customer support for assistance."]";
+				case 2:
+					return "@g["Excel data must start in the first column and the first row must contain the column names."]";
+				case 3:
+					return "@g["The excel file must contain at least one worksheet."]";
+				case 4:
+					return "@g["The excel file contains a column that was not expected."]";
+				case 5:
+					return "@g["A cell contains a value that cannot be determined (usually due to some funtion that could not be evaluated)."]";
+				case 6:
+					return "@g["The column name does not match the expected name."]";
+				case 7:
+					return "@g["A cell whose value is required is empty."]";
+				case 8:
+					return "@g["The cell value does not meet the minimum required length."]";
+				case 9:
+					return "@g["The cell value does not meet the maximum required length."]";
+				case 10:
+					return "@g["The cell was expected to contain a boolean, but the value cannot be interpreted as such."]";
+				case 11:
+					return "@g["The cell was expected to contain an integer, but the value cannot be interpreted as such."]";
+				case 12:
+					return "@g["The cell was expected to contain a large integer, but the value cannot be interpreted as such."]";
+				case 13:
+					return "@g["The cell was expected to contain a decimal number, but the value cannot be interpreted as such."]";
+				case 14:
+					return "@g["The cell was expected to contain a date, but the value cannot be interpreted as such."]";
+				case 15:
+					return "@g["The cell value does not meet the minimum required value."]";
+				case 16:
+					return "@g["The cell value does not meet the maximum required value."]";
+				case 17:
+					return "@g["The cell value is lower than the minimum required date."]";
+				case 18:
+					return "@g["The cell value is greater than the maximum required date."]";
+				case 19:
+					return "@g["The cell value does not meet the number of decimal places expected."]";
+				case 20:
+					return "@g["The cell value did not meet the required validations."]";
+				case 21:
+					return "@g["The excel file is missing a required column."]";
+				case 40:
+				case 41:
+					return "@g["There is an error with the system configuration, please contact customer support for assistance."]";
+
+                case 45: 
+                    return '@g["the file contain an missing value in registered catalogs"]'
+                case 46: 
+                    return '@g["the file contains unreadable special characters"]'
+				case 42:
+                case 43: 
+				default:
+					return "@g["There is an error with the system configuration, please contact customer support for assistance."]";
+			}
+		}
+	};
+//</script>

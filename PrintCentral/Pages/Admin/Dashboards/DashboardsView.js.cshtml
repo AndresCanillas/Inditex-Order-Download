@@ -1,0 +1,78 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Dashboards/DashboardsView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var DashboardsView = function () {
+		  FormView.Extend(this, "@g["Dashboards"]", "/Admin/Dashboards/DashboardsView");
+		this.PageSize = 50;
+	};
+
+	  DashboardsView.prototype = {
+		  constructor: DashboardsView,
+
+		OnLoad: async function () {
+			this.ShowCustomerTab();
+		},
+
+		CustomerServiceClick: function (e) {
+			if (this.elements.tabCustomer.hasClass("active"))
+				return;
+			this.ShowCustomerTab();
+		},
+
+		ArticlesClick: function (e) {
+			if (this.elements.tabArticles.hasClass("active"))
+				return;
+			this.ShowArticlesTab();
+		},
+
+	    ArticlesArtifactClick: function (e) 
+		{
+		if (this.elements.tabArticlesArtifacts.hasClass("active"))
+					  return;
+				  this.ShowArticlesArtifactTab();
+		},
+	    ShowArticlesArtifactTab: function () 
+		{
+				  this.elements.tabArticlesArtifacts.addClass("active");
+				  this.elements.ArticlesArtifacts.show();
+				  this.elements.tabArticles.removeClass("active");
+				  this.elements.tabCustomer.removeClass("active"); 
+ 		    		
+  				 this.elements.Articles.hide();
+				 this.elements.Customers.hide();
+				
+
+				  
+
+		},
+		ShowCustomerTab: function(e) {
+			this.elements.tabCustomer.addClass("active");
+			this.elements.Customers.show();
+			if (this.elements.tabArticles != null) {
+				  this.elements.tabArticles.removeClass("active");
+				  this.elements.tabArticlesArtifacts.removeClass("active")
+				  this.elements.Articles.hide();
+				  this.elements.ArticlesArtifacts.hide(); 
+			}
+		},
+		ShowArticlesTab: function(e) {
+			this.elements.tabArticles.addClass("active");
+			this.elements.Articles.show();
+			this.elements.tabCustomer.removeClass("active");
+			this.elements.Customers.hide();
+			this.elements.tabArticlesArtifacts.removeClass("active") 
+			this.elements.ArticlesArtifacts.hide(); 
+		},
+
+		OnUnload: function () {
+		}
+	};
+//</script>

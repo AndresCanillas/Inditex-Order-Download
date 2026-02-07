@@ -1,0 +1,229 @@
+﻿@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages/Common/js/ValidatorHelper.js
+/// <script>
+
+    var ValidatorHelper = function (orderSelection) {
+
+        if (orderSelection == undefined) {
+            orderSelection = []
+        }
+
+        if (!Array.isArray(orderSelection)) {
+            orderSelection = [orderSelection]
+        }
+
+        this.OnWizardCreated = new AppEvent();
+
+        this.Wizard = null;
+        // is a row from orderreportview
+        // old name OrderRowInfo
+        this.OrderSelection = orderSelection;
+
+        this.DataAllSteps = [];
+    }
+
+
+    ValidatorHelper.prototype = {
+
+        Continue: function () {
+
+            var self = this;
+
+            self.GetNextStep();
+
+        },
+
+        GetNextStep: function () {
+
+            var self = this;
+
+            var p = AppContext.Wizard.GetNextStep(self.OrderSelection)
+
+            p.done((response) => {
+
+                if (response.Success !== true) {
+                    return;
+                }
+
+                self.DataAllSteps = response.Data.AllSteps;
+
+                self.ParseWizardStep(response.Data.NextStep)
+
+            })
+
+
+        },
+
+        //Back: function (currentWizardStepPos) {
+        //    var self = this;
+        //    if (currentWizardStepPos == undefined || currentWizardStepPos == 1) {
+        //        self.ParseWizardStep({ Success: true, Data: null, Message: "Go to Order List" });
+        //        return;
+        //    }
+        //    self.GetPrevStep();
+        //},
+
+        //GetPrevStep: function () {
+        //    var self = this;
+        //    var p = AppContext.Wizard.GetPrevStep(self.OrderSelection)
+        //    p.done((response) => {
+        //        if (response.Success !== true) {
+        //            return;
+        //        }
+        //        self.ParseWizardStep(response.Data)
+        //    });
+        //},
+
+        GetStep: function (position) {
+            var self = this;
+
+            var p = AppContext.Wizard.GetStep({ Position: position, Selection: self.OrderSelection })
+
+            p.done((response) => {
+
+                if (response.Success !== true) {
+                    return;
+                }
+
+                self.DataAllSteps = response.Data.AllSteps;
+
+                self.ParseWizardStep(response.Data.Step)
+
+            });
+        },
+
+        // TODO: esto es un hardcode a los nombres de clases de cada wizard
+        ParseWizardStep: function (wizardStep) {
+
+            var self = this;
+            var wizardController = null;
+            var promise = null;
+
+            if (!wizardStep) {
+                // go to orderreport
+                wizardStep = { Type: -1, Url: '/' };
+            }
+
+            for (var i = 0; i < self.OrderSelection.length; i++) {
+                self.OrderSelection[i].WizardStepPosition = wizardStep.Position
+            }
+
+           
+
+
+            switch (wizardStep.Type) {
+
+                //case 5:
+
+                //    promise = AppContext.LoadJS(wizardStep.Url).then(() => {
+                //        wizardController = new SetArticlesToOrderWizard(self.OrderSelection, wizardStep, self.DataAllSteps);
+                //    })
+
+                //    break;
+
+                case @((int)WizardStepType.ItemAssignment):
+
+                    promise = AppContext.LoadJS(wizardStep.Url).then(() => {
+                        wizardController = new ItemAssignmentWizard(self.OrderSelection, wizardStep, self.DataAllSteps);
+                    })
+
+                    break;
+
+
+                case 10:
+
+                    promise = AppContext.LoadJS(wizardStep.Url).then(() => {
+                        wizardController = new QuantityWizard(self.OrderSelection, wizardStep, self.DataAllSteps);
+                    })
+
+                    break;
+
+                case 15:
+
+                    promise = AppContext.LoadJS(wizardStep.Url).then(() => {
+                        wizardController = new LabellingCompoSimpleWizard(self.OrderSelection, wizardStep, self.DataAllSteps);
+                    })
+
+                    break;
+
+                case 30:
+
+                    promise = AppContext.LoadJS(wizardStep.Url).then(() => {
+                        wizardController = new ArticleExtrasWizard(self.OrderSelection, wizardStep, self.DataAllSteps);
+                    })
+
+                    break;
+
+                case 40:
+
+                    promise = AppContext.LoadJS(wizardStep.Url).then(() => {
+                        wizardController = new MadeInWizard(self.OrderSelection, wizardStep, self.DataAllSteps);
+                    })
+
+                    break;
+
+                case 50:
+
+                    promise = AppContext.LoadJS(wizardStep.Url).then(() => {
+                        wizardController = new SupportFilesWizard(self.OrderSelection, wizardStep, self.DataAllSteps);
+                    })
+
+                    break;
+
+                case 80:
+
+                    promise = AppContext.LoadJS(wizardStep.Url).then(() => {
+                        wizardController = new ShippingAddressWizard(self.OrderSelection, wizardStep, self.DataAllSteps);
+                    })
+
+                    break;
+
+                case 90:
+
+                    promise = AppContext.LoadJS(wizardStep.Url).then(() => {
+                        wizardController = new ReviewWizard(self.OrderSelection, wizardStep, self.DataAllSteps);
+                    })
+
+                    break;
+
+                default:
+                    //console.log(`wizard type "${wizardStep.Type}" not found`);
+                    var outResolver = function () { };
+
+                    promise = new Promise((resolve, reject) => {
+                        outResolver = resolve;
+
+                    }).then(() => {
+                        //wizardController = new OrderReportView();
+                        wizardController = new OrderGroupIndexView();
+                    })
+
+                    outResolver();
+
+                    break;
+
+            }
+
+            promise.then(() => {
+
+                //wizardController.Show();
+
+                //self.Wizard = wizardController;
+
+                var e = new Event("WizardCreated");
+                e.wizardController = wizardController;
+                e.wizardStep = wizardStep;
+
+                self.OnWizardCreated.Raise(e);
+
+            })
+
+        }
+
+    }
+
+/// </script>

@@ -1,0 +1,66 @@
+﻿@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+
+    <viewrow name="FileSelectRow">
+		<viewcolumn>
+			<p class="lead">@g["With this option you can import data from an excel file to your print order, the imported file must contain the following columns:"]</p>
+			<ul style="font-size:13px;">
+				<li>EAN13</li>
+				<li>Modelo_Label</li>
+				<li>Cantidad</li>
+			</ul>
+			<p class="lead">@g["Example"]:</p>
+			<div style="width:400px; margin:auto;">
+				<img style="border:1px solid #D0D0D0; border-radius:4px; padding:5px;" src="~/images/batchSample.png" />
+			</div>
+			<hr class="my-4">
+			<div style="margin:auto; width:350px;">
+				<input name="file" type="file" accept=".xls, .xlsx, .txt, .csv" />
+			</div>
+		</viewcolumn>
+    </viewrow>
+    <viewrow name="ProgressRow" style="display:none;">
+		<viewcolumn>
+			<div style="margin:auto; width:400px;">
+				<h5>@g["Processing file..."]</h5>
+				<div name="ProgressBar" style="width:300px;"></div>
+			</div>
+		</viewcolumn>
+    </viewrow>
+    <viewrow name="DataDisplayRow" style="display:none;">
+		<viewcolumn>
+			<div class="row">
+				<div name="ErrorColumn" class="col-sm-12 col-md-12 col-lg-4 col-xl-3" style="margin-bottom:10px;display:none;">
+					<div component="FormView" name="UploadErrors" controller="/Upload/UploadErrors.js">
+					</div>
+				</div>
+				<div name="TableContainer" class="col-sm-12 col-md-12 col-lg-8 col-xl-9">
+					<div class="card">
+						<div class="card-body">
+							<div component="TableView" name="ResultsTable" style="max-height:55vh;">
+							</div>
+							<div style="margin:10px 10px 10px 0px; clear:both;">
+								<div name="TotalRows" style="font-size:11px; margin-right:10px; float:left; min-width:400px;"></div>
+								<div name="PrevPage" action="Previous" class="badge badge-secondary" style="cursor:pointer; margin-right:10px; float:left; display:none"><span class="fa fa-angle-left"></span></div>
+								<div name="NextPage" action="Next" class="badge badge-secondary" style="cursor:pointer; margin-right:10px; float:left; display:none"><span class="fa fa-angle-right"></span></div>
+							</div>
+							<br />
+							<div class="text-right" style="margin:10px 10px 10px 0px; font-size:13px;">
+								<div name="UserMessage" style="display:none; float:left; font-size:14px; font-weight:200; width:50%; color: #212529; background-color: #ffc107; border-radius:3px; padding:5px;">@g["Please ensure the received data is correct before you accept."]</div>
+								<input type="button" name="btnCancel" action="CancelUpload" class="btn btn-danger" style="float:right;width:120px;" value="@g["Cancel"]" />
+								<input type="button" name="btnAcceptData" action="AcceptDataUpload" class="btn btn-primary" style="float:right;width:120px; display:none;" value="@g["Accept"]" />
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</viewcolumn>
+    </viewrow>
+    <viewrow name="ResultRow" style="display:none;">
+        <viewcolumn>
+            <div name="Message" class="jumbotron"></div>
+        </viewcolumn>
+    </viewrow>

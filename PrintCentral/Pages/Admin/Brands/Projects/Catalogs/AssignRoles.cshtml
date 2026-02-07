@@ -1,0 +1,42 @@
+﻿@page
+@inject ILocalizationService g
+@inject ICatalogRepository catalogRepo
+@inject IUserData userData
+@{
+    int catalogid = Convert.ToInt32(Request.Query["catalogid"]);
+    var roles = Roles.GetRoles();
+    var catalogRoles = catalogRepo.GetCatalogRoles(catalogid);
+	int index = 0;
+}
+	<viewcard>
+		<viewform>
+			<input model name="CatalogID" type="hidden" value="@catalogid" />
+			<input model name="Roles" type="hidden" />
+			<viewrow>
+				<viewcolumn>
+					<div class="card">
+						<div class="card-header">Roles</div>
+						<div class="card-body">
+							@foreach (var item in roles)
+							{
+								<div class="FormRow catalog-role-display">
+									<div>
+										<label>
+											<input name="role_@(index++)" type="checkbox" value="@item.Name" @(catalogRoles != null && catalogRoles.Contains(item.Name) ? "checked=checked" : "") data-type="Bool" /> @item.Name
+										</label>
+									</div>
+								</div>
+							}
+						</div>
+					</div>
+				</viewcolumn>
+			</viewrow>
+			<viewfooter>
+				@if (userData.Admin_Catalogs_CanEdit)
+				{
+					<button type="button" class="btn btn-primary" action="Save">@g["Save"]</button>
+				}
+				<button type="button" class="btn btn-secondary" action="Cancel">@g["Cancel"]</button>
+			</viewfooter>
+		</viewform>
+	</viewcard>

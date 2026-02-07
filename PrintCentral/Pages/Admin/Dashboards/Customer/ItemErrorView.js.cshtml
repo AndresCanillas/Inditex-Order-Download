@@ -1,0 +1,147 @@
+@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Dashboards/Customer/ItemErrorView.js
+///<reference path="/js/jquery-3.0.0.min.js" />
+///<reference path="/js/Kendo.all.min.js" />
+///<reference path="/js/AppContext.js" />
+
+//<script>
+	var ItemErrorView = function (taskid, status, userid, itemscount) {
+		FormView.Extend(this, "@g["Details"]", `/Admin/Dashboards/Customer/ItemErrorView`);
+		this.TaskID = taskid;
+		this.Status = status;
+		this.UserID = userid;
+		this.PageSize = 20;
+		this.itemsCount = itemscount;
+	};
+
+	ItemErrorView.prototype = {
+		constructor: ItemErrorView,
+
+		OnLoad: async function () {
+			if (this.Status == 2) {
+				  document.getElementById("RetryItemsButton").hidden = true;
+			}
+
+			this.elements.ItemGrid.Rows.MultiSelect = false;
+			this.elements.Paginator.PageSelected.Subscribe(this, this.LoadItemPage);
+			this.elements.Paginator.UpdatePagesCount(this.itemsCount, this.PageSize);
+			this.RefreshData(this,0);
+		},
+
+		RefreshData: async function (self, pagenumber) {
+			  var parameters = ''
+			  function AddParameter(parameter, value) {
+				  if (value != null) {
+					  if (parameters.length == 0) parameters += '?'
+					  else parameters += '&'
+					  parameters += parameter + '=' + value
+				  }
+			  }
+
+			  AddParameter('taskID', self.TaskID)
+			  AddParameter('itemStatus', self.Status)
+			  AddParameter('userid', self.UserID)
+			  AddParameter('pageSize', self.PageSize)
+			  AddParameter('page', pagenumber)
+
+			  var response = await AppContext.HttpGet(`/Dashboards/Customer/GetItemsWithErrors` + parameters,null,null,true);
+
+			  if (response.Success) {
+				  this.elements.ItemGrid.Rows.LoadData(response.Data)
+			  }
+		},
+
+		LoadItemPage: function (pagenumber) {
+            this.RefreshData(this, pagenumber);	
+		},
+
+		RenderLastErrorDate: function (value, rowIdx, colIdx, dataType, data) {
+			var d = new Date(value);
+			return d.toLocaleString();
+		},
+
+		RetryItems: async function (e) {
+			var self = this;
+			e && e.preventDefault();
+			if (self.elements.ItemGrid.Rows.SelectedIndex < 0) {
+				AppContext.ShowError("There are no items selected");
+			}
+			else {
+				var dlg = new ConfirmDialog("@g["Are you sure you want to retry execution of all selected items?"]");
+				dlg.ShowDialog(async (result) => {
+					if (result != null) {
+						var data = {};
+						data.Items = [];
+						var rows = self.elements.ItemGrid.Rows.GetSelected();
+						var WorkflowID = rows[0].WorkflowID; 
+						for (var row of rows) {
+							data.Items.push(row.ItemID);
+						}
+
+						result = await AppContext.HttpPost(`/Dashboards/Customer/${WorkflowID}/retry`, data);
+						if (result.Success === true)
+							  self.RefreshData(self);
+					}
+				}, "50%");
+			}
+		},
+
+		CancelItems: async function (e) {
+			var self = this;
+			e && e.preventDefault();
+			if (self.elements.ItemGrid.Rows.SelectedIndex < 0) {
+				AppContext.ShowError("There are no items selected");
+			}
+			else {
+				await AppContext.LoadJS("/Admin/Dashboards/Customer/ConfirmCancelItem.js");
+				var dlg = new ConfirmCancelItem();
+				dlg.ShowDialog(async function (dialogResult) {
+					if (dialogResult && dialogResult.Confirm) {
+
+						var data = {};
+						data.Items = [];
+						data.Reason = dialogResult.Comments;
+						var rows = self.elements.ItemGrid.Rows.GetSelected();
+						var WorkflowID = rows[0].WorkflowID;
+						for (var row of rows) {
+							data.Items.push(row.ItemID);
+						}
+						
+						var result = await AppContext.HttpPost(`/Dashboards/Customer/${WorkflowID}/cancel`, data);
+						if (result.Success === true)
+							self.RefreshData(self);
+					}
+				});
+			}
+		},
+
+		DownloadFile: async function (e) {
+			  e && e.preventDefault();
+			  var self = this;
+			  if (self.elements.ItemGrid.Rows.SelectedIndex < 0) {
+				  AppContext.ShowError("There are no items selected");
+			  }
+			  else {
+				  var rows = self.elements.ItemGrid.Rows.GetSelected();
+				  var orderId = rows[0].OrderID;
+
+				  if (orderId != "") {
+					  window.open(`/orders/getorderfile/${orderId}`);
+				  }
+				  else {
+					  var workflowFileId = rows[0].WorkflowFileID;
+					  window.open(`/fsm/OrderStore/files/${workflowFileId}/content`);
+				  }
+			  }
+		},
+
+		OnUnload: function () {
+			  this.FoundItems = null;
+			  this.elements.Paginator.PageSelected.Unsubscribe(this, this.LoadItemPage);
+		}
+	}
+//</script>

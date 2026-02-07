@@ -1,0 +1,172 @@
+﻿@page
+@inject ILocalizationService g
+@{
+
+    Layout = null;
+}
+
+//# sourceURL=https://Pages/Admin/Brands/Projects/DefineCustomFields.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+@*
+
+    DefineCustomFields.options = {
+        ProjectID: 1
+        FieldsConfig: {
+            Config: [
+                {
+                    CatalogName: '',
+                    CatalogID: 1, // if value is 0, is a default field from PrintCentral Query
+                    Column: '',
+                    Position: 1,
+                    Include: true
+                }....
+            ],
+           
+        }
+    }
+
+*@
+//<script type="text/javascript">
+
+    var DefineCustomFields = function (options) {
+
+        this.options = options;
+
+        this.options.DefaultFields = {
+            CatalogName: '',
+            CatalogID: 0,
+            Columns: [
+                  { Type: 7, FieldID: 1,  Width: '120', Display: '@g["Order Nº"]', Name: 'OrderNumber' }
+                , { Type: 7, FieldID: 2,  Width: '120', Display: '@g["Article Code"]', Name: 'ArticleCode' }
+                , { Type: 7, FieldID: 3,  Width: '120', Display: '@g["Provider Ref."]', Name: 'ClientReference' }
+                , { Type: 7, FieldID: 4,  Width: '120', Display: '@g["Provider Name"]', Name: 'SendTo' }
+                , { Type: 7, FieldID: 5,  Width: '120', Display: '@g["Status"]', Name: 'OrderStatus' }
+                , { Type: 7, FieldID: 6,  Width: '120', Display: '@g["Created at"]', Name: 'CreatedDate' }
+                , { Type: 7, FieldID: 7,  Width: '120', Display: '@g["Due Date"]', Name: 'OrderDueDate' }
+                , { Type: 7, FieldID: 8,  Width: '120', Display: '@g["Validated at"]', Name: 'ValidatedDate' }
+                , { Type: 7, FieldID: 9,  Width: '120', Display: '@g["Factory"]', Name: 'Location' }
+                , { Type: 7, FieldID: 10, Width: '120', Display: '@g["Quantity"]', Name: 'Quantity' }
+            ]
+        }
+
+        this.Catalogs = [];
+
+        const viewUrl = `/Admin/Brands/Projects/CustomFieldsReport/DefineCustomFields?ProjectID=${options.ProjectID}`;
+
+        FormView.Extend(this, '@g["Define Custom Fields For Order Report"]', viewUrl);
+
+        this.Initialize();
+
+    }
+
+    DefineCustomFields.prototype = {
+
+        construnctor: DefineCustomFields,
+
+        Initialize: function() {
+
+            //var self = this;
+            //console.log("Elements DefineCustomFields", self.elements);
+
+        },
+
+        OnLoad: function() {
+            const self = this;
+
+            $.when(
+                AppContext.Catalogs.GetByName(self.options.ProjectID, '@Catalog.VARIABLEDATA_CATALOG'),
+                AppContext.Catalogs.GetByName(self.options.ProjectID, '@Catalog.COMPOSITIONLABEL_CATALOG')
+            ).done((vresult, cresult) => {
+                self.Catalogs[vresult[0].Data.Name] = vresult[0].Data
+                self.Catalogs[cresult[0].Data.Name] = cresult[0].Data
+
+                let pos = 1;
+
+                var defaultDef = self.options.DefaultFields.Columns.map((d) => {
+                    return {
+                        CatalogName: 'Default',
+                        Column: d.Name,
+                        Type: d.Type,
+                        Include: false,
+                        Position: pos++
+                    }
+                });
+                var vdataDef = JSON.parse(self.Catalogs['@Catalog.VARIABLEDATA_CATALOG'].Definition).map((d) => {
+                    return {
+                        CatalogName: '@Catalog.VARIABLEDATA_CATALOG',
+                        Column: d.Name,
+                        Type: d.Type,
+                        Include: false,
+                        Position: pos++
+                    }
+                });
+                var cdataDef = JSON.parse(self.Catalogs['@Catalog.COMPOSITIONLABEL_CATALOG'].Definition).map((d) => {
+                    return {
+                        CatalogName: '@Catalog.COMPOSITIONLABEL_CATALOG',
+                        Column: d.Name,
+                        Type: d.Type,
+                        Include: false,
+                        Position: pos++
+                    }
+                });
+                
+                let availableColumns = defaultDef.concat(vdataDef).concat(cdataDef);
+
+                availableColumns.sort((a, b) => a.Position - b.Position);
+                
+                //grid.Headers.SetSorting({ EAN13: "ASC", TXT1: "ASC" });
+
+                // mark stored config selections
+                let data = JSON.parse(self.options.FieldsConfig);
+
+                if (Array.isArray(data.Config)) {
+                    
+                    data.Config.forEach((f, idx, arr) => {
+
+                        var rowIdx = availableColumns.findIndex(r => f.CatalogName == r.CatalogName && f.Column == r.Column)
+
+                        if (rowIdx >= 0) {
+                            $.extend(availableColumns[rowIdx], f);
+                        } else {
+                            // TODO: column was removed
+                        }
+
+                    })
+                    
+                }
+                self.GetGrid().Rows.LoadData(availableColumns);
+                self.GetGrid().Headers.SetSorting({ Position: "ASC" });
+
+
+            });
+            
+        },
+
+        GetGrid: function () {
+            return this.elements.VirtualCatalog;
+        },
+
+        Save: function() {
+            var self = this;
+            var allData = [];
+
+            self.elements.VirtualCatalog.Rows.Each((rowIdx, rowData) => {
+
+                if (rowData.Include)
+                    allData.push(rowData);
+            })
+            
+            var data = {
+                Config: allData
+            }
+
+            self.Close(JSON.stringify(data));
+            
+        }
+
+    };
+
+
+// </script>

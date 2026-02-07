@@ -1,0 +1,67 @@
+﻿@page
+@inject ILocalizationService g
+@inject RequestLocalizationOptions langOptions
+@inject IMaterialRepository repo
+@inject IUserData userData
+@{
+	Layout = null;
+	int materialid = Convert.ToInt32(Request.Query["materialid"]);
+	bool isDialog = Request.Query["dlg"] == "1";
+	var data = repo.GetByID(materialid);
+}
+	<viewcard>
+		<viewrow>
+			<viewcolumn>
+				<viewform>
+					<div model name="ID" label="ID:">@data.ID</div>
+					@if (userData.Admin_Materials_CanRename)
+					{
+						<input model name="Name" label="@g["Name"]:" validation="required" type="text" value="@data.Name" />
+					}
+					else
+					{
+						<div model name="Name" label="@g["Name"]:">@data.Name</div>
+					}
+					@if (isDialog)
+					{
+						<input model name="ShowAsMaterial" label="@g["Can use material in other articles?"]" type="checkbox" checked="@data.ShowAsMaterial" value="@data.ShowAsMaterial" />
+					}
+					else
+					{
+						<input model name="ShowAsMaterial" type="hidden" value="true" />
+					}
+					<input model name="Properties" type="hidden" value="@data.Properties" />
+				</viewform>
+			</viewcolumn>
+			<viewcolumn></viewcolumn>
+		</viewrow>
+		<viewrow>
+			<viewcolumn>
+				<div style="font-size:17px;">@g["Material properties"]</div>
+				<hr class="subtitle" />
+				@if (userData.Admin_Materials_CanEdit)
+				{
+					<div class="toolbar-body" style="width:100%; margin-top:15px;">
+						<span class="toolbar-grip"></span>
+						<a href="#" title="@g["Add Property"]" action="AddProperty"><span class="fa fa-plus"></span></a>
+						<span class="toolbar-separator"></span>
+						<a href="#" title="@g["Remove Property"]" action="RemoveProperty"><span class="fa fa-trash"></span></a>
+					</div>
+				}
+				<div component="TableView" name="PropertyTable">
+					<template>
+						<column width="100" field="Name" editable>@g["Name"]</column>
+						<column width="120" field="Value" editable>@g["Value"]</column>
+					</template>
+				</div>
+			</viewcolumn>
+			<viewcolumn></viewcolumn>
+		</viewrow>
+		@if (userData.Admin_Materials_CanEdit)
+		{
+			<viewfooter>
+				<a href="#" class="btn btn-primary" action="Save">@g["Save"]</a>
+			</viewfooter>
+		}
+	</viewcard>
+

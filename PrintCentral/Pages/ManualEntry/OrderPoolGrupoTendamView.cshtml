@@ -1,0 +1,218 @@
+﻿@page
+@inject ILocalizationService g
+@inject ICompanyRepository repo
+@inject IUserData  userData
+@inject IOrderRepository  orderRepo
+@inject IProjectRepository projectRepo
+@inject IEventQueue events
+@{
+    Layout = null;
+    int n = 0;
+
+    if(Request.Query.ContainsKey("n"))
+    {
+        n = Convert.ToInt32(Request.Query["n"]);
+    }
+
+    List<ICompany> companies = new List<ICompany>();
+    companies = repo.GetList().Where(c=>c.ID == userData.SelectedCompanyID).ToList();
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .tabs {
+            display: flex;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        .tab {
+            padding: 10px;
+            background: #ddd;
+            margin-right: 5px;
+            border-radius: 5px 5px 0 0;
+        }
+
+            .tab.active {
+                background: #fff;
+                font-weight: bold;
+            }
+
+        .tab-content {
+            display: none;
+            padding: 20px;
+            border: 1px solid #ddd;
+        }
+
+            .tab-content.active {
+                display: block;
+            }
+
+        .container-provider-info {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .provider-info-box {
+            background-color: #d3d3d3;
+            padding: 20px;
+            border-radius: 8px;
+            width: 50vw;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h3 {
+            margin-top: 0;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .info-grid {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .left-column, .right-column {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        p {
+            margin: 5px 0;
+        }
+
+        strong {
+            color: #000;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f4f4f4;
+        }
+
+        .action-buttons button {
+            padding: 8px 12px;
+            margin: 0 5px;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .setup-button {
+            background-color: #007bff;
+            color: white;
+        }
+
+            .setup-button:hover {
+                background-color: #ec026d;
+            }
+
+        .edit-button {
+            background-color: #1bd475;
+            color: white;
+        }
+
+        .delete-button {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .edit-button:hover {
+            background-color: #0056b3;
+        }
+
+        .delete-button:hover {
+            background-color: #c82333;
+        }
+    </style>
+
+
+
+
+    <div id="gestion-ordenes" >
+      
+        
+        <form name="dataentry-frm" method="post" onsubmit="return false;">
+            <viewform>
+                <viewcard>
+                    <viewrow>
+                        <viewcolumn>
+                            <input type="text" model name="SearchOrderNumber" label="@g["Order Pattern to search"]:" autocomplete="on" />
+                        </viewcolumn>
+
+                        <viewcolumn>
+                            <a href="#" class="btn btn-sm btn-primary" action="click:SearchOrderEvt">@g["Search"] <span class="fa fa-fw fa-chevron-right" aria-hidden="true"></span></a>
+                        </viewcolumn>
+                    </viewrow>
+                </viewcard>
+                <viewcard>
+                    <div id="SearchingTool">
+                        
+                        <viewrow>
+                            <viewcolumn>
+                                <div class="selection-buttons">
+                                    <button type="button" class="btn btn-sm btn-primary" action="click:SelectAllOrdersEvt">Select All</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" action="click:SearchOrderEvt">Unselect All</button>
+                                </div>
+                                <table id="ResultsGrid" style="margin-top:10px">
+                                    <thead>
+                                        <tr>
+                                            <th style="display: none;">ID</th>
+                                            
+                                            <th>Order Number</th>
+                                            <th>Article Code</th>
+                                            <th>EanCode</th>
+                                            <th>Format</th>
+                                            <th>Color</th>
+                                            <th>Size</th>
+                                            <th>Quantity</th>
+
+                                      
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </viewcolumn>
+                        </viewrow>
+                        <viewerow>
+                        <viewcolumn>
+                                <div class="row justify-content-end" name="AvailableActions">
+                                    <div class="col-4 text-center">
+                                        @*   <a href="#" class="btn btn-sm btn-outline-primary" action="Save"> <span class="fa fa-fw fa-save" aria-hidden="true"></span> @g["Save"]</a> *@
+                                    </div>
+                                    <div class="col-4 text-right">
+                                        <a href="#" id="btn-SaveAndNext" class="btn btn-sm btn-primary" action="click:SaveAndNext">@g["Group orders"] <span class="fa fa-fw fa-chevron-right" aria-hidden="true"></span></a>
+                                    </div>
+                                </div>
+                                
+                        </viewcolumn>
+                        
+                        </viewerow>
+                    </div>
+                </viewcard>
+            </viewform>
+        </form>
+    </div>
+
+
+}
+   

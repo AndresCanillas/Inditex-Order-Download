@@ -1,0 +1,15 @@
+﻿@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+
+<viewrow name="FileSelectRow">
+    <viewcolumn>
+        <p class="lead">@g["With this option you can import a Project from a zip file."]</p>
+        <hr class="my-4">
+        <div style="margin:auto; width:350px;">
+            <input name="files" type="file" accept=".zip" />
+        </div>
+    </viewcolumn>
+</viewrow>

@@ -1,0 +1,228 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/Projects/Sage/InitialsImportsView.js
+//<script>
+    // ProjectID required
+    var InitialsImportsView = function (options) {
+
+        if (options == undefined) {
+            options = {};
+        }
+
+        options = InitialsImportsView.Defaults(options);
+        this.options = options;
+
+        this.CurrentPage = this.options.CurrentPage;
+        this.PageSize = this.options.PageSize;
+        this.GridData = [];
+        this.ItemProcessIdentifier = '';
+        this.BpcProcessIdentifier = '';
+        this.ItemsLoaded = new AppEvent();
+        this.ProvidersLoaded = new AppEvent();
+
+
+        this.Storage = new ClientStorage('InitialsImportsView', localStorage);
+
+		FormView.Extend(this, "@g["Sage Initials Imports"]", `/Admin/Brands/Projects/Sage/InitialsImportsView`);
+		
+	};
+
+    InitialsImportsView.Defaults = function (options) {
+        return $.extend({
+            PageSize: 20,
+            CurrentPage: 1
+        }, options);
+    };
+
+    InitialsImportsView.prototype = {
+        constructor: InitialsImportsView,
+
+		OnLoad: function () {
+            AppContext.AppEventListener.Subscribe(this, this.HandleNotifications);
+            this.ItemProcessIdentifier = this.Storage.GetItem("ItemProcessIdentifier")
+            this.BpcProcessIdentifier = this.Storage.GetItem("BpcProcessIdentifier")
+
+            this.model.ProjectID = this.options.ProjectID;
+
+            if (this.model.ProjectID < 1) {
+                AppContext.ShowError('@g["No project selected"]');
+            }
+        },
+
+        OnUnload: function () {
+            AppContext.AppEventListener.Unsubscribe(this, this.HandleNotifications);
+        },
+
+        HandleNotifications: function (e) {
+
+            var self = this;
+
+            if (e.EventName === "SageSyncArticleProcessEvent" &&
+                self.ItemProcessIdentifier === e.Identifier) {
+                this.HandelItemProcessNotifications(e);
+            }
+
+            if (e.EventName === "SageSyncItemImportsEndEvent" &&
+                self.ItemProcessIdentifier === e.Identifier) {
+                this.HandleItemImportsEndNotification(e);
+            }
+        },
+
+        HandelItemProcessNotifications: function (e) {
+            var self = this;
+
+            var progress = Math.floor((e.Processed  * 100.0) / e.TotalItems) ;
+
+            if (progress > 100) progress = 100;
+
+            self.SetProgress(progress);
+        },
+
+        HandleItemImportsEndNotification: function (e) {
+            var self = this;
+
+            self.SetProgress(100);
+
+            self.ItemProcessIdentifier = '';
+
+            self.elements.SyncItemsBtn.prop('disabled', false);
+
+            if (self.GridData.length ==  (self.model.ListSize + 1)) {
+                self.elements.SyncNextItemsBtn.prop('disabled', false);
+                self.elements.SyncNextItemsBtn.removeClass('d-none')
+            }
+        },
+
+
+        GetItems: function () {
+            var self = this;
+
+            self.elements.ItmListContainer.removeClass('d-none')
+            self.elements.BpcListContainer.addClass('d-none')
+
+            self.elements.SyncNextItemsBtn.prop('disabled', true);
+            self.elements.SyncNextItemsBtn.addClass('d-none')
+
+            var queryItemsParam = self.GetData();
+            queryItemsParam.ListSize = self.model.ListSize + 1;
+
+
+            return AppContext.Sage.QueryItems(queryItemsParam)
+                .done((response) => {
+
+                    if (response.Success == false) {
+                        return;
+                    }
+
+                    
+                    
+
+                    self.GridData = response.Data;
+                    self.elements.ItmList.Rows.LoadData(self.GridData.slice(0, self.PageSize))
+
+                    new Paginator({
+                            ContainerElm: self.elements.PaginationContainer,
+                            Controller: self,
+                            PageSize: 20,
+                            CurrentPage: 1,
+                            TotalRecords: response.Data.length > 0 ? response.Data.length - 1 : 0,
+                            //AlignCls: 'justify-content-center'
+                        }).Render();
+
+                })
+                .fail((a, b, c) => { console.log('fail', a, b, c); })
+        },
+
+        Dispose: function () {
+            this.ItemsLoaded.Dispose();
+            this.ProvidersLoaded.Dispose();
+        },
+
+        SyncItems: function () {
+            var self = this;
+
+             
+
+            if (self.ItemProcessIdentifier && self.ItemProcessIdentifier.length > 0) {
+                AppContext.ShowInfo('@g["Sync process is running"]')
+                return;
+            }
+
+            self.elements.SyncItemsBtn.prop('disabled', true);
+
+            var postdata = {
+                References: $.map(self.GridData, (itm) => { return itm.Reference }),
+                ProjectID: self.model.ProjectID,
+                Family: self.model.Family,
+                Brand: self.model.Brand
+            };
+
+            AppContext.Sage.ImportSelectedItems(postdata)
+                .done((response) => {
+
+                    if (response.Success) {
+                        self.ItemProcessIdentifier = response.Data;
+                        self.Storage.SetItem('ItemProcessIdentifier', response.Data);
+                    }
+
+                })
+                .fail(() => {
+                    self.ItemProcessIdentifier = null;
+                })
+
+        },
+
+        SyncNextItems: function () {
+            // si este boton se habilita, puedo hacer GetItems, por que estoy asegurando que hay mas registros
+            var self = this;
+
+            self.model.ItemRef = `>=${self.GridData[self.GridData.length - 1].Reference}`;
+
+            self.GetItems().done(() => {
+
+                self.SyncItems();
+
+            })
+
+            
+
+        },
+
+    /* Progress Bar    */
+
+        SetProgress: function (val) {
+
+            var self = this;
+
+            var div = self.elements.ProgressBar.find('div')
+            div.css('width', `${val}%`);
+            div.attr('aria-valuenow', val);
+            div.text(`${val}%`)
+        },
+
+    /* Paginator Event */
+        GoToPage: function (e) {
+            var self = this;
+
+            var selectedPage = $(e.currentTarget).data('position');
+            self.CurrentPage = selectedPage;
+            var start = (self.CurrentPage - 1) * self.PageSize
+            self.elements.ItmList.Rows.LoadData(self.GridData.slice(start, start + self.PageSize))
+
+            new Paginator({
+                ContainerElm: self.elements.PaginationContainer,
+                Controller: self,
+                PageSize: self.PageSize,
+                CurrentPage: self.CurrentPage ,
+                TotalRecords: self.GridData.length,
+                //AlignCls: 'justify-content-center'
+            }).Render();
+        }
+
+
+	};
+//</script>

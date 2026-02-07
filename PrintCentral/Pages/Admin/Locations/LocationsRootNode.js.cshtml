@@ -1,0 +1,86 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Locations/LocationsRootNode.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var LocationsRootNode = function (companyid) {
+        TreeNode.Extend(this, "LocationsRootNode", 0, "@g["Locations"]");
+		this.CompanyID = companyid;
+		this.CanEdit = false;
+		@if (userData.Admin_Locations_CanAdd)
+		{
+			@:this.menu = {
+			@:	MenuWidth: "200px",
+			@:	Options: [{ Text: "@Html.Raw(g["New Location"])", OnClick: this.CreateLocation }]
+	        @:};
+		}
+	};
+
+	LocationsRootNode.prototype = {
+		constructor: LocationsRootNode,
+
+        loadDependencies: function (callback) {
+            AppContext.LoadJS(
+                "/Common/AskNameDialog.js",
+                "/Admin/Locations/LocationNode.js").then(()=>callback());
+        },
+
+		GetContextMenu: function () {
+			return this.menu;
+		},
+
+		@if (userData.Admin_Locations_CanAdd)
+		{
+		<text>
+		CreateLocation: function () {
+			var self = this;
+			this.loadDependencies(function() {
+				var dialog = new AskNameDialog("@g["New Location"]");
+				dialog.ShowDialog(function(dlgData) {
+					if (!dlgData) return;
+					dlgData.CompanyID = self.CompanyID;
+					AppContext.Locations.Insert(dlgData, function(result) {
+						if (result.Success)
+						{
+							var node = new LocationNode(result.Data.ID, result.Data.Name);
+							self.AddNode(node);
+							node.OnDoubleClick();
+							if (!self.Expanded)
+								self.Expand();
+						}
+					});
+				});
+			});
+		},
+		</text>
+		}
+
+        OnExpanded: function () {
+            var self = this;
+            this.loadDependencies(function (){
+                if (!self.IsLoaded) {
+                    self.IsLoaded = true;
+                    AppContext.Locations.GetByCompanyID(self.CompanyID, function (data){ self.loadNodes(data); });
+                }
+            });
+        },
+
+		loadNodes: function (data) {
+			var location, node;
+			for (var index = 0; index < data.length; index++) {
+				location = data[index];
+				if (!this.FindNode("LocationNode", location.ID, false)) {
+					node = new LocationNode(location.ID, location.Name);
+					this.AddNode(node);
+				}
+			}
+		}
+    };
+//</script>

@@ -1,0 +1,59 @@
+﻿@page
+@inject ILocalizationService g
+@inject IProjectRepository projectRepo
+@inject IPackRepository packRepo
+@inject IArticleRepository articleRepo
+
+@{
+    Layout = null;
+    int id = Convert.ToInt32(Request.Query["id"]);
+    int projectId = Convert.ToInt32(Request.Query["projectId"]);
+    int packId = Convert.ToInt32(Request.Query["packId"]);
+
+    var catalogFields = projectRepo.GetCatalogFields(projectId).Where(x => !x.IsHidden && x.Type != Service.Contracts.Database.ColumnType.Reference);
+    var data = packRepo.GetPackArticle(packId, id);
+    var defaultField = data != null ? data.FieldName : "";
+    var articles = articleRepo.GetByProjectID(projectId);
+}
+
+<viewcard>
+    <viewrow>
+        <viewcolumn>
+            <viewform>
+                <div model name="ID" label="ID:"></div>
+                <div model name="Definition" type="hidden"></div>
+
+                <select model name="Field" label="@g["Select Field"]:" options="@(OptionList.FromEnumerable(catalogFields, "Name", "Name", defaultField))" />
+
+                <input model name="AllowEmptyValues" label="@g["Allow empty values"]" type="checkbox" />
+            </viewform>
+        </viewcolumn>
+    </viewrow>
+    <viewrow>
+        <viewcolumn>
+            <div style="font-size:17px;">@g["Configure Mapping"]</div>
+
+
+            <div class="toolbar-body" style="width:80%; margin-top:15px;">
+                <span class="toolbar-grip"></span>
+                <a name="AddBtn" href="#" title="@g["Add record"]" action="AddRecord"><span class="fa fa-plus" style="color:green;"></span></a>
+                <span name="Separator1" class="toolbar-separator"></span>
+                <a name="DeleteBtn" href="#" title="@g["Delete record"]" action="DeleteRecord"><span class="fa fa-trash" style="color:darkred;"></span></a>
+
+            </div>
+
+            <div component="GridView" name="DataGrid" style="width:100%; height:150px;">
+                <template>
+                    <column width="150" field="Key" editable>@g["Key"]</column>
+                    <column width="150" field="Value" editable map="@Map.FromEnumerable(articles,"ArticleCode", "Name", true)">@g["Value"]</column>
+
+                </template>
+            </div>
+        </viewcolumn>
+    </viewrow>
+
+</viewcard>
+<viewfooter>
+    <button type="button" class="btn btn-primary" action="Save">@g["Save"]</button>
+    <button type="button" class="btn btn-secondary" action="Cancel">@g["Cancel"]</button>
+</viewfooter>

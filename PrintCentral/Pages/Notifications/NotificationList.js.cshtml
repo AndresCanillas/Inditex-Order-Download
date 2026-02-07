@@ -1,0 +1,229 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Notifications/NotificationList.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//  <script>
+    var NotificationList = function (options) {
+
+        if (!options) {
+            options = {};
+        }
+
+		this.options = NotificationList.GetDefaults(options);
+
+		FormView.Extend(this, "@g["Notifications"]", "/Notifications/NotificationList");
+        this.notifications = null;
+		this.CurrentPage = 1;
+        this.PageSize = 20;
+        this.Storage = new ClientStorage('NotificationList_@userData.Id', localStorage);
+        this.DisabledFieldEvents = true;
+
+		if (options.Filter === undefined && this.Storage.GetItem('Filter')) {
+            this.options.Filter = this.Storage.GetItem('Filter')
+        }
+
+	};
+
+	    // public static method
+    NotificationList.GetDefaults = function (options) {
+
+        return $.extend({
+            Title: '@g["Notifications"]',
+            Filter: {},
+            EnableStorageFilter: true,
+        }, options);
+    };
+
+	NotificationList.prototype = {
+		constructor: NotificationList,
+
+        OnLoad: function () {
+			var self = this;
+            self.LoadData(self.options.Filter);
+            if (self.elements.From.val().length < 1 || self.elements.From.val() == self.elements.To.val()) {
+                var currentDate = new Date();
+                var fromDate = new Date();
+				
+                self.model.To = currentDate;
+                fromDate.setDate(currentDate.getDate() - 7);
+                self.model.From = fromDate;
+            }
+
+
+            this.ApplyFilter();
+			self.DisabledFieldEvents = false;
+        },
+
+		FilterChanged: function (evt) {
+
+            var self = this;
+
+            self.CurrentPage = 1;
+
+            if (self.DisabledFieldEvents) {
+                evt.preventDefault();
+                return false;
+            }
+
+            self.ApplyFilter().then(() => { self.ResetScrollbar(); });
+			
+
+        },
+
+		ApplyFilter: function (e) {
+			var self = this;
+            var typeFilter = parseInt(self.model.Type, 10);
+
+            var filter = {
+                Type: typeFilter,
+                From: kendo.toString(self.model.From, 'yyyy-MM-dd') + ' 00:00:00',
+				To: kendo.toString(self.model.To, 'yyyy-MM-dd') + ' 23:59:59',
+				CurrentPage: self.CurrentPage,
+                PageSize: self.PageSize,
+                SortDirection: self.model.SortDirection,
+                LocationID: self.model.FactoryID,
+                CompanyID: self.model.CompanyID
+
+            };
+
+			if (self.options.EnableStorageFilter) {
+                self.Storage.SetItem('Filter', filter);
+            }
+
+            return AppContext.HttpPost(`/notifications/getbyfilter/`, filter, function (response) {
+				if (response) {
+					self.notifications = response.Data.Records;
+                    self.LoadNotifications();
+					new Paginator({
+                            ContainerElm: self.elements.PaginationContainerTop,
+                            Controller: self,
+                            PageSize: response.Data.Filter.PageSize,
+                            CurrentPage: response.Data.Filter.CurrentPage,
+                            TotalRecords: response.Data.Filter.TotalRecords,
+                            AlignCls: 'justify-content-center'
+                    }).Render();
+
+					new Paginator({
+                            ContainerElm: self.elements.PaginationContainerBottom,
+                            Controller: self,
+                            PageSize: response.Data.Filter.PageSize,
+                            CurrentPage: response.Data.Filter.CurrentPage,
+                            TotalRecords: response.Data.Filter.TotalRecords,
+                            AlignCls: 'justify-content-center'
+                        }).Render();
+
+
+				}
+			});
+		},
+
+		LoadNotifications: function () {
+			var self = this;
+			var topContainer = this.elements.NotificationContainer;
+			topContainer.empty();
+			if (this.notifications.length == 0) {
+				var div = $(`<div class="card" style="border-color:#D8D8D8;"><div style="margin:auto;">@g["No notifications where found"]</div></div>`);
+				topContainer.append(div);
+			}
+			else {
+				var div = $(`<div class="card" style="border-color:#D8D8D8;" />`);
+				var innerContainer = $(`<ul class="list-group list-group-flush"></ul>`)
+				div.append(innerContainer);
+				topContainer.append(div);
+				$.each(this.notifications, function (index, item) {
+					innerContainer.append(self.CreateNotificationItem(item));
+				});
+				AppContext.BindActions(topContainer, this);
+			}
+		},
+
+		CreateNotificationItem: function (item) {
+			var html = $(`<li class="list-group-item" data-entityid="${item.ID}" style="background-color:#E2F8F8;" action="OpenNotification">
+				<div style="float:right">
+					<span class="ti-close" style="cursor:pointer;" action="DismissNotification"></span>
+				</div>
+				<span style="font-size:16px; font-weight:700;">[${item.ID}] - ${item.Title} </span>
+				<div style="clear:both; font-size:12px;">
+					<span style="">${item.UpdatedDate}</span>
+					<span style="" class="badge badge-primary">${item.Count}</span>
+				</div>
+				<span style="margin-top:8px;">${item.Message}</span>
+			</li>`);
+			return html;
+		},
+
+		DismissNotification: function (e) {
+            var self = this;
+
+            e.preventDefault();
+
+			var notification = $(e.target).closest("[data-entityid]");
+            var id = notification.attr("data-entityid");
+
+			var dlg = new ConfirmDialog("@g["Please, confirm to dismiss this notification?"]");
+			dlg.ShowDialog(function (response) {
+
+                if (!response) {
+                    return;
+                }
+
+				AppContext.HttpPost(`/notifications/dismiss/${id}`, null, function (response) {
+					if (response.Success) {
+						notification.hide(250, function () {
+							notification.remove();
+							self.notifications.removeAll(p => p.ID == id);
+							if (self.notifications.length == 0)
+								self.LoadNotifications();
+						});
+					}
+				});
+			});
+
+
+
+		},
+
+		OpenNotification: function (e) {
+			var self = this;
+			if (this.notifications != null) {
+				var notification = $(e.target).closest("[data-entityid]");
+				var id = notification.attr("data-entityid");
+				var notification = this.notifications.first(p => p.ID == id);
+				if (notification != null) {
+					if (notification.Action != null) {
+						AppContext.LoadJS(`/Notifications/${notification.Action}.js`).then(() => {
+							var viewConstructor = window[notification.Action];
+							var view = new viewConstructor(notification);
+							view.Show(self.ViewContainer);
+						});
+					}
+					else {
+						AppContext.LoadJS(`/Notifications/DefaultNotificationView.js`).then(() => {
+							var view = new DefaultNotificationView(notification);
+							view.Show(self.ViewContainer);
+						});
+					}
+				}
+			}
+        },
+		GoToPage: function (e, x, y) {
+            var self = this;
+            var selectedPage = $(e.currentTarget).data('position');
+            self.CurrentPage = selectedPage
+            self.ApplyFilter();
+        },
+
+		 ResetScrollbar: function () {
+            var me = this;
+            $('[name="NotificationContainer"]').animate({ scrollTop: 0 }, 250);
+
+        },
+	};
+//</script>

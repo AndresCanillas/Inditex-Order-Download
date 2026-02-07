@@ -1,0 +1,180 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/Projects/Catalogs/CatalogView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+/// <reference path="/js/AppContext.AppDomain.js" />
+
+//<script>
+	var CatalogView = function (catalogid) {
+		this.CatalogID = catalogid;
+        FormView.Extend(this, "@g["Catalog"]", `/Admin/Brands/Projects/Catalogs/CatalogView`);
+        this.FieldDefinitions = null;
+        this.LastFieldDefinitions = null;
+        this.LastFieldId = 0;
+        this.SelectedFieldIndex = 0;
+    };
+
+
+    CatalogView.prototype = {
+		constructor: CatalogView,
+
+		OnLoad: function () {
+			var self = this;
+			AppContext.Catalogs.GetByCatalogID(self.CatalogID, (result) => {
+				self.LoadData(result);
+				self.elements.FieldProps.LoadCatalogs(result);
+				if (result.IsSystem === true)
+					self.elements.Name.prop("readonly", "readonly");
+                self.FieldDefinitions = result.Definition != null ? JSON.parse(result.Definition) : [];
+                self.LastFieldDefinitions = [...self.FieldDefinitions];
+                self.LastFieldId = self.FieldDefinitions != [] ? _.maxBy(self.FieldDefinitions, function (f) { return f.FieldID; }).FieldID: 1;
+				self.elements.FieldsTable.LoadData(self.FieldDefinitions);
+				self.elements.FieldsTable.BeforeSelectedChanged = function (e) {
+					if (e.index >= 0) {
+						if (!self.elements.FieldProps.model.ValidState()) {
+							e.preventDefault();
+						}
+						else {
+							self.FieldDefinitions[e.index] = self.elements.FieldProps.GetData();
+							e.target.UpdateRow(e.index);
+						}
+					}
+				};
+                self.elements.FieldsTable.OnSelectedChanged = function (e) {
+
+					@if (userData.Admin_Catalogs_CanEdit) {
+                        <text>
+                    if (e.row && e.row.IsSystem) {
+                        self.elements.removeFieldOption.attr("data-disabled", "true").addClass("toolbar-disabled");
+                    } else {
+                        self.elements.removeFieldOption.attr("data-disabled", "false").removeClass("toolbar-disabled");
+                    }
+                    </text>
+                    }
+                    if (e.index >= 0) {
+                        self.elements.FieldProps.ViewContainer.show();
+                        self.elements.FieldProps.LoadField(result, self.FieldDefinitions, e.row);
+
+                        var nameField = self.elements.FieldProps.elements.Name;
+                        nameField.focus();
+                        var tmpStr = nameField.val();
+                        nameField.val('');
+                        nameField.val(tmpStr);
+
+
+                        self.elements.FieldProps.elements.Name.focus();
+                    }
+                    };
+			});
+        },
+
+		@if(userData.Admin_Catalogs_CanEdit)
+		{
+		<text>
+		AddField: function (e) {
+			var self = this;
+			if (self.elements.FieldsTable.SelectedIndex >= 0) {
+				if (!self.elements.FieldProps.model.ValidState()) {
+					e.preventDefault();
+					return;
+				}
+            }
+            self.LastFieldId += 1;
+            var index = self.elements.FieldsTable.AddRow({ FieldID: self.LastFieldId, IsSystem: false, IsKey: false, IsIdentity: false, IsLocked: false, IsReadOnly: false, IsHidden: false, IsUnique: false, IsIndexed: false, IsMainDisplay: false, Name: "", Description: "", Type: 2 });
+			self.elements.FieldsTable.SelectRow(index);
+			self.elements.FieldsTable.EnsureCellVisible(index, 0);
+		},
+
+		EditCaptions: function (e) {
+			e.preventDefault();
+			var self = this;
+			AppContext.LoadJS("/Admin/Brands/Projects/Catalogs/CaptionsView.js").then(() => {
+				var captionsView = new CaptionsView(self.model.Captions);
+				captionsView.ShowDialog((captions) => {
+					if (captions != null)
+						self.model.Captions = captions;
+				});
+			});
+		},
+
+		RemoveField: function (e) {
+			var self = this;
+			var idx = this.elements.FieldsTable.SelectedIndex;
+			if (idx >= 0) {
+				var col = this.elements.FieldsTable.data[idx];
+				var confirm = new ConfirmDialog("@g["Delete Selected Field?"]");
+				confirm.ShowDialog(function (response) {
+					if (response) {
+						self.elements.FieldsTable.DeleteRow(idx);
+					}
+				});
+			}
+		},
+
+		Save: function (e) {
+			var self = this;
+			e.preventDefault();
+			var idx = this.elements.FieldsTable.SelectedIndex;
+			if (idx >= 0) this.elements.FieldsTable.SelectRow(idx); //triggers update of the field loaded in FieldProps
+			if (!this.model.ValidState())
+				return;
+			if (!this.elements.FieldProps.model.ValidState())
+				return;
+            this.model.Definition = JSON.stringify(this.FieldDefinitions);
+
+            var data = this.GetData();
+
+            var updatedType = false;
+            for (var i = 0; i < self.FieldDefinitions.length; i++) {
+                var match = self.LastFieldDefinitions.find(({ FieldID, Type }) => (FieldID === self.FieldDefinitions[i].FieldID) &&
+                                                Type != self.FieldDefinitions[i].Type);
+                if (match) {
+                    updatedType = true;
+                    break;
+                }                
+            }
+
+            if (updatedType) {
+                var confirm = new ConfirmDialog("@g["Some data will be truncated due to DataType updates, are you sure to continue?"]");
+                confirm.ShowDialog(function (response) {
+                    if (response) {
+                        self.ShowConfirmationAlert(self, data);
+                    }
+                });
+            } else {
+                self.ShowConfirmationAlert(self, data);
+            }
+        },
+
+        AssignRoles: function () {
+            var self = this;
+
+            AppContext.LoadJS("/Admin/Brands/Projects/Catalogs/AssignRoles.js").then(() => {
+                var dialog = new AssignRoles(self.CatalogID);
+                dialog.ShowDialog(function (roles) {
+                    if (roles != null)
+                        self.model.RequiredRoles = roles;
+                });
+            });
+        },
+
+        ShowConfirmationAlert: function (self, data) {
+            AppContext.Catalogs.Update(data, function (result) {
+                if (result.Success) {
+                    self.LastFieldDefinitions = [...self.FieldDefinitions];
+                    self.OnSaved.Raise(data);
+                    if (self.dialog === true)
+                        self.Close(data);
+                }
+            });
+        }
+		</text>
+		}
+    };
+//</script>

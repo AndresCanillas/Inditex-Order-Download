@@ -1,0 +1,45 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/RfidConfig/RfidConfigNode.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var RfidConfigNode = function (companyid) {
+		TreeNode.Extend(this, "RfidConfig", companyid, "@g["RFID Configuration"]");
+		this.CanEdit = false;
+		this.menu = {
+			MenuWidth: "250px",
+			Options: [
+				{ Text: "@Html.Raw(g["Open"])", OnClick: this.OnDoubleClick },
+			]
+		};
+		this.Expand();
+	};
+
+    RfidConfigNode.prototype = {
+		loadDependencies: function (callback) {
+			AppContext.LoadJS("/admin/RfidConfig/RfidConfigView.js").then(() => callback());
+		},
+
+		GetContextMenu: function () {
+			return this.menu;
+		},
+
+		OnDoubleClick: function () {
+			var self = this;
+			this.loadDependencies(function () {
+				var view = new RfidConfigView(self.EntityID);
+				view.NodeID = self.NodeID;
+				view.Show(self.getViewContainer());
+			});
+		}
+	};
+//</script>
+
+
+

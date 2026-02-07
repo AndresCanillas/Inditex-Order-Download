@@ -1,0 +1,31 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Print/AssignPrinterDialog.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+
+//<script>
+	var AssignPrinterDialog = function (locationid, printerid, sendToHercules, encodeRFID) {
+        FormView.Extend(this, "@g["Assign Printer"]", `/Print/AssignPrinterDialog?LID=${locationid}&PID=${printerid}&SendToHercules=${sendToHercules}&EncodeRFID=${encodeRFID}`);
+	};
+
+	AssignPrinterDialog.prototype = {
+		constructor: AssignPrinterDialog,
+
+		OnLoad: function () {
+			var self = this;
+			var printerName = this.elements.PrinterID.text();
+			this.model.PrinterName = printerName;
+		},
+
+		PrinterChanged: function () {
+			var printerName = this.elements.PrinterID.text();
+			this.model.PrinterName = printerName;
+		}
+	};
+//</script>

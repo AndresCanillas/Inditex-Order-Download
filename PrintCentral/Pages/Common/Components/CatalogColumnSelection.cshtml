@@ -1,0 +1,40 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+	var isAdmin = userData.IsIDT && User.IsAnyRole(Roles.SysAdmin, Roles.IDTLabelDesign, Roles.IDTProdManager);
+}
+
+<viewform>
+            <div class="form-subtitle" name="Title"></div>
+            <hr class="subtitle" />
+
+            <div class="input-group input-group-sm mb-2">
+                <div class="input-group-prepend">
+                    <span class="input-group-text" name="ListLabel">@g["Available Fields"]:</span>
+                </div>
+                <select name="FieldList" class="form-control" no-transform />
+                <div class="input-group-append">
+                    <button class="btn btn-outline-secondary" type="button" action="click:AddField_Event"><span class="fa fa-fw fa-plus" ></span></button>
+                </div>
+            </div>
+
+            <div class="order-groups-grid mb-2">
+
+                <div name="GridOrderToolbar" class="toolbar-body" style="width:100%">
+
+                    <a href="#" title="@g["Remove Selected"]" action="RemoveField"><span class="fa fa-trash"></span></a>
+
+                </div>
+
+                <div component="OrderGrid" class="" name="FieldsTable" style="width:100%; max-height:50vh;" rowcssclass="GridViewSetRowCssClass">
+                    <template>
+                        <column width="120" field="FieldID">@g["ID"]</column>
+                        <column width="100" field="Name">@g["Name"]</column>
+                    </template>
+
+                </div>
+
+            </div>
+</viewform>

@@ -1,0 +1,53 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Notifications/OrderReadyView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var OrderReadyView = function (notification) {
+		FormView.Extend(this, "@g["Order Ready"]", "/Notifications/OrderReadyView");
+		this.Notification = notification;
+	};
+
+
+	OrderReadyView.prototype = {
+		constructor: OrderReadyView,
+
+		OnLoad: function () {
+			var self = this;
+			this.LoadData(this.Notification);
+			if (this.Notification != null && this.Notification.Data != null) {
+				this.Data = JSON.parse(this.Notification.Data);
+				this.model.CompanyName = "{0} ({1})".format(this.Data.Company.Name, this.Data.Company.CompanyCode);
+				AppContext.Companies.GetByID(this.Data.Order.BillToCompanyID, (data) => {
+					self.model.BillTo = "{0} ({1})".format(data.Name, data.CompanyCode);
+					if (self.Data.Order.BillTo == self.Data.Order.SendTo)
+						self.model.SendTo = "{0} ({1})".format(data.Name, data.CompanyCode);
+				});
+				if (this.Data.Order.BillTo != this.Data.Order.SendTo) {
+					AppContext.Companies.GetByID(this.Data.Order.SendToCompanyID, (data) => {
+						self.model.SendTo = "{0} ({1})".format(data.Name, data.CompanyCode);
+					});
+				}
+			}
+		},
+
+		DownloadPreview: function (e) {
+			window.open(`/orders/getpdfpreview/${this.Data.Order.ID}`);
+		},
+
+		DismissNotification: function (e) {
+			var self = this;
+			AppContext.HttpPost(`/notifications/dismiss/${this.Notification.ID}`, null, function (response) {
+				if (response.Success) {
+					self.Unload();
+				}
+			});
+		}
+	};
+//</script>

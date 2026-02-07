@@ -1,0 +1,293 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+	var isAdmin = userData.IsIDT && User.IsAnyRole(Roles.SysAdmin, Roles.IDTLabelDesign, Roles.IDTProdManager);
+	var uilang = CultureInfo.CurrentUICulture.Name;
+}
+//# sourceURL=https://Pages/Common/Components/CatalogCompoEditFormView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+		var CatalogCompoEditFormView = function (catalog, title, data) {
+		FormView.Extend(this, title || "", "/common/components/CatalogCompoEditFormView");
+		this.Catalog = catalog;
+		this.Readonly = @(isAdmin?"false":"true");
+		this.data=data;
+        this.activeCompoPage= 0; 
+        this.baseDataRecord = {}
+        
+	};
+
+	CatalogCompoEditFormView.prototype = {
+        constructor: CatalogCompoEditFormView,
+
+		OnLoad: function () {
+			var self = this;
+
+                  self.LoadCompos()
+                  self.LoadMadeIN ()
+                  self.LoadAdditionals()
+                  self.LoadFullComposition()
+                  self.LoadFullAddtionals()
+        },
+
+        LoadMadeIN : function () 
+        {
+            let self = this
+            console.log("Load Made In", this.Catalog)
+               AppContext.Catalogs.GetByProjectIDWithRoles(self.Catalog.ProjectID, function(catalogs) {
+                     if (catalogs != null)
+                     {
+                         self.baseDataCatalog = catalogs.find(c=> c.Name == 'BaseData') ;
+                         AppContext.CatalogData.GetBaseDataByOrderID(self.Catalog.ProjectID, self.data.OrderID, (result) => {
+                              if (result.Success)
+                              {
+                                  const container = document.getElementById("textareas-madein-container");
+                                  self.baseDataRecord = JSON.parse(result.Data);
+                                  let row = document.createElement("div");
+                                  row.className = "row textarea-group mt-3";
+                                  let col = document.createElement("div");
+                                  col.className =  "col-8" ;
+                                  let textarea = document.createElement("textarea");
+                                  textarea.className = "form-control no-max-width";
+                                  textarea.rows = self.MaxLines; 
+                                  textarea.value = self.baseDataRecord[0].MADEIN
+                                  textarea.id=`MadeIn`
+                                  col.appendChild(textarea);
+                                  row.appendChild(col);
+                                  container.appendChild(row);
+                              }
+                          });
+                     }
+                  });
+        }, 
+
+        LoadAdditionals : function () 
+        {
+            let self = this;
+                  const container = document.getElementById("textareas-additionals-container");
+                  let obj = self.data
+
+                        for (let i = 1; i <= 10; i++) {
+                            let key = `AdditionalPage${i}`;
+                            if (obj.hasOwnProperty(key) && obj[key]) {
+                                let row = document.createElement("div");
+                                row.className = "row textarea-group mt-3";
+                                    let col = document.createElement("div");
+                                    col.className =  "col-8";
+
+                                    let label = document.createElement("label");
+                                    label.className = "form-label";
+                                    let textarea = document.createElement("textarea");
+                                    textarea.className = "form-control no-max-width";
+
+                                    textarea.rows = self.MaxLines;
+                                 
+                                    textarea.value = obj[key]
+                                    textarea.id=`AdditionalPage${i}`
+                                    label.textContent = `Additionals Page ${i}`;
+                                    self.activeAdditionalsPage = i
+                                    
+                                    col.appendChild(label);
+                                    col.appendChild(textarea);
+                                    row.appendChild(col);
+
+                                container.appendChild(row);
+                            }else {
+                                break;
+                            }
+                        }
+
+        },
+
+       LoadFullAddtionals : function ()
+              {
+                  let self = this;
+                  const container = document.getElementById("textareas-fulladditional-container")
+                  let obj = self.data
+                  let key = "FullAdditionals";
+                   if (obj.hasOwnProperty(key) && obj[key])
+                   {
+                            let row = document.createElement("div");
+                            row.className = "row textarea-group mt-3";
+                            let col = document.createElement("div");
+                            col.className =  "col-8" ;
+                            let textarea = document.createElement("textarea");
+                            textarea.className = "form-control no-max-width";
+
+                            console.log("Saltos linea ",(obj[key].match(/\n/g) || []).length)
+                            let lines = obj[key].replaceAll("$Line", "\n")
+                            textarea.rows = lines.split('\n').length;
+                            textarea.value =lines
+                            textarea.id=`FullAdditionals`
+                            col.appendChild(textarea);
+                            row.appendChild(col);
+                            container.appendChild(row);
+                            console.log("FullAdditional: ", obj[key])
+                            console.log("Full addtional rows: ",textarea.rows)
+                   }
+              },
+
+        LoadFullComposition : function () 
+        {
+            let self = this; 
+            const container = document.getElementById("textareas-fullcomposition-container")
+            let obj = self.data
+            let key = "FullComposition";
+             if (obj.hasOwnProperty(key) && obj[key])
+             {
+                      let row = document.createElement("div");
+                      row.className = "row textarea-group mt-3";
+                      let col = document.createElement("div");
+                      col.className =  "col-8" ;
+                      let textarea = document.createElement("textarea");
+                      textarea.className = "form-control no-max-width";
+                      let lines = obj[key].replaceAll("$Line", "\n")
+                      textarea.rows = lines.split('\n').length;
+                      textarea.value =lines
+                      textarea.id=`FullComposition`
+                      col.appendChild(textarea);
+                      row.appendChild(col);
+                      container.appendChild(row);
+                      console.log("FullComposition: ", obj[key])
+                      console.log("Full composition rows: ",textarea.rows)
+             }
+        }, 
+
+		OnUnload: function () {
+		},
+		LoadCompos: function () 
+		{
+			let self = this
+            const container = document.getElementById("textareas-container");
+            let obj = self.data
+
+                  for (let i = 1; i <= 10; i++) {
+                      let key = `Page${i}_compo`;
+                      let keyPercent = `Page${i}_percent`; 
+                      let keyLeather = `Page${i}_leather`
+                      if (obj.hasOwnProperty(key) && obj[key]) {
+                          let row = document.createElement("div");
+                          row.className = "row textarea-group mt-3";
+
+                          for (let j = 1; j <= 3; j++) {
+                              let col = document.createElement("div");
+                              col.className = j === 3 ? "col-8" : "col-2";
+
+                              let label = document.createElement("label");
+                              label.className = "form-label";
+                              let textarea = document.createElement("textarea");
+                              textarea.className = "form-control no-max-width";
+                              self.MaxLines =  obj[key].split('\n').length;
+                              textarea.rows = self.MaxLines;
+                                          console.log("Compo lines", self.MaxLines)
+                              if (j===1){
+                                  textarea.value = obj[keyPercent]
+                                  textarea.id=`Page${i}_percent`
+                                  label.textContent = `Percent ${i}`;
+                              }
+                              if (j===2) {
+                                  textarea.value = obj[keyLeather]
+                                  textarea.id=`Page${i}_leather`
+                                  label.textContent = `Leather ${i}`;
+                              }
+                              if (j === 3) {
+                                  label.textContent = `Compo ${i}`;
+                                  textarea.id=`Page${i}_compo`
+                                  textarea.value = obj[key];
+                              }
+                              self.activeCompoPage = i 
+                              console.log("Loaded Compo" , obj[key]  )
+                              col.appendChild(label);
+                              col.appendChild(textarea);
+                              row.appendChild(col);
+                          }
+
+                          container.appendChild(row);
+                      }else {
+                          break; 
+                      }
+                  }
+		}, 
+        UpdateCompo : function (e) 
+        {
+            let self = this 
+            let page1_compo = document.getElementById("Page1_compo") 
+            console.log ("Saved Compo" , page1_compo.value) 
+            console.log(self.activeCompoPage)
+
+
+
+            for (x=1; x<=self.activeCompoPage;x++)
+            {
+                let key = `Page${x}_compo` 
+                let keyPercent = `Page${x}_percent` 
+                let keyLeather = `Page${x}_leather` 
+
+                const $Page_compo = document.getElementById(key); 
+                const $Page_percent = document.getElementById(keyPercent)
+                const $Page_leather = document.getElementById(keyLeather) 
+                console.log("Antes ",self.data[key])
+                if ($Page_compo.value.trim().length <1) 
+                {
+                    AppContext.ShowError(`Page compo ${x} can not be empty`)
+                    return ; 
+                }
+                self.data[key] = $Page_compo.value; 
+                self.data[keyPercent] = $Page_percent.value; 
+                self.data[keyLeather] = $Page_leather.value;
+                console.log("Despues ",self.data[key])
+            }
+
+            for (x=1; x<=self.activeAdditionalsPage; x++)
+            {
+                let key = `AdditionalPage${x}`
+                const $AdditionalPage = document.getElementById(key); 
+                if ($AdditionalPage.value.trim().length<1)
+                {
+                          AppContext.ShowError(`Page Additional ${x} can not be empty`)
+                          return 
+                }
+                self.data[key] = $AdditionalPage.value; 
+            }
+
+                const $FullComposition = document.getElementById('FullComposition')
+                self.data["FullComposition"] = $FullComposition.value.replaceAll("\n", "$Line")
+
+                  const $FullAdditionals = document.getElementById('FullAdditionals')
+                  self.data["FullAdditionals"] = $FullAdditionals.value.replaceAll("\n", "$Line")
+
+                  const $MadeIn = document.getElementById('MadeIn')
+                  for (x = 0; x<self.baseDataRecord.length; x++)
+                  {
+                        self.baseDataRecord[x].MADEIN = $MadeIn.value;
+                        let recMadeIn = {ID: self.baseDataRecord[x].ID, CatalogID: self.baseDataCatalog.CatalogID, Data: JSON.stringify(self.baseDataRecord[x])}
+                        AppContext.CatalogData.Update(recMadeIn, (result) => {
+                          if (result.Success)
+                          {
+                            //  AppContext.ShowSuccess("@g["Made In record updated!"]");
+                          }else {
+
+                              AppContext.showError('An error has ocurred')
+                          }
+                        });
+                  }
+
+            let rec = { ID: self.data.ID, CatalogID: self.Catalog.CatalogID, Data: JSON.stringify(self.data) };
+                      AppContext.CatalogData.Update(rec, (result) => {
+                           if (result.Success) {
+                                   AppContext.ShowSuccess("@g["Record updated!"]");
+                                    self.model.ID = JSON.parse(result.Data).ID;
+                                    self.Ok();
+                                }
+                            });
+
+
+        }
+
+	};
+//</script>

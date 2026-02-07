@@ -1,0 +1,63 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+	<meta name="viewport" content="width=device-width" />
+	<link rel="stylesheet" href="/css/bootstrap.css" />
+	<link rel="stylesheet" href="/css/fa.css">
+	<link rel="stylesheet" href="/css/themify-icons.css">
+	<link rel="stylesheet" href="/css/AppContext.css" />
+	<link rel="stylesheet" href="/styles/kendo.common.min.css" />
+	<link rel="stylesheet" href="/styles/kendo.default.min.css" />
+	<title>View Manager Test Page</title>
+	<script src="/js/jquery-3.0.0.min.js"></script>
+	<script src="/js/jquery.validate.min.js"></script>
+	<script src="/js/jquery.validate.unobtrusive.min.js"></script>
+	<script src="/js/bootstrap.min.js"></script>
+	<script src="/js/kendo.all.min.js"></script>
+	<script src="/js/AppContext.js"></script>
+</head>
+<body>
+	<script>
+		/* ===========================================================================================================
+		 * ViewManager is responsible of tracking views as they are loaded into the document. Its main method is 
+		 * ViewManager.Load, this method takes the element in which the view will be loaded, the URL of the view (which
+		 * must always be a javascript file), and an optional list of arguments to be passed to the view constructor.
+		 * 
+		 * ViewManager.Load will download the specified js file (only if it has not yet been downloaded), instantiate
+		 * the view (if no instance is created yet), and then add the view to the specified DOM element, "replacing"
+		 * whatever view is currently loaded in it.
+		 * 
+ 		 * The view object will only be instantiated once (it is treated as a singleton object), subsecuent calls to
+		 * ViewManager.Load requesting the same view will resolve the call inmediatly returning the already created 
+		 * object, this means that the view arguments (if provided) will only be used the first time the view is 
+		 * instantiated.
+		 * 
+		 * This poses a problem when the view is designed to load data from specific records, if that is the case,
+		 * it is suggested that instead of passing arguments to the view constructor, the view should provide a 
+		 * method to load its data (as in the example below):
+		 * 
+		 * $(document).ready(() => {
+		 *		AppContext.ViewManager.Load($("BODY"), "/CompanyView.js").then((view) => {
+		 *			// view = The created view object
+		 *			view.LoadData(productid);
+		 *		});
+		 * });
+		 * 
+		 * NOTE: Views that should not be treated as singletons will have to be created and managed directly by the
+		 *		 user code.
+		 *		 
+		 * History Tracking
+		 * -----------------
+		 * 
+		 * ViewManager will keep track of the sequence in which views are loaded on each container element and 
+		 * automatically handle the browse back functionality.
+		 * =========================================================================================================== */
+		$(document).ready(function () {
+			AppContext.ViewManager.Load($("BODY"), "/CompanyView.js").then((v) => {
+				// v = The created View object
+				v.LoadData(31);
+			});
+		});
+	</script>
+</body>
+</html>

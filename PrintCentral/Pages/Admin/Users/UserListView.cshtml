@@ -1,0 +1,14 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData  userData
+@{
+	Layout = null;
+}
+<input name="SelectedCompanyID" type="hidden" value="@userData.SelectedCompanyID" />
+<viewcard>
+	<viewrow>
+		<viewcolumn>
+			<div name="UserContainer"></div>
+		</viewcolumn>
+	</viewrow>
+</viewcard>

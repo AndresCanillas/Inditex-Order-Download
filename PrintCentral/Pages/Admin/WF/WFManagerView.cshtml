@@ -1,0 +1,106 @@
+﻿@page
+@using Service.Contracts.WF;
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+	<link href="/css/wf.css" rel="stylesheet">
+	<viewcard>
+		<viewrow>
+			<viewcolumn class="col-sm-12 col-md-12 col-lg-12 col-xl-5">
+				<div>
+					<div style="font-size:17px;">@g["Tasks"]</div>
+					<hr class="subtitle" />
+					<div component="OrderGrid" name="Tasks" style="padding:0 5px 5px 5px; overflow:auto; max-height:700px;" rowcssclass="SetRowCssClass">
+						<template>
+							<column width="220" field="TaskName">@g["Task Name"]</column>
+							<column width="80" field="Active" Render="ActiveLink">@g["Active"]</column>
+							<column width="80" field="Waiting" Render="WaitingLink">@g["Waiting"]</column>
+							<column width="80" field="Delayed" Render="DelayedLink">@g["Delayed"]</column>
+							<column width="80" field="Rejected" Render="RejectedLink">@g["Rejected"]</column>
+						</template>
+					</div>
+				</div>
+				<div style="padding:5px; font-size:12px;">
+					<span>Active:</span> <span model name="TotalActive" style="padding-right:10px;">0</span>
+					<span>Waiting:</span> <span model name="TotalWaiting" style="padding-right:10px;">0</span>
+					<span>Delayed:</span> <span model name="TotalDelayed" style="padding-right:10px;">0</span>
+					<span>Rejected:</span> <span model name="TotalRejected" style="padding-right:10px;">0</span>
+					<span>Completed:</span> <span model name="TotalCompleted" style="padding-right:10px;">0</span>
+					<span>Cancelled:</span> <span model name="TotalCancelled" style="padding-right:10px;">0</span>
+				</div>
+			</viewcolumn>
+			<viewcolumn class="col-sm-12 col-md-12 col-lg-12 col-xl-7">
+				<div style="font-size:17px;">@g["Item Search"]</div>
+				<hr class="subtitle" />
+				<inlineform compact>
+					<div style="max-width:195px">
+						<select model name="TaskID" label="Task:" style="min-width:190px;" data-type="int" class="custom-select-sm"></select>
+					</div>
+					<div style="max-width:95px">
+						<select model name="ItemStatus" label="Status:" style="min-width:90px;" data-type="int" class="custom-select-sm" options="@(OptionList.FromEnum<ItemStatus>(true))"></select>
+					</div>
+					<div style="max-width:105px">
+						<input model name="ItemID" label="ItemID:" style="min-width:100px;" class="custom-select-sm" />
+					</div>
+					<div style="max-width:155px">
+						<input model name="ItemName" label="ItemName:" style="min-width:150px;" class="custom-select-sm" />
+					</div>
+					<div style="max-width:155px">
+						<input model name="Keywords" label="Keywords:" style="min-width:150px;" class="custom-select-sm" />
+					</div>
+					<div style="max-width:155px">
+					<input model name="FromDate" label="From date:" style="min-width:100px;max-width:130px;" data-type="Date" />
+					</div>
+					<div style="max-width:155px">
+					<input model name="ToDate" label="To date:" style="min-width:100px;max-width:130px;" data-type="Date"  />
+					</div>
+					<div style="max-width:100px">
+						<a class="btn" title="Find Items" action="FindItems" style="padding-top:22px;"><span class="fa fa-search"></span></a>
+					</div>
+				
+				</inlineform>
+				<div class="form-row" style="font-size:10pt;">
+					<div class="col-75 badge-container">
+						<a href="#" action="MoveItems" class="badge badge-warning" style="padding:4px; text-decoration:underline;"><u>Move</u></a>
+						<a href="#" action="RetryItems" class="badge badge-warning" style="padding:4px; text-decoration:underline;"><u>Retry</u></a>
+						<a href="#" action="DelayItems" class="badge badge-warning" style="padding:4px; text-decoration:underline;"><u>Delay</u></a>
+						<a href="#" action="RejectItems" class="badge badge-warning" style="padding:4px; text-decoration:underline;"><u>Reject</u></a>
+						<a href="#" action="ChangePriority" class="badge badge-warning" style="padding:4px; text-decoration:underline; margin-right:15px;"><u>Priority</u></a>
+						<a href="#" action="CompleteItems" class="badge badge-warning" style="padding:4px; text-decoration:underline;"><u>Complete</u></a>
+						<a href="#" action="CancelItems" class="badge badge-warning" style="padding:4px; text-decoration:underline;"><u>Cancel</u></a>
+						<a href="#" action="ReactivateItems" class="badge badge-warning" style="padding:4px; text-decoration:underline;"><u>Re-Insert</u></a>
+					</div>
+				</div>
+				<div class="col-fixed-355">
+					<div class="form-row" style="margin-bottom:10px; font-size:10pt;">
+						<div class="col-75 badge-container">
+							<a href="#" action="SelectAll" class="badge badge-primary" style="padding:4px; text-decoration:underline;"><u>Select All</u></a>
+							<a href="#" action="InvertSelection" class="badge badge-primary" style="padding:4px; text-decoration:underline;"><u>Invert</u></a>
+							<a href="#" action="ClearSelection" class="badge badge-primary" style="padding:4px; text-decoration:underline;"><u>Clear</u></a>
+						</div>
+					</div>
+					<div component="OrderGrid" name="ItemGrid" style="margin-bottom:10px; height:450px; border:1px solid #dbdbdb;">
+						<template>
+							<column width="155" field="Name">@g["Item Name"]</column>
+							<column width="90" field="TaskName">@g["Task Name"]</column>
+							<column width="80" field="ItemStatus" map="@(Map.FromEnum<ItemStatus>())">@g["Status"]</column>
+						</template>
+					</div>
+					<div name="Paginator" component="PageSelector" controller="/Common/Components/PageSelector.js"></div>
+				</div>
+				<div class="col-offset-360">
+					<div name="ItemData" component="ItemDataView" controller="/Admin/WF/ItemDataView.js"></div>
+				</div>
+			</viewcolumn>
+		</viewrow>
+		<viewrow>
+			<viewcolumn  class="col-sm-12 col-md-12 col-lg-12 col-xl-5">
+				<hr class="subtitle" />
+			</viewcolumn>
+			<viewcolumn  class="col-sm-12 col-md-12 col-lg-12 col-xl-7">
+				<hr class="subtitle" />
+			</viewcolumn>
+		</viewrow>
+	</viewcard>
+

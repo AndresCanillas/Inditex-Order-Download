@@ -1,0 +1,122 @@
+﻿@page
+@using Service.Contracts.PrintCentral
+@inject ILocalizationService g
+@inject IPackRepository packRepo
+@inject IArticleRepository articleRepo
+@inject IUserData userData
+@inject IPluginManager<IPackArticlesPlugin> packsPluginManager
+
+@{
+    Layout = null;
+    List<IArticle> articles;
+    if (Request.Query.ContainsKey("pid"))
+    {
+        int projectid = Convert.ToInt32(Request.Query["pid"].ToString());
+        articles = articleRepo.GetByProjectID(projectid);
+    }
+    else
+    {
+        articles = articleRepo.GetList();
+    }
+    var readOnly = userData.Admin_Packs_CanEdit ? "" : "readonly";
+
+    var plugins = new List<Object>() {
+            new { Name="", Description="" }
+        };
+
+    plugins.AddRange(packsPluginManager.GetList());
+
+}
+<viewcard>
+    <viewrow>
+        <viewcolumn>
+            <viewform>
+                <div model name="ID" label="ID:"></div>
+                <input model name="CompanyID" type="hidden" />
+                <input model name="ProjectID" type="hidden" />
+                @if (userData.Admin_Packs_CanRename)
+                {
+                    <input model name="Name" label="@g["Name"]:*" validation="required;maxlen(30)" type="text" />
+                }
+                else
+                {
+                    <div model name="Name" label="@g["Name"]:*"></div>
+                }
+                <textarea model name="Description" label="@g["Description"]:*" validation="required;maxlen(2000)" style="height:87px;" @readOnly></textarea>
+                @if (userData.Admin_Packs_CanEditMDSettings)
+                {
+                    <input model name="PackCode" label="@g["Pack Code"]:*" validation="required;maxlen(25)" type="text" />
+                }
+                else
+                {
+                    <div model name="PackCode" label="@g["Pack Code"]:"></div>
+                }
+            </viewform>
+        </viewcolumn>
+    </viewrow>
+    <viewrow>
+        <viewcolumn>
+            <div style="font-size:17px;">@g["Articles"]</div>
+            <hr class="subtitle" />
+            @if (userData.Admin_Packs_CanEdit)
+            {
+                <viewform>
+                    <select model name="Type" label="@g["Select Type"] :" options="@(OptionList.FromEnum<PackArticleType>())" action="change:TypeChanged"></select>
+
+                    <div name="ByArticleElement" class="input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">@g["Search article"]:</span>
+                        </div>
+                        <input model name="ArticleToAdd" no-transform action="keypress:HandleKeyPress" list="PackViewArticleList" type="text" class="form-control" />
+                        <div class="input-group-append">
+                            <span class="input-group-text" style="cursor:pointer"><span class="fa fa-plus" action="AddToPack"></span></span>
+                        </div>
+                    </div>
+                    <div name="ByDataElement">
+                        <button title="@g["Add configuration"]" action="AddArticleByData" class="btn btn-outline-primary">
+                            @g["Add"]
+                        </button>
+
+                    </div>
+                    <div name="ByPluginElement">
+                        <select model name="PluginName" label="@g["Select Plugin"] :" options="@(OptionList.FromEnumerable(plugins, "Name", "Name"))" action="change:AddArticleByPlugin"/>
+                    </div>
+                </viewform>
+
+                <datalist id="PackViewArticleList">
+                    @foreach (var a in articles)
+                    {
+                        <option value="@a.ArticleCode" articleid="@a.ID">@a.Name</option>
+                    }
+                </datalist>
+                <div class="toolbar-body" style="width:100%; margin-top:15px;">
+                    <span class="toolbar-grip"></span>
+                    <a href="#" title="@g["Show Preview"]" action="ShowPreview"><span class="fa fa-image"></span></a>
+                    <span class="toolbar-separator"></span>
+                    <a href="#" title="@g["Remove"]" action="RemoveFromPack"><span class="fa fa-trash"></span></a>
+                    <a href="#" title="@g["Edit Mapping"]" action="click:EditMapping"><span class="fa fa-pencil ml-1 mr-1"></span></a>
+
+                </div>
+            }
+            <div component="GridView" name="ArticlesGrid" style="width:100%; height:150px;">
+                <template>
+                    <column width="100" field="Type" map='{ "1": "@g["By Article"]", "2": "@g["By Order Data"]", "3": "@g["By Plugin"]"}'>@g["Type"]</column>
+                    <column width="80" field="ArticleID">@g["ArticleID"]</column>
+                    <column width="120" field="Name">@g["Name"]</column>
+                    <column width="100" field="ArticleCode">@g["Article Code"]</column>
+                    <column width="60" field="Quantity" editable>@g["Quantity"]</column>
+                    <column width="100" field="Catalog">@g["Catalog"]</column>
+                    <column width="100" field="FieldName">@g["FieldName"]</column>
+                    <column width="100" field="Mapping">@g["Mapping"]</column>
+                    <column width="100" field="PluginName" editable>@g["PluginName"]</column>
+                </template>
+            </div>
+        </viewcolumn>
+    </viewrow>
+    @if (userData.Admin_Packs_CanEdit)
+    {
+        <viewfooter>
+            <a href="#" class="btn btn-primary" action="Save">@g["Save"]</a>
+        </viewfooter>
+    }
+</viewcard>

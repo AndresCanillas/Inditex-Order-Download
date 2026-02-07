@@ -1,0 +1,89 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Upload/UploadStep4.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var UploadStep4 = function (title, target, prodtype, printerid) {
+		FormView.Extend(this, title, "/Upload/UploadStep4");
+		this.Target = target;
+		this.ProductionType = prodtype;
+		this.PrinterID = printerid;
+	};
+
+
+	UploadStep4.prototype = {
+		constructor: UploadStep4,
+
+		OnLoad: function () {
+			var self = this;
+			this.elements.ProgressBar.kendoProgressBar({
+				min: 0,
+				max: 100,
+				type: "percent",
+				complete: function () { self.DocumentProcessingComplete(); }
+			});
+			var pb = this.elements.ProgressBar.data("kendoProgressBar");
+			pb.value(0);
+			this.handle = setInterval(()=>self.GetProgress(), 1000);
+		},
+
+		GetProgress: function () {
+			var self = this;
+			AppContext.HttpGet("/upload/progress", (progress) => {
+				if (progress != null) {
+					if (progress.WriteProgress > 0) {
+						var pb = self.elements.ProgressBar.data("kendoProgressBar");
+						pb.value(progress.WriteProgress);
+					}
+				}
+			},
+			(error) => {
+				clearInterval(this.handle);
+				AppContext.ShowError("Error while communicating with the server.");
+			});
+		},
+
+		DocumentProcessingComplete: function () {
+			var self = this;
+			clearInterval(this.handle);
+			AppContext.HttpGet("upload/jobresult", (result) => {
+				if (result.Success === true) {
+					if (this.Target.indexOf("order") > 0) {
+						if (self.ProductionType == 2) {
+							AppContext.LoadJS("/Production/PrinterQueueView.js").then(() => {
+								var view = new PrinterQueueView(self.PrinterID);
+								view.Show(self.ViewContainer);
+							});
+						}
+						else {
+							self.elements.MsgTitle.html("@g["Process completed"]");
+							self.elements.MsgContent.html("@g["Soon you should see a notification letting you know that your order was sucessfully processed by our system and is waiting to be validated and printed."]");
+							self.elements.ProgressUI.hide();
+							self.elements.MessageUI.show();
+						}
+					}
+					else {
+							self.elements.MsgTitle.html("@g["Process completed"]");
+							self.elements.MsgContent.html("@g["Document data has been uploaded to the platform."]");
+							self.elements.ProgressUI.hide();
+							self.elements.MessageUI.show();
+					}
+				}
+				else
+				{
+					self.elements.MsgTitle.html("@g["Error while processing file"]");
+					self.elements.MsgContent.html("@g["There was an error in the last step of the process, please contact customer support."]");
+					self.elements.ProgressUI.hide();
+					self.elements.MessageUI.show();
+				}
+				AppContext.HttpPost("upload/purge", null, () => { });
+			});
+		},
+	};
+//</script>

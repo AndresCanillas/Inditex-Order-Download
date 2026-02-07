@@ -1,0 +1,18 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+	<viewcard>
+		<viewform>
+			<viewrow>
+				<viewcolumn>
+					<input model name="DueDate" label="@g["Due Date"]:" validation="required" type="date" value="" data-type="Date" />
+				</viewcolumn>
+			</viewrow>
+			<viewfooter>
+				<button type="button" class="btn btn-primary" action="Ok">@g["OK"]</button>
+				<button type="button" class="btn btn-secondary" action="Cancel">@g["Cancel"]</button>
+			</viewfooter>
+		</viewform>
+	</viewcard>

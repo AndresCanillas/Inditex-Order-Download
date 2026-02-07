@@ -1,0 +1,126 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup Label="Globals">
+    <SccProjectName></SccProjectName>
+    <SccProvider></SccProvider>
+    <SccAuxPath></SccAuxPath>
+    <SccLocalPath></SccLocalPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <Version>7.0.1</Version>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Ekoi\**" />
+    <Compile Remove="FtpPlugins\bin\**" />
+    <Compile Remove="FtpPlugins\obj\**" />
+    <Compile Remove="FtpPlugins\Properties\**" />
+    <Compile Remove="IsabelMarant\**" />
+    <Compile Remove="Mango\bin\**" />
+    <Compile Remove="Mango\CPO\bin\**" />
+    <Compile Remove="Mango\CPO\obj\**" />
+    <Compile Remove="Mango\CPO\Properties\**" />
+    <Compile Remove="Mango\FtpPlugins\bin\**" />
+    <Compile Remove="Mango\FtpPlugins\obj\**" />
+    <Compile Remove="Mango\FtpPlugins\Properties\**" />
+    <Compile Remove="Mango\PiggyBags\obj\**" />
+    <Compile Remove="Mango\PiggyBags\Properties\**" />
+    <Compile Remove="Mango\Box3000\bin\**" />
+    <Compile Remove="Mango\Box3000\obj\**" />
+    <Compile Remove="Mango\Box3000\Properties\**" />
+    <Compile Remove="Mango\SamplePlugin\bin\**" />
+    <Compile Remove="Mango\SamplePlugin\obj\**" />
+    <Compile Remove="Mango\SamplePlugin\Properties\**" />
+    <Compile Remove="Mango\UnitTests\**" />
+    <Compile Remove="packages\**" />
+    <EmbeddedResource Remove="Ekoi\**" />
+    <EmbeddedResource Remove="FtpPlugins\bin\**" />
+    <EmbeddedResource Remove="FtpPlugins\obj\**" />
+    <EmbeddedResource Remove="FtpPlugins\Properties\**" />
+    <EmbeddedResource Remove="IsabelMarant\**" />
+    <EmbeddedResource Remove="Mango\bin\**" />
+    <EmbeddedResource Remove="Mango\CPO\bin\**" />
+    <EmbeddedResource Remove="Mango\CPO\obj\**" />
+    <EmbeddedResource Remove="Mango\CPO\Properties\**" />
+    <EmbeddedResource Remove="Mango\FtpPlugins\bin\**" />
+    <EmbeddedResource Remove="Mango\FtpPlugins\obj\**" />
+    <EmbeddedResource Remove="Mango\FtpPlugins\Properties\**" />
+    <EmbeddedResource Remove="Mango\PiggyBags\bin\**" />
+    <EmbeddedResource Remove="Mango\PiggyBags\obj\**" />
+    <EmbeddedResource Remove="Mango\PiggyBags\Properties\**" />
+    <EmbeddedResource Remove="Mango\Box3000\bin\**" />
+    <EmbeddedResource Remove="Mango\Box3000\obj\**" />
+    <EmbeddedResource Remove="Mango\Box3000\Properties\**" />
+    <EmbeddedResource Remove="Mango\SamplePlugin\bin\**" />
+    <EmbeddedResource Remove="Mango\SamplePlugin\obj\**" />
+    <EmbeddedResource Remove="Mango\SamplePlugin\Properties\**" />
+    <EmbeddedResource Remove="Mango\UnitTests\**" />
+    <EmbeddedResource Remove="packages\**" />
+    <None Remove="Ekoi\**" />
+    <None Remove="FtpPlugins\bin\**" />
+    <None Remove="FtpPlugins\obj\**" />
+    <None Remove="FtpPlugins\Properties\**" />
+    <None Remove="IsabelMarant\**" />
+    <None Remove="Mango\bin\**" />
+    <None Remove="Mango\CPO\bin\**" />
+    <None Remove="Mango\CPO\obj\**" />
+    <None Remove="Mango\CPO\Properties\**" />
+    <None Remove="Mango\FtpPlugins\bin\**" />
+    <None Remove="Mango\FtpPlugins\obj\**" />
+    <None Remove="Mango\FtpPlugins\Properties\**" />
+    <None Remove="Mango\PiggyBags\bin\**" />
+    <None Remove="Mango\PiggyBags\obj\**" />
+    <None Remove="Mango\PiggyBags\Properties\**" />
+    <None Remove="Mango\Box3000\bin\**" />
+    <None Remove="Mango\Box3000\obj\**" />
+    <None Remove="Mango\Box3000\Properties\**" />
+    <None Remove="Mango\SamplePlugin\bin\**" />
+    <None Remove="Mango\SamplePlugin\obj\**" />
+    <None Remove="Mango\SamplePlugin\Properties\**" />
+    <None Remove="Mango\UnitTests\**" />
+    <None Remove="packages\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="GerryWeberCompoPlugin.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Mango\Box3000\Box3000.csproj.vspscc" />
+    <None Remove="Mango\CPO\CPO.csproj.vspscc" />
+    <None Remove="Mango\FtpPlugins\FtpPlugins.csproj.vspscc" />
+    <None Remove="Mango\PiggyBags\FtpPlugins.csproj.vspscc" />
+    <None Remove="Mango\Box3000\FtpPlugins.csproj.vspscc" />
+    <None Remove="Mango\SamplePlugin\SamplePlugin.csproj.vspscc" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="BandF\OrderPlugins\" />
+    <Folder Include="Monoprix\OrderPlugins\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Linq.Dynamic.Core" Version="1.3.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Service.Contracts\Service.Contracts-NetCore21.csproj" />
+    <ProjectReference Include="..\..\WebLink.Contracts\WebLink.Contracts.csproj" />
+    <ProjectReference Include="..\..\WebLink.Services\WebLink.Services.csproj" />
+  </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy &quot;$(TargetDir)SmartdotsPlugins.*&quot; &quot;$(ProjectDir)..\..\Dependencies\plugins\$(ConfigurationName)\&quot; /y" />
+  </Target>
+
+</Project>

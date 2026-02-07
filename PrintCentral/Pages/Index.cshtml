@@ -1,0 +1,103 @@
+﻿@page
+@inject IAppConfig config
+@inject ILocalizationService g
+@using  System.Diagnostics
+@{
+    Layout = null;
+    var mark = config.Bind<string>("WebLink.PublishDate");
+
+    if (string.IsNullOrEmpty(mark))
+    {
+        mark = DateTime.Now.ToString("yyyyMMddhh");// refresh every hour
+
+        // Change to check if configuration is set to QA
+        #if DEBUG
+        	mark = DateTime.Now.ToString("yyyyMMddhhmmss");// refresh every second
+        #endif
+    }
+
+    // force translations for ResourceGen.exe
+    //@g["Quantities"]
+    //@g["Add Extras"]
+    //@g["Delivery Address"]
+    //@g["Confirm Order"]
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Print.SmartDots</title>
+    <meta name="viewport" content="width=device-width" />
+    <link rel="stylesheet" href="/css/bootstrap.css?@mark" />
+    <link rel="stylesheet" href="/css/jquery-ui.min.css?@mark" />
+    <link rel="stylesheet" href="/css/font-awesome.min.css?@mark">
+    <link rel="stylesheet" href="/css/themify-icons.css?@mark">
+    <link rel="stylesheet" href="/css/AppContext.GridView.css?@mark" />
+    <link rel="stylesheet" href="/css/AppContext.css?@mark" />
+    <link rel="stylesheet" href="/styles/kendo.common.min.css?@mark" />
+    <link rel="stylesheet" href="/styles/kendo.default.min.css?@mark" />
+    <link rel="stylesheet" href="/styles/kendo.default.mobile.min.css?@mark" />
+    <link rel="stylesheet" href="/css/views.css?@mark" />
+    <link rel="stylesheet" href="/css/photoviewer.css?@mark" />
+    <link rel="stylesheet" href="/js/bootstrap-select/css/bootstrap-select.css?@mark" />
+    <link rel="stylesheet" href="/css/wf.css">
+    <script src="/js/popper.min.js?@mark"></script>
+    <script src="/js/jquery-3.0.0.min.js?@mark"></script>
+    <script src="/js/jquery.validate.min.js?@mark"></script>
+    <script src="/js/jquery.validate.unobtrusive.min.js?@mark"></script>
+    <script src="/js/bootstrap.min.js?@mark"></script>
+    <script src="/js/kendo.all.min.js?@mark"></script>
+    <script src="/js/jquery-ui.js?@mark"></script>
+    <script src="/js/lodash.min.js?@mark"></script>
+    <script src="/js/bootstrap-select/js/bootstrap-select.js?@mark"></script>
+    <script src="/js/AppContext.js?@mark"></script>
+    <script src="/js/AppContext.Events.js?@mark"></script>
+    <script src="/js/AppContext.Extensions.js?@mark"></script>
+    <script src="/js/AppContext.UI.js?@mark"></script>
+    <script src="/js/AppContext.TableView.js?@mark"></script>
+    <script src="/js/AppContext.GridView.js?@mark"></script>
+    <script src="/js/AppContext.OrderGrid.js?@mark"></script>
+    <script src="/js/AppContext.CatalogForm.js?@mark"></script>
+    <script src="/js/AppContext.ConfigSystem.js?@mark"></script>
+    <script src="/js/AppContext.AppDomain.js?@mark"></script>
+    <script src="/js/AppContext.Wizard.js?@mark"></script>
+    <script src="/js/AppContext.Wizard.ACompoWizardView.js"></script>
+    <script src="/js/AppContext.Wizard.ADefineCompoView.js"></script>
+    <script src="/js/pdfobject.js?@mark"></script>
+    <script src="/common/ConfirmDialog.js?@mark"></script>
+    <script src="/HomeView.js?@mark"></script>
+</head>
+<body>
+    <script>
+		// always from cache, to update cache:
+		// set a new value in to appsentings WebLink.PublishDate value
+		// or remove WebLink.PublishDate value to generete a new timeMark on every request
+        AppContext.SetSettings({
+
+            enableCache: true,
+            timeMark: '@mark'.length > 0 ? '@mark' : null
+
+        });
+
+        // defaults Bootstrap Select Picker
+        $.fn.selectpicker.Constructor.DEFAULTS.noneResultsText = '@g["No results matched"] {0}';
+        $.fn.selectpicker.Constructor.DEFAULTS.noneSelectedText = '@g["Nothing selected"]';
+        $.fn.selectpicker.Constructor.DEFAULTS.selectAllText = '@g["Select All"]';
+        $.fn.selectpicker.Constructor.DEFAULTS.style = 'btn-sm btn-light fixBorders';
+        $.fn.selectpicker.Constructor.DEFAULTS.doneButtonText = '@g["Close"]';
+        $.fn.selectpicker.Constructor.DEFAULTS.deselectAllText = '@g["Deselect All"]';
+        $.fn.selectpicker.Constructor.DEFAULTS.liveSearch = true;
+        $.fn.selectpicker.Constructor.DEFAULTS.liveSearchStyle = 'contains';
+        $.fn.selectpicker.Constructor.DEFAULTS.liveSearchNormalize = true;
+        $.fn.selectpicker.Constructor.DEFAULTS.style = 'btn-sm btn-light fixBorders';
+        $.fn.selectpicker.Constructor.DEFAULTS.sanitize = false;
+
+
+		$(document).ready(function () {
+			var view = new HomeView();
+			view.Show($("BODY"));
+		});
+    </script>
+</body>
+</html>
+
+

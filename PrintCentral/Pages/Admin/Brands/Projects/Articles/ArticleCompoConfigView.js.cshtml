@@ -1,0 +1,93 @@
+﻿@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+
+//# sourceURL=https://Pages/Admin/Brands/Projects/Articles/ArticleCompoConfigView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+// <script type="text/javascript">
+
+           var ArticleCompoConfigView = function (currentConfig) {
+
+               this.currentConfig = currentConfig;
+
+               var viewUrl = "/Admin/Brands/Projects/Articles/ArticleCompoConfigView";
+
+               FormView.Extend(this, "@g["Article Composition Config"]", viewUrl);
+
+               this.Initialize();
+
+           }
+
+           ArticleCompoConfigView.prototype = {
+
+               construnctor: ArticleCompoConfigView,
+
+               Initialize: function() {
+
+                   var self = this;
+
+                   //self.OnUnloaded.Subscribe(self, function(data) {
+                   //    //console.log('OnUnloaded Event')
+                   //})
+
+               },
+
+               OnLoad: function() {
+                   var self = this;
+
+               //    self.LoadData(self.currentConfig)
+               self.LoadUserData()
+               },
+               LoadUserData : function () {
+                   let self = this
+                   AppContext.Articles.GetArticleCompositionConfig(self.currentConfig.ProjectID, self.currentConfig.ArticleID ,
+                   (data) => {
+                       if (data){
+                           self.LoadData(data) 
+                           self.model.ArticleCompositionCalculationType = data.ArticleCompositionCalculationType; 
+                           self.elements.WidthInchesMM.val( self.InchesToMilimeters(self.model.WidthInches))
+                           self.elements.WidthAdditionalInInchesMM.val(self.InchesToMilimeters(self.model.WidthAdditionalInInches))
+                           self.elements.HeightInInchesMM.val(self.InchesToMilimeters(self.model.HeightInInches))
+                       }else {
+                            self.LoadData(self.currentConfig)
+                       }
+                   }) 
+
+               }, 
+
+               MilimetersToInches : function (milimeters )  
+               {
+                   return milimeters / 25.4 
+               }, 
+               InchesToMilimeters : function (inches) {
+                   return inches * 25.4 
+               },
+               Save: function() {
+                   var self = this;
+           
+                   if (self.dialog == true) {
+                           self.model.WidthInches=  self.MilimetersToInches(self.elements.WidthInchesMM.val())
+                           self.model.WidthAdditionalInInches = self.MilimetersToInches(self.elements.WidthAdditionalInInchesMM.val())
+                           self.model.HeightInInches= self.MilimetersToInches(self.elements.HeightInInchesMM.val())
+                       var data = self.GetData();
+
+                       AppContext.Articles.SaveArticleCompositionConfig(data, (Data=> {
+                       
+                        
+                       
+                       }))
+                       self.Close(data);
+                   }
+
+               },
+
+
+
+           };
+
+
+       // </script>

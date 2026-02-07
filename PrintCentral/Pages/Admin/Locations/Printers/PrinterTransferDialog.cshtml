@@ -1,0 +1,37 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@inject ICompanyRepository companyRepo
+@inject ILocationRepository repoLocation
+@{
+	Layout = null;
+	int printerid = Convert.ToInt32(Request.Query["id"]);
+	List<ICompany> companies = null;
+	var showAdminFields = (User.IsAnyRole(Roles.SysAdmin, Roles.IDTCostumerService) && userData.CompanyID == 1);
+	if (showAdminFields)
+	{
+		companies = companyRepo.GetList();
+	}
+}
+	<viewcard>
+		<viewform>
+			<viewrow>
+				<viewcolumn>
+					<input model name="PrinterID" type="hidden" value="@printerid" />
+					@if (showAdminFields)
+					{
+						<select model name="CompanyID" label="@g["Company"]:" action="change:LoadLocations" options="@(OptionList.FromEnumerable(companies, "ID", "Name"))" />
+					}
+					else
+					{
+						<input model name="CompanyID" type="hidden" value="@userData.SelectedCompanyID" />
+					}
+					<select model name="LocationID" label="@g["Location"]" />
+				</viewcolumn>
+			</viewrow>
+			<viewfooter>
+				<button type="button" class="btn btn-primary" action="Ok">@g["OK"]</button>
+				<button type="button" class="btn btn-secondary" action="Cancel">@g["Cancel"]</button>
+			</viewfooter>
+		</viewform>
+	</viewcard>

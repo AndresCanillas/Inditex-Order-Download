@@ -1,0 +1,223 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+	<title>Print.SmartDots</title>
+	<meta name="viewport" content="width=device-width">
+	<link rel="stylesheet" href="/css/AppContext.GridView.css" />
+	<link rel="stylesheet" href="/css/AppContext.css" />
+	<link rel="stylesheet" href="/css/jquery-ui.min.css" />
+	<link rel="stylesheet" href="/css/font-awesome.min.css">
+	<link rel="stylesheet" href="/css/themify-icons.css">
+	<link rel="stylesheet" href="/styles/kendo.common.min.css" />
+	<link rel="stylesheet" href="/styles/kendo.default.min.css" />
+	<link rel="stylesheet" href="/styles/kendo.default.mobile.min.css" />
+	<link rel="stylesheet" href="/css/views.css" />
+	<link rel="stylesheet" href="/css/bootstrap.css" />
+	<script src="/js/jquery-3.0.0.min.js"></script>
+	<script src="/js/jquery-ui.js"></script>
+	<script src="/js/bootstrap.min.js"></script>
+	<script src="/js/kendo.all.min.js"></script>
+	<script src="/js/AppContext.js"></script>
+	<script src="/js/AppContext.Extensions.js"></script>
+	<script src="/js/AppContext.Events.js"></script>
+	<script src="/js/AppContext.UI.js"></script>
+	<script src="/js/AppContext.GridView.js"></script>
+</head>
+<body>
+	<span class="fa fa-check"></span>
+	<span class="fa fa-check-circle"></span>
+	<span class="fa fa-check-square"></span>
+	<span class="fa fa-check-square-o"></span>
+	<div id="grid" class="gvbody" style="height:200px;">
+		<div class="gvheader"><div class="gvheader-cell" style="width:30px;"></div><div id="grip" class="gvheader-grip"></div><div class="gvheader-cell" style="width:110px;">EAN13</div><div class="gvheader-grip"></div><div class="gvheader-cell" style="width:110px;">TXT1</div><div class="gvheader-grip"></div><div class="gvheader-cell" style="width:110px;">TXT2</div><div class="gvheader-grip"></div><div class="gvheader-cell" style="width:110px;">TXT3</div><div class="gvheader-grip"></div><div class="gvheader-cell" style="width:60px;">Tamaño</div><div class="gvheader-grip"></div><div class="gvheader-cell" style="width:60px;">Cantidad</div><div class="gvheader-grip"></div><div class="gvheader-cell" style="width:60px;">Impresas</div><div class="gvheader-grip"></div><div class="gvheader-cell" style="width:60px;">Errores</div><div class="gvheader-grip"></div><div class="gvheader-cell" style="width:60px;">Extras</div><div class="gvheader-grip"></div></div>
+		<div class="gvrow"><div class="gvcell" style="width:30px;">A</div><div class="gvcell" style="width:110px;">Some sample text that must be clipped at some point</div><div class="gvcell" style="width:110px;">TXT1</div><div class="gvcell" style="width:110px;">TXT2</div><div class="gvcell" style="width:110px;">TXT3</div><div class="gvcell" style="width:60px;">Tamaño</div><div class="gvcell" style="width:60px;">Cantidad</div><div class="gvcell" style="width:60px;">Impresas</div><div class="gvcell" style="width:60px;">Errores</div><div class="gvcell" style="width:60px;">Extras</div></div>
+		<div class="gvrow"><div class="gvcell" style="width:30px;"></div><div class="gvcell" style="width:110px;">EAN13 asdasd asdasadasd asd</div><div class="gvcell" style="width:110px;">TXT1</div><div class="gvcell" style="width:110px;">TXT2</div><div class="gvcell" style="width:110px;">TXT3</div><div class="gvcell" style="width:60px;">Tamaño</div><div class="gvcell" style="width:60px;">Cantidad</div><div class="gvcell" style="width:60px;">Impresas</div><div class="gvcell" style="width:60px;">Errores</div><div class="gvcell" style="width:60px;">Extras</div></div>
+		<div class="gvrow"><div class="gvcell" style="width:30px;"></div><div class="gvcell" style="width:110px;">EAN13 asdasd asdasadasd asd</div><div class="gvcell" style="width:110px;">TXT1</div><div class="gvcell" style="width:110px;">TXT2</div><div class="gvcell" style="width:110px;">TXT3</div><div class="gvcell" style="width:60px;">Tamaño</div><div class="gvcell" style="width:60px;">Cantidad</div><div class="gvcell" style="width:60px;">Impresas</div><div class="gvcell" style="width:60px;">Errores</div><div class="gvcell" style="width:60px;">Extras</div></div>
+		<div class="gvrow"><div class="gvcell" style="width:30px;"></div><div class="gvcell" style="width:110px;">EAN13 asdasd asdasadasd asd</div><div class="gvcell" style="width:110px;">TXT1</div><div class="gvcell" style="width:110px;">TXT2</div><div class="gvcell" style="width:110px;">TXT3</div><div class="gvcell" style="width:60px;">Tamaño</div><div class="gvcell" style="width:60px;">Cantidad</div><div class="gvcell" style="width:60px;">Impresas</div><div class="gvcell" style="width:60px;">Errores</div><div class="gvcell" style="width:60px;">Extras</div></div>
+		<div class="gvrow"><div class="gvcell" style="width:30px;"></div><div class="gvcell" style="width:110px;">EAN13 asdasd asdasadasd asd</div><div class="gvcell" style="width:110px;">TXT1</div><div class="gvcell" style="width:110px;">TXT2</div><div class="gvcell" style="width:110px;">TXT3</div><div class="gvcell" style="width:60px;">Tamaño</div><div class="gvcell" style="width:60px;">Cantidad</div><div class="gvcell" style="width:60px;">Impresas</div><div class="gvcell" style="width:60px;">Errores</div><div class="gvcell" style="width:60px;">Extras</div></div>
+		<div class="gvrow"><div class="gvcell" style="width:30px;"></div><div class="gvcell" style="width:110px;">EAN13 asdasd asdasadasd asd</div><div class="gvcell" style="width:110px;">TXT1</div><div class="gvcell" style="width:110px;">TXT2</div><div class="gvcell" style="width:110px;">TXT3</div><div class="gvcell" style="width:60px;">Tamaño</div><div class="gvcell" style="width:60px;">Cantidad</div><div class="gvcell" style="width:60px;">Impresas</div><div class="gvcell" style="width:60px;">Errores</div><div class="gvcell" style="width:60px;">Extras</div></div>
+		<div class="gvrow"><div class="gvcell" style="width:30px;"></div><div class="gvcell" style="width:110px;">EAN13 asdasd asdasadasd asd</div><div class="gvcell" style="width:110px;">TXT1</div><div class="gvcell" style="width:110px;">TXT2</div><div class="gvcell" style="width:110px;">TXT3</div><div class="gvcell" style="width:60px;">Tamaño</div><div class="gvcell" style="width:60px;">Cantidad</div><div class="gvcell" style="width:60px;">Impresas</div><div class="gvcell" style="width:60px;">Errores</div><div class="gvcell" style="width:60px;">Extras</div></div>
+		<div class="gvrow"><div class="gvcell" style="width:30px;"></div><div class="gvcell" style="width:110px;">EAN13 asdasd asdasadasd asd</div><div class="gvcell" style="width:110px;">TXT1</div><div class="gvcell" style="width:110px;">TXT2</div><div class="gvcell" style="width:110px;">TXT3</div><div class="gvcell" style="width:60px;">Tamaño</div><div class="gvcell" style="width:60px;">Cantidad</div><div class="gvcell" style="width:60px;">Impresas</div><div class="gvcell" style="width:60px;">Errores</div><div class="gvcell" style="width:60px;">Extras</div></div>
+		<div class="gvrow"><div class="gvcell" style="width:30px;"></div><div class="gvcell" style="width:110px;">EAN13 asdasd asdasadasd asd</div><div class="gvcell" style="width:110px;">TXT1</div><div class="gvcell" style="width:110px;">TXT2</div><div class="gvcell" style="width:110px;">TXT3</div><div class="gvcell" style="width:60px;">Tamaño</div><div class="gvcell" style="width:60px;">Cantidad</div><div class="gvcell" style="width:60px;">Impresas</div><div class="gvcell" style="width:60px;">Errores</div><div class="gvcell" style="width:60px;">Extras</div></div>
+		<div class="gvrow"><div class="gvcell" style="width:30px;">Z</div><div class="gvcell" style="width:110px;">EAN13 asdasd asdasadasd asd</div><div class="gvcell" style="width:110px;">TXT1</div><div class="gvcell" style="width:110px;">TXT2</div><div class="gvcell" style="width:110px;">TXT3</div><div class="gvcell" style="width:60px;">Tamaño</div><div class="gvcell" style="width:60px;">Cantidad</div><div class="gvcell" style="width:60px;">Impresas</div><div class="gvcell" style="width:60px;">Errores</div><div class="gvcell" style="width:60px;">Extras</div></div>
+	</div>
+	<br />
+	<hr />
+	<br />
+	<div id="grid2" style="height:200px; width:100%;">
+		<template>
+			<column field="X" width="60" editable type="int" validations="required;numeric;range(0,100);chars(0123456789)" map='{"1":"OP1","2":"OP2","3":"OP3"}'></column>
+			<column field="MyDate" width="110" editable type="date">Fecha</column>
+			<column field="EAN13" sortable width="110">EAN13</column>
+			<column field="TXT1" sortable width="110" editable validations="maxlen(30);chars(ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz0123456789)">TXT1</column>
+			<column field="TXT2" width="110">TXT2</column>
+			<column field="TXT3" width="110">TXT3</column>
+			<column field="Size" width="60">Tamaño</column>
+			<column field="Quantity" width="60">Cantidad</column>
+			<column field="Printed" width="60">Impresas</column>
+			<column field="Errors" width="60">Errores</column>
+			<column field="Extras" width="60">Extras</column>
+			<column field="Selected" width="30" editable type="bool">Sel?</column>
+			<menu>
+				<menuitem action="TEST">Opción 1</menuitem>
+				<menuitem action="TEST">Opción 2</menuitem>
+				<menuitem action="TEST">Opción 3</menuitem>
+				<menuitem>-</menuitem>
+				<menuitem action="TEST">Delete</menuitem>
+			</menu>
+		</template>
+	</div>
+	<a id="op1" href="#">Enumerate Selected</a>
+	<a id="op2" href="#">SelectedIndex</a>
+	<a id="op3" href="#">ClearSelection</a>
+	<a id="op4" href="#">GetSorting</a>
+	<a id="op5" href="#">ClearSorting</a>
+	<a id="op6" href="#" style="background-color:#ead1c1">Clear Grid</a>
+
+	<div  id="dateTest" style="width:100px; height:22px;" ></div>
+	<script>
+		$(document).ready(function () {
+			var grid = new GridView($("#grid2"), {});
+			grid.Headers.Updated.Subscribe((e) => {
+				console.log(`Header Updated. Width: ${e.data.Width}`);
+			});
+			grid.BeforeSelectedChanged.Subscribe((e) => {
+				console.log(`BeforeSelectedChanged. rowIndex:${e.rowIndex}, colIndex: ${e.colIndex}, Data: ${JSON.stringify(e.rowData)}`);
+			});
+			grid.AfterSelectedChanged.Subscribe((e) => {
+				console.log(`AfterSelectedChanged. rowIndex:${e.rowIndex}, colIndex: ${e.colIndex}, Data: ${JSON.stringify(e.rowData)}`);
+			});
+			grid.HeaderClick.Subscribe((e) => {
+				console.log(`HeaderClick. colIndex: ${e.colIndex}, headerData: ${JSON.stringify(e.headerData)}`);
+			});
+			grid.CellClick.Subscribe((e) => {
+				console.log(`CellClick. rowIndex:${e.rowIndex}, colIndex: ${e.colIndex}, Data: ${JSON.stringify(e.rowData)}`);
+			});
+			grid.RowClick.Subscribe((e) => {
+				console.log(`RowClick. rowIndex:${e.rowIndex}, colIndex: ${e.colIndex}, Data: ${JSON.stringify(e.rowData)}`);
+			});
+			grid.HeaderDoubleClick.Subscribe((e) => {
+				console.log(`HeaderDoubleClick. colIndex: ${e.colIndex}, headerData: ${JSON.stringify(e.headerData)}`);
+			});
+			grid.CellDoubleClick.Subscribe((e) => {
+				console.log(`CellDoubleClick. rowIndex:${e.rowIndex}, colIndex: ${e.colIndex}, Data: ${JSON.stringify(e.rowData)}`);
+			});
+			grid.RowDoubleClick.Subscribe((e) => {
+				console.log(`RowDoubleClick. rowIndex:${e.rowIndex}, colIndex: ${e.colIndex}, Data: ${JSON.stringify(e.rowData)}`);
+			});
+			grid.Rows.MultiSelect = true;
+
+			var words = ["Libro", "Mesa", "Armario", "Cocina", "Auto", "Casa", "Escritorio", "Computadora", "Juego de mesa", "Cama",
+				"Sofá", "Silla", "Librero", "Repida", "Plato", "Taza", "Banco", "Disco", "Fuente", "Guarda ropa",
+				"Horno", "Impresora", "Nevera", "Olla", "Queso", "Kisoko", "Ropero", "Velo", "Urna", "Liquadora"
+			];
+
+			var dataSource = [];
+			var ean13;
+			for (var i = 0; i < 20; i++) {
+				if (i % 5 == 0)
+					ean13 = parseInt(Math.random() * 1000000000, 10).toString();
+				dataSource.push({
+					X: i.toString(),
+					EAN13: ean13, MyDate: new Date(),
+					TXT1: words[parseInt(Math.random() * 1000 % 30)], TXT2: "This is a test",
+					TXT3: "Very long string that will probably end up being clipped",
+					Size: "XXL", Quantity: 10, Printed: 0, Error: 0, Extras: 0, Selected: false
+				});
+			}
+			grid.Rows.LoadData(dataSource);
+			//grid.Headers.SetSorting({ EAN13: "ASC", TXT1: "ASC" });
+			//grid.Headers.Highlight(0);
+			//grid.Headers.Highlight(2);
+			//grid.Headers.Highlight(4);
+			//if (grid.Headers.IsHighlighted(4))
+			//	console.log("Headers.IsHightlighted OK");
+			//else
+			//	console.log("Headers.IsHightlighted FAIL");
+
+			grid.Rows.Select(3);
+			if (grid.Rows.IsSelected(3))
+				console.log("Rows.IsSelected OK");
+			else
+				console.log("Rows.IsSelected FAIL");
+
+			//grid.Rows.Highlight(1);
+			//if (grid.Rows.IsHighlighted(1))
+			//	console.log("Rows.IsHighlighted OK");
+			//else
+			//	console.log("Rows.IsHighlighted FAIL");
+
+			//setTimeout(() => {
+			//	grid.Headers.ResetHighlight(4)
+			//	grid.Headers.HighlightColor = "#a8cfa0";
+			//	grid.Headers.EnsureVisible(9);
+			//	grid.Rows.Unselect(3);
+			//	if (grid.Rows.IsSelected(3))
+			//		console.log("Unselect FAIL");
+			//	grid.Rows.HighlightColor = "#a8cfa0";
+			//}, 1000);
+
+			//setTimeout(() => {
+			//	grid.Rows.ResetHighlight(1);
+			//	if (grid.Rows.IsHighlighted(1))
+			//		console.log("Rows.ResetHighlight FAIL");
+			//	else
+			//		console.log("Rows.ResetHighlight OK");
+			//	grid.Element.scrollLeft = 0;
+			//	grid.Element.scrollTop = 0;
+			//}, 2000);
+
+			//setTimeout(() => {
+			//	grid.Rows.EnsureVisible(500, 9);
+			//	grid.Rows.Highlight(500, 9);
+			//}, 3000);
+
+			//setTimeout(() => {
+			//	grid.Rows.EnsureVisible(0, 0);
+			//	grid.Rows.Highlight(0, 0);
+			//	var row = 50;
+			//	var col = 0;
+			//	var t = setInterval(() => {
+			//		if (row > 0) {
+			//			grid.Rows.Highlight(row, col % 10);
+			//			grid.Rows.EnsureVisible(row, col % 10);
+			//			row--; col++;
+			//		}
+			//		else {
+			//			clearInterval(t);
+			//			grid.Rows.ResetHighlight();
+			//			grid.Headers.ResetHighlight();
+			//		}
+			//	}, 100);
+			//}, 4000);
+
+
+			$("#op1").click((e) => {
+				var rows = grid.Rows.GetSelected();
+				console.log("Total Selected: " + rows.length);
+				for (var i = 0; i < rows.length; i++) {
+					console.log(JSON.stringify(rows[i]));
+				}
+			});
+			$("#op2").click((e) => {
+				console.log("SelectedIndex: " + grid.Rows.SelectedIndex);
+			});
+			$("#op3").click((e) => {
+				grid.Rows.ClearSelection();
+				console.log("Selection cleared!");
+			});
+			$("#op4").click((e) => {
+				console.log("GetSorting: " + JSON.stringify(grid.Headers.GetSorting()));
+			});
+			$("#op5").click((e) => {
+				console.log("Clear Sorting!");
+				grid.Headers.ClearSorting();
+			});
+			$("#op6").click((e) => {
+				console.log("Clear Grid!");
+				grid.Clear();
+			});
+		});
+	</script>
+</body>
+</html>

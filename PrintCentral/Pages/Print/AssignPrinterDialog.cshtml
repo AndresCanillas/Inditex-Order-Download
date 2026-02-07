@@ -1,0 +1,31 @@
+﻿@page
+@inject ILocalizationService g
+@inject IPrinterRepository repo
+
+@{
+    Layout = null;
+    int locationid = Convert.ToInt32(Request.Query["LID"]);
+    bool sendToHercules = Convert.ToBoolean(Request.Query["SendToHercules"]);
+    bool encodeRFID = Convert.ToBoolean(Request.Query["EncodeRFID"]);
+    string currentPrinter = Request.Query["PID"];
+    var printers = repo.GetByLocationID(locationid);
+
+}
+<viewcard>
+    <viewform>
+        <viewrow>
+            <viewcolumn>
+                <viewform>
+                    <input model name="PrinterName" type="hidden" />
+                    <select model name="PrinterID" label="@g["Printer"]:"
+                            options="@OptionList.FromEnumerable(printers, "ID", "Name", currentPrinter)"
+                            action="change:PrinterChanged" />
+                </viewform>
+            </viewcolumn>
+        </viewrow>
+        <viewfooter>
+            <button type="button" class="btn btn-primary" action="Ok">@g["OK"]</button>
+            <button type="button" class="btn btn-secondary" action="Cancel">@g["Cancel"]</button>
+        </viewfooter>
+    </viewform>
+</viewcard>

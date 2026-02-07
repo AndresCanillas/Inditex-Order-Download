@@ -1,0 +1,136 @@
+@page
+@inject ILocalizationService g
+@inject IUserData u
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Dashboards/Articles/ArticlesDashboardView.js
+///<reference path="/js/jquery-3.0.0.min.js" />
+///<reference path="/js/Kendo.all.min.js" />
+///<reference path="/js/AppContext.js" />
+
+//<script>
+	  var ArticlesDashboardView = function () {
+		  FormView.Extend(this, "@g["Articles Dashboard"]", `/Admin/Dashboards/Articles/ArticlesDashboardView`);
+		  this.PageSize = 14;
+		  this.CurrentPage = 1;
+		  this.Pages = 1;
+		  this.TotalRecords = 0;
+	  };
+
+	  ArticlesDashboardView.prototype = {
+		  constructor: ArticlesDashboardView,
+		  
+		  OnLoad: function () {
+			  this.elements.Articles.Rows.MultiSelect = true;
+			  this.FilterData();
+		  },
+
+		  FilterData: async function () {
+			  var search = encodeURIComponent(this.elements.Search[0].value);
+			  var factoryID = this.elements.FactoryID[0].value;
+			  var url = `/Dashboards/Articles/GetTrackedArticles?Page=${this.CurrentPage}&&PageSize=${this.PageSize}`
+			  url += `&&Search=${search}&&FactoryID=${factoryID}`
+			  var response = await AppContext.HttpGet(url);
+
+			  if (response.Success === true) {
+				  this.Articles = response.Data;
+				  this.elements.Articles.Rows.LoadData(response.Data);
+				  this.Pages = Math.ceil(response.TotalCount / this.PageSize);
+				  this.elements.CurrentPageDisplay.text(`${this.CurrentPage}/${this.Pages}`);
+			  }
+		  },
+
+		  PreviousPage: function (e) {
+			  if (this.CurrentPage > 1) {
+				  this.CurrentPage--;
+				  this.FilterData();
+			  }
+		  },
+
+		  NextPage: function (e) {
+			  if (this.CurrentPage < this.Pages) {
+				  this.CurrentPage++;
+				  this.FilterData();
+			  }
+		  },
+
+		  AddArticles: async function (e) {
+			  await AppContext.LoadJS("/Admin/Dashboards/Articles/AddArticleDialog.js");
+			  var dlg = new AddArticleDialog();
+			  dlg.ShowDialog(async (result) => {
+				  await this.FilterData(this);
+			  }, "80%");
+		  },
+
+		  RemoveArticles: async function (e) {
+			  var self = this;
+			  e && e.preventDefault();
+			  if (self.elements.Articles.Rows.SelectedIndex < 0) {
+				  AppContext.ShowError("@g["There are no items selected"]");
+			  }
+			  else {
+				  var dlg = new ConfirmDialog("@g["Are you sure you want to remove all selected articles?"]");
+				  dlg.ShowDialog(async (result) => {
+					  if (result != null) {
+						  debugger
+						  var data = {};
+						  data.Articles = [];
+						  var rows = self.elements.Articles.Rows.GetSelected();
+						  for (var row of rows) {
+							  data.Articles.push(row.ID);
+						  }
+						  result = await AppContext.HttpPost(`/Dashboards/Articles/RemoveArticles`, data);
+						  if (result.Success === true)
+							  self.FilterData();
+					  }
+				  }, "50%");
+			  }
+		  },
+
+		  ResetDate : async function (e) {
+			  var self = this;
+			  e && e.preventDefault();
+			  if (self.elements.Articles.Rows.SelectedIndex < 0) {
+				  AppContext.ShowError("@g["There are no items selected"]");
+			  }
+			  else {
+				  await AppContext.LoadJS("/Admin/Dashboards/Articles/ConfirmInitialDate.js");
+				  var dlg = new ConfirmInitialDate();
+				  dlg.ShowDialog(async (dialogResult) => {
+					 	
+					  if (dialogResult) {
+						  var data = {};
+						  data.Articles = [];
+						  data.initialDate = dialogResult;
+
+						  var rows = self.elements.Articles.Rows.GetSelected();
+						  for (var row of rows) {
+							  data.Articles.push(row.ID);
+						  }
+						  result = await AppContext.HttpPost(`/Dashboards/Articles/ResetDate`, data);
+						  if (result.Success === true)
+							  self.FilterData();
+					  }
+				  }, "50%");
+			  }
+		  },
+
+		  DoSearch: function () {
+			  this.CurrentPage = 1;
+			  this.FilterData();
+		  },
+		 
+		  RenderQuantity: function (value) {
+			  return `<div class="text-right pr-1">${value}</div>`;
+		  },
+
+		  RenderDate: function (value, rowIdx, colIdx, dataType, data) {
+			  var d = new Date(value);
+			  return d.toLocaleString();
+		  },
+
+		  OnUnload: function () {
+		  }
+	  };
+//</script>

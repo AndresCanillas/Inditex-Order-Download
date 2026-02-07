@@ -1,0 +1,96 @@
+﻿@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+    var s = User.Identity.Name;
+}
+//# sourceURL=https://Pages/Admin/Utilities/ServicesStatusContextMenu.js
+//<script>
+
+    var ActionType = {
+        Separator: 0, // separator in toolbar or separator in context menu
+        Start: 1,
+        Stop: 2,
+        Kill: 3,
+        Restart: 4
+    }
+
+    var UserActions = {
+          0: { Action: ActionType.Separator , Text: '-' ,IsForSingle: false , Icon: '' }
+        , 1: { Action: ActionType.Start , Text: '@g["Start"]', IsForSingle: false, Icon: 'fa-clone' }
+        , 2: { Action: ActionType.Stop , Text: '@g["Stop"]', IsForSingle: false, Icon: 'fa-clone' }
+        , 3: { Action: ActionType.Kill, Text: '@g["Kill"]', IsForSingle: false, Icon: 'fa-clone' }
+        , 4: { Action: ActionType.Restart , Text: '@g["Restart"]' ,IsForSingle: false , Icon: 'fa-clone' }
+    };
+
+    //var ServicesStatusEnum = {
+    //    Running: 0,
+    //    Stopped: 1,
+    //    Paused: 2,
+    //    Stopping: 3,
+    //    Starting:4
+    //}
+
+    var ServiceStatusActions = (function () {
+
+        return {
+            GetMenuActions: function (rowData) {
+
+                var actions = [];
+
+                switch (rowData.Status) {
+
+                    case "Running":
+                        actions.push(UserActions[ActionType.Stop]);
+                        actions.push(UserActions[ActionType.Kill]);
+                        actions.push(UserActions[ActionType.Restart]);
+                        break;
+                    case "Stopped":
+                        actions.push(UserActions[ActionType.Start]);
+                }
+
+                return actions;
+            },
+
+            GetSelectionActions: function (selectionRowData) {
+
+                var actions = [];
+
+                // find all available actions
+                for (var i = 0; i < selectionRowData.length; i++) {
+
+                    var row = selectionRowData[i];
+
+                    var rowActions = ServiceStatusActions.GetMenuActions(row);
+
+                    actions.push(rowActions);
+
+                }
+
+                // intercept all actions by order/item
+                var interception = actions[0];
+
+                for (var i = 1; i < actions.length; i++) {
+
+                    var arrayB = actions[i]
+
+                    var result = interception.filter(elementA => arrayB.find(elementB => elementB.Action == elementA.Action))
+
+                    interception = result;
+
+                }
+
+                if (selectionRowData.length > 1) {
+                    // remove actions for single
+                    interception = interception.filter((action) => { return !action.IsForSingle; })
+
+                }
+
+                return interception;
+            }
+
+        }
+    })()
+
+
+//</script>

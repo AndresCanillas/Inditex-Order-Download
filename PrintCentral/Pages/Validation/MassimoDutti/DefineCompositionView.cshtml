@@ -1,0 +1,628 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@inject ICountryRepository ctrRepo
+
+@{
+    Layout = null;
+}
+
+<style>
+    .labels-container {
+        width: 60%;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        align-items: center;
+        justify-items: center;
+        margin: auto;
+    }
+
+    .label-container {
+        width: 300px;
+        display: flex;
+        border: 1px solid;
+        height: 155px;
+        background-color: #f2f2f2;
+        margin: 2px;
+    }
+
+    .percent-container {
+        width: 35px;
+        border: 1px dashed;
+        text-align: left;
+        font-size: 13px;
+        font-family: 'Arial, Helvetica, sans-serif';
+    }
+
+    .additional-container {
+        width: 300px;
+        /*border: 1px solid;*/
+        height: 155px;
+        background-color: #f2f2f2;
+        margin: 2px;
+        font-size: 11px;
+    }
+
+    .percent {
+        height: 15px;
+        /*border: 1px solid;*/
+    }
+
+    .inputNumber {
+        width: 40px;
+        margin-right: 5px;
+    }
+
+    .compo {
+        /*margin: 5px;*/
+        height: 15px;
+        /*font-size:13px;*/
+        font-family: 'Arial, Helvetica, sans-serif';
+        /*   border: 1px solid;*/
+    }
+
+    .fiber-separator-type {
+        width: 40px;
+    }
+
+    .leather-fiber {
+        font-family: 'SIMBOLOS CALZADO';
+        font-size: 2em;
+        height: 25px;
+    }
+</style>
+
+<form name="composition-wizard-frm" method="post" onsubmit="return false;">
+    <viewform>
+
+        <input model name="ID" type="hidden" value="" />
+        <input model name="MaxSectionsPercentage" type="hidden" />
+        <input model name="KeyName" type="hidden" value="" />
+        <input model name="KeyValue" type="hidden" value="" />
+        <input model name="OrderID" type="hidden" value="" />
+        <input model name="ProductDataID" type="hidden" value="" />
+        <input model name="OrderGroupID" type="hidden" value="" />
+        <input model name="OrderDataID" type="hidden" value="" />
+        <input model name="CareInstructionsSorted" type="hidden" />
+        <input model name="ArticleID" type="hidden" />
+        <viewcard>
+
+            <viewrow>
+                <viewcolumn>
+                    <!--  esta es la zona que cambia en el wizard  -->
+
+                    <h3 class="border-bottom">
+                        <span name="Title">@g["Composition"]</span>
+                        <span class="text float-right ">
+                            <a href="#collapseCompo" class="text-muted clearfix collapse-compo" role="button" aria-expanded="true" data-toggle="collapse" aria-controls="collapseCompo">
+                                <i class="c-open fa fa-fw fa-minus-square-o"></i>
+                                <i class="c-close fa fa-fw fa-plus-square-o"></i>
+                            </a>
+                        </span>
+                    </h3>
+                    @*<div name="EnableCompositionContainer">
+                    <select name="EnableComposition" label="@g["Enable Composition"]" action="change:EnableComposition">
+                    <option value="1">@g["Yes"]</option>
+                    <option value="0">@g["No"]</option>
+                    </select>
+                    </div>*@
+
+                </viewcolumn>
+            </viewrow>
+
+            <div id="collapseCompo" class="collapse show" data-toggle="collapse">
+                <div name="CompoOptionsSection" class="d-none">
+                    <viewrow>
+                        <div class="col-sm-12">
+
+                            <select model name="TargetArticle" label="@g["Shoes Composition Type"]" action="change:ChangeTargetArticle_Event"></select>
+
+                        </div>
+                        <div class="col-sm-12">
+                            <div class="alert alert-warning" role="alert">
+                                @g["After change '{0}', need to reload to recover composition storage previously", @g["Shoes Composition Type"]]
+                            </div>
+                        </div>
+                    </viewrow>
+                </div>
+
+                <viewrow>
+                    <viewcolumn>
+                        <div name="Composition"></div>
+                    </viewcolumn>
+
+                </viewrow>
+
+                <viewrow>
+                    <viewcolumn>
+                        <button type="button" class="btn btn-sm btn-success float-right add-section" action="click:AddSectionEvent">@g["Add Section"] <i class="fa fa-fw fa-plus"></i></button>
+                    </viewcolumn>
+                </viewrow>
+
+            </div>
+
+
+
+            <div name="CareInstructionsContainer">
+                <viewrow>
+                    <viewcolumn>
+                        <div class="">
+                            <h3 class="border-bottom">
+                                @g["Care Instructions"]
+                                <span class="text float-right ">
+                                    <a href="#collapseWashingRules" class="text-muted clearfix  collapse-compo" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseWashingRules">
+                                        <i class="c-open fa fa-fw fa-minus-square-o"></i>
+                                        <i class="c-close fa fa-fw fa-plus-square-o"></i>
+                                    </a>
+                                </span>
+                            </h3>
+                        </div>
+                    </viewcolumn>
+                </viewrow>
+                <div id="collapseWashingRules" class="collapse show" data-toggle="collapse">
+
+                    @*<viewrow>
+                    <viewcolumn>
+                    <select model name="EnableWashingRules" label="@g["Enable Washing Rules"]" action="change:EnableWashingRules">
+                    <option value="1">@g["Si"]</option>
+                    <option value="0">@g["No"]</option>
+                    </select>
+                    </viewcolumn>
+                    </viewrow>*@
+
+                    <viewrow>
+                        <viewcolumn>
+                            <div name="WashinRules">
+
+                                <div name="TemplatesContainer" style="display:none">
+                                    <select model name="WrTemplate" action="change:FilterElements" label="@g["Templates"]:" validation="required;range(0, 1000)" />
+                                </div>
+
+
+                                <div name="TemplatesLeftZone">
+                                    <div class="form-group row" style="margin-bottom:5px;">
+                                        <label class="col-sm col-form-label">@g["Washed"]</label>
+                                        <div class="input-group input-group-sm col-sm">
+                                            @*<div class="input-group-append remove-section-action">
+                                            <span style="font-size: 43pt;width: 30px;height: 10px;font-family: 'ISO Symbol T5';position: relative;top: -28px;left: -6px;">A</span>
+                                            </div>*@
+
+                                            <input model id="Wash" name="UICareInstructions[0].Instruction" data-idx="1" no-transform class="form-control form-control-sm wr-code" />
+                                            <input model hidden no-transform name="CareInstructions[0].Category" value="Wash" />
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group row" style="margin-bottom:5px;">
+                                        <label class="col-sm col-form-label">@g["Bleached"]</label>
+                                        <div class="input-group input-group-sm col-sm">
+                                            @*<div class="input-group-append">
+                                            <span style="font-size: 42pt;width: 30px;height: 10px;font-family: 'ISO Symbol T5';position: relative;top: -26px;left: -5px;">K</span>
+                                            </div>*@
+                                            <input model id="Bleach" name="UICareInstructions[1].Instruction" data-idx="2" no-transform class="form-control form-control-sm wr-code" />
+                                            <input model hidden no-transform name="CareInstructions[1].Category" value="Bleach" />
+                                        </div>
+                                    </div>
+
+
+
+                                    <div class="form-group row" style="margin-bottom:5px;">
+                                        <label class="col-sm col-form-label">@g["Dry"]</label>
+                                        <div class="input-group input-group-sm col-sm">
+                                            @*<div class="input-group-append">
+                                            <span style="font-size: 44pt;width: 30px;height: 10px;font-family: 'ISO Symbol T5';position: relative;top: -28px;left: -2px;">V</span>
+
+                                            </div>*@
+                                            <input id="Dry" model name="UICareInstructions[2].Instruction" data-idx="3" no-transform class="form-control form-control-sm wr-code" />
+                                            <input model hidden no-transform name="CareInstructions[2].Category" value="Dry" />
+
+                                        </div>
+                                    </div>
+
+
+                                </div>
+                            </div>
+                        </viewcolumn>
+
+                        <viewcolumn>
+
+                            <div name="TemplatesRightZone">
+
+
+                                <div class="form-group row" style="margin-bottom:5px;">
+                                    <label class="col-sm col-form-label">@g["Ironed"]</label>
+                                    <div class="input-group input-group-sm col-sm">
+                                        @*<div class="input-group-append">
+                                        <span style="font-size: 40pt;width: 30px;height: 10px;font-family: 'ISO Symbol T5';position: relative;top: -25px;left: -7px;">O</span>
+                                        </div>*@
+                                        <input model id="Iron" name="UICareInstructions[3].Instruction" data-idx="4" no-transform class="form-control form-control-sm wr-code" />
+                                        <input model hidden no-transform name="CareInstructions[3].Category" value="Iron" />
+                                    </div>
+                                </div>
+
+                                <div class="form-group row" style="margin-bottom:5px;">
+                                    <label class="col-sm col-form-label">@g["Dry Cleaning"]</label>
+                                    <div class="input-group input-group-sm col-sm">
+                                        @*<div class="input-group-append">
+                                        <span style="font-size: 43pt;width: 30px;height: 10px;font-family: 'ISO Symbol T5';position: relative;top: -27px;left: -3px;">S</span>
+                                        </div>*@
+                                        <input model id="DryCleaning" name="UICareInstructions[4].Instruction" data-idx="5" no-transform class="form-control form-control-sm wr-code" />
+                                        <input model hidden no-transform name="CareInstructions[4].Category" value="DryCleaning" />
+                                    </div>
+                                </div>
+
+                                <div class="form-group row" style="margin-bottom:5px">
+                                    <label class="col-sm col-form-label">@g["Symbols"]</label>
+                                    <div class="input-group input-group-sm col-sm">
+                                        <div name="wsymbols" class="indetgroup-ginetex" style="display:inline-block; width:250px"> </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </viewcolumn>
+                    </viewrow>
+                </div>
+            </div>
+
+            <div name="AdditionlasContainer">
+                <viewrow>
+                    <viewcolumn>
+                        <div class="">
+                            <h3 class="border-bottom">
+                                @g["Additionals"]
+                                <span class="text float-right ">
+                                    <a href="#collapseAdditionals" class="text-muted clearfix  collapse-compo" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseAdditionals">
+                                        <i class="c-open fa fa-fw fa-minus-square-o"></i>
+                                        <i class="c-close fa fa-fw fa-plus-square-o"></i>
+                                    </a>
+                                </span>
+                            </h3>
+                        </div>
+                    </viewcolumn>
+                </viewrow>
+
+                <div id="collapseAdditionals" class="collapse show" data-toggle="collapse">
+
+                    <viewrow>
+
+                        <viewcolumn>
+
+                            <div class="form-group row" style="margin-bottom:5px;">
+                                <label class="col-sm col-form-label">@g["Add Addionals"]</label>
+                                <div class="input-group input-group-sm col-sm">
+                                    @*<div class="input-group-append">
+                                    <button class="btn btn-sm btn-info mr-0"><i class="fa fa-fw fa-check"></i></button>
+                                    </div>*@
+                                    <select model id="Additionals" name="UICareInstructions[5].Instruction" data-idx="6" data-category="Additional" no-transform class="form-control form-control-sm swr-code swr-additionals"></select>
+                                </div>
+                            </div>
+
+
+                        </viewcolumn>
+                    </viewrow>
+
+                </div>
+
+
+            </div>
+
+
+            <div name="ExceptionsContainer">
+                <viewrow>
+                    <viewcolumn>
+                        <div class="">
+                            <h3 class="border-bottom">
+                                @g["Exceptions"]
+                                <span class="text float-right ">
+                                    <a href="#collapseExceptions" class="text-muted clearfix  collapse-compo" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseExceptions">
+                                        <i class="c-open fa fa-fw fa-minus-square-o"></i>
+                                        <i class="c-close fa fa-fw fa-plus-square-o"></i>
+                                    </a>
+                                </span>
+                            </h3>
+                        </div>
+                    </viewcolumn>
+                </viewrow>
+
+                <div id="collapseExceptions" class="collapse show" data-toggle="collapse">
+                    <div style="display:none">
+                        <viewrow>
+                            <viewcolumn>
+                                <div class="form-group row" style="margin-bottom:5px;margin-left:90px">
+                                    <div class="input-group input-group-lg col-lg">
+                                        <input type="checkbox" model action="change:ChangeEnableFiberConcat" name="EnableFiberConcat" class="form-control-sm " />
+                                        <label class="col-sm col-form-label">@g["Enable Free Exceptions Composition"]</label>
+                                    </div>
+                                </div>
+                            </viewcolumn>
+                        </viewrow>
+
+                    </div>
+                    <viewrow>
+                       
+                            <viewcolumn>
+                            <div id="ExceptionClassic">
+                                <div class="form-group row" style="margin-bottom:5px;">
+                                    <label class="col-sm col-form-label">@g["Add Exceptions"]</label>
+                                    <div class="input-group input-group-sm col-sm">
+                                        @*<div class="input-group-append">
+                                    <button class="btn btn-sm btn-info mr-0"><i class="fa fa-fw fa-check"></i></button>
+                                    </div>*@
+                                        <select model id="Exceptions" action="change:ChangeException" name="UICareInstructions[6].Instruction" data-idx="7" data-category="Exception" no-transform class="form-control form-control-sm swr-code swr-exceptions"></select>
+                                    </div>
+                                </div>
+                            </div>
+                            </viewcolumn>
+                       
+
+
+
+
+
+                    </viewrow>
+                    <div id="ExceptionLocation">
+                    <viewrow>
+                        <viewcolumn>
+
+                            
+                                <select model label="@g["Exception Location"]" name="ExceptionLocation" action="change:SetExceptionLocationEvt" class="form-control form-control-sm " />
+                           
+                        </viewcolumn>
+
+                        <viewcolumn>
+                            <div id="FiberConcat">
+                                <div class="form-group row" style="margin-bottom:5px;">
+                                <div class="input-group input-group-sm col-sm"> 
+                                    <select model label="@g["Fiber"]" name="ConcatFiber"></select>
+                                <div class="input-group-append">
+                                                <a href="#" class="btn btn-sm btn-primary" action="ConcatFiberToExceptionEvt">Concat fiber to exceptions <span class="fa fa-fw fa-link" aria-hidden="true"></span></a>
+                                </div>
+
+                                </div>
+
+                            </div> 
+                            </div>
+                        </viewcolumn>
+
+ 
+
+                    </viewrow>
+                        <div id="FiberConcatSelected" style="display:none">
+                            <viewrow>
+                                <viewcolumn>
+
+                                </viewcolumn>
+                                <viewcolumn>
+                                    <div class="card" style="width: 18rem;">
+
+                                        <div class="card-body">
+                                            <h5 class="card-title">@g["Selected concat fiber"]</h5>
+                                            <p class="card-text" id="TextSelectedFiber">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+                                            <a href="#" class="btn btn-danger" action="ResetConcatFiberToException">Reset Concatenation <i class="fa fa-chain-broken" aria-hidden="true"></i></a>
+                                        </div>
+                                    </div>
+                                </viewcolumn>
+                            </viewrow>
+                        </div>
+                    </div>
+                    <div id="ExceptionAdvanced" style="display:none">
+                        <viewrow>
+                            <viewcolumn>
+                                <div class="form-group row" style="margin-bottom:5px;">
+                                    <label class="col-sm col-form-label">@g["Exceptions"]</label>
+                                    <div class="input-group input-group-sm col-sm">
+                                        <select model name="ExceptionsCombo" action="change:ExceptionsComboChange" no-transform class="k-input form-control form-control-sm " />
+                                        @* <a href="#" class="btn btn-sm btn-primary" action="AddExceptionBlock"> <span class="fa fa-fw fa-plus" aria-hidden="true"></span></a> *@
+                                    </div>
+                                    <div class="input-group-append">
+                                        <a href="#" class="btn btn-sm btn-primary" action="AddExceptionBlock"> <span class="fa fa-fw fa-plus" aria-hidden="true"></span></a>
+                                    </div>
+                                </div>
+                            </viewcolumn>
+
+                            <viewcolumn>
+                                <div class="form-group row" style="margin-bottom:5px;">
+                                    <label class="col-sm col-form-label">@g["Section"]</label>
+                                    <div class="input-group input-group-sm col-sm">
+                                        <select model name="ExceptionSection" action="change:LoadSectionFibersEvt" no-transform class="k-input form-control form-control-sm " />
+
+                                    </div>
+                                    @*                                 <div class="input-group-append">
+                                    <a href="#" class="btn btn-sm btn-primary" action="AddSectionExceptionBlock"> <span class="fa fa-fw fa-plus" aria-hidden="true"></span></a>
+                                </div> *@
+                                </div>
+                            </viewcolumn>
+                            <viewcolumn>
+                                <div class="form-group row" style="margin-bottom:5px;">
+                                    <label class="col-sm">@g["Fiber"]</label>
+                                    <div class="input-group input-group-sm col-sm">
+                                        <select model name="ExceptionSectionFiber" no-transform class="k-input form-control form-control-sm " />
+                                        @* <a href="#" class="btn btn-sm btn-primary" action="AddFiberExceptionBlock"> <span class="fa fa-fw fa-plus" aria-hidden="true"></span></a> *@
+                                    </div>
+                                    <div class="input-group-append">
+                                        <a href="#" class="btn btn-sm btn-primary" action="AddFiberExceptionBlock"> <span class="fa fa-fw fa-plus" aria-hidden="true"></span></a>
+                                    </div>
+                                </div>
+                            </viewcolumn>
+
+                        </viewrow>
+                    </div>
+                   
+                    <viewrow>
+                        <viewcolumn class="labels-form">
+                            <div class="form-group row fillingWeight" style="margin-bottom:5px;">
+
+                                <div class="input-group input-group-sm col-sm">
+                                    <label class="col-sm col-form-label">@g["Filling weight"]</label>
+                                    <input model name="FillingWeight" no-transform type="text" value="" class="form-control form-control-sm" />
+
+                                </div>
+                            </div>
+                        </viewcolumn>
+                    </viewrow>
+                    <viewrow>
+                        <viewcolumn>
+
+                            <style>
+                                body {
+                                    font-family: Arial, sans-serif;
+                                    margin: 20px;
+                                }
+
+                                table {
+                                    width: 100%;
+                                    border-collapse: collapse;
+                                    margin-bottom: 20px;
+                                }
+
+                                th, td {
+                                    padding: 12px;
+                                    text-align: left;
+                                    border: 1px solid #ddd;
+                                }
+
+                                th {
+                                    background-color: #f4f4f4;
+                                }
+
+                                .action-buttons button {
+                                    padding: 8px 12px;
+                                    margin: 0 5px;
+                                    border: none;
+                                    cursor: pointer;
+                                    border-radius: 4px;
+                                }
+
+                                .edit-button {
+                                    background-color: #007bff;
+                                    color: white;
+                                }
+
+                                .delete-button {
+                                    background-color: #dc3545;
+                                    color: white;
+                                }
+
+                                .edit-button:hover {
+                                    background-color: #0056b3;
+                                }
+
+                                .delete-button:hover {
+                                    background-color: #c82333;
+                                }
+                            </style>
+
+
+                            <table id="ExceptionsTable" style="display:none">
+                                <thead>
+                                    <tr>
+                                        <th>Exception</th>
+                                        <th>Section</th>
+                                        <th>Fiber</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+
+
+                        </viewcolumn>
+                    </viewrow>
+
+                </div>
+
+
+            </div>
+
+
+            <div id="PreviewContainer" class="collapse show" data-toggle="collapse">
+                <viewrow>
+                    <viewcolumn>
+                        <div class="">
+                            <h3 class="border-bottom">
+                                @g["Text compression adjustments"]
+                                <span class="text float-right ">
+                                    <a href="#collapsePreview" class="text-muted clearfix  collapse-compo" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapsePreview">
+                                        <i class="c-open fa fa-fw fa-minus-square-o"></i>
+                                        <i class="c-close fa fa-fw fa-plus-square-o"></i>
+                                    </a>
+                                </span>
+                            </h3>
+                        </div>
+                    </viewcolumn>
+                </viewrow>
+                <div id="collapsePreview" class="collapse show" data-toggle="collapse">
+                    <viewrow>
+                        <viewcolumn class="labels-form">
+                            <div class="form-group row" style="margin-bottom:5px;">
+                                <div class="input-group input-group-sm col-sm">
+                                    <label class="col-sm col-form-label">@g["Label separator type"]</label>
+                                    <select model name="FiberSeparatorType" no-transform class="form-control form-control-sm fiber-separator-type">
+                                    </select>
+
+
+                                    @*<button type="button" class="btn btn-sm btn-success float-right" action="click:PreviewEvent">@g["Show"]</button>*@
+                                    @* <button type="button" class="btn btn-sm btn-success float-right" action="click:PreviewEventReset">@g["Reset"]</button>*@
+                                </div>
+                            </div>
+
+                            <div class="form-group row" style="margin-bottom:5px;">
+                                <div class="input-group input-group-sm col-sm">
+                                    <label class="col-sm col-form-label">@g["Composition Compression"]</label>
+                                    <input type="number" placeholder="0% to 100%" max="100" min="0" no-transform class="form-control form-control-sm fiber-label-size">
+                                    <button type="button" class="btn btn-sm btn-success float-right" action="click:PreviewCompoEvt">@g["Apply"]</button>
+                                </div>
+                            </div>
+                            <hr />
+                            <div class="form-group row additional-compresion" style="margin-bottom:5px;">
+                                <div class="input-group input-group-sm col-sm">
+                                    <label class="col-sm col-form-label">@g["Additional Compression"]</label>
+                                    <input type="number" placeholder="0% to 100%" max="100" min="0" no-transform class="form-control form-control-sm additional-label-size">
+                                    <button type="button" class="btn btn-sm btn-success float-right" action="click:PreviewAdditionalEvt">@g["Apply"]</button>
+                                </div>
+                            </div>
+                        </viewcolumn>
+                    </viewrow>
+
+                    <viewrow>
+                        <viewcolumn>
+                            @*    <button type="button" class="btn btn-sm btn-success float-right" action="click:LoadPreviewEvent">@g["Load Adjust"]</button>*@
+
+                            @*<button type="button" class="btn btn-sm btn-success float-right" action="click:SaveViewEvent">@g["Save Adjust"]</button>*@
+                        </viewcolumn>
+                    </viewrow>
+                    <viewrow>
+                        <viewcolumn>
+                            <div class="form-group row" style="margin-bottom:5px;">
+                                <div class="input-group input-group-sm col-sm">
+                                    <div class="labels-container"></div>
+                                </div>
+                            </div>
+                        </viewcolumn>
+                    </viewrow>
+                </div>
+
+            </div>
+
+            <!--         <input model name="CareInstruction[0].Instruction" value="" />       -->
+            <div class="d-none" name="SortedCareInstructions"></div>
+
+
+            <viewfooter>
+
+                <div class="row justify-content-end" name="AvailableActions">
+                    @*<div class="col-4 text-center">
+                    <a href="#" class="btn btn-sm btn-outline-primary" action="Save"> <span class="fa fa-fw fa-save" aria-hidden="true"></span> @g["Save"]</a>
+                    </div>*@
+                    <div class="col text-right">
+                        <a href="#" class="btn btn-sm btn-primary" action="SaveDefinitionStay">@g["Save"] <span class="fa fa-fw fa-chevron-right" aria-hidden="true"></span></a>
+                        <a href="#" class="btn btn-sm btn-primary" action="SaveDefinition">@g["Save and Close"] <span class="fa fa-fw fa-chevron-right" aria-hidden="true"></span></a>
+                    </div>
+                </div>
+
+            </viewfooter>
+
+        </viewcard>
+    </viewform>
+
+</form>

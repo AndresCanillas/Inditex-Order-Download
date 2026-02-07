@@ -1,0 +1,97 @@
+﻿@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+
+//# sourceURL=https://Pages/Admin/Brands/Projects/Articles/ArticleAccessBlockConfigView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+// <script type="text/javascript">
+       
+    var ArticleAccessBlockConfigView = function (currentConfig) {
+
+           this.currentConfig = currentConfig;
+
+           var viewUrl = "/Admin/Brands/Projects/Articles/ArticleAccessBlockConfigView";
+
+           FormView.Extend(this, "@g["Acces Block config"]", viewUrl);
+
+           this.Initialize();
+       }
+
+       ArticleAccessBlockConfigView.prototype = {
+
+           construnctor: ArticleAccessBlockConfigView,
+
+           Initialize: function () {
+               var self = this;
+           },
+
+           OnLoad: function () {
+               var self = this;
+               self.LoadUserData();
+           },
+
+           LoadUserData: function () {
+               var self = this;
+
+               AppContext.Articles.GetByID(self.currentConfig.ArticleID, (data) => {
+
+                   if (!data) {
+                       self.LoadData(self.currentConfig);
+                       self.ApplyChecksFromJson();
+                       return;
+                   }
+
+                   self.LoadData({
+                       ArticleID: data.ID,
+                       ProjectID: self.currentConfig.ProjectID,
+                       ExportBlockedLocationIds: data.ExportBlockedLocationIds
+                   });
+
+                   self.ApplyChecksFromJson();
+               });
+           },
+
+           ApplyChecksFromJson: function () {
+               var self = this;
+
+               var ids = [];
+               try {
+                   ids = JSON.parse(self.model.ExportBlockedLocationIds || "[]") || [];
+               } catch (e) {
+                   ids = [];
+               }
+
+               var set = {};
+               for (var i = 0; i < ids.length; i++) set[parseInt(ids[i], 10)] = true;
+
+               $(self.ViewContainer).find(".AccessBlockLoc").each(function () {
+                   var id = parseInt($(this).val(), 10);
+                   $(this).prop("checked", set[id] === true);
+               });
+           },
+
+            Save: function () {
+                var self = this;
+
+                var ids = [];
+                $(self.ViewContainer).find(".AccessBlockLoc:checked").each(function () {
+                    ids.push(parseInt($(this).val(), 10));
+                });
+
+                self.model.ExportBlockedLocationIds = JSON.stringify(ids);
+
+                var dataToSave = {
+                    ArticleID: self.model.ArticleID,
+                    ProjectID: self.model.ProjectID,
+                    ExportBlockedLocationIds: self.model.ExportBlockedLocationIds
+                };
+
+                AppContext.Articles.SaveArticleAccessBlockConfig(dataToSave, function (result) {
+                    self.Close(dataToSave);
+                });
+            },
+       };

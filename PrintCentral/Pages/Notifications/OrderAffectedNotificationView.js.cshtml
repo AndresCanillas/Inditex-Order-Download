@@ -1,0 +1,122 @@
+﻿@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages/Notifications/OrderAffectedNotificationView.js
+///<reference path="/js/jquery-3.0.0.min.js" />
+///<reference path="/js/Kendo.all.min.js" />
+///<reference path="/js/AppContext.js" />
+//<script>
+    var OrderAffectedNotificationView = function (notification) {
+		FormView.Extend(this, "@g["Catalog was Updated"]", "/Notifications/OrderAffectedNotificationView");
+        this.Notification = notification;
+
+	};
+
+
+	OrderAffectedNotificationView.prototype = {
+		constructor: OrderAffectedNotificationView,
+
+		OnLoad: function () {
+            var self = this;
+
+            $("html, body").animate({ scrollTop: 0 }, 750);
+
+            var data = self.GetNotificationData();
+
+            if (data) {
+                self.LoadData(data);
+            }
+
+            var modificationType = self.GetModificationType();
+
+            self.model.ModificationType = modificationType;
+
+		},
+
+        GetNotificationData: function () {
+
+            var self = this;
+
+            if (!self.Notification || !self.Notification.Data) {
+                return null;
+            }
+
+            return JSON.parse(this.Notification.Data);
+        },
+
+        GetModificationType: function () {
+
+            var self = this;
+
+            var modType = '@g["Unknow"]'
+
+            switch (self.Notification.NKey) {
+                case 'CatalogStructureUpdatedEvent':
+                    modType = '@g["Catalog Structure was changed"]';
+                    break;
+
+                case 'CatalogNameUpdatedEvent':
+                    modType = '@g["Catalog name was changed"]';
+                    break;
+
+                case 'CatalogDataUpdatedEvent':
+                    modType = '@g["Catalog data was changed"]';
+                    break;
+
+                default:
+                     modType = '@g["Unknow"]'
+                    break;
+            }
+
+            return modType;
+
+        },
+
+		DismissNotification: function (e) {
+            var self = this;
+
+            var dlg = new ConfirmDialog("@g["Please, confirm to dismiss this notification?"]");
+			dlg.ShowDialog(function (response) {
+
+                if (!response) {
+                    return;
+                }
+
+				AppContext.HttpPost(`/notifications/dismiss/${self.Notification.ID}`, null, function (response) {
+					if (response.Success) {
+						var notifications = new NotificationList();
+						notifications.Show(self.ViewContainer);
+					}
+				});
+			});
+
+        },
+
+        CloseNotification: function (e) {
+
+            var self = this;
+
+            //var container = $('.main-panel-content[name="mainContainer"]');
+
+            var notifications = new NotificationList();
+            notifications.Show(self.ViewContainer);
+        },
+
+        ShowOrders: function () {
+            var self = this;
+
+            var data = JSON.parse(self.Notification.Data);
+
+            AppContext.LoadJS('/Upload/OrderGroupIndexView.js').then(() => {
+                var v = new OrderGroupIndexView({ Title: "Orders Affected", Filter: { ProjectID: data.ProjectID }, EnableStorageFilter: false });
+
+                v.Show(self.ViewContainer);
+
+                //self.Close();
+            });
+            
+        }
+	};
+//  </script>

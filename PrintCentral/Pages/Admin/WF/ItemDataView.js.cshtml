@@ -1,0 +1,63 @@
+﻿@page
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/WF/ItemDataView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var ItemDataView = function () {
+		FormView.Extend(this, null, `/Admin/WF/ItemDataView`);
+	};
+
+	ItemDataView.prototype = {
+		constructor: ItemDataView,
+
+		OnLoad: async function () {
+		},
+
+		OnUnload: function () {
+		},
+
+		LoadItemData: function (itemdata)
+		{
+			this.ItemData = itemdata;
+			this.LoadData(itemdata);
+		},
+
+		ShowItemState: async function (e) {
+			e && e.preventDefault();
+			if (this.ItemData == null) {
+				AppContext.ShowError("There is no item selected");
+				return;
+			}
+			await AppContext.LoadJS("/Admin/WF/ItemStateDialog.js");
+			var dlg = new ItemStateDialog(this.ItemData.WorkflowID, this.ItemData.ItemID);
+			dlg.ShowDialog(null, "70%");
+		},
+
+		ShowItemHistory: async function (e) {
+			e && e.preventDefault();
+			if (this.ItemData == null) {
+				AppContext.ShowError("There is no item selected");
+				return;
+			}
+			await AppContext.LoadJS("/Admin/WF/ItemHistoryDialog.js");
+			var dlg = new ItemHistoryDialog(this.ItemData.WorkflowID, this.ItemData.ItemID);
+			dlg.ShowDialog(null, "70%");
+		},
+
+		ShowItemLog: async function (e) {
+			e && e.preventDefault();
+			if (this.ItemData == null) {
+				AppContext.ShowError("There is no item selected");
+				return;
+			}
+			await AppContext.LoadJS("/Admin/WF/ItemLogDialog.js");
+			var dlg = new ItemLogDialog(this.ItemData.WorkflowID, this.ItemData.ItemID);
+			dlg.ShowDialog(null, "70%");
+		}
+	};
+//</script>

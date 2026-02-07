@@ -1,0 +1,30 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Common/SelectPrinterDialog.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var SelectPrinterDialog = function () {
+		FormView.Extend(this, "@g["Select a printer"]", "/Common/SelectPrinterDialog");
+	};
+
+	SelectPrinterDialog.prototype = {
+		constructor: SelectPrinterDialog,
+
+		OnLoad: function () {
+			this.LoadPrinters();
+		},
+
+		LoadPrinters: function (e) {
+			var self = this;
+			AppContext.Printers.GetByLocationID(this.model.LocationID, function (data) {
+				AppContext.LoadComboBox(self.elements.PrinterID, data, "ID", "Name");
+			});
+		}
+	};
+//</script>

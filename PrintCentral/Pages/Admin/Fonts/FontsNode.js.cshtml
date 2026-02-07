@@ -1,0 +1,31 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Fonts/FontsNode.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+
+    var FontsNode = function () {
+        TreeNode.Extend(this, "FontsNode", 0, "@g["Fonts"]");
+        this.CanEdit = false;
+		this.Expand();
+	};
+
+	FontsNode.prototype = {
+		constructor: FontsNode,
+
+		OnDoubleClick: function (e) {
+			var self = this;
+			AppContext.LoadJS("/Admin/Fonts/FontList.js").then(() => {
+				var view = new FontList();
+				view.Show(self.getViewContainer());
+			});
+		}
+    };
+
+//</script>

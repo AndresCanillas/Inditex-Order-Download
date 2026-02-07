@@ -1,0 +1,127 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+
+//# sourceURL=https://Pages/Upload/OrderLogView.js
+/// <script>
+
+
+
+    var OrderLogView = function (orderID, isGroup) {
+
+        if (isGroup == undefined) {
+            isGroup = false;
+        }
+
+		FormView.Extend(this, "@g["Order Detail"]", "/Upload/OrderLogView");
+        this.Data = null;
+        this.OrderID = orderID;
+        this.IsGroup = isGroup;
+	};
+
+
+	OrderLogView.prototype = {
+		constructor: OrderLogView,
+
+		OnLoad: function () {
+            var self = this;
+
+
+            if (self.IsGroup) {
+                self.GetGroupLog();
+            } else {
+                self.GetOrderLog();
+            }
+
+        },
+
+        GetOrderLog: function () {
+			var self = this;
+
+            AppContext.Orders.GetLog(self.OrderID)
+                .done(function (response) {
+
+                    if (!response.Success) {
+                        AppContext.ShowError(response.Message);
+                        return;
+                    }
+
+                    self.elements.GridOrderLog.Rows.LoadData(response.Data);
+
+                    AppContext.ShowSuccess('@g["History Loaded"]');
+                })
+        },
+
+         GetGroupLog: function () {
+			var self = this;
+
+            AppContext.Orders.GetOrderGroupLog(self.OrderID)
+                .done(function (response) {
+
+                    if (!response.Success) {
+                        AppContext.ShowError(response.Message);
+                        return;
+                    }
+
+                    self.elements.GridOrderLog.Rows.LoadData(response.Data);
+
+                    AppContext.ShowSuccess('@g["History Loaded"]');
+                })
+        },
+
+        GridViewLevelRender: function (value, rowId, colIdx, dataType, data) {
+
+
+            var levelClass = 'badge-info'
+
+            switch (data.Level) {
+
+                case 0:
+                    levelClass = 'badge-info'
+                    break;
+
+                case 1:
+                     levelClass = 'badge-warn'
+                    break;
+
+
+                case 2:
+                    levelClass = 'badge-danger'
+                    break;
+
+
+                case 3:
+                    levelClass = 'badge-light'
+                    break;
+
+
+                default:
+                    levelClass = 'badge-info'
+
+                    break;
+
+            }
+
+            return `<span class="badge ${levelClass}">${value}</span>`;
+        },
+
+        GridViewMessageRender: function (value) {
+
+            return `<p title="${value}">${value}</p>`;
+
+        },
+
+        RenderCreatedDate: function (value, row, col, dataType, data) {
+            var d = new Date(value);
+
+            return d.toLocaleString();
+        }
+
+
+
+
+
+	};
+/// </script>

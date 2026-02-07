@@ -1,0 +1,158 @@
+﻿@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+
+//# sourceURL=https://Pages/Admin/Brands/Projects/WorkflowConfigView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+// <script type="text/javascript">
+
+    var WorflowConfigView = function (currentConfig) {
+        
+        this.currentConfig = currentConfig;
+
+        var viewUrl = "/Admin/Brands/Projects/WorkflowConfig/WorkflowConfigView";
+
+        FormView.Extend(this, "@g["Validation Config"]", viewUrl);
+
+        this.Initialize();
+
+    }
+
+    WorflowConfigView.prototype = {
+
+        construnctor: WorflowConfigView,
+
+        Initialize: function() {
+
+            var self = this;
+
+            //self.OnUnloaded.Subscribe(self, function(data) {
+            //    //console.log('OnUnloaded Event')
+            //})
+
+        },
+
+        OnLoad: function() {
+            var self = this;
+
+            self.LoadData(self.currentConfig)
+        },
+
+        Save: function() {
+            var self = this;
+            
+            if (self.dialog == true) {
+                var data = self.GetData();
+                self.Close(data);
+            }
+
+        },
+
+        QuantityOptionSelected: function (evt) {
+
+            var self = this;
+
+            var ctrSelector = 'div.qo';
+            var value = self.model.AllowQuantityEdition;
+
+            self.elements.MaxQuantityPercentage.parents(ctrSelector).addClass("d-none");
+            self.elements.MaxQuantity.parents(ctrSelector).addClass("d-none");
+
+            switch (parseInt(value)) {
+
+                case 0:
+                    var optionContainer = self.elements.MaxQuantity.parents(ctrSelector)
+                    optionContainer.removeClass("d-none");
+                    optionContainer.find('input')
+                        .prop('readonly', true)
+                        .val('');
+
+                    break;
+
+                case 1:
+                    var optionContainer = self.elements.MaxQuantity.parents(ctrSelector)
+                    optionContainer.removeClass('d-none');
+                    optionContainer.find('input')
+                        .prop('readonly', false)
+                        .val(self.model.MaxQuantity);
+
+                    break;
+
+                case 2:
+                    var optionContainer = self.elements.MaxQuantityPercentage.parents(ctrSelector)
+                    optionContainer
+                        .removeClass('d-none')
+                        .val(self.model.MaxQuantityPercentage);
+
+                    break;
+                case 3:
+                    let optionContainerMQ = self.elements.MaxQuantity.parents(ctrSelector)
+                    optionContainerMQ.removeClass('d-none');
+                    optionContainerMQ.find('input')
+                        .prop('readonly', false)
+                        .val(self.model.MaxQuantity);
+                    let optionContainerPER = self.elements.MaxQuantityPercentage.parents(ctrSelector)
+                    optionContainerPER
+                        .removeClass('d-none')
+                        .val(self.model.MaxQuantityPercentage);
+                    break; 
+
+                default:
+
+            }
+
+        },
+
+        ExtrasOptionSelected: function (evt) {
+
+            var self = this;
+
+            var ctrSelector = 'div.eo';
+            var value = self.model.AllowExtrasDuringValidation;
+
+
+            self.elements.MaxExtrasPercentage.parents(ctrSelector).addClass("d-none");
+            self.elements.MaxExtras.parents(ctrSelector).addClass("d-none");
+
+            switch (parseInt(value)) {
+
+                case 0:
+                    var optionContainer = self.elements.MaxExtras.parents(ctrSelector)
+                    optionContainer.removeClass("d-none");
+                    optionContainer.find('input')
+                        .prop('readonly', true)
+                        .val('');
+
+                    break;
+
+                case 1:
+                    var optionContainer = self.elements.MaxExtras.parents(ctrSelector)
+                    optionContainer.removeClass('d-none');
+                    optionContainer.find('input')
+                        .prop('readonly', false)
+                        .val(self.model.MaxExtras);
+
+                    break;
+
+                case 2:
+                    var optionContainer = self.elements.MaxExtrasPercentage.parents(ctrSelector)
+                    optionContainer
+                        .removeClass('d-none')
+                        .val(self.model.MaxExtrasPercentage);
+
+                    break;
+
+                default:
+
+            }
+
+        },
+
+    };
+
+
+// </script>

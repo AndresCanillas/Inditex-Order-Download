@@ -1,0 +1,105 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+
+//# sourceURL=https://Pages/Upload/ConfirmDialogs/ConfirmChangeProductionTypeView.js
+//<script>
+
+    var ConfirmChangeProductionTypeView = function (options) {
+        FormView.Extend(this, "@g["Confirm your action"]", "/Upload/ConfirmDialogs/ConfirmChangeProductionTypeView")
+
+        //this.OrderData = orderData;
+        this.Order = options.Order;
+
+
+        this.Accepted = false;
+    }
+
+
+    ConfirmChangeProductionTypeView.prototype = {
+
+        constructor: ConfirmChangeProductionTypeView,
+
+        OnLoad: function () {
+            var self = this;
+
+            self.EnableSubmit();
+
+            self.model.OrderID = self.Order.ID;
+            self.model.ProductionType = self.Order.ProductionType;
+            self.elements.OrderNumberTitle.text(self.Order.OrderNumber);
+            
+        },
+
+
+        Save: function () {
+            var self = this;
+
+            if (!self.IsEnableSubmit()) {
+                return;
+            }
+
+            AppContext.Orders.ChangeProductionType({ OrderID: self.Order.OrderID, ProductionType: parseInt(self.model.ProductionType) })
+            .done((response) => {
+                if (response.Success == false) {
+                    //AppContext.ShowError('@g["Try Again, cannot execute action"]')
+                    // keep in confirm window
+                    return;
+                }
+
+                self.Close(response);
+            })
+
+
+
+        },
+
+        IsEnableSubmit: function () {
+            return this.Accepted && this.ProductionTypeWasChanged();
+        },
+
+        ProductionTypeWasChanged: function () {
+            return this.Order.ProductionType.toString() != this.model.ProductionType;
+        },
+
+        ClickConfirm: function () {
+            var self = this;
+
+            self.Accepted = self.elements.Confirm.prop('checked');
+
+            self.EnableSubmit();
+        },
+
+
+        EnableSubmit: function () {
+
+            var self = this;
+
+            var btn = self.elements.SubmitButton;
+
+            if (self.IsEnableSubmit()) {
+                //btn.prop('disabled', false);
+                btn.removeClass('disabled')
+            } else {
+                //btn.prop('disabled', true);
+                btn.addClass('disabled')
+            }
+
+        },
+
+
+       
+
+        AfterSelectProductionType: function (evt) {
+
+            this.EnableSubmit();
+
+            return true;
+        }
+    }
+
+
+// </script>

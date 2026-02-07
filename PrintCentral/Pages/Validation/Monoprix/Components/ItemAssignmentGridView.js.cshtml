@@ -1,0 +1,710 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+    var uilang = CultureInfo.CurrentUICulture.Name;
+}
+
+//# sourceURL=https://Pages/Validation/Monoprix/Components/ItemAssignmentGridView.js
+/// <script>
+    /**
+     * Seletion = {
+     * Details:[],
+     * OrderGroupID:int,
+     * Orders:[],
+     * ProjectID: int
+     * }
+     * }
+     * @@param selection
+     */
+    var ItemAssignmentGridView = function (args) {
+        this.ArticleList = [];
+        this.Selection = null;
+        this.SelectedArticles = [];
+        this.TrimanSelected = [];
+        this.Catalogs = [];// [{ Definition:'', Name:'', Data: [] }, { Definition:'', Name:'', Data: [] }]
+        this.ProjectID = args.ProjectID;
+        this.CompanyID = 0;
+        //this.OriginalLabels = null;
+        FormView.Extend(this, "@g["Assign Items"]", `@Url.Content("~/Validation/Monoprix/Components/ItemAssignmentGridView")?ProjectID=${args.ProjectID}`);
+
+        this.OnLoaded.Subscribe(() => { console.log('Gridview Loaded') })
+
+    }
+
+    ItemAssignmentGridView.SelectPickerConfig = {
+        liveSearch: true,
+        liveSearchStyle: 'contains',
+        liveSearchNormalize: true,
+        style: 'btn-sm btn-light fixBorders',
+        sanitize: false,
+        //sanitizeFn: (el) => { return el; }
+    },
+
+    ItemAssignmentGridView.prototype = {
+
+        constructor: ItemAssignmentGridView,
+
+        OnLoad: function () {
+
+            let self = this;
+            self.ProjectID = null;
+            self.Certifications = null;
+        },
+
+        LoadDataComponent: function (selection) {
+
+            let self = this;
+            let lstSelection = [];
+            lstSelection.push(selection);
+
+            self.CompanyID = self.GetCompanyID(selection?.ProjectID);
+            self.ProjectID = selection?.ProjectID;
+            self.GetCertificationsArticlesCatalog();
+                   
+
+             AppContext.Wizard.GetGroupItemsAssigned({ selection: [selection], productfields: ["Triman", "LotNumber", "Symbol", "Story", "Department", "Gamma", "DistImpFabText", "CertificationNumber","CertifyingCompany"] }).done((result) => {
+                if (result.Data.length < 1) return false;
+
+                result.Data.forEach((sel, idx, arr) => {
+
+                    let resultDetails = [...new Map(sel.Details.map((item) => [item["ArticleCode"], item])).values()];
+
+                    //let result = uniqueObjArray.filter(f => f.ArticleCode != '@Article.EMPTY_ARTICLE_CODE');
+
+                    if (!resultDetails) return false;
+
+                    resultDetails
+                        .filter(f => f.ArticleCode != '@Article.EMPTY_ARTICLE_CODE')
+                        .forEach((art, idx, arr) => {
+
+
+                        
+
+                        let found = self.Labels.find(f => f.ID == art.ArticleID);
+
+                        let item = {
+                            ArticleID: found.ID,
+                            ArticleName: found.Description,
+                            ArticleCode: found.ArticleCode,
+                            ArticleType: found.LabelType,
+                            RFID: found.EncodeRFID,
+                            LabelID: found.LabelID
+                        }
+                        
+                        self.elements.Articles.Rows.Add(item);
+                        self.SelectedArticles.push(item);
+
+
+                    });
+                    // the product fields contain the same infor for all articles inner the order
+                    let productData = resultDetails[0].ProductData
+
+                    // fill RSA combo, custom for monoprix
+                    self.SetRSAData();
+                    self.SetTrimanData();
+                    self.SetGammaData();
+                    //self.SetCartidgeData();
+
+                    // this option set the current value in combos
+                    self.LoadData(productData);
+
+                    self.CreateImagesCards();
+
+                    self.SwitchCertificationsSection(this.Certifications,this.SelectedArticles);
+
+                });
+
+
+            });
+            
+
+        },
+
+        /**
+         * 
+         * @@param selection current selection
+         * @@param labels articles with labels
+         * @@param items articles with out labels
+         * @@param catalogs hashtable with catalogs data by catalogname: { MadeId: [MadeIn Data], Catalog2:[catalog2 data], ...}
+         */
+        Initialize: function (selection, labels, items, catalogs) {
+            // fill ArticleFinder compo
+            // load previously selected articles
+
+            let self = this;
+
+            self.Selection = selection;
+            self.Labels = labels;
+            self.Items = items;
+            self.Catalogs = catalogs;
+
+            self.elements.OrderNumber.text( selection.OrderNumber);
+
+            self.LoadDataComponent(selection);
+
+            self.PrepareFinder();
+
+            self.ConfigureCombos(); // custom fields
+        },
+
+        GetCompanyID: async function (projectID){
+             var company = await AppContext.HttpGet(`/companies/getprojectcompany/${projectID}`,null);
+
+             return company?.ID;
+        },
+
+        ConfigureCombos: function () {
+            let self = this;
+            self.elements.Symbol.selectpicker(ItemAssignmentGridView.SelectPickerConfig);
+            self.elements.Triman.selectpicker(ItemAssignmentGridView.SelectPickerConfig);
+            self.elements.Gamma.selectpicker(ItemAssignmentGridView.SelectPickerConfig);
+            //self.elements.DistImpFabText.selectpicker(ItemAssignmentGridView.SelectPickerConfig);
+                    
+        },
+
+        PrepareFinder: function () {
+            let self = this;
+
+            self.FillArticleCombo();
+
+            self.elements.ArticleFinder.selectpicker(ItemAssignmentGridView.SelectPickerConfig);
+        },
+
+        FillArticleCombo: function () {
+            let self = this;
+
+            let allOptions = [];
+
+            let labelsGroup = $('<optgroup>', { label: '@g["Labels"]' })
+            let itemsGroup = $('<optgroup>', { label: '@g["Articles"]' })
+            let labelsTokens = 'data-tokens="label labels etiqueta etiquetas"';
+            let itemsTokens = 'data-tokens="item items"'
+
+            self.Labels.filter(f => f.EnableAddItems).forEach((art, idx, allLabels) => {
+                let isRfid = '';
+
+                if (art.EncodeRFID)
+                    isRfid = `<span class='badge badge-warning'>RFID</span>`;
+
+                let htmlOption = `<i class='fa fa-fw fa-tag'></i> ${art.Name} ${isRfid}`;
+
+                let opt = `<option value="${art.ID}" data-content="${htmlOption}" ${labelsTokens} >${art.Name}</option>`;
+                allOptions.push(opt)
+            });
+
+            labelsGroup.html(allOptions.join(''));
+
+            allOptions = [];
+
+            self.Items.forEach((art, idx, allItems) => {
+                let htmlOption = `<i class='fa fa-fw fa-shopping-cart'></i> ${art.Name}`;
+
+                let opt = `<option ${itemsTokens} data-content="${htmlOption}" value="${art.ID}">${art.Name}</option>`;
+                allOptions.push(opt)
+            });
+
+            itemsGroup.html(allOptions.join(''));
+
+            self.elements.ArticleFinder.html('');
+            self.elements.ArticleFinder.append(labelsGroup);
+            self.elements.ArticleFinder.append(itemsGroup);
+            //self.elements.ArticleFinder.selectpicker('refresh')
+        },
+
+        AddArticle: async function (e) {
+            let self = this;
+            let result = this.GetArticle();
+
+            if (result == null)
+                return AppContext.ShowError("@g["You need to select an article first."]");
+            if (this.elements.Articles.Rows.DataSource.first(x => x.ArticleCode == result.ArticleCode))
+                return AppContext.ShowInfo("@g["That article is already part of the order."]")
+
+            //add item to grid
+            self.elements.Articles.Rows.Add(result);
+
+            //clear control finder
+            let article = self.elements.ArticleFinder;
+            article.selectpicker('val', "");
+
+            self.SelectedArticles.push(result);
+
+            self.RemoveImageCards();
+
+            self.CreateImagesCards();
+
+            self.SwitchCertificationsSection(self.Certifications,self.SelectedArticles);
+
+            //bylabel
+           // http://localhost/labels/getpreview/3715
+
+           // byarticle
+           // http://localhost/articles/getfixedpreview/15311
+
+            //var articledetail = await AppContext.HttpPost(`/articles/addarticletoorder/${result.ArticleID}/${self.OrderId}`,null);
+        },
+        GetCertificationsArticlesCatalog: function (){
+            AppContext.Catalogs.GetByName(this.ProjectID, "OekoTexArticles", null, null, null, true)
+                .then((response) => {
+                    if(response.Success){
+                        let catalogCertificationsID = response?.Data?.CatalogID;
+                        return AppContext.CatalogData.GetPageByCatalogID(catalogCertificationsID, 0, 200);
+                    }
+                })
+                .then((catalogData) => {
+                    this.Certifications = JSON.parse(catalogData);
+                    
+                })
+                .catch((error) => {
+                    console.error("Error: ", error);
+                });
+        },
+        SwitchCertificationsSection: function (certifications,selectedArticles){
+            let exists = certifications.some(item => 
+                selectedArticles.some(article => article.ArticleCode === item.ArticleCode)
+            );
+
+            let div = document.querySelector('[name="CertificationSelected"]');
+
+            if (div) {
+                div.style.display = exists ? "block" : "none"; // Muestra si es true, oculta si es false
+            } else {
+                console.error('No se encontró el elemento con name="CertificationSelected"');
+            }
+        },
+        HasItems: function () {
+            let self = this;
+
+            return self.elements.Articles.Rows.Count > 0
+        },
+
+        GetGrid: function () {
+            let self = this;
+            return self.elements.Articles;
+        },
+
+        GetArticle: function () {
+
+            let self = this;
+            let item;
+            let article = self.elements.ArticleFinder;
+            let found = self.Labels.find(art => art.ID == article.val());
+
+            if (found != undefined) {
+                item = {
+                    ArticleID: found.ID,
+                    ArticleName: found.Description,
+                    ArticleCode: found.ArticleCode,
+                    ArticleType: found.LabelType,
+                    RFID: found.EncodeRFID,
+                    LabelID: found.LabelID
+                }
+            } else {
+                item = null;
+            }
+
+            return item;
+        },
+
+        RemoveArticle: function (e) {
+            e.preventDefault();
+            let self = this;
+            let idx = this.elements.Articles.Rows.SelectedIndex;
+            if (idx >= 0 && self.elements.Articles.Rows.Count > 0) {
+
+                var ArticleId = self.elements.Articles.Rows.Get(idx).ArticleID;
+
+                self.elements.Articles.Rows.Remove(idx);
+
+                const index = self.SelectedArticles.findIndex(object => {
+                    return object.ArticleID === ArticleId;
+                });
+
+                self.RemoveArticleAndPreview(ArticleId, index);
+                self.SwitchCertificationsSection(self.Certifications,self.SelectedArticles);
+            }
+        },
+
+        RemoveArticleAndPreview(articleid,index) {
+            let self = this;
+            self.SelectedArticles.splice(index, 1);
+
+            //delete image
+            self.RemoveImageCards();
+            self.CreateImagesCards();
+        },
+
+        CreateImagesCards: function () {
+            let self = this;
+
+            for (var i = 0; i < self.SelectedArticles.length; i++) {
+                self._AddImage(self.SelectedArticles[i], i);
+            }
+
+            $('.carousel-item', self.elements.CarrouselContent).first().addClass('active');
+            $('> li', self.elements.CarrouselIndicator).first().addClass('active');
+            $('#articlesSelected').carousel();
+        },
+
+        RemoveImageCards: function () {
+            let self = this;
+            self.elements.CarrouselContent.html("");
+            self.elements.CarrouselIndicator.html("");
+        },
+
+        _AddImage: function (selectedarticle, position) {
+
+            let self = this;
+            let url = "";
+
+            let timeMark = (new Date()).valueOf();
+            //bylabel
+            // http://localhost/labels/getpreview/3715
+
+            // byarticle
+            // http://localhost/articles/getfixedpreview/15311
+
+
+
+
+            if (selectedarticle.LabelID == null) {
+                url = `/articles/getfixedpreview/${selectedarticle.LabelID}?=${timeMark}`
+            } else {
+                url = `/articles/getpreview/${selectedarticle.ArticleID}?=${timeMark}`
+            }
+
+            $(`<div class="carousel-item text-center" data-ArticleCode="${selectedarticle.ArticleCode}">
+                    <a href="${url}" data-title="${selectedarticle.ArticleCode}" data-position="${position}">
+                        <img src="${url}" style="height: 350px;">
+                    </a>
+                    <div class="carousel-caption d-none d-md-block" style="color: black;text-shadow: 4px 4px 4px #ADADAD; position: static">
+                        <h5>${selectedarticle.ArticleCode}</h5>
+                            ${selectedarticle.ArticleName}
+                        <br>
+                    </div>
+               </div>`).appendTo(self.elements.CarrouselContent)
+            $(`<li data-target="#articlesSelected" data-ArticleCode="${selectedarticle.ArticleCode}" data-slide-to="' + position + '"></li>`).appendTo(self.elements.CarrouselIndicator)
+        },
+
+
+        IsValid: function () {
+            let self = this;
+
+            //var deffered = $.Deferred();
+
+            if (!self.model.ValidState()) {
+
+                //deffered.reject(false);
+
+                return false;
+            };
+
+
+            //deffered.resolve(true);
+
+            //return deffered.promise();
+            return true;
+
+        },
+
+
+
+        GetSelectedArticles: function () {
+
+            let self = this;
+            // set triman logo for every article, is a monoprix rule,
+            // every article can contain differentes triman logo -> TODO: check this rule
+
+
+            var selected = $.extend([], self.SelectedArticles)
+
+            //self.GetGrid().Rows.Each((idx, rowData) => {
+
+            //    var found = selected.find(x => x.ArticleCode == rowData.ArticleCode);
+
+            //    if (found != null) {
+            //        found.Triman = rowData.Triman;
+            //        found.ProductFields = [{ Name: "Triman", Value: rowData.Triman }];
+            //    }
+
+            //    //cmp.TrimanSelected.push({ ArticleCode: rowData.ArticleCode, TrimanID: rowData.Triman });
+            //});
+
+            return selected;
+
+        },
+
+        // custom product fields
+        GetProductFields: function () {
+
+            let self = this;
+
+            let productFields = [];
+
+            productFields.push({ Name: 'LotNumber', Value: self.model.LotNumber })
+            productFields.push({ Name: 'Story', Value: self.model.Story })
+            productFields.push({ Name: 'Symbol', Value: self.model.Symbol })
+            productFields.push({ Name: 'Triman', Value: self.model.Triman })
+            productFields.push({ Name: 'Gamma', Value: self.model.Gamma })
+            productFields.push({ Name: 'CertificationNumber', Value: this.elements.CertificationNumber[0].value })
+            productFields.push({ Name: 'CertifyingCompany', Value: this.elements.CertifyingCompany[0].value })
+            //productFields.push({ Name: 'DistImpFabText', Value: self.model.DistImpFabText })
+            
+            return productFields;
+
+        },
+
+                    ChangeTrimanSymbol: function(e){
+                        let self = this;
+
+                        var filenameTrimanImage = e.currentTarget.value + '.png';
+                        let url = `/images/getbyproject/${self.ProjectID}`;
+                        AppContext.HttpGet(url).then((data) => {
+                            if (data != null) {
+                                for (let i = 0; i < data.length; i++) {
+                                    if(data[i].FileName == filenameTrimanImage){
+                                         self.CreateDivTrimanImage(data[i].FileName);
+                                    }
+                                }
+                            }
+                        });
+                    },
+        CreateDivTrimanImage: function (filename){
+            let self = this;
+
+            let div = document.querySelector('div[name="TrimanImage"]');
+
+            if (!div) {
+                console.warn('No se encontró un div con name="TrimanImage"');
+                return;
+            }
+
+            let img = document.createElement("img");
+            img.src = `/images/getthumbnail/${self.ProjectID}/${filename}`;
+            img.alt = "Triman Image";
+            img.style = "border: 1px solid #ddd;;background-color: #f8f9fa;padding: 10px;border-radius: 8px;display: flex;justify-content: center;align-items: center;min-height: 150px;"
+            div.innerHTML = "";
+            div.appendChild(img);
+        },
+
+        // create all options for the RSA combo
+        SetRSAData: function (currentSymbol) {
+
+            let self = this;
+
+            if (!currentSymbol) {
+                currentSymbol = '';
+            }
+
+            const rgx = /(R[36]?)$/;
+            const removedRSA = currentSymbol.replace(rgx, '');
+            const currentRSA = currentSymbol.match(rgx);
+
+            let data = [];
+
+            //if (currentSymbol === '') {
+
+            data.push({ rsa: '@g["Empty"]', triangles: '', value: '', display: '@g["Empty"]' });
+            data.push({ rsa: '',    triangles: 'p',  value: 'p'   , display: 'p'    });
+            data.push({ rsa: 'R',   triangles: 'p',  value: 'pR'  , display: 'pR'   });
+            data.push({ rsa: 'R3',  triangles: 'p',  value: 'pR3' , display: 'pR3'  });
+            data.push({ rsa: 'R6',  triangles: 'p',  value: 'pR6' , display: 'pR6'  });
+            
+
+            data.push({ rsa: '',   triangles: 'pp', value: 'pp'  ,display: 'pp'   });
+            data.push({ rsa: 'R',  triangles: 'pp', value: 'ppR' ,display: 'ppR'  });
+            data.push({ rsa: 'R2', triangles: 'pp', value: 'ppR2', display: 'ppR2' });
+            data.push({ rsa: 'R3', triangles: 'pp', value: 'ppR3',display: 'ppR3' });
+            data.push({ rsa: 'R4', triangles: 'pp', value: 'ppR4',display: 'ppR4' });
+            data.push({ rsa: 'R5', triangles: 'pp', value: 'ppR5', display: 'ppR5' });
+            data.push({ rsa: 'R6', triangles: 'pp', value: 'ppR6', display: 'ppR6' });
+
+            data.push({ rsa: 'R12', triangles: 'n', value: 'nR12', display: 'nR12' });
+
+           
+            self.FillRSADataCombo(data);
+
+            //self.elements.Symbol.val(currentSymbol);
+            //self.elements.Symbol.selectpicker('refresh')
+            self.elements.Symbol.selectpicker('val', currentSymbol);
+
+        },
+
+        FillRSADataCombo: function (data) {
+            let self = this;
+
+            let allOptions = [];
+
+            data.forEach(d => {
+
+                let cls = 'MNP_Symbols_3';
+
+                if (d.value.indexOf('n') >= 0) cls = 'MNP_Symbols_1';
+
+                let htmlOption = `<span class='${cls}' id='${d.value}'> ${d.triangles}</span> ${d.rsa}`
+
+                if (d.value.length < 1 && d.rsa.length < 1)
+                    htmlOption = `<span  id='${d.value}'> ${d.rsa}</span>`;
+
+                const opt = `<option value="${d.value}" data-content="${htmlOption}" >${d.display}</option>`;
+                allOptions.push(opt);
+            })
+
+            self.elements.Symbol.html('');
+            self.elements.Symbol.append(allOptions);
+            self.elements.Symbol.selectpicker('refresh') // this compo already created, refresh is required
+        },
+
+        SetTrimanData: function () {
+            let self = this;
+
+            self.FillTrimanDataCombo(this.Catalogs.find(f => f.Name == 'TrimanSymbols').Data)
+        },
+
+        FillTrimanDataCombo: function (data) {
+            let self = this;
+
+            let allOptions = [];
+
+            data.forEach(d => {
+                const opt = `<option value="${d.Triman}" >${d.Description}</option>`;
+                allOptions.push(opt);
+            });
+            self.elements.Triman.html('');
+            self.elements.Triman.append(allOptions);
+            self.elements.Triman.selectpicker('refresh') // this compo already created, refresh is required
+        },
+
+        SetGammaData: function () {
+
+            let self = this;
+
+            self.FillGammaData(this.Catalogs.find(f => f.Name == 'Gammas').Data);
+        },
+
+        FillGammaData: function (data) {
+
+            let self = this;
+
+            let allOptions = [];
+
+            let isFirst = true;
+
+            data.unshift({ Code: ' ', Description: '@g["Leave Blank"]' });
+
+            data.forEach(d => {
+
+                let selected = ''
+
+                if (isFirst)
+                    selected = 'selected'
+
+                const opt = `<option value="${d.Code}" ${selected} >${d.Description} </option>`;
+
+                allOptions.push(opt);
+
+                isFirst = false;
+            });
+            self.elements.Gamma.html('');
+            self.elements.Gamma.append(allOptions);
+            self.elements.Gamma.selectpicker('refresh') // this compo already created, refresh is required
+        },
+
+        SetCartidgeData: function () {
+            let self = this;
+            self.FillCartidgeCombo(this.Catalogs.find(f => f.Name == 'Distribution').Data);
+        },
+
+        FillCartidgeCombo: function (data) {
+            
+            let self = this;
+
+            let allOptions = [];
+
+            data.forEach(d => {
+                const opt = `<option value="${d.Code}" >${d.Description}</option>`;
+                allOptions.push(opt);
+            });
+            self.elements.DistImpFabText.html('');
+            self.elements.DistImpFabText.append(allOptions);
+            self.elements.DistImpFabText.selectpicker('refresh');
+
+        },
+
+        OnlyNumbers: function (evt) {
+
+            let self = this;
+            let key = event.which;
+            const rgx = /^(0[1-9]|1[1-2])([2][0-9])$/
+
+            if (key === 46 || key === 8 || key === 37 || key === 39) return true;
+
+
+            if ((key >= 96 && key <= 105) || (key >= 48 && key <= 57) ) {
+
+                const userInput = self.elements.LotNumber.val() + evt.key; // evt.target;
+
+                if (userInput.length === 1 && /^[0-1]$/.test(userInput)) return true;// one digit
+                if (userInput.length === 2 && /^(0[1-9]|1[0-2])$/.test(userInput)) return true;// two digits 
+                if (userInput.length === 3 && /^(0[1-9]|1[0-2])2$/.test(userInput)) return true;// three digits
+                if (userInput.length === 4 && /^(0[1-9]|1[0-2])(2[0-9])$/.test(userInput)) return true; // four digits
+
+            }
+
+            evt.preventDefault();
+            return false;
+        },
+        //Certifactions Sections
+
+        OpenCertificationManager: async function () {
+            let self = this;
+
+            AppContext.LoadJS("/Validation/Common/Components/CertificationsView.js").then(function () {
+                let certificationView = new CertificationsView();
+                certificationView.ShowDialog(function (certificationSelected, deleted) {
+                    if ((!certificationSelected || certificationSelected.length === 0) && !deleted) {
+                        AppContext.ShowError("@g["No certification was selected."]");
+                        return;
+                    }
+                    self.SetCertificationsValues(certificationSelected);
+                });
+            }).catch(error => {
+                console.error("Error cargando CertificationsView.js:", error);
+            });
+        },
+        SetCertificationsValues: function (certificationSelected){
+            let self = this;
+            let certificationNumberInput = document.querySelector('[name="CertificationNumber"]');
+            let certifyingCompanyInput = document.querySelector('[name="CertifyingCompany"]');
+
+            if(certificationSelected?.IsDeleted && certificationSelected?.CertificateNumber != certificationNumberInput.value && certificationSelected?.CertifyingCompany != certifyingCompanyInput.value)
+                return;
+
+            if(certificationSelected?.IsDeleted && certificationSelected?.CertificateNumber == certificationNumberInput.value && certificationSelected?.CertifyingCompany == certifyingCompanyInput.value){
+                certificationNumberInput.value = "";
+                certifyingCompanyInput.value = "";
+            }else {
+                certificationNumberInput.value = certificationSelected?.CertificateNumber;
+                certifyingCompanyInput.value = certificationSelected?.CertifyingCompany;
+            }
+            
+        },
+        LoadCertfications: function () {
+            return AppContext.Certifications.GetByVendorName("@userData.CompanyID") 
+                .then(certifications => {
+                    console.log("Certificaciones recibidas:", certifications);
+                    return certifications;
+                })
+                .catch(error => {
+                    console.error("Error al obtener certificaciones:", error);
+                    throw error;
+                });
+        }
+
+        //Fin Certifcations Sections
+    };
+
+/// </script>
+

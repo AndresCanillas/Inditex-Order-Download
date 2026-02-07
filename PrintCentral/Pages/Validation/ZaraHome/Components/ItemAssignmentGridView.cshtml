@@ -1,0 +1,65 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+
+@{
+	Layout = null;
+}
+<viewform>
+
+	<nav class="navbar navbar-light bg-light mx-0 p-1 mt-2 border-top border-bottom mb-2" style="background-color:#bee5eb !important;">
+		<span class="btn btn-sm" style="cursor: auto;">
+			Order N° : <span name="OrderNumber"> - </span>
+		</span>
+	</nav>  
+	<!-- IMAGE CONTAINER -->
+	<viewrow>
+		<viewcolumn>
+			<div class="col-sm-12 p-0" name="ImagesContainer">
+				<div name="Images" component="FormView" controller="Validation/ZaraHome/Components/ImageListView.js"></div>
+				<div name="FileErrorMessage" class="form-error" title="Image is required" style="display:none;"><span class="fa fa-exclamation-triangle"></span><span class="form-error-text">@g["Image is Required!"]</span></div>
+				<input model name="Image" validation="required" type="hidden" />
+			</div>
+		</viewcolumn>
+	</viewrow>
+	<!--FINISH IMAGE CONTAINER-->
+	
+	<viewrow>
+		<!-- ARTICLE GRID -->
+		<viewcolumn>
+			<div class="article-grid-container mt-2">
+				<div component="OrderGrid" name="Articles">
+					<template>
+						<column width="120" field="ArticleName">@g["Article"]</column>
+						<column width="120" field="ArticleID">@g["Article ID"]</column>
+						<column width="120" field="ArticleCode">@g["Article Code"]</column>
+						<column width="120" field="ArticleType">@g["Article Type"]</column>
+						<column width="40" field="RFID">@g["RFID"]</column>
+						<column width="120" field="PackCode">@g["PackCode"]</column>
+						<column width="40" field="IsItem">@g["Is Item"]</column>
+					</template>
+				</div>
+			</div>
+		</viewcolumn>
+		<!-- FINISH ARTICLE GRID -->
+		<!-- carrusel of images  -->
+		<viewcolumn>
+			
+			<div name="article-carousel" id="articlesSelected" class="carousel slide" data-ride="carousel" style=" width:60%; margin: 5px auto;">
+				<ol name="CarrouselIndicator" class="carousel-indicators"></ol>
+				<div name="CarrouselContent" class="carousel-inner">
+				</div>
+				<a class="carousel-control-prev" href="#articlesSelected" role="button" data-slide="prev">
+					<span class="carousel-control-prev-icon" aria-hidden="true" />
+					<span class="sr-only">>@g["Previous"]</span>
+				</a>
+				<a class="carousel-control-next" href="#articlesSelected" role="button" data-slide="next">
+					<span class="carousel-control-next-icon" aria-hidden="true" />
+					<span class="sr-only">@g["Next"]</span>
+				</a>
+			</div>
+		</viewcolumn>
+		<!-- FINISH carrusel of images  -->
+	</viewrow>
+
+</viewform>

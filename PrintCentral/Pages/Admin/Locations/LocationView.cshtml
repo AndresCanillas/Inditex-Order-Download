@@ -1,0 +1,73 @@
+﻿@page
+@inject ILocalizationService g
+@inject ILocationRepository repo
+@inject ICountryRepository ctrRepo
+@inject IUserData userData
+@{
+	Layout = null;
+	int locationid = Convert.ToInt32(Request.Query["locationid"]);
+	var data = repo.GetByID(locationid);
+	List<ICountry> countries = ctrRepo.GetList();
+	var countriesForCombo = countries.Select(s => new OptionListElement { Value = (s.ID == 0 ? "" : s.ID.ToString()), Name = s.Name }).ToList();
+}
+<viewcard>
+	<viewform>
+		<viewrow>
+            <viewcolumn>
+                <div model name="ID" label="ID:">@data.ID</div>
+                <input model name="CompanyID" type="hidden" value="@data.CompanyID" data-type="int" />
+                <input model name="Holidays" type="hidden" value="@data.Holidays" />
+                <input model name="WorkingDays" type="hidden" value="@data.WorkingDays" data-type="int" />
+                <input model name="CutoffTime" type="hidden" value="@data.CutoffTime" />
+                <input model name="FactoryCode" type="hidden" value="@data.FactoryCode" />
+                <input model name="EnableERP" type="hidden" value="@data.EnableERP" data-type="bool" />
+                <input model name="ERPCurrency" type="hidden" value="@data.ERPCurrency" data-type="bool" />
+                <input model name="MaxNotEncodingQuantity" type="hidden" value="@data.MaxNotEncodingQuantity" data-type="int" />
+                <input model name="FscCode" type="hidden" value="@data.FscCode" />
+
+                @if (userData.Admin_Locations_CanRename)
+                {
+                    <input model name="Name" label="@g["Name"]:*" validation="required;maxlen(50)" type="text" value="@data.Name" />
+                    @if (userData.IsIDT)
+                    {
+                        <input model name="FactoryCode" label="@g["Factory Code"]" value="@data.FactoryCode" />
+                    }
+                }
+                else
+                {
+                    <div model name="Name" label="@g["Name"]:*">@data.Name</div>
+                }
+
+                <input model name="DeliverTo" label="@g["Deliver To"]:*" validation="required;maxlen(50)" type="text" value="@data.DeliverTo" />
+                <input model name="AddressLine1" label="@g["Address Line 1"]:*" validation="required;maxlen(50)" type="text" value="@data.AddressLine1" />
+                <input model name="AddressLine2" label="@g["Address Line 2"]:*" validation="required;maxlen(50)" type="text" value="@data.AddressLine2" />
+                <input model name="CityOrTown" label="@g["City/town"]:*" validation="required;maxlen(50)" type="text" value="@data.CityOrTown" />
+                <input model name="ZipCode" label="@g["ZipCode"]:*" validation="required;numeric;maxlen(8)" type="text" value="@data.ZipCode" />
+                <input model name="StateOrProvince" label="@g["State/province"]:*" validation="required;maxlen(50)" type="text" value="@data.StateOrProvince" />
+                @*<input model name="Country" label="@g["Country Name"]:" validation="required;maxlen(30)" type="text" value="@data.Country" readonly />*@
+                <select model name="CountryID" label="@g["Country"]:*" validation="required;numeric;range(1, @countries.Count, true, @g["Must be select a country"])" options="@(OptionList.FromEnumerable(countriesForCombo, "Value", "Name", data.CountryID, g["Select option"]))" />
+
+                @if (userData.IsIDT)
+                {
+                    <input model name="EnableERP" label="@g["ERP Enable"]" type="checkbox" value="1" @(data.EnableERP ? "checked=\"checked\"" : "") data-type="bool" title="@g["If this factory has a ERP (only SAGE Spain, Portugal, Morroco) system, can enable it"]" />
+                    <input model name="ERPCurrency" label="@g["ERP Currency"]" type="text" value="@data.ERPCurrency" title="@g["Currency description for ERP"]" />
+                    <input model name="MaxNotEncodingQuantity" label="@g["Max Not Encoding Percentage"]" validation="numeric;range(0,100);" type="text" value="@data.MaxNotEncodingQuantity" />
+                    <input model name="FscCode" label="@g["FSC Code"]:*" validation="maxlen(16)" type="text" value="@data.FscCode" />
+                }
+                
+            </viewcolumn>
+			<viewcolumn>
+				@if (data.CompanyID == 1)
+				{
+					<div name="HolidaysView" component="FormView" controller="/Admin/Locations/HolidaysView.js"></div>
+				}
+			</viewcolumn>
+		</viewrow>
+	</viewform>
+	@if (userData.Admin_Locations_CanEdit)
+	{
+		<viewfooter>
+			<a href="#" class="btn btn-primary" action="Save">@g["Save"]</a>
+		</viewfooter>
+	}
+</viewcard>

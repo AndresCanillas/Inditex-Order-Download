@@ -1,0 +1,579 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+
+    var gArticle =g["Article"];
+    var gName = g["Name"];
+    var gSelectLabelFirst = g["You need to select a label first."];
+    var gLabelAlreadyInPack = g["That labels is already part of the pack."];
+    var gRemoveArtifactConfirm = g["Do you want to remove artifact ? "];
+    var gInvalidLabelSelected = g["Invalid Label ID"];
+    var gSync = g["Sync"];
+    var gFillSageRef = g["Please, fill Sage Reference to execute sync action"];
+
+    
+    var PRIVILEGE_CAN_EDIT = userData.Admin_Articles_CanEdit.ToString().ToLower();
+    var PRIVILEGE_CAN_EDIT_MD = userData.Admin_Articles_CanEditMDSettings.ToString().ToLower();
+}
+//# sourceURL=https://Pages/Admin/Brands/Projects/Articles/ArticleView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script type="text/javascript">
+var ArticleView = function (articleid, projectid, parent) {
+    FormView.Extend(this, '@gArticle', `/Admin/Brands/Projects/Articles/ArticleView?pid=${projectid}&articleid=${articleid}`);
+    this.ArticleID = articleid;
+    this.ProjectID = projectid;
+    this.kendoFieldWidget = null;
+    this.ParentView = parent;
+
+    this.canEdit = '@PRIVILEGE_CAN_EDIT' == 'true'; // JSON.parse("true") return a boolean value
+    this.canEditMDSettings = '@PRIVILEGE_CAN_EDIT_MD' == 'true';
+};
+
+ArticleView.prototype = {
+    constructor: ArticleView,
+
+    OnLoad: function () {
+        let self = this;
+
+        self.GetGrid().AfterCellEdit.Subscribe(self, self.UpdateArtifact);
+        AppContext.LoadJS('/Common/Components/ArticleListView.js').then(() => {
+            self.ArticleListReady = true;
+        })
+
+        self._loadFn();
+    },
+
+    _loadFn: function () {
+        let self = this;
+
+        AppContext.Articles.GetByID(self.ArticleID, (data) => {
+            self.LoadData(data);
+            self.model.Shared = data.ProjectID == null;
+            if (data.LabelID == null) {
+                self.ShowArtifactsSection(false);
+                self.SetArticleTypeToItem();
+                if(self.canEdit)
+                    self.elements.ItemPreview[0].SetImage(this.ArticleID);
+            } else {
+                self.SetArticleTypeToLabel();
+                self.elements.LabelPreview.attr("src", `/labels/getpreview/${data.LabelID}?${new Date().getTime()}`);
+                if(self.canEdit)
+                    self.elements.LabelFixedPreview[0].SetImage(this.ArticleID);
+            }
+
+             if(self.canEdit)
+                self.EnableSageSync();
+        });
+
+        AppContext.Articles.GetArtifacts(self.ArticleID)
+        .done(function (data) {
+            self.elements.ArtifactTable.Rows.LoadData(data.Data);
+        })
+    },
+
+    ReturnLastView: function (data) {
+        var self = this;
+
+        if (self.ParentView) {
+
+            self.ParentView.Show(self.ViewContainer) // this call unload event
+
+        } else {
+
+            if (data) {
+                self.Close(data); // this method work for views and dialogs
+            } else {
+                this.Cancel();
+            }
+        }
+    },
+
+    SetArticleTypeToLabel: function () {
+        this.elements.ArticleTypeLabel.addClass("active");
+        this.elements.ArticleTypeItem.removeClass("active");
+        this.ShowLabelElements(true);
+        this.ShowItemElements(false);
+        this.IsLabel = true;
+    },
+
+    SetArticleTypeToItem: function () {
+        this.elements.ArticleTypeLabel.removeClass("active");
+        this.elements.ArticleTypeItem.addClass("active");
+        this.ShowLabelElements(false);
+        this.ShowItemElements(true)
+        this.IsLabel = false;
+    },
+
+    CompositionConfig: function () {
+        let self = this;
+        AppContext.LoadJS("/Admin/Brands/Projects/Articles/ArticleCompoConfigView.js").then(function () {
+            //let currentConfig = self.model.GetData();
+            let currentConfig = {
+                ArticleID: self.model.ID, 
+                ProjectID: self.model.ProjectID, 
+                ArticleCode: self.model.ArticleCode
+            }
+            self.ArticleCompoConfig = new ArticleCompoConfigView(currentConfig);
+
+                self.ArticleCompoConfig.ShowDialog(function (newConfig) {
+
+            })
+
+
+        });
+
+    },
+
+    ShowLabelElements: function (show) {
+
+        if (show) {
+            this.elements.LabelElementsLeft.show();
+            this.elements.LabelElementsRight.show();
+            this.ShowArtifactsSection(true);
+        } else {
+            this.elements.LabelElementsLeft.hide();
+            this.elements.LabelElementsRight.hide();
+        }
+    },
+
+    ShowItemElements: function (show) {
+
+        if (show) {
+            this.elements.ItemElements.show();
+            this.elements.ItemElementsRight.show();
+            this.ShowArtifactsSection(false);
+        } else {
+            this.elements.ItemElements.hide();
+            this.elements.ItemElementsRight.hide();
+        }
+
+    },
+
+    ShowArtifactsSection: function (show) {
+        var artifactsSection = $(".Artifacts");
+        if (show) {
+            artifactsSection.show();
+
+        } else {
+            artifactsSection.hide();
+        }
+    },
+ 
+        GetImageDownloadUrl: function (field, val) {
+            
+            if (field && field == 'LabelFixedPreview') {
+                return `/articles/getfixedpreview/${this.ArticleID}`;
+            } else {
+                return `/articles/getpreview/${this.ArticleID}`;
+            }
+        },
+
+        GetFixedImageDownloadUrl: function (field, val) {
+            return `/articles/getfixedpreview/${this.ArticleID}`;
+        },
+
+        GetImageUploadUrl: function (field, val) {
+            return `/articles/uploadpreview/${this.ArticleID}`;
+        },
+
+        KendoUploadImage_UseCustomImageElement: true,
+
+        KendoUploadImage_GetFileElementWiget: function () {
+            return this.kendoFieldWidget;
+        },
+
+        KendoUploadImage_GetFileElementTemplate: function (field, jqe) {
+
+            let self = this;
+
+            // accept="???" | ''
+            let fileTypes = jqe.attr("accept") != undefined ? 'accept="' + jqe.attr("accept") + '"' : '';
+
+            let container = $('<div class="form-group ke-topContainer" style="margin-bottom:5px;"></div>');
+
+            container.append(jqe);
+
+            let dt = (new Date()).toTicks();
+            let previewUrl = jqe.attr("name") == "LabelFixedPreview" ? self.GetFixedImageDownloadUrl() : self.GetImageDownloadUrl();
+
+            const preview = `<div class=" row">
+						<label class="col-sm col-form-label"></label>
+			            <div class="col-sm">
+							<div class="fluid-image" style="width: 256px">
+									<img name="_Icon_Img" src="${previewUrl}?${dt}" class="ThumbImage2 article-image-preview ke-img-element" width="256" />
+							</div>
+			            </div>
+                        </div>`;
+
+            //self.kendoFieldWidget = $(`<input name="_${fi.fieldName}_File" type="file" ${fileTypes} class="ke-file-element" />`)
+
+            const widgetContainer = $(`
+			<div class=" row" style="margin-bottom:5px;">
+				<label class="col-sm col-form-label"></label>
+				<div class="col-sm">
+					<div style="width: 256px;" class="ke-widgetContainer">
+					<input name="_${field.fieldName}_File" type="file" ${fileTypes} class="ke-file-element" />
+					</div>
+				</div>
+			</div>`)
+
+            container
+            .append(preview)
+            .append(widgetContainer)
+
+            self.kendoFieldWidget = widgetContainer.find('input.ke-file-element:file');
+
+            return container;
+
+        },
+
+        LabelChanged: function (e) {
+            let self = this;
+            
+            let labelID = self.model.LabelID;
+
+            let foundInList = false;
+
+            if(!self.canEdit) return;
+
+            if (!self.model.LabelID)
+                return;
+
+            self.elements.ArtifactTable.Rows.Each((i, row) => {
+                if (row.LabelID == labelID) {
+                    foundInList = true;
+                }
+            });
+            
+            if (foundInList) {
+                AppContext.ShowWarning('@gLabelAlreadyInPack')
+                e.preventDefault();
+                self.model.LabelID = '';
+                return false;
+            }
+
+            self.elements.LabelPreview.attr("src", `/labels/getpreview/${self.model.LabelID}?${new Date().getTime()}`);
+            
+            AppContext.Labels.GetByID(self.model.LabelID, function (data) {
+                if (data) {
+                    self.model.EncodeRFID = data.EncodeRFID;
+                    self.elements["LabelInfoUI"].text(`ID: '${data.ID}' - @gName: '${data.Name}'`)
+
+                    if(!data.ProjectID) 
+                        self.elements['SHFlag'].removeClass("invisible")
+                    else {
+                        self.elements['SHFlag'].addClass("invisible")
+                    }
+                }
+            });
+        },
+
+        ArticleTypeClick: function (e) {
+
+            let self = this;
+            
+            if(!self.canEdit) return;
+
+            const atype = $(e.target).attr("name");
+
+            if (atype == "ArticleTypeLabel")
+                self.SetArticleTypeToLabel();
+            else
+                self.SetArticleTypeToItem();
+        },
+
+        Save: function (e) {
+            let self = this;
+
+            if(!self.canEdit) return;
+            debugger;
+            if (!self.model.ValidState())
+                return;
+            if (!self.IsLabel)
+                self.model.LabelID = null;
+            if (self.model.Shared)
+                self.model.ProjectID = null;
+            else
+                self.model.ProjectID = this.ProjectID;
+            
+            let data = self.GetData();
+
+            AppContext.Articles.Update(data, function (result) {
+                if (result.Success) {
+                    self.OnSaved.Raise(data);
+                    self.ReturnLastView(data);
+                }
+            });
+        },
+
+        HandleKeyPress: function (e) {
+
+            const self = this;
+
+            if(!self.canEdit) return;
+
+            if (e.keyCode === 13)
+                self.AddArtifact();
+        },
+
+        AddArtifact: function (e) {
+
+            let self = this;
+
+            if(!self.canEdit) return;
+
+            const labelID = this.GetLabelIdSelected();
+
+            if (labelID == null) {
+                AppContext.ShowError('@gSelectLabelFirst');
+                return;
+            }
+
+            let foundInList = false;
+
+            self.elements.ArtifactTable.Rows.Each((i, row) => {
+                if (row.LabelID == labelID) {
+                    foundInList = true;
+                }
+            });
+
+
+            if (parseInt(self.model.LabelID) === labelID)
+                foundInList = true;
+
+            if (foundInList)
+            {
+                AppContext.ShowWarning('@gLabelAlreadyInPack')
+                return;
+            }
+            AppContext.Articles.AddArtifact({
+                ArticleID: self.ArticleID,
+                LabelID: labelID
+            })
+            .done(function (response) {
+
+                if (response.Success) {
+
+                    self.elements.ArtifactTable.Rows.Add(response.Data);
+
+                    self.elements.LabelToAdd.val('');
+
+                }
+            })
+        },
+
+        GetLabelIdSelected: function () {
+
+            let self = this;
+
+            if(!self.canEdit) return;
+
+
+            let label = self.model.LabelToAdd;
+            let list = self.elements.LabelToAdd[0].list;
+
+            for (let i = 0; i < list.options.length; i++) {
+
+                if (label == list.options[i].value) {
+                    self.elements.LabelToAdd[0].setCustomValidity("");
+                    return parseInt(list.options[i].attributes["labelid"].value);
+                }
+            }
+
+            self.elements.LabelToAdd[0].setCustomValidity('@gInvalidLabelSelected');
+
+            return null;
+        },
+
+        RemoveArtifact: function (e) {
+
+            let self = this;
+
+            if(!self.canEdit) return;
+
+            const idx = this.elements.ArtifactTable.Rows.SelectedIndex;
+
+            if (idx < 0) return;
+
+            const rowData = this.elements.ArtifactTable.Rows.Get(idx);
+
+            let confirm = new ConfirmDialog('@gRemoveArtifactConfirm');
+
+            confirm.ShowDialog(function (result) {
+
+                if (result) {
+                    AppContext.Articles
+                    .RemoveArtifact(rowData)
+                    .done(function (response) {
+
+                        if (response.Success) {
+                            self.elements.ArtifactTable.Rows.Remove(idx);
+                        }
+
+                    });
+                }
+            });
+            
+        },
+
+        OpenPrintCountSettings: function (e) {
+
+            let self = this;
+
+            e.preventDefault();
+
+            if(!self.canEdit) return;
+
+            AppContext.LoadJS("/Admin/Brands/Projects/Articles/PrintCountDialog.js").then(() => {
+                var view = new PrintCountDialog(self.model.data);
+                view.ShowDialog(null, "500px");
+            });
+        },
+
+        AccessBlockConfig: function (e) {
+            let self = this;
+        
+            if (e && e.preventDefault) e.preventDefault();
+        
+            AppContext.LoadJS("/Admin/Brands/Projects/Articles/ArticleAccessBlockConfigView.js").then(function () {
+        
+                let currentConfig = {
+                    ArticleID: self.model.ID,
+                    ProjectID: self.model.ProjectID,
+                    ExportBlockedLocationIds: self.model.ExportBlockedLocationIds
+                };
+        
+                self.ArticleAccessBlockConfig = new ArticleAccessBlockConfigView(currentConfig);
+        
+                self.ArticleAccessBlockConfig.ShowDialog(function (newConfig) {
+                    if (newConfig && newConfig.ExportBlockedLocationIds !== undefined) {
+                        self.model.ExportBlockedLocationIds = newConfig.ExportBlockedLocationIds;
+                    }
+                });
+        
+            });
+        },
+
+
+@if(userData.Admin_Articles_CanEditMDSettings)
+{
+    <text>
+        EnableSageSync : function () {
+
+            var self = this;
+            self._DisableSage(!self.model.SyncWithSage);
+        },
+
+        _DisableSage: function (enabled) {
+
+            this.elements.SageRef.prop('readonly', enabled);
+            this.elements.SyncArticle.prop('disabled', enabled);
+
+        },
+
+        SyncArticleFn: function () {
+
+            var self = this;
+
+            if (!self.model.SyncWithSage || !self.model.SageRef || self.model.SageRef.length < 1) {
+                return;
+            }
+
+            AppContext.LoadJS('/Admin/Brands/Projects/Articles/ArticlePreviewSageData.js').then(() => {
+
+                var confirmSycn = new ArticlePreviewSageData({
+                    TargetID: self.model.ID,
+                    Reference: self.model.SageRef,
+                    ArticleOrArtifact: ArticleSageTarget.ARTICLE
+                });
+
+                confirmSycn.ShowDialog((dialogResult) => {
+                    self._loadFn();
+                });
+
+            });
+
+        },
+
+        SyncArtifactFn: function (a, b, c) {
+            var self = this;
+            var artifactID = $(a.currentTarget).data('artifactId');
+            var idx = $(a.currentTarget).data('rowIdx');
+            var rowData = self.elements.ArtifactTable.Rows.Get(idx);
+
+            if (rowData.SageRef == null || rowData.SageRef.length < 1) {
+                AppContext.ShowError('@gFillSageRef');
+                return;
+            }
+
+            AppContext.LoadJS('/Admin/Brands/Projects/Articles/ArticlePreviewSageData.js').then(() => {
+
+                var confirmSycn = new ArticlePreviewSageData({
+                    TargetID: artifactID,
+                    Reference: rowData.SageRef,
+                    ArticleOrArtifact: ArticleSageTarget.ARTIFACT
+                });
+
+                confirmSycn.ShowDialog((dialogResult) => {
+                    AppContext.Articles.GetArtifacts(self.ArticleID)
+                    .done(function (data) {
+
+                        self.GetGrid().Rows.Clear();
+                        self.GetGrid().Rows.LoadData(data.Data);
+
+                    })
+                });
+
+            });
+
+        },
+
+        GetGrid: function () {
+            var self = this;
+            return self.elements.ArtifactTable;
+        },
+
+        UpdateArtifact: function (e) {
+            var self = this;
+            var artifact = self.GetGrid().Rows.Get(e.rowIndex);
+
+            if (e.field == "Description") {
+                artifact.Description = e.proposedValue;
+                AppContext.Articles.UpdateArtifact(artifact);
+                self.GetGrid().Rows.Update(e.rowIndex, artifact);
+            }
+
+            if (e.field == "EnablePreview") {
+                artifact.EnablePreview = e.proposedValue;
+                AppContext.Articles.UpdateArtifact(artifact);
+                self.GetGrid().Rows.Update(e.rowIndex, artifact);
+            }
+        },
+
+        RenderSageRef: function (val, row, col, dataType, data) {
+            var color = '';
+            var val = val ? val : '';
+
+            if (data.SyncWithSage != true) {
+                color = 'red';
+            }
+
+            return `<span style="color: ${color}">${val}</span>`;
+        },
+
+        RenderActions: function (val, row, col, dataType, data) {
+            return `<a class="btn btn-sm btn-link" href="#" action="SyncArtifactFn" data-row-idx="${row}" data-artifact-id="${data.ID}" style="padding:0; margin-top: -6px; font-size: 1em;">@gSync <i class="fa fa-fw fa-external-link"></i></a>`;
+        },
+
+        </text>
+        }
+
+    
+};
+
+//</script>

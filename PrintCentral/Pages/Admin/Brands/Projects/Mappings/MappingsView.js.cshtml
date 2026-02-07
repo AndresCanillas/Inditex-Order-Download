@@ -1,0 +1,203 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/Projects/Mappings/MappingsView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var MappingsView = function (id) {
+		FormView.Extend(this, "@g["Mappings"]", "/Admin/Brands/Projects/Mappings/MappingsView");
+		this.EntityID = id;
+		this.data = null;
+	};
+
+
+    MappingsView.prototype = {
+        constructor: MappingsView,
+
+		@if (userData.Admin_Mappings_CanEdit)
+		{
+		<text>
+		AddColumn: function () {
+			var self = this;
+			AppContext.Mappings.AddColumnMapping(this.EntityID, function (response) {
+				if (response.Success) {
+					self.elements.MappingsTable.Rows.Add(response.Data);
+					self.elements.MappingsTable.BeginEdit(self.elements.MappingsTable.Rows.Count - 1, 0);
+				}
+			})
+		},
+
+		InsertColumn: async function () {
+			var pos = this.elements.MappingsTable.Rows.SelectedIndex;
+			if (pos >= 0) {
+				await this.Save();
+				pos++;   // Grid indices are zero based, while ColOrder in the mappings are 1 based, so we need to add 1 to adjust
+				var result = await AppContext.Mappings.InsertColumnMapping(this.EntityID, pos);
+				if (result.Success) {
+					this.Reload();
+				}
+			}
+		},
+
+		MoveColumnDown: async function () {
+			var pos = this.elements.MappingsTable.Rows.SelectedIndex;
+			if (pos >= 0 && pos < this.elements.MappingsTable.Rows.Count-1) {
+				await this.Save();
+				var col = this.elements.MappingsTable.Rows.Get(pos);
+				var result = await AppContext.Mappings.MoveColumnDown(col.ID);
+				if (result.Success) {
+					this.Reload();
+					this.elements.MappingsTable.Rows.Select(++pos, true);
+				}
+			}
+		},
+
+
+		MoveColumnUp: async function () {
+			var pos = this.elements.MappingsTable.Rows.SelectedIndex;
+			if (pos > 0 && pos < this.elements.MappingsTable.Rows.Count) {
+				await this.Save();
+				var col = this.elements.MappingsTable.Rows.Get(pos);
+				var result = await AppContext.Mappings.MoveColumnUp(col.ID);
+				if (result.Success) {
+					this.Reload();
+					this.elements.MappingsTable.Rows.Select(--pos, true);
+				}
+			}
+		},
+
+		Reload: async function () {
+			var data = await AppContext.Mappings.GetColumnMappings(this.EntityID);
+			this.LoadData(data);
+			this.model.Columns = data.Columns;
+			this.elements.MappingsTable.Rows.LoadData(data.Columns);
+		},
+
+		RemoveColumn: function () {
+			var self = this;
+			var idx = this.elements.MappingsTable.Rows.SelectedIndex;
+			if (idx >= 0) {
+				var confirm = new ConfirmDialog("@g["Delete selected field from the mappings?"]");
+				confirm.ShowDialog(function (response) {
+					if (response) {
+						self.doRemoveColumn(idx);
+					}
+				});
+			}
+		},
+
+		doRemoveColumn: async function (idx) {
+			await this.Save();
+			var col = this.elements.MappingsTable.Rows.Get(idx);
+			var result = await AppContext.Mappings.DeleteColumnMapping(col.ID);
+			if (result.Success) {
+				this.Reload();
+			}
+		},
+
+		InitMappings: function (e) {
+			e.preventDefault();
+			if (this.model.RootCatalog != null && this.model.RootCatalog > 0) {
+				var self = this;
+				AppContext.Mappings.InitMappings(this.model.ID, this.model.RootCatalog, (result) => {
+					if (result.Success) {
+						for (var col of result.Data)
+							self.elements.MappingsTable.Rows.Add(col);
+					}
+				});
+			}
+			else AppContext.ShowError("You have to select a value for the target catalog.");
+		},
+		ColumnDelimiterDisplay : function (caracter)
+		{
+			if (!caracter || caracter.length!==1) 
+			{
+				return caracter; 
+			}
+			const c = caracter;
+
+				switch (c) {
+				  case "\t": return "\\t";
+				  case "\n": return "\\n";
+				  case "\r": return "\\r";
+				  case "\\": return "\\\\";
+				  case "\"": return "\\\"";
+				  case "'":  return "\\'";
+			  }
+			const code = c.charCodeAt(0);
+
+			if (code > 31 && code < 127)
+			{
+				return c;
+			}
+
+			return "\\u" + code.toString(16).padStart(4, "0");
+		},
+		ColumnDelimiterNormalizer : function (raw)
+		{
+						 if (!raw) return null;
+
+			  // 1. Convertir \uXXXX
+			  raw = raw.replace(/\\u([0-9A-Fa-f]{4})/g, (_, hex) =>
+				  String.fromCharCode(parseInt(hex, 16))
+			  );
+
+			  // 2. Convertir secuencias de escape comunes
+			  raw = raw.replace(/\\t/g, "\t")
+					   .replace(/\\n/g, "\n")
+					   .replace(/\\r/g, "\r")
+					   .replace(/\\r\\n/g, "\r\n")
+					   .replace(/\\\\/g, "\\")
+					   .replace(/\\'/g, "'")
+					   .replace(/\\"/g, "\"");
+
+			  // 3. Debe quedar exactamente 1 carácter
+			  if (raw.length !== 1) {
+				  AppContext.ShowError("@g["Invalid character for Column Delimiter"]")
+				  return false;
+			  }
+
+			  return raw;
+		},
+		Save: async function (e) {
+			if (!this.model.ValidState()) return;
+			var data = this.GetData();
+			data.ColumnDelimiter= this.ColumnDelimiterNormalizer(data.ColumnDelimiter)
+			if (data.ColumnDelimiter)
+			{
+					  var result = await AppContext.Mappings.SaveColumnMappings(data);
+					  if (result.Success) {
+						  if (e != null) {
+							  AppContext.ShowSuccess("@g["Mappings have been updated!"]");
+						  }
+						  this.OnSaved.Raise(data);
+					  }
+			}
+
+		},
+		</text>
+		}
+
+
+		OnLoad: function () {
+			var self = this;
+			AppContext.Mappings.GetColumnMappings(this.EntityID, function (data) {
+				if (data != null) {
+					AppContext.Catalogs.GetByProjectID(data.ProjectID, (catalogs) => {
+						AppContext.LoadComboBox(self.elements.RootCatalog, catalogs, "ID", "Name");
+						self.LoadData(data);
+						self.model.ColumnDelimiter = self.ColumnDelimiterDisplay(self.model.ColumnDelimiter);
+						self.model.Columns = data.Columns;
+						self.elements.MappingsTable.Rows.LoadData(data.Columns);
+					});
+				}
+			});
+		}
+	};
+//</script>

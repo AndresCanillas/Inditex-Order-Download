@@ -1,0 +1,91 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Locations/Printers/PrintersRootNode.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var PrintersRootNode = function (locationid) {
+		TreeNode.Extend(this, "PrintersRootNode", 0, "@g["Printers"]");
+		this.LocationID = locationid;
+        this.CanEdit = false;
+		@if (userData.Admin_Printers_CanAdd)
+		{
+		<text>
+		this.menu = {
+            MenuWidth: "200px",
+            Options: [
+                { Text: "@Html.Raw(g["New Printer"])", OnClick: this.CreatePrinter }
+            ]
+        };
+		</text>
+		}
+	};
+
+	PrintersRootNode.prototype = {
+		constructor: PrintersRootNode,
+
+        loadDependencies: function (callback) {
+            AppContext.LoadJS(
+                "/Common/AskNameDialog.js",
+				"/Admin/Locations/Printers/PrinterNode.js").then(()=>callback());
+        },
+
+		GetContextMenu: function () {
+            return this.menu;
+        },
+
+
+		@if (userData.Admin_Printers_CanAdd)
+		{
+		<text>
+        CreatePrinter: function () {
+            var self = this;
+			this.loadDependencies(function () {
+				var dialog = new AskNameDialog("@g["New Printer"]");
+                dialog.ShowDialog(function (dlgData) {
+					if (!dlgData) return;
+					dlgData.LocationID = self.LocationID;
+                    AppContext.Printers.Insert(dlgData, function (result) {
+						if (result.Success) {
+							var node = new PrinterNode(result.Data.ID, result.Data.Name);
+							self.AddNode(node);
+							node.OnDoubleClick();
+							if (!self.Expanded)
+								self.Expand();
+						}
+                    });
+                });
+            });
+        },
+		</text>
+		}
+
+        OnExpanded: function () {
+            var self = this;
+            this.loadDependencies(function (){
+                if (!self.IsLoaded) {
+                    self.IsLoaded = true;
+                    AppContext.Printers.GetByLocationID(self.LocationID, function (data){ self.loadNodes(data); });
+                }
+            });
+        },
+
+        loadNodes: function (data){
+            var printer, node;
+			for (var index = 0; index < data.length; index++) {
+				printer = data[index];
+				if (!this.FindNode("PrinterNode", printer.ID, false)) {
+					node = new PrinterNode(printer.ID, printer.Name);
+                    this.AddNode(node);
+                }
+            }
+        }
+    };
+//</script>
+

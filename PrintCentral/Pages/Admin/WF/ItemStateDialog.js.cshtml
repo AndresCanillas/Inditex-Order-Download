@@ -1,0 +1,46 @@
+﻿@page
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/WF/ItemStateDialog.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var ItemStateDialog = function (workflowid, itemid) {
+		FormView.Extend(this, "Saved item state", `/Admin/WF/ItemStateDialog`);
+		this.WorkflowID = workflowid;
+		this.ItemID = itemid;
+		this.ReadOnly = true;
+	};
+
+	ItemStateDialog.prototype = {
+		constructor: ItemStateDialog,
+
+		OnLoad: async function () {
+			var response = await AppContext.HttpGet(`/wf/${this.WorkflowID}/${this.ItemID}/state`);
+			if (response.Success) {
+				this.model.ItemState = response.Data;
+			}
+		},
+
+		OnUnload: async function () {
+		},
+
+		Edit: async function (e) {
+			e && e.preventDefault();
+			if (this.ReadOnly) {
+				this.ReadOnly = false;
+				this.elements.btnEdit.text("Save");
+				this.elements.ItemState.prop("readonly", false);
+			}
+			else {
+				this.ReadOnly = true;
+				this.elements.btnEdit.text("Edit");
+				this.elements.ItemState.prop("readonly", true);
+				var result = await AppContext.HttpPost(`/wf/${this.WorkflowID}/${this.ItemID}/state`, this.model.ItemState);
+			}
+		}
+	};
+//</script>

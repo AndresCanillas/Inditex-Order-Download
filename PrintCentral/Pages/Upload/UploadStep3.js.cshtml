@@ -1,0 +1,289 @@
+﻿@page
+@inject ILocalizationService g
+@inject IPrinterRepository repo;
+@{
+	Layout = null;
+	var printers = repo.GetList();
+	bool CanPrintLocally = printers.Count > 0;
+}
+//# sourceURL=https://Pages/Upload/UploadStep3.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var UploadStep3 = function (title, target) {
+		FormView.Extend(this, title, "/Upload/UploadStep3");
+		this.Target = target;
+		this.ProductionType = 1;
+		this.PrinterID = 0;
+		@if (CanPrintLocally)
+		{
+			@:this.CanPrintLocally = true;
+		}
+	};
+
+
+	UploadStep3.prototype = {
+		constructor: UploadStep3,
+
+		OnLoad: function () {
+            var self = this;
+
+			AppContext.HttpGet("/upload/jobresult", function (result) {
+				if (result != null) {
+					self.JobResult = result;
+					if (self.JobResult.Errors.length > 0) {
+						self.elements.UploadErrors.LoadErrors(self.JobResult.Errors, self.elements.ResultsTable);
+					}
+					else {
+						self.elements.ErrorColumn.hide();
+						self.elements.btnAcceptData.show();
+						self.elements.UserMessage.show();
+						self.elements.TableContainer.attr("class", "col");
+					}
+					AppContext.HttpGet("/upload/importeddata", function (data) {
+						if (data != null) {
+							self.ImportedData = data;
+							self.page = 0;
+							self.ConfigureTable();
+							self.elements.ResultsUI.show();
+						}
+					}, self.ShowApiError, true);
+				}
+				else AppContext.ShowError("@g["Could not process the file due to an unexpected error."]");
+			}, self.ShowApiError);
+        },
+
+        OnUnload: function () {
+            try {
+                AppContext.AppEventListener.Unsubscribe(this, this.RedirectToPrintQueue);
+            } catch {
+
+            }
+
+        },
+
+		ConfigureTable: function () {
+			var data = this.ImportedData;
+			var tableColumns = [{ Text: "#", Width: 30 }];
+			for (var col of data.Cols) {
+				if (col.InputColumn != null && col.InputColumn.length > 0) {
+					tableColumns.push({ Text: col.InputColumn, Field: col.InputColumn, Width: 120 });
+				}
+				else {
+					if (tableColumns.findIndex(p => p.Text == col.TargetColumn) < 0) {
+						tableColumns.push({ Text: col.TargetColumn, Field: col.TargetColumn, Width: 120 });
+					}
+				}
+			}
+			var tableData = [];
+			var start = this.page * 1000;
+			var limit = (this.page + 1) * 1000;
+			if (limit > data.Rows.length)
+				limit = data.Rows.length;
+			for (var row = start; row < limit; row++) {
+                tableData.push(data.Rows[row].Data);
+			}
+			if (data.Rows.length > 1000) {
+				this.elements.PrevPage.show();
+				this.elements.NextPage.show();
+				this.elements.TotalRows.text(`@g["Imported"] ${data.Rows.length} @g["rows"], @g["showing records"] ${start + 1} - ${limit}.`);
+			}
+			else {
+				this.elements.PrevPage.hide();
+				this.elements.NextPage.hide();
+				this.elements.TotalRows.text(`@g["Imported"] ${data.Rows.length} @g["rows"].`);
+			}
+			this.elements.ResultsTable.ConfigureColumns(tableColumns);
+			this.elements.ResultsTable.LoadData(tableData);
+            /*
+			function CreateRow(columns, values) {
+				var result = {};
+				var colIndex = 0;
+				for (var col of columns) {
+					if (col.Text == "#")
+						continue;
+					result[col.Text] = values[colIndex];
+					colIndex++
+				}
+				return result;
+			}*/
+		},
+
+		Previous: function () {
+			if (this.page > 0) {
+				this.page--;
+				this.ConfigureTable();
+			}
+		},
+
+		Next: function () {
+			if ((this.page + 1) * 1000 <= this.ImportedData.Rows.length) {
+				this.page++;
+				this.ConfigureTable();
+			}
+		},
+
+		CancelUpload: function (e) {
+			this.elements.btnCancel.prop("disabled", true);
+			this.elements.btnAcceptData.prop("disabled", true);
+			AppContext.HttpPost("upload/purge", null, (result) => {
+				window.location = "/";
+			});
+		},
+
+		AcceptDataUpload: function (e) {
+			this.elements.btnCancel.prop("disabled", true);
+			this.elements.btnAcceptData.prop("disabled", true);
+			this.AcceptUpload();
+		},
+
+		AcceptUpload: function () {
+			var self = this;
+			if (this.Target == "order") {
+				if (this.CanPrintLocally) {
+					AppContext.LoadJS("/Upload/ProductionTypeDialog.js").then(() => {
+						var dialog = new ProductionTypeDialog();
+						dialog.ShowDialog(function (data) {
+							if (data) {
+								if (data.PrinterID == "") data.PrinterID = 0;
+								self.ProductionType = data.ProductionType;
+								self.PrinterID = data.PrinterID;
+								self.CompleteUpload(data);
+							}
+							else {
+								self.elements.btnAcceptData.prop('disabled', false);
+								self.elements.btnCancel.prop("disabled", false);
+							}
+						});
+					});
+				}
+				else this.CompleteUpload({ ProductionType: 1 })
+			}
+			else this.CompleteUpload();
+		},
+
+		CompleteUpload: function (data) {
+			var self = this;
+			if (this.Target == "order") {
+				AppContext.HttpPost("/api/intake/completeupload", data, function (result) {
+					if (result.Success)
+						self.HandleUploadSuccess(result);
+					else
+						self.HandleUploadError(result);
+				}, function (result) {
+					self.HandleUploadError(result);
+				}, true);
+			}
+			else {
+				AppContext.HttpPost("/upload/variabledata/complete", data, function (result) {
+					if (result.Success)
+						self.HandleUploadSuccess(result);
+					else
+						self.HandleUploadError(result);
+				}, function (result) {
+					self.HandleUploadError(result);
+				}, true);
+			}
+		},
+
+        HandleUploadSuccess: function (result) {
+            
+			var self = this;
+			if (result.Success === true) {
+				if (self.Target == "order") {
+                    if (self.ProductionType == 2) {
+
+                        // query the order to check if already ProdReady status
+                        // TODO: how many orders can be uploaded at the same time????
+                        var orders = result.Data.CreatedOrders;
+
+                        var checkStatus = () => {
+
+                            var taskList = [];
+                            for (var idx = 0; idx < orders.length; idx++) {
+                                var promise = AppContext.Orders.GetByID(orders[idx].OrderID)
+
+                                taskList.push(promise)
+                            }
+
+
+                            $.when(...taskList).done((...results) => {
+
+                                if (!Array.isArray(results[0])) {
+                                    results = [results];
+                                }
+
+                                var allOrdersReady = true;
+								var allOrdersInflow = false;
+
+                                for (var rdx = 0; rdx < results.length; rdx++) {
+                                    if (results[rdx][0].OrderStatus !== @((int)OrderStatus.ProdReady)) {
+                                        allOrdersReady = false;
+                                    }
+									 if (results[rdx][0].OrderStatus === @((int)OrderStatus.InFlow)) {
+                                        allOrdersInflow = true;
+                                    }
+                                }
+
+                                if (allOrdersReady) {
+									AppContext.ShowInfo('@g["Redirecting to Print Queue"]')
+                                    AppContext.LoadJS("/Production/PrinterQueueView.js").then(() => {
+                                        var view = new PrinterQueueView(self.PrinterID);
+                                        view.Show(self.ViewContainer);
+                                    });
+                                } else {
+									if(allOrdersInflow)
+									{
+										self.elements.MsgTitle.html("@g["Process completed"]");
+										self.elements.MsgContent.html("@g["Soon you should see a notification letting you know that your order was sucessfully processed by our system and is waiting to be validated and printed."]");
+										self.elements.ResultsUI.hide();
+										self.elements.MessageUI.show();
+									}
+                                    setTimeout(checkStatus, 500);
+                                }
+
+                            });
+
+                        };
+                        
+                        checkStatus();
+                        
+					}
+					else {
+						self.elements.MsgTitle.html("@g["Process completed"]");
+						self.elements.MsgContent.html("@g["Soon you should see a notification letting you know that your order was sucessfully processed by our system and is waiting to be validated and printed."]");
+						self.elements.ResultsUI.hide();
+						self.elements.MessageUI.show();
+					}
+				}
+				else {
+					self.elements.MsgTitle.html("@g["Process completed"]");
+					self.elements.MsgContent.html("@g["Document data has been uploaded to the system."]");
+					self.elements.ResultsUI.hide();
+					self.elements.MessageUI.show();
+				}
+			}
+			else {
+				self.elements.MsgTitle.html("@g["Error while processing file"]");
+				self.elements.MsgContent.html("@g["There was an error in the last step of the process, please contact customer support."]");
+				self.elements.ResultsUI.hide();
+				self.elements.MessageUI.show();
+			}
+			AppContext.HttpPost("upload/purge", null, () => { });
+		},
+
+
+		HandleUploadError: function (result) {
+			this.elements.MsgTitle.html("@g["The manufacturing order could not be uploaded successfully."]");
+			this.elements.MsgContent.html(result.Message);
+			this.elements.ResultsUI.hide();
+			this.elements.MessageUI.show();
+		},
+
+		ShowApiError: function () {
+			AppContext.ShowError("@g["Error processing request"]");
+        }
+	};
+//</script>

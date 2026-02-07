@@ -1,0 +1,25 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Common/CompanyDialog.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+
+//<script>
+	var AskNameDialog = function (title) {
+		FormView.Extend(this, title, "/Common/AskNameDialog");
+	};
+
+	AskNameDialog.prototype = {
+		constructor: AskNameDialog,
+
+		AutoClose: function (e) {
+			if (e.keyCode === 13)
+				this.Ok();
+		}
+	};
+//</script>

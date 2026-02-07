@@ -1,0 +1,46 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/FtpAccountDialog.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var FtpAccountDialog = function (companyid) {
+		FormView.Extend(this, "@g["Company FTP Account"]", "/admin/FtpAccountDialog");
+		this.CompanyID = companyid;
+	};
+
+	FtpAccountDialog.prototype = {
+		constructor: FtpAccountDialog,
+
+		OnLoad: function () {
+			var self = this
+			AppContext.Companies.GetFtpAccount(this.CompanyID, function (data) {
+				if (data != null) {
+					self.LoadData(data);
+				}
+				else {
+					self.model.CompanyID = self.CompanyID;
+					self.model.FtpServer = "";
+					self.model.FtpPort = 0;
+					self.model.FtpsPort = 0;
+				}
+			});
+		},
+
+		Save: function (e) {
+			var self = this;
+			if (!this.model.ValidState()) return;
+			var data = this.GetData();
+			AppContext.Companies.SaveFtpAccount(data, function (result) {
+				if (result.Success) {
+					self.Close(data);
+				}
+			});
+		}
+	};
+//</script>

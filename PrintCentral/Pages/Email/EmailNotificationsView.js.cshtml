@@ -1,0 +1,94 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Email/EmailNotificationsView.js
+///<reference path="/js/jquery-3.0.0.min.js" />
+///<reference path="/js/Kendo.all.min.js" />
+///<reference path="/js/AppContext.js" />
+
+//<script>
+	var EmailNotificationsView = function (tokenCode) {
+		FormView.Extend(this, "@g["Email communications"]", `/Email/EmailNotificationsView?${tokenCode}`);
+		this.TokenCode = tokenCode;
+		this.selectionValue = true;
+	};
+
+
+	EmailNotificationsView.prototype = {
+		constructor: EmailNotificationsView,
+
+		OnLoad: function () {
+
+		},
+
+		OnUnload: function () {
+
+		},
+
+		selectClick: function (e) {
+			e.preventDefault();
+			var idx = 0;
+			var elm = null;
+			this.selectionValue = !this.selectionValue;
+			if (this.selectionValue === true)
+				this.elements.selectButton.text("@g["Unselect All"]");
+			else
+				this.elements.selectButton.text("@g["Select All"]");
+			do {
+				elm = this.elements[`row_${idx}`];
+				if (elm != null) {
+					elm.prop("checked", this.selectionValue);
+				}
+				idx++;
+			} while (elm != null);
+		},
+
+		downloadPreview: function (e) {
+			e.stopPropagation();
+		},
+
+		settingsClick: function (e) {
+			if (this.elements.settings.is(":visible")) {
+				this.elements.settings.hide();
+			}
+			else {
+				this.elements.settings.show();
+			}
+		},
+
+
+		saveSettings: async function (e) {
+			if (this.model.ValidState()) {
+				var data = {
+					TokenCode: this.TokenCode,
+					Settings: this.GetData()
+				};
+				var result = await AppContext.HttpPost("/orderemail/updatesettings", data);
+				if (result.Success == true)
+					this.elements.settings.hide();
+			}
+		},
+
+		markClick: async function (e) {
+			e.preventDefault();
+			var idx = 0;
+			var elm = null;
+			var data = { TokenCode: this.TokenCode, OrderIDs: [] };
+			do {
+				elm = this.elements[`row_${idx}`];
+				if (elm != null && elm.prop("checked") === true) {
+					data.OrderIDs.push(elm.val());
+				}
+				idx++;
+			} while (elm != null);
+			if (data.OrderIDs.length > 0) {
+				var result = await AppContext.HttpPost("/orderemail/markasseen", data);
+				if (result.Success == true) {
+					location.reload();
+				}
+			}
+		}
+	};
+//</script>

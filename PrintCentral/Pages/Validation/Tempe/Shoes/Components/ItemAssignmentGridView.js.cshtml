@@ -1,0 +1,793 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+
+//# sourceURL=https://Pages/Validation/Tempe/Shoes/Components/ItemAssignmentGridView.js
+/// <script>
+        /**
+         * Seletion = {
+         * Details:[],
+         * OrderGroupID:int,
+         * Orders:[],
+         * ProjectID: int
+         * }
+         * }
+         * @@param selection
+         */
+        var ItemAssignmentGridView = function () {
+
+            this.ArticleList = [];
+            this.SelectedArticles = [];
+            this.ProductFields = [];
+            this.PackIems = [];
+            this.PackArticles = [];
+
+            this.OrderDetails = [];
+            this.ProductData = [];
+            this.Catalogs = [];
+
+            FormView.Extend(this, "@g["Assign Items"]", `@Url.Content("~/Validation/Tempe/Shoes/Components/ItemAssignmentGridView")`);
+
+        }
+
+        ItemAssignmentGridView.SelectPickerConfig = {
+            liveSearch: true,
+            liveSearchStyle: 'contains',
+            liveSearchNormalize: true,
+            style: 'btn-sm btn-light fixBorders',
+            sanitize: false,
+            //sanitizeFn: (el) => { return el; }
+        },
+
+        ItemAssignmentGridView.prototype = {
+
+            constructor: ItemAssignmentGridView,
+
+            OnLoad: function () {
+                var self = this;
+            },
+
+            LoadDataComponent: function (selection) {
+
+                    let self = this;
+
+                    AppContext.Wizard.GetGroupItemsAssigned({
+                        selection: [selection],
+                        productfields: ["SECTION_SYMBOL", "IMAGE", "Units", "ColorFull", "EPCTagType", "EPCTagSubType"],
+                        GetAllArticles: true
+                    }).done((result) => { //Añadir CIF
+                        if (result.Data.length > 0) {
+
+                            result.Data.forEach((sel, idx, arr) => {
+
+                                self.ArticlesSizes = sel.Details.filter((item) => item.Article.includes("REMOVABLE"));
+
+                                self.OrderDetails = [...new Map(sel.Details.map((item) => [item["ArticleCode"], item])).values()];
+
+                                if (!self.OrderDetails || self.OrderDetails.filter(f => f.ArticleCode != '@Article.EMPTY_ARTICLE_CODE') < 1)
+                                    return false;
+
+                                self.elements.Articles.Rows.Clear();
+                                self.SelectedArticles = []
+                                self.OrderDetails
+                                    .filter(f => f.ArticleCode != '@Article.EMPTY_ARTICLE_CODE')
+                                    .forEach((art, idx, arr) => {
+
+                                        let found = self.Labels.find(f => f.ID == art.ArticleID);
+                                        let item = {};
+
+                                        if (found) {
+                                            item = {
+                                                ArticleID: found.ID,
+                                                ArticleName: found.Name,
+                                                ArticleCode: found.ArticleCode,
+                                                ArticleType: found.LabelType,
+                                                RFID: found.EncodeRFID,
+                                                LabelID: found.LabelID,
+                                                PackCode: art.PackCode,
+                                                IsItem: false
+                                            };
+                                        } else {
+                                            item = {
+                                                ArticleID: art.ArticleID,
+                                                ArticleName: art.Description,
+                                                ArticleCode: art.ArticleCode,
+                                                PackCode: art.PackCode,
+                                                OrderGroupID: art.OrderGroupID,
+                                                OrderID: art.OrderID,
+                                                PrinterJobID: art.PrinterJobID,
+                                                PrinterJobDetailID: art.PrinterJobDetailID,
+                                                IsItem: true
+                                            };
+                                        }
+
+                                        self.elements.Articles.Rows.Add(item);
+                                        self.SelectedArticles.push(item);
+                                        
+
+                                    });
+
+                                self.CreateImagesCards();
+
+                                // set common data, all articles contains the same common data
+                                let productData = (self.OrderDetails.filter(f => f.ArticleCode != '@Article.EMPTY_ARTICLE_CODE'))[0].ProductData;
+                                //self.LoadData(productData); // XXX: IS STANDARD, HERE IS REMOVED BY ALBERTO SATILLANA
+
+                                self.ArticlesSizes = self.ArticlesSizes.map((item) => item["ProductData"]);
+                                self.LoadSizeUnits(self.ArticlesSizes);
+                                self.SetProductFields(productData);
+
+                                if(self.ArticlesSizes.length == 0)
+                                        self.ArticlesSizes = sel.Details.map((item) => item["ProductData"]);
+
+                                let image = self.elements.IMAGENNAME.val();
+
+                                if (image.length > 0) {
+                                    this.elements.Images.LoadItems({ ProjectID: this.ProjectID, ShowFilters: false, AddOption: true, OpenOption: true, DeleteOption: false, NewOptionOpen: true, MustOverloapItem: true, FileName: image }, true, image);
+                                } else {
+                                    this.elements.Images.LoadItems({ ProjectID: this.ProjectID, ShowFilters: false, AddOption: true, OpenOption: true, DeleteOption: false, NewOptionOpen: true, MustOverloapItem: true, FileName: "NoImage.jpg" }, true);
+                                }
+
+                                this.elements.Images.ItemSelected.Subscribe(this, this.OpenItem);
+                                this.elements.Images.UploadSuccessEvent.Subscribe(this, this.UploadSuccessEvent);
+                                this.ChangeAddArticleEvent();
+
+
+                            });
+                            
+                        }
+                    });
+
+
+
+                },
+
+            ChangeAddArticleEvent: function (){
+                let self = this;
+
+                self.elements.ArticleFinder.on('changed.bs.select', function (e, clickedIndex, isSelected, previousValue) {
+                    var selectedOption = $(this).find('option:selected');
+                    var optionText = selectedOption.text();
+                    if (optionText && optionText.includes("REMOVABLE")) {
+                        self.LoadSizeUnits( self.ArticlesSizes.filter(item => item !== null));
+                    }
+                });
+            },
+
+            UploadSuccessEvent: function (e) {
+                let self = this;
+                self.elements.IMAGENNAME.val(e.Data.FileName);
+
+                this.elements.Images.LoadItems({ ProjectID: this.ProjectID, ShowFilters: false, AddOption: false, OpenOption: true, DeleteOption: false, NewOptionOpen: true, MustOverloapItem: true, FileName: e.Data.FileName }, true, e.Data.FileName);
+            },
+
+            ResetImage: function (e) {
+                let self = this;
+                self.elements.IMAGENNAME.val("");
+                this.elements.Images.LoadItems({ ProjectID: this.ProjectID, ShowFilters: false, AddOption: false, OpenOption: true, DeleteOption: false, NewOptionOpen: true, MustOverloapItem: true }, true, "");
+            },
+
+            OpenItem: function (e) {
+                let self = this
+                self.elements.IMAGENNAME.val(e.item.FileName);
+                this.elements.Images.LoadItems({ ProjectID: this.ProjectID, ShowFilters: false, AddOption: false, OpenOption: true, DeleteOption: false, NewOptionOpen: true, MustOverloapItem: true, FileName: e.item.FileName }, true, e.item.FileName);
+            },
+
+            LoadSizeUnits : function (articles) {
+
+                var self = this;
+                if (articles.length > 0) {
+                    let allSizes = [];
+                    articles.sort();
+                    articles.forEach((size, idx, arr) => {
+                        self._AddRows(size,idx);
+                    });
+                }
+                else {
+                    self.elements.UnitsContainer.hide();
+                }
+                
+            },
+            RemoveSizeUnitsGrid: function(articleCode){
+                if(articleCode.includes("REMOVABLE")){
+                    let self = this;
+                    $(self.elements.UnitsContainer).find('table tbody').empty();
+                    self.elements.UnitsContainer.hide();
+                }
+            },
+            _AddRows: function (article,idx) {
+                var self = this;
+                var $tbody = self.elements.UnitsContainer.find('tbody');
+                let units = self.GetUnits(article?.Units);
+                units = units === 0 ? 1 : units;
+
+                let tr = `
+                        <tr>
+                                <td>${article.Size}</td>
+                                <td>${article.ColorFull}</td>
+                                <td>
+                                            <input model name="CustomDetails[${idx}].Barcode" value="${article.Barcode}" type="hidden" />
+                                    <input model name="CustomDetails[${idx}].Name" value="Units" type="hidden" />
+                                    <input model name="CustomDetails[${idx}].Value" value="${units}" type="number" />
+                               </td>
+                        </tr>`;
+
+                $tbody.append(tr);
+            },
+            GetUnits: function (units) {
+
+                if (units == null)
+                    return 0;
+                else
+                    return units;
+            },
+
+            SetProductFields: function (productData) {
+
+                let self = this;
+
+                if (!productData) return;
+
+                self.elements.SECTION_SYMBOL.val(productData?.SECTION_SYMBOL);
+                self.elements.IMAGENNAME.val(productData?.IMAGE);
+            },
+
+            SetFeatures: function (productData) {
+
+                let self = this;
+
+                for (let prop in productData) {
+                    if (productData.hasOwnProperty(prop) && prop.includes("FEATURES_") && productData[prop] !== "") {
+                        console.log(prop + ": " + productData[prop]);
+
+                        var found = self.Features.find(f => f.ID == productData[prop]);
+
+                        var item = {
+                            ID: found.ID,
+                            SeasonID: found.ID_SEASON,
+                            BrandID: found.ID_BRAND,
+                            LabelID: found.ID_LABEL,
+                            DescLabel: found.DESC_LABEL,
+                            DescName: found.DESC_NAME,
+                            Brand: found.BRAND,
+                            SectionID: found.ID_SECTION,
+                            ElementType: found.TIPO_ELEMENTO,
+                            CodiMD: found.CODI_MD,
+                            CodiMDMarchamo: found.CODI_MD_MARCHAMO,
+                            EsAsos: found.ES_ASOS
+                        }
+
+                        self.elements.Features.Rows.Add(item);
+
+                        self.SelectedFeatures.push(item);
+                    }
+                }
+
+
+
+            },
+
+            Initialize: function (selection, labels, items, catalogs, orderSelection) {
+                // fill ArticleFinder compo
+                // load previously selected articles
+
+                let self = this;
+
+                self.Selection = selection
+                self.Labels = labels;
+                self.Items = items;
+                self.Catalogs = catalogs;
+                self.OrderSelection = orderSelection;
+                self.LoadDataComponent(selection);
+                self.FillCombo();
+                self.PrepareFinder();
+                self.OrderID = selection.Orders[0];// esto esta mal, aqui pueden haber varias ordenes, ya que cada articulo es una
+                self.ProjectID = selection.ProjectID;
+                
+            },
+
+            PrepareFinder: function () {
+                let self = this;
+                self.elements.ArticleFinder.selectpicker({
+                    liveSearch: true,
+                    liveSearchStyle: 'contains',
+                    liveSearchNormalize: true,
+                    style: 'btn-sm btn-light'
+                });
+            },
+
+
+            FillCombo: function () {
+                let self = this;
+
+                let allOptions = [];
+
+                let labelsGroup = $('<optgroup>', { label: '@g["Labels"]' })
+                let itemsGroup = $('<optgroup>', { label: '@g["Articles"]' })
+                let labelsTokens = 'data-tokens="label labels etiqueta etiquetas"';
+                let itemsTokens = 'data-tokens="item items"'
+
+                self.Labels.filter(f => f.EnableAddItems).forEach((art, idx, allLabels) => {
+                    let isRfid = '';
+
+                    if (art.EncodeRFID)
+                        isRfid = `<span class='badge badge-warning'>RFID</span>`;
+
+                    let htmlOption = `<i class='fa fa-fw fa-tag'></i> ${art.Name} ${isRfid}`;
+
+                    let opt = `<option value="${art.ID}" data-content="${htmlOption}" ${labelsTokens} >${art.Name}</option>`;
+                    allOptions.push(opt)
+                });
+
+                labelsGroup.html(allOptions.join(''));
+
+                allOptions = [];
+
+                self.Items.forEach((art, idx, allItems) => {
+                    let htmlOption = `<i class='fa fa-fw fa-shopping-cart'></i> ${art.Name}`;
+
+                    let opt = `<option ${itemsTokens} data-content="${htmlOption}" value="${art.ID}">${art.Name}</option>`;
+                    allOptions.push(opt)
+                });
+
+                itemsGroup.html(allOptions.join(''));
+
+                self.elements.ArticleFinder.html('');
+                self.elements.ArticleFinder.append(labelsGroup);
+                self.elements.ArticleFinder.append(itemsGroup);
+                self.elements.ArticleFinder.selectpicker('refresh')
+            },
+
+            AddArticle: async function (e) {
+                var self = this;
+                var result = this.GetArticle();
+
+                if (result == null)
+                    return AppContext.ShowError("@g["You need to select an article first."]");
+                if (this.elements.Articles.Rows.DataSource.first(x => x.ArticleCode == result.ArticleCode))
+                    return AppContext.ShowInfo("@g["That article is already part of the order."]")
+
+                //add item to grid
+                self.elements.Articles.Rows.Add(result);
+
+                //clear control finder
+                var article = self.elements.ArticleFinder;
+                article.selectpicker('val', "");
+
+                self.SelectedArticles.push(result);
+
+                self.RemoveImageCards();
+
+                self.CreateImagesCards();
+         
+                if (result.ArticleCode.includes("REMOVABLE") == true && self.elements.UnitsContainer.is(":hidden") == true)
+                    self.elements.UnitsContainer.show();
+            },
+
+            AddFeature: async function (e) {
+                var self = this;
+                var result = this.GetFeature();
+
+                if (result == null)
+                    return AppContext.ShowError("@g["You need to select an feature first."]");
+
+                if (this.elements.Features.Rows.DataSource.first(x => x.ID == result.ID))
+                    return AppContext.ShowInfo("@g["That feature is already part of the order."]")
+
+                //add item to grid
+                self.elements.Features.Rows.Add(result);
+
+                //clear control finder
+                var feature = self.elements.FeatureFinder;
+                feature.selectpicker('val', "");
+
+                self.SelectedFeatures.push(result);
+            },
+
+            HasItems: function () {
+                var self = this;
+                return self.elements.Articles.Rows.Count > 0;
+            },
+            IsValid: function() {
+                var self = this;
+                return self.model.ValidState();
+            },
+
+            GetArticle: function () {
+
+                var self = this;
+                var item;
+                var article = self.elements.ArticleFinder;
+                var found = self.Labels.find(art => art.ID == article.val());
+
+                if (found != undefined) {
+                    item = {
+                        ArticleID: found.ID,
+                        ArticleName: found.Description,
+                        ArticleCode: found.ArticleCode,
+                        ArticleType: found.LabelType,
+                        RFID: found.EncodeRFID,
+                        LabelID: found.LabelID
+                    }
+                } else {
+                    item = null;
+                }
+
+                return item;
+            },
+
+            GetFeature: function () {
+
+                var self = this;
+                var item;
+                var featureSeleted = self.elements.FeatureFinder;
+                var found = self.Features.find(feature => feature.ID == featureSeleted.val());
+
+                if (found != undefined) {
+                    item = {
+                        ID: found.ID,
+                        SeasonID: found.ID_SEASON,
+                        BrandID: found.ID_BRAND,
+                        LabelID: found.ID_LABEL,
+                        DescLabel: found.DESC_LABEL,
+                        DescName: found.DESC_NAME,
+                        Brand: found.BRAND,
+                        SectionID: found.ID_SECTION,
+                        ElementType: found.TIPO_ELEMENTO,
+                        CodiMD: found.CODI_MD,
+                        CodiMDMarchamo: found.CODI_MD_MARCHAMO,
+                        EsAsos: found.ES_ASOS
+                    }
+                } else {
+                    item = null;
+                }
+
+                return item;
+            },
+
+            RemoveArticle: function (e) {
+                e.preventDefault();
+                var self = this;
+                var idx = this.elements.Articles.Rows.SelectedIndex;
+                if (idx >= 0 && self.elements.Articles.Rows.Count > 0) {
+
+                    var ArticleId = self.elements.Articles.Rows.Get(idx).ArticleID;
+                    var articleCode = self.elements.Articles.Rows.Get(idx).ArticleCode;
+                    self.elements.Articles.Rows.Remove(idx);
+
+                    const index = self.SelectedArticles.findIndex(object => {
+                        return object.ArticleID === ArticleId;
+                    });
+
+                    self.RemoveArticleAndPreview(ArticleId, index);
+                    self.ArticlesSizes = self.ArticlesSizes.filter(item => item.ArticleID !== ArticleId);
+                    
+                    self.RemoveSizeUnitsGrid(articleCode);
+                }
+
+               
+            },
+
+            RemoveArticleAndPreview(articleid, index) {
+                var self = this;
+                self.SelectedArticles.splice(index, 1);
+
+                //delete image
+            },
+
+            CreateImagesCards: function () {
+
+                var self = this;
+                var k = 0;
+
+                for (var i = 0; i < self.SelectedArticles.length; i++) {
+
+                    self._AddImage(self.SelectedArticles[i], i);
+                }
+
+                $('.carousel-item', self.elements.CarrouselContent).first().addClass('active');
+                $('> li', self.elements.CarrouselIndicator).first().addClass('active');
+                $('#articlesSelected').carousel();
+
+            },
+
+            RemoveImageCards: function () {
+                var self = this;
+                self.elements.CarrouselContent.html("");
+            },
+
+            _AddImage: function (detail, position) {
+
+                var self = this;
+                var url = "";
+
+                var srcAttr = 'scr';
+
+                var classActive = '';
+
+                var description = '<p>&nbsp;</p>';
+
+
+                //bylabel
+                // http://localhost/labels/getpreview/3715
+
+                // byarticle
+                // http://localhost/articles/getfixedpreview/15311
+
+                if (detail.LabelID == null) {
+                    url = `/articles/getfixedpreview/${detail.LabelID}`
+                } else {
+                    url = `/articles/getpreview/${detail.ArticleID}`
+                }
+
+                if (position == 0) {
+                    srcAttr = 'src';
+                    classActive = 'active';
+                }
+
+                $(`<div class="carousel-item text-center" data-ArticleCode="${detail.ArticleCode}">
+                                            <a data-gallery="photoviewer" href="${url}" data-title="${detail.ArticleCode}" data-position="${position}">
+                                                <img src="${url}" style="height: 350px;">
+                                            </a>
+                                            <div class="carousel-caption d-none d-md-block" style="color: black;text-shadow: 4px 4px 4px #ADADAD; position: static">
+                                                <h5>${detail.ArticleCode}</h5>
+                                                ${detail.ArticleName}
+                                                <br>
+                                            </div>
+                                       </div>`).appendTo(self.elements.CarrouselContent)
+                $('<li data-target="#articlesSelected" data-slide-to="' + position + '"></li>').appendTo(self.elements.CarrouselIndicator)
+
+            },
+            GetSelectedArticles: function () {
+
+                let self = this;
+
+                return $.extend([], self.SelectedArticles)
+            },
+            GetSelectedFeatures: function () {
+
+                let self = this;
+
+                return $.extend([], self.SelectedFeatures)
+            },
+            GetProductFields: function () {
+
+                let self = this;
+
+                let productFields = [];
+
+                productFields.push({ Name: 'SECTION_SYMBOL', Value: self.elements.SECTION_SYMBOL.val() });
+                var imageName = $("div[data-entityid]:last").data("entityid");
+                productFields.push({ Name: 'IMAGE', Value: imageName });
+
+                return productFields;
+
+            },
+            GetCustomDetails: function () {
+
+                let self = this;
+
+                let customFields = [];
+
+                let inputs = $('input[name*="CustomDetails"]');
+                var valuesUnits = "";
+                var barcode = "";
+                var name = "";
+                var value = "";
+
+                inputs.each((idx, input) => {
+                    if ($(input).attr('name').includes("Barcode"))
+                        barcode = $(input).val();
+                    if ($(input).attr('name').includes("Name"))
+                        name = $(input).val();
+                    if ($(input).attr('name').includes("Value"))
+                        value = $(input).val();
+                    if ((idx + 1) % 3 == 0)
+                        customFields.push({ Barcode: barcode, Name: name, Value: value });
+                });
+
+                return customFields;
+            },
+
+            StartViewer: function () {
+
+                $('[data-gallery=photoviewer]').click(function (e) {
+
+                    e.preventDefault();
+
+                    var items = [],
+                        // get index of element clicked
+                        options = {
+                            index: $(this).data("position"),
+                            resizable: false,
+                            initMaximized: true,
+                            title: true,
+                            headerToolbar: ['close'],
+                            footerToolbar: ['zoomIn', 'zoomOut', 'actualSize', 'rotateRight', 'prev', 'next', 'close']
+                        };
+
+                    // looping to create images array
+                    $('[data-gallery=photoviewer]').each(function () {
+                        let src = $(this).attr('href');
+                        items.push({
+                            src: src,
+                            title: $(this).attr('data-title')
+                        });
+                    });
+
+                    new PhotoViewer(items, options);
+
+                });
+            },
+            GetTagTypes: function (details) {
+                let self = this;
+
+                let articlesCodeSelected = self.elements.Articles.Rows.DataSource.map(x => x.ArticleCode);
+
+                let catalog = self.Catalogs.find(f => f.Name == 'TypeSubTypeLookup');
+
+                let postProductFieldsForSize = [];
+
+                articlesCodeSelected.forEach((articleCode) => {
+
+                    const article = self.Labels.find(f => f.ArticleCode == articleCode);
+
+                    if (!article) return; // continue forEach
+
+                    const row = catalog.Data.find(f => article.ArticleCode == f.ArticleCode);
+
+                    let tagType = '99';
+                    let tagSubType = '99'
+
+                        if (!row && article.EncodeRFID)
+                        AppContext.ShowError(`@g["Tag Type Not Configured for Article : "] [${ArticleCode}]`);
+
+                    if (row) {
+                        tagType = row['TagType'];
+                        tagSubType = row['TagSubType'];
+                    }
+
+
+                    // set tagtype & tagsubtaby for every detail's articleCode
+                    details.filter(df => df.ArticleCode == articleCode).forEach((p) => {
+
+                        postProductFieldsForSize.push({
+                            ProjectID: self.ProjectID,
+                            ProductDataID: p.ProductDataID,
+                            ProductFields: [{
+                                Name: 'EPCTagType',
+                                Value: tagType
+                            },
+                            {
+                                Name: 'EPCTagSubType',
+                                Value: tagSubType
+                            }
+                            ]
+                        })
+
+                    })
+
+                });
+
+                //return JSON.stringify(self.ProductData.map(p => { ProductDataID: p.ProductDataID, SizeID: p['SizeID'] }))
+                return postProductFieldsForSize;
+
+            },
+
+            //#region EXPAND PACKS
+            ExpandPack: async function (e) {
+                var self = this;
+                var result = this.GetPack();
+                if (result == null)
+                    return AppContext.ShowError("@g["You need to select a pack first."]");
+
+                self.PackArticles = []
+                await self.GetPackArticles(result)
+
+                if (self.PackArticles.Data) {
+
+                    self.PackArticles.Data.forEach((value, index) => {
+
+                        if (this.elements.Articles.Rows.DataSource.first(x => x.ArticleCode == value.ArticleCode))
+                            return AppContext.ShowInfo("@g["That article is already part of the order."]")
+
+                        if (!value.IsItem) {
+                            let item = {
+                                ArticleID: value.ArticleID,
+                                ID: value.ArticleID,
+                                ArticleName: value.ArticleName,
+                                ArticleCode: value.ArticleCode,
+                                ArticleType: value.ArticleLabelType,
+                                RFID: value.ArticleEncodeRIFD,
+                                LabelID: value.ArticleLabelID,
+                                PackCode: value.PackCode,
+                                IsItem: false
+                            }
+
+                            self.elements.Articles.Rows.Add(item)
+                            self.SelectedArticles.push(item)
+                            var packs = self.elements.PackFinder
+                            packs.selectpicker('val', "");
+                            self.RemoveImageCards();
+                            self.CreateImagesCards();
+                            self.DisplayDescriptionPieces(true, item)
+
+                        } else {
+                            let item = {
+                                ArticleID: value.ArticleID,
+                                ID: value.ArticleID,
+                                ArticleName: value.ArticleName,
+                                ArticleCode: value.ArticleCode,
+                                ArticleType: value.ArticleLabelType,
+                                RFID: value.ArticleEncodeRIFD,
+                                LabelID: value.ArticleLabelID,
+                                PackCode: value.PackCode,
+                                IsItem: true
+                            }
+
+                            self.elements.Articles.Rows.Add(item)
+                            self.SelectedArticles.push(item)
+                            var packs = self.elements.PackFinder
+                            packs.selectpicker('val', "");
+                            self.RemoveImageCards();
+                            self.CreateImagesCards();
+                            self.DisplayDescriptionPieces(true, item)
+                        }
+
+                    })
+
+                }
+            },
+            GetPackArticles: async function (selectedPack) {
+
+                let self = this
+                self.packArticles = []
+                if (!self.OrderDetails || self.OrderDetails.length < 1)
+                    return
+
+                let detailFound = self.OrderDetails.find(f => !f.IsItem && f.ArticleCode != 'GMSTICKER')
+
+                if (!detailFound)
+                    return;
+
+                let orderID = detailFound.OrderID;
+                let projectID = self.Project.ID;
+
+                return await AppContext.Packs.ExpandPackByOrderId(orderID, projectID, selectedPack.PackCode).then((result) => {
+                    self.PackArticles = result;
+                }).then(self.PackArticlesLoaded, self.CantLoadPackArticles)
+
+            },
+            PackArticlesLoaded: function () {
+                console.log("Pack Article loaded! ")
+            },
+
+            CantLoadPackArticles: function (error) {
+                console.log("cant load pack articles", error)
+            },
+            GetPack: function () {
+
+                let self = this;
+                let item;
+                let pack = self.elements.PackFinder;
+                let found = self.PackItems.find(pk => pk.ID == pack.val());
+
+                if (found != undefined) {
+                    item = {
+                        ID: found.ID,
+                        PackName: found.PackName,
+                        PackCode: found.PackCode,
+                    }
+                } else {
+                    item = null;
+                }
+                return item;
+            }
+            //#endregion EXPAND PACKS
+        };
+
+/// </script>
+

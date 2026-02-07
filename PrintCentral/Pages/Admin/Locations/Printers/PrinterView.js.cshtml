@@ -1,0 +1,90 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Locations/Printers/PrinterView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var PrinterView = function (printerid) {
+		FormView.Extend(this, "@g["Printer"]", `/admin/Locations/Printers/PrinterView?printerid=${printerid}`);
+		this.PrinterID = printerid;
+		this.OnPrinterMoved = new AppEvent();
+    };
+
+
+    PrinterView.prototype = {
+		constructor: PrinterView,
+
+        loadDependencies: function (callback) {
+            AppContext.LoadJS("/Admin/Locations/Printers/PrinterTransferDialog.js").then(()=>callback());
+        },
+
+
+		@if (userData.Admin_Printers_CanEdit)
+		{
+		<text>
+		Save: function (e) {
+			var self = this;
+			if (!this.model.ValidState()) return;
+			var data = this.GetData();
+			AppContext.Printers.Update(data, function (result) {
+				if (result.Success) {
+					self.OnSaved.Raise(data);
+					if (self.LocationID != self.model.LocationID)
+						self.OnPrinterMoved.Raise({
+						PrinterID: self.PrinterID,
+							LocationID: self.model.LocationID
+						});
+					if (self.dialog === true)
+						self.Close(data);
+				}
+			});
+		},
+		</text>
+		}
+
+
+		@if (userData.Admin_Printers_CanChangeCompany)
+		{
+		<text>
+		ChangeCompany: function (e) {
+			var self = this;
+			if (!this.model.ValidState()) return;
+			this.loadDependencies(function () {
+				var dialog = new PrinterTransferDialog(self.PrinterID);
+				dialog.ShowDialog(function (dlgData) {
+					if (!dlgData) return;
+					AppContext.Printers.ChangeLocation(self.PrinterID, dlgData.LocationID, function (result) {
+						if (result.Success) {
+							self.OnPrinterMoved.Raise({
+								PrinterID: self.PrinterID,
+								LocationID: dlgData.LocationID
+							});
+						}
+					});
+				});
+			});
+		},
+		</text>
+		}
+
+
+		@if (userData.Admin_Printers_CanSendCommand)
+		{
+		<text>
+		SendCommand: function (e) {
+			AppContext.HttpPost("/printers/sendcommand", { PrinterID: this.PrinterID, Command: this.elements.RawCommand.val() }, function () { });
+		},
+		</text>
+		}
+
+		OnLoad: function () {
+			this.LocationID = this.model.LocationID;
+		}
+	};
+//</script>

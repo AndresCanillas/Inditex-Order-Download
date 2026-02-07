@@ -1,0 +1,233 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/Projects/Catalogs/FieldPropertiesView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+/// <reference path="/js/AppContext.AppDomain.js" />
+
+//<script>
+	var FieldPropertiesView = function () {
+		FormView.Extend(this, "", `/Admin/Brands/Projects/Catalogs/FieldPropertiesView`);
+	};
+
+
+	FieldPropertiesView.prototype = {
+		constructor: FieldPropertiesView,
+
+        OnLoad: function () {
+			this.model.CustomValidation.Subscribe(this, this.HandleCustomValidation);
+			this.HideElements("MinDate", "MaxDate", "MaxWidth", "MaxHeight", "ValidChars", "Regex", "CatalogID");
+            $(this.elements.MainDisplay).find('input, textarea, button, select').attr('disabled', true);
+
+            //Remove unused types
+            var columnTypes = this.elements.Type[0].options;
+            var length = columnTypes.length - 1;
+            for (var i = length; i >= 0; i--) {
+                if (/*columnTypes[i].label == 'Set'|| */columnTypes[i].label == 'Image' || columnTypes[i].label == 'File')
+                    columnTypes.remove(i);
+            }
+		},
+
+		OnUnload: function () {
+			this.model.CustomValidation.Unsubscribe(this.HandleCustomValidation);
+		},
+
+		HandleCustomValidation: function (e) {
+			if (this.fields == null) return;
+			var search = this.fields.where((p) => p.Name == e.target.Name && p != this.field);
+			if (search.length >= 1) {
+				e.target.SetError("Name", "@g["Field name cannot be duplicated."]");
+				e.preventDefault();
+			}
+		},
+
+		LoadCatalogs: function (catalog) {
+			var self = this;
+			AppContext.Catalogs.GetByProjectID(catalog.ProjectID, (catalogs) => {
+				var idx = catalogs.findIndex(c => c.Name == catalog.Name);
+				if (idx >= 0) catalogs.splice(idx, 1); // remove itself
+				AppContext.LoadComboBox(self.elements.CatalogID, catalogs, "CatalogID", "Name");
+			});
+		},
+
+		LoadField: function (catalog, fields, field) {
+			if (field == null)
+				field = {};
+			this.catalog = catalog;
+			this.fields = fields;
+			this.field = field;
+			this.LoadData(field);
+			this.UpdateFieldState(field);
+		},
+
+
+		EditCaptions: function (e) {
+			e.preventDefault();
+			var self = this;
+			AppContext.LoadJS("/Admin/Brands/Projects/Catalogs/CaptionsView.js").then(() => {
+				var captionsView = new CaptionsView(self.model.Captions);
+				captionsView.ShowDialog((captions) => {
+					if (captions != null)
+						self.model.Captions = captions;
+				});
+			});
+		},
+
+
+		UpdateFieldState: function (data) {
+			this.elements.IsSystemIcon.css("color", (data.IsSystem === true ? "#000000" : "#a0a0a0"));
+			this.elements.IsLockedIcon.css("color", (data.IsLocked === true ? "#000000" : "#a0a0a0"));
+			this.elements.IsKeyIcon.css("color", (data.IsKey === true ? "#000000" : "#a0a0a0"));
+			this.elements.IsIdentityIcon.css("color", (data.IsIdentity === true ? "#000000" : "#a0a0a0"));
+			this.elements.IsReadOnlyIcon.css("color", (data.IsReadOnly === true ? "#000000" : "#a0a0a0"));
+			this.elements.IsUniqueIcon.css("color", (data.IsUnique === true ? "#000000" : "#a0a0a0"));
+			this.elements.IsHiddenIcon.css("color", (data.IsHidden === true ? "#000000" : "#a0a0a0"));
+			this.elements.IsMainDisplayIcon.css("color", (data.IsMainDisplay === true ? "#000000" : "#a0a0a0"));
+			if (data.IsLocked === true) {
+				$(this.elements.MainDisplay).find('input, textarea, button, select').attr('disabled', true);
+				this.elements.MinDate.data('kendoDatePicker').enable(false);
+				this.elements.MaxDate.data('kendoDatePicker').enable(false);
+			}
+			else {
+				$(this.elements.MainDisplay).find('input, textarea, button, select').attr('disabled', false);
+				this.elements.MinDate.data('kendoDatePicker').enable(true);
+				this.elements.MaxDate.data('kendoDatePicker').enable(true);
+			}
+			this.UpdateProperties(data);
+		},
+
+		UpdateProperties: function (e) {
+			switch (parseInt(this.model.Type, 10)) {
+				case 1:
+					this.HideElements("Length", "MinValue", "MaxValue", "MinDate", "MaxDate", "MaxWidth", "MaxHeight", "CanBeEmpty", "ValidChars", "Regex", "Functions");
+					this.ShowElements("CatalogID");
+					break;
+				case 2:
+					this.HideElements("MinValue", "MaxValue", "MinDate", "MaxDate", "MaxWidth", "MaxHeight", "ValidChars", "Regex", "CatalogID");
+                    this.ShowElements("Length","CanBeEmpty", "Functions");
+					break;
+				case 3:
+					this.HideElements("MinDate", "MaxDate", "MaxWidth", "MaxHeight", "ValidChars", "Regex", "CatalogID");
+					this.ShowElements("Length", "MinValue", "MaxValue", "CanBeEmpty", "Functions");
+					break;
+				case 4:
+					this.HideElements("MinDate", "MaxDate", "MaxWidth", "MaxHeight", "ValidChars", "Regex", "CatalogID");
+					this.ShowElements("Length", "MinValue", "MaxValue", "CanBeEmpty", "Functions");
+					break;
+				case 5:
+					this.HideElements("Length", "MinValue", "MaxValue", "MinDate", "MaxDate", "MaxWidth", "MaxHeight",  "CanBeEmpty", "ValidChars", "Regex", "CatalogID", "Functions");
+					break;
+				case 6:
+					this.HideElements("Length", "MinValue", "MaxValue", "MaxWidth", "MaxHeight",  "CanBeEmpty", "ValidChars", "Regex", "CatalogID", "Functions");
+					this.ShowElements("MinDate", "MaxDate", "CanBeEmpty");
+					break;
+				case 7:
+					this.HideElements("MinValue", "MaxValue", "MinDate", "MaxDate", "MaxWidth", "MaxHeight", "CatalogID");
+					this.ShowElements("Length", "CanBeEmpty", "ValidChars", "Regex", "Functions");
+					break;
+				case 8:
+					this.HideElements("Length", "MinValue", "MaxValue", "MinDate", "MaxDate", "CanBeEmpty", "ValidChars", "Regex", "CatalogID", "Functions");
+					this.ShowElements("MaxWidth", "MaxHeight");
+					break;
+				case 9:
+					this.HideElements("Length", "MinValue", "MaxValue", "MinDate", "MaxDate", "MaxWidth", "MaxHeight",  "CanBeEmpty", "ValidChars", "Regex", "Functions");
+					this.ShowElements("CatalogID");
+					break;
+				case 10:
+					this.HideElements("CatalogID", "Length", "MinValue", "MaxValue", "MinDate", "MaxDate", "MaxWidth", "MaxHeight",  "CanBeEmpty", "ValidChars", "Regex", "Functions");
+					break;
+			}
+		},
+
+		HideElements: function () {
+			for (var i = 0; i < arguments.length; i++) {
+				var elm = this.elements[arguments[i]];
+				if (elm != null) {
+					var fieldContainer = elm.closest(".row");
+					fieldContainer.hide();
+				}
+			}
+		},
+
+		ShowElements: function () {
+			for (var i = 0; i < arguments.length; i++) {
+				var elm = this.elements[arguments[i]];
+				if (elm != null) {
+					var fieldContainer = elm.closest(".row");
+					fieldContainer.show();
+				}
+			}
+		},
+
+
+		SwapIsLocked: function (e) {
+			e.preventDefault();
+			@if (userData.IsSysAdmin)
+			{
+			<text>
+			if (!this.model.IsSystem) {
+					if (!this.model.IsLocked && !this.model.ValidState())
+						return;
+					this.model.IsLocked = !this.model.IsLocked;
+					this.UpdateFieldState(this.model.data);
+					return;
+				}
+				AppContext.ShowError("@g["Physical fields cannot be modified."]");
+			</text>
+			}
+			else
+			{
+			<text>
+			AppContext.ShowError("@g["Cannot change this property due to permissions."]");
+			</text>
+			}
+		},
+
+		SwapIsReadOnly: function (e) {
+			e.preventDefault();
+			@if (userData.IsSysAdmin)
+			{
+			<text>
+			if (!this.model.IsLocked) {
+					this.model.IsReadOnly = !this.model.IsReadOnly;
+					this.UpdateFieldState(this.model.data);
+					return;
+				}
+			</text>
+			}
+			AppContext.ShowError("@g["Cannot change this property because the field is locked."]");
+		},
+
+		SwapIsUnique: function (e) {
+			e.preventDefault();
+			if (!this.model.IsLocked) {
+				this.model.IsUnique = !this.model.IsUnique;
+				this.UpdateFieldState(this.model.data);
+				return;
+			}
+		},
+
+		SwapIsHidden: function (e) {
+			e.preventDefault();
+			if (!this.model.IsLocked) {
+				this.model.IsHidden = !this.model.IsHidden;
+				this.UpdateFieldState(this.model.data);
+				return;
+			}
+		},
+
+		SwapIsMainDisplay: function (e) {
+			e.preventDefault();
+			if (!this.model.IsLocked) {
+				this.model.IsMainDisplay = !this.model.IsMainDisplay;
+				this.UpdateFieldState(this.model.data);
+				return;
+			}
+		}
+	};
+//</script>

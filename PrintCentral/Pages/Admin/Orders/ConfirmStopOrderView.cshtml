@@ -1,0 +1,83 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+
+}
+
+    <viewcard>
+
+        <viewrow>
+            <viewcolumn>
+                <viewform>
+                    @*<input name="SelectedCompanyID" type="hidden" value="@userData.SelectedCompanyID" />
+
+            <input model name="OrderID" type="hidden" data-type="int" />*@
+
+                    <input model name="IsStoped" type="hidden" data-type="int" value="1" />
+                </viewform>
+
+				<div name="OrderInfo">
+					@*<div>@g["Order will be Stoped"]</div>
+		            <div>@g["Order N°"]: <em name="OrderNumber"></em></div>*@
+
+
+				</div>
+                <div>@g["Orders selected will be stoped, please check posible side effects"]</div>
+
+            </viewcolumn>
+        </viewrow>
+
+        <viewrow>
+
+            <viewcolumn name="EffectsContainer">
+
+                <div name="EffectStatus_Stop" class="effect-status">
+                    <h5 class="">@g["Considerations when stopping an order"]</h5>
+                    <ul>
+                        <li> @g["If Order is not currently Printing, this will not be sent to production"] </li>
+                        <li> @g["If the order is printing, a message will be send to production to stop the printing proccess, it is recommend to contact Production"]</li>
+                    </ul>
+
+                </div>
+
+            </viewcolumn>
+
+        </viewrow>
+        <viewfooter>
+
+            <viewrow>
+
+                <viewcolumn>
+                    <inlineform class="form-inline">
+
+                        <a href="#" class="btn btn-secondary btn-sm" action="Cancel">@g["Cancel"]</a>
+
+                    </inlineform>
+                </viewcolumn>
+
+                <viewcolumn>
+
+                    <inlineform class="form-inline pull-right">
+
+                        @*<input model name="Confirm" action="ClickConfirm" label="@g["Confirm action?"]" type="checkbox" />*@
+
+                        <div class="form-check mt-1 mr-sm-3">
+                            <input model name="Confirm" class="form-check-input" type="checkbox" id="__inlineFormCheck" no-transform action="click:ClickConfirm">
+                            <label class="form-check-label" for="__inlineFormCheck">
+                                @g["Confirm action?"]
+                            </label>
+                        </div>
+
+                        <a href="#" name="SubmitButton" class="btn btn-sm btn-primary" action="Save">@g["Stop Order"]</a>
+
+                    </inlineform>
+                </viewcolumn>
+
+            </viewrow>
+        </viewfooter>
+
+    </viewcard>

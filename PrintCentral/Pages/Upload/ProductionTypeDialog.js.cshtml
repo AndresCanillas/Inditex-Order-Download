@@ -1,0 +1,51 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Upload/ProductionTypeDialog.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var ProductionTypeDialog = function () {
+		FormView.Extend(this, "@g["Where will this order be produced?"]", "/Upload/ProductionTypeDialog");
+		this.Printers = [];
+	};
+
+	ProductionTypeDialog.prototype = {
+		constructor: ProductionTypeDialog,
+
+		OnLoad: function () {
+            this.LoadPrinters();
+		},
+
+		LoadPrinters: async function (e) {
+			var data = await AppContext.Printers.GetByCompanyID(this.model.CompanyID);
+			if (data != null && data.length > 0) {
+				this.Printers = data;
+				this.LocationChanged(e);
+			}
+			else {
+				this.elements.ProductionType.find("[value='2']").remove();
+				this.model.PrinterID = "0";
+				this.model.ProductionType = 1;
+			}
+		},
+
+        ProductionTypeChanged: function (e) {
+            if (this.model.ProductionType == 2)
+				this.elements.SelectPrinterUI.show();
+			else
+                this.elements.SelectPrinterUI.hide();
+		},
+
+		LocationChanged: function (e) {
+			if (this.model.LocationID != "") {
+				var locationPrinters = this.Printers.where(p => p.LocationID == parseInt(this.model.LocationID));
+				AppContext.LoadComboBox(this.elements.PrinterID, locationPrinters, "ID", "Name");
+			}
+		}
+	};
+//</script>

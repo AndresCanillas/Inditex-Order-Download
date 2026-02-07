@@ -1,0 +1,67 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8" />
+	<title></title>
+</head>
+<body>
+	<!-- Issue detected when going back on the last page a forward entry is visible in the history, if user goes forward then the navigation goes to home page :S -->
+	<ul>
+		<li onclick="LoadView('View1')">Open A</li>
+		<li onclick="LoadView('View2')">Open B</li>
+		<li onclick="LoadView('View3')">Open C</li>
+		<li onclick="LoadView('View4')">Open D</li>
+		<li onclick="LoadView('View5')">Open E</li>
+	</ul>
+	<hr />
+	<div id="View1" style="display:none;">Hello im view 1</div>
+	<div id="View2" style="display:none;">Hello im view 2</div>
+	<div id="View3" style="display:none;">Hello im view 3</div>
+	<div id="View4" style="display:none;">Hello im view 4</div>
+	<div id="View5" style="display:none;">Hello im view 5</div>
+	<script>
+		var currentView = null;
+		var historyEntries = [];
+
+		window.history.pushState(historyEntries, "The Page Title");  // replaceState with empty array
+
+		window.onpopstate = function (e) {
+			console.log("onpopstate");
+			if (historyEntries.length > 0) {
+				var entry = historyEntries.pop();
+				window.history.pushState(historyEntries, "The Page Title");
+				LoadView(entry, true);
+			}
+			else if (currentView != null) {
+				UnloadView(currentView, true);
+				currentView = null;
+				window.history.replaceState(historyEntries, "The Page Title");
+			}
+		}
+
+		function LoadView(id, ispop) {
+			if (currentView != null)
+				UnloadView(currentView, ispop);
+
+			console.log("Loading " + id);
+			// Here call view.OnLoad method
+			// then proceed to load the view on screen
+			var elm = document.getElementById(id);
+			elm.style.display = "block";
+			currentView = id;
+			// update custom history
+			window.history.replaceState(historyEntries, "The Page Title");
+		}
+
+		function UnloadView(id, ispop) {
+			console.log("Unloading " + id);
+			// call view.OnUnload method
+			// then hide it from the screen
+			elm = document.getElementById(currentView);
+			elm.style.display = "none";
+			if (!ispop)
+				historyEntries.push(id);
+		}
+	</script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+
+    <viewcard>
+
+        <viewrow>
+            <viewcolumn>
+
+                <div>@g["Change Provider for Order N "]<span name="OrderNumberTitle"></span></div>
+
+            </viewcolumn>
+        </viewrow>
+
+
+        <viewrow>
+            <viewcolumn>
+                <div class="input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">@g["Select a new provider"]:</span>
+                    </div>
+                    <!-- <input model name="ProviderID" no-transform  type="text" class="form-control" action="change:AfterSelectProvider" list="ProviderList" /> -->
+                    <select name="ProviderID" data-live-search="true" class="form-control custom-select-sm " style="border-color: #ced4da;" no-transform></select>
+
+                </div>
+            </viewcolumn>
+        </viewrow>
+
+        <viewfooter>
+
+            <viewrow>
+
+                <viewcolumn>
+                    <inlineform class="form-inline">
+
+                        <a href="#" class="btn btn-secondary btn-sm" action="Cancel">@g["Cancel"]</a>
+
+                    </inlineform>
+                </viewcolumn>
+
+                <viewcolumn>
+
+                    <inlineform class="form-inline pull-right">
+
+                        <div class="form-check mt-1 mr-sm-3">
+                            <input model name="Confirm" class="form-check-input" type="checkbox" id="__inlineFormCheck" no-transform action="click:ClickConfirm">
+                            <label class="form-check-label" for="__inlineFormCheck">
+                                @g["Confirm action?"]
+                            </label>
+                        </div>
+
+                        <a href="#" name="SubmitButton" class="btn btn-sm btn-primary" action="Save">@g["Change provider"]</a>
+                    </inlineform>
+                </viewcolumn>
+
+            </viewrow>
+        </viewfooter>
+
+    </viewcard>

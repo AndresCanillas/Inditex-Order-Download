@@ -1,0 +1,89 @@
+@page
+@inject ILocalizationService g
+@inject IUserData u
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Dashboards/Articles/AddArticleDialog.js
+///<reference path="/js/jquery-3.0.0.min.js" />
+///<reference path="/js/Kendo.all.min.js" />
+///<reference path="/js/AppContext.js" />
+
+//<script>
+	  var AddArticleDialog = function () {
+		  FormView.Extend(this, "@g["Articles"]", `/Admin/Dashboards/Articles/AddArticleDialog`);
+		  this.PageSize = 14;
+		  this.CurrentPage = 1;
+		  this.Pages = 1;
+		  this.TotalRecords = 0;
+	  };
+
+	  AddArticleDialog.prototype = {
+		  constructor: AddArticleDialog,
+		  
+		  OnLoad: function () {
+			  this.elements.Articles.Rows.MultiSelect = true;
+			  this.FilterData();
+		  },
+
+		  FilterData: async function () {
+			  var search = encodeURIComponent(this.elements.Search[0].value);
+			  var url = `/Dashboards/Articles/GetUntrackedArticles?Page=${this.CurrentPage}&&PageSize=${this.PageSize}&&Search=${search}`;
+			  var response = await AppContext.HttpGet(url);
+
+			  if (response.Success === true) {
+				  this.Articles = response.Data;
+				  this.elements.Articles.Rows.LoadData(response.Data);
+				  this.Pages = Math.ceil(response.TotalCount / this.PageSize);
+				  this.elements.CurrentPageDisplay.text(`${this.CurrentPage}/${this.Pages}`);
+			  }
+		  },
+
+		  DoSearch: function () {
+			  this.CurrentPage = 1;
+			  this.FilterData();
+		  },
+
+		  PreviousPage: function (e) {
+			  if (this.CurrentPage > 1) {
+				  this.CurrentPage--;
+				  this.FilterData();
+			  }
+		  },
+
+		  NextPage: function (e) {
+			  if (this.CurrentPage < this.Pages) {
+				  this.CurrentPage++;
+				  this.FilterData();
+			  }
+		  },
+
+		  AddArticles: async function (e) {
+			  var self = this;
+			  e && e.preventDefault();
+			  if (self.elements.Articles.Rows.SelectedIndex < 0) {
+				  AppContext.ShowError("There are no items selected");
+			  }
+			  else {
+				  var dlg = new ConfirmDialog("@g["Are you sure you want to add all selected articles?"]");
+				  dlg.ShowDialog(async (result) => {
+					  if (result != null) {
+						  debugger
+						  var data = {};
+						  data.Articles = [];
+						  var rows = self.elements.Articles.Rows.GetSelected();
+						  for (var row of rows) {
+							  data.Articles.push(row.ArticleID);
+						  }
+						  result = await AppContext.HttpPost(`/Dashboards/Articles/AddArticles`, data);
+						  if (result.Success === true)
+							  self.FilterData();
+					  }
+				  }, "50%");
+			  }
+		  },
+
+		  OnUnload: function () {
+		  }
+	  };
+//</script>

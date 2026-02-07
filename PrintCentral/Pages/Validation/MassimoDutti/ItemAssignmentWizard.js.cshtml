@@ -1,0 +1,431 @@
+﻿@page
+@using Service.Contracts.Database
+@inject ILocalizationService g
+@inject IUserData userData
+@inject IOrderRepository orderRepo
+@inject IProjectRepository projectRepo
+@inject IEventQueue events
+@{
+    Layout = null;
+
+
+}
+//# sourceURL=https://Pages/Validation/MassimoDutti/ItemAssignmentWizard.js
+/// <script>
+
+
+var ItemAssignmentWizard = function (orderSelection, wizardStep, allSteps) {
+
+    this.OrderSelection = orderSelection;
+    this.WizardStep = wizardStep;
+    this.AllSteps = allSteps;
+    this.BreadCrumbs = null;
+    //this.OrderGroups = [];
+    this.ArticleList = {};
+    this.ArticleSelected = [];
+    this.ProjectIDList = [];
+    this.ComponentBaseName = "ArticleSelection_";
+    this.Catalogs = []; // [{ Definition:'', Name:'', Data: [] }, { Definition:'', Name:'', Data: [] }]
+    this.Project = {};
+    this.PackList = {};
+
+    let self = this;
+
+    AWizardBaseView.Extend(this, "@g[" Assign Items "]", `@Url.Content("~/Validation/MassimoDutti/ItemAssignmentWizard")?n=${self.OrderSelection.length}&ProjectID=${self.OrderSelection[0].ProjectID}`, wizardStep, allSteps);
+    ExtendObj(this, ItemAssignmentWizard.prototype); // override base class methods - uggly version, but simple
+}
+
+ItemAssignmentWizard.prototype = {
+
+    constructor: ItemAssignmentWizard,
+
+    OnLoad: async function () {
+
+        var self = this;
+        self.ShowStatus();
+        await self.LoadServerData();
+        self.InitializeComponents();
+    },
+
+    InitializeComponents: function () {
+        let self = this;
+
+        self.OrderSelection.forEach((sel, idx, arr) => {
+
+            let cmp = self.elements[self.ComponentBaseName + idx];
+	    let itemsPacks = self.PackList[sel.ProjectID.toString()]
+
+            console.log("itempacks", itemsPacks)
+            if (itemsPacks && itemsPacks.length > 0)
+            {
+                cmp.InitializePacks(sel, itemsPacks)
+            }
+            let labels = self.ArticleList[sel.ProjectID.toString()].filter(article => article.LabelID > 0)
+                let items = []; //self.ArticleList[sel.ProjectID.toString()].filter(article => article.LabelID == null)
+            cmp.Initialize(sel, labels, items, self.Catalogs, self.Project);
+        });
+    },
+    LoadServerData: async function () {
+        var self = this;
+        await self.LoadArticles();
+	await self.LoadPacks();
+        await self.LoadCatalogs();
+        await self.LoadProject();
+    },
+    
+    LoadPacks: async function () {
+
+                let self = this
+                let projectsIDs = []
+
+                self.OrderSelection.forEach((sel, idx, arr) => {
+
+                    projectsIDs.push(sel.ProjectID)
+                });
+
+
+                self.ProjectIDList = [...new Set(projectsIDs)]
+                await Promise.all(self.ProjectIDList.map(async (i) => {
+                    return await AppContext.Packs.GetByProjectID(parseInt(i)).then((result) => {
+                        self.PackList[i.toString()] = result;
+                    })
+                })).then(self.PacksLoadedOK, self.PacksCantLoad)
+
+            },
+
+    LoadArticles: async function () {
+
+        let self = this;
+
+        let projectsIDs = []
+
+        self.OrderSelection.forEach((sel, idx, arr) => {
+
+            projectsIDs.push(sel.ProjectID)
+
+        });
+
+        self.ProjectIDList = [...new Set(projectsIDs)];
+        //let uniqueProjectsIDs = [59,81,102,127] // testing
+
+        // Sample execute multiple ajax request asyn way
+        // this cases never happened because
+        // wizard validation only allow validate multiple orders only belong to the same projectID
+        await Promise.all(self.ProjectIDList.map(async(i) => {
+
+                return await AppContext.Articles.GetFullByProjectIDFiltered({
+                    ProjectID: parseInt(i),
+                    ArticleType:  @((int)ArticleTypeFilter.Label)
+                }).then((result) => {
+                    self.ArticleList[i.toString()] = result;
+                })
+            })).then(self.ArticlesLoadedOK, self.ArticlesCantLoad)
+
+    },
+
+    LoadPacks: async function () {
+
+        let self = this
+            let projectsIDs = []
+
+            self.OrderSelection.forEach((sel, idx, arr) => {
+
+                projectsIDs.push(sel.ProjectID)
+            });
+
+        self.ProjectIDList = [...new Set(projectsIDs)]
+        await Promise.all(self.ProjectIDList.map(async(i) => {
+                return await AppContext.Packs.GetByProjectID(parseInt(i)).then((result) => {
+                    self.PackList[i.toString()] = result;
+                })
+            })).then(self.PacksLoadedOK, self.PacksCantLoad)
+
+    },
+
+    LoadProject: async function () {
+        let self = this;
+
+        await AppContext.Projects.GetByID(self.OrderSelection[0].ProjectID).then((result) => {
+            self.Project = result;
+        })
+    },
+
+    GetRequiredCatalogs: function () {
+        return [ 'TypeSubTypeLookup', 'ChineseColor']
+    },
+
+    Save: function () {
+
+        let self = this;
+
+        let deffered = $.Deferred();
+
+        if (!self.model.ValidState() || !self.CompleteOrderSelection()) {
+
+            deffered.reject();
+
+            return deffered.promise();
+        };
+
+        // 2 ajax call chaining - uggly version
+
+        let promise = AppContext.Wizard.SaveAssigmentItems({
+            selection: self.OrderSelection,
+            productfields: [],
+            GetAllArticles: true
+        }).then((result) => {
+
+            if (!result.Success) { 
+                AppContext.ShowError(result.Message);
+                return;
+            }
+
+            return AppContext.Wizard.GetOrdersDataAssigment(self.OrderSelection)
+
+        }).then((result2) => {
+
+            if (!result2.Success) {
+                AppContext.ShowError(result2.Message);
+                return;
+            }
+
+            self._UpdateSelection(result2);
+            AppContext.ShowSuccess('@g["State Saved"]');
+
+        }).catch((error) => {
+            console.log(error)
+            return Promise.reject('error promesa, no continuar')
+        });
+
+        return promise;
+
+    },
+
+    _solve: function () {
+        let self = this;
+
+        let deffered = $.Deferred();
+
+        let componentsAreValid = self.CompleteOrderSelection();
+
+        if (!componentsAreValid) {
+
+            deffered.reject();
+
+            return deffered.promise();
+        };
+
+
+        let promise = AppContext.Wizard.SolveAssigmentItems({
+            selection: self.OrderSelection,
+            productfields: [],
+            GetAllArticles: true
+        }).then((result) => {
+            self._UpdateSelection({
+                Data: {
+                    OrderData: result.Data
+                }
+            })
+
+
+            return AppContext.Wizard.SaveTagTypes(self.GetTagTypeData( result.Data))
+
+
+        }).then((result3) => {
+
+            if (!result3.Success) {
+                AppContext.ShowError(result3.Message);
+                return;
+            }
+
+            AppContext.ShowSuccess('@g["State Saved"]');
+        })
+
+        .catch((error) => {
+            console.log(error)
+            return Promise.reject('error promesa, no continuar')
+        });
+
+        
+
+
+        // AppContext.Wizard.SolveAssigmentItems({
+        //     selection: self.OrderSelection,
+        //     productfields: [],
+        //     GetAllArticles: true
+        // }).then((result) => {
+        //     self._UpdateSelection({
+        //         Data: {
+        //             OrderData: result.Data
+        //         }
+        //     })
+        // }).catch((error) => { console.log(error) });
+
+
+
+        return promise;
+
+    },
+
+    SaveAndNext: function () {
+
+        var self = this;
+
+        if (!self.ComponentsValidation()) {
+            AppContext.ShowError('@g["You must add at least 1 item to continue"]');
+            return;
+        }
+
+        var p = self._solve();
+
+        p.done(() => {
+
+            self.GetValidator().GetStep(self.WizardStep.Position + 1);
+            //console.log("save and next");
+
+        })
+
+    },
+
+    CompleteOrderSelection: function() {
+        let self = this;
+
+        let isValid = true;
+
+        self.OrderSelection.forEach((sel, idx, arr) => {
+
+            let cmp = self.elements[self.ComponentBaseName + idx];
+
+            if (!cmp.IsValid()) {
+
+                isValid = false;
+
+                return true; // continue with next
+            }
+
+            if (isValid) {
+                sel.SelectedArticles = cmp.GetSelectedArticles();
+
+                sel.ProductFields = cmp.GetProductFields();
+            }
+
+        });
+
+        return isValid
+    },
+
+    GetTagTypeData: function (details) { 
+        
+        let self = this;
+
+        let isValid = true;
+
+        let data = [];
+
+        self.OrderSelection.forEach((sel, idx, arr) => {
+
+            let cmp = self.elements[self.ComponentBaseName + idx];
+
+            if (!cmp.IsValid()) {
+
+                isValid = false;
+
+                return true; // continue with next
+            }
+
+            // data.push(...cmp.GetSizeValue());
+            data = data.concat(cmp.GetTagTypes(details[idx].Details));
+
+        });
+
+        return data;
+    },
+
+    _UpdateSelection: function (result) {
+
+        var self = this;
+
+        for (var i = 0; i < result.Data.OrderData.length; i++) {
+
+            var sel = result.Data.OrderData[i]
+
+                var ordersInGroup = []
+
+                for (var j = 0; j < sel.Orders.length; j++) {
+                    self.OrderSelection[i].Orders.push(sel.Orders[j])
+                }
+
+                self.OrderSelection[i].Orders = [...new Set(self.OrderSelection[i].Orders)];
+        }
+
+    },
+
+    ComponentsValidation: function () {
+        var self = this;
+        var flag = true;
+
+        self.OrderSelection.every((sel, idx, arr) => {
+
+            let cmp = self.elements[self.ComponentBaseName + idx];
+
+            if (!cmp.HasItems()) {
+                flag = false;
+                return false;
+            }
+            return true;
+        });
+
+        return flag;
+
+    },
+
+    ComponentsValidation: function () {
+        var self = this;
+        var flag = true;
+
+        self.OrderSelection.every((sel, idx, arr) => {
+
+            let cmp = self.elements[self.ComponentBaseName + idx];
+
+            if (!cmp.HasItems()) {
+                flag = false;
+                return;
+            }
+            return;
+        });
+
+        return flag;
+
+    },
+
+    /// #region Articles Handlers
+    // this is use like promise function, the arguments alwasy be: promise1, promise2,... promiseN
+    ArticlesLoadedOK: function () {
+
+        // all articles are loaded ok
+    },
+
+    ArticlesCantLoad: function () {
+        console.log('ArticlesCantLoad');
+    },
+
+    /// #endregion Article Handlers
+
+
+    /// #region Packs Handlers
+    PacksLoadedOK: function () {
+
+        // all packs are loaded ok
+    },
+
+    PacksCantLoad: function (e) {
+        console.log('PacksCantLoad');
+    }
+
+    /// #endregion Packs Handlers
+
+
+};
+
+/// </script>
+

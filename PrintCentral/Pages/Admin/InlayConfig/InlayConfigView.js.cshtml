@@ -1,0 +1,60 @@
+﻿@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+
+    if (Request.Query.ContainsKey("CompanyID"))
+    {
+        int companyID = Convert.ToInt32(Request.Query["CompanyID"].ToString());
+    }
+}
+
+
+//# sourceURL=https://Pages/Admin/InlayConfig/InlayConfigView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+     var InlayConfigView = function (companyId) {
+         FormView.Extend(this, "@g["Inlay Configuration"]", `/Admin/InlayConfig/InlayConfigView?CompanyID=${companyId}`);
+         this.CompanyID = companyId;
+         this.WarningOnClose = false;
+    };
+
+    InlayConfigView.prototype = {
+        constructor: InlayConfigView,
+
+        OnLoad: function () {
+            var self = this;
+        },
+
+        OnUnload: function () {
+
+        },
+
+        Save: function () {
+            var self = this;     
+        },
+
+        Close: function () {
+            var self = this;
+            if (self.WarningOnClose) {
+                var dlg = new ConfirmDialog("@g["Discard Changes?"]");
+                dlg.ShowDialog(function (response) {
+                    if (!response) {
+                        return;
+                    }
+                    self.Close(null)
+                });
+            } else {
+                self.Close(null);
+            }
+        },
+
+        DataChanged: function () {
+            this.WarningOnClose = true;
+        }
+    };
+//</script>
+

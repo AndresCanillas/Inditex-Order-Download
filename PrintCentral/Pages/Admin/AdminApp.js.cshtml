@@ -1,0 +1,103 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/AdminApp.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.Events.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var AdminApp = function () {
+		FormView.Extend(this, "", "/Admin/AdminApp");
+	}
+
+	AdminApp.prototype = {
+		constructor: AdminApp,
+
+		OnLoad: function () {
+			var self = this;
+			var treeView = new TreeView(this.elements.treeContainer);
+			treeView.TargetViewContainer = this.elements.mainContainer;
+			this.elements.TopNavBar.MenuOptionClicked.Subscribe(this, (e) => {
+				switch (e.option) {
+					case "UserProfile":
+						AppContext.LoadJS("/ProfileView.js").then(() => {
+							var view = new ProfileView();
+							view.Show(this.elements.mainContainer);
+						});
+						return;
+					case "Notifications":
+						AppContext.LoadJS("Notifications/NotificationList.js").then(() => {
+							var notifications = new NotificationList();
+							notifications.Show(this.elements.mainContainer);
+						});
+                        return;
+                    case "CompanySelection":
+                        AppContext.LoadJS("/Common/Components/CompanySelection.js").then(() => {
+                            var view = new CompanySelection();
+                            view.Show(this.elements.mainContainer);
+                        });
+                        return;
+                    case "ProjectSelection":
+					AppContext.LoadJS("/Common/Components/ProjectSelection.js").then(() => {
+						var view = new ProjectSelection();
+						view.Show(this.elements.mainContainer);
+					});
+                    return;
+				}
+			});
+            AppContext.LoadJS(
+                "/admin/PrintEntry/PrintEntryNode.js",
+				"/admin/CompaniesRootNode.js",
+				"/admin/CompanyNode.js",
+                "/admin/Materials/MaterialsRootNode.js",
+                "/admin/Fonts/FontsNode.js",
+				"/admin/WF/WFRootNode.js",
+                "/admin/FileStores/FSRootNode.js",
+                "/admin/InLay/InLayNode.js",
+                "/admin/Utilities/ServicesStatusNode.js").then(() => {
+
+					@if (userData.Admin_Companies_CanSee)
+					{
+						@:treeView.AddNode(new CompaniesRootNode());
+					}
+					else
+					{
+                    <text>
+                    AppContext.Companies.GetByID(@userData.SelectedCompanyID, (data) => {
+                        if(data != null)
+						    treeView.AddNode(new CompanyNode(data), "@g["My Company"]");
+                    });
+                    </text>
+					}
+					@if (userData.Admin_Materials_CanSee)
+					{
+						@:treeView.AddNode(new MaterialsRootNode());
+					}
+
+
+					@if (userData.IsIDTAdminRoles)
+					{
+                        @:treeView.AddNode(new PrintEntryNode());
+						@:treeView.AddNode(new WFRootNode());
+						@:treeView.AddNode(new FSRootNode());
+                        @:treeView.AddNode(new InLayNode());
+                        @:treeView.AddNode(new ServicesStatusNode());
+                        @:treeView.AddNode(new FontsNode());
+                    }
+
+
+
+                });
+
+			 //AppContext.LoadJS("/Upload/OrderReportView.js").then(() => {
+				//		var view = new OrderReportView();
+				//		view.Show(this.elements.mainContainer);
+				//	});
+		}
+	}
+//</script>

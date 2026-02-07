@@ -1,0 +1,751 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@inject IOrderRepository orderRepo
+@inject IProjectRepository projectRepo
+@{
+    Layout = null;
+}
+
+//# sourceURL=https://Pages/Validation/Brownie/ArticleExtrasWizard.js
+///<script>
+
+       var ArticleExtrasWizard = function (orderSelection, wizardStep, allSteps) {
+
+           //this.OrderRowInfo = orderRowInfo;
+           this.OrderSelection = orderSelection
+           this.WizardStep = wizardStep;
+           this.AllSteps = allSteps;
+           this.ArticleListReady = false;
+           this.ItemSelected = null;
+           this.OrderGroupPositionSelected = null;
+           this.TableData = null;
+           this.AsActive = false;
+           this.OriginalLabels = null;
+           this.Categories = null;
+
+           FormView.Extend(this, "@g["Article Extras Wizard"]", `@Url.Content("~/Validation/Brownie/ArticleExtrasWizard")?OrderGroupID=${this.OrderSelection[0].OrderGroupID}`);
+       }
+
+       ArticleExtrasWizard.prototype = {
+
+           constructor: ArticleExtrasWizard,
+
+           OnLoad: function () {
+               var self = this;
+
+               self.model.WizardID = this.WizardStep.WizardID;
+               self.model.WizardStepID = this.WizardStep.ID;
+               self.ShowStatus();
+
+               AppContext.LoadJS('/Validation/Brownie/Components/ArticleListView.js').then(() => {
+
+                   self.ArticleListReady = true;
+
+                   self.LoadArticles();
+
+               });
+
+           },
+
+           LoadArticles: function () {
+               var self = this;
+
+               AppContext.Wizard.GetOrderItemsDetails(self.OrderSelection)
+                   .done((result) => {
+
+                       if ($('[name="TableContainer"]').length == 0) {
+                           return;
+                       }
+
+                       var $tbody = self.elements.TableContainer.find('tbody');
+                       $tbody.html('');
+                       self.TableData = result.Data;
+                       self._AddRows(self.TableData)
+
+                       if (self.OriginalLabels !== null)
+                           return true;
+
+                       // this code only is executed one time
+                       self.OriginalLabels = [];
+
+                       for (let groupIdx = 0; groupIdx < result.Data.length; groupIdx++) {
+                           var grp = result.Data[groupIdx]
+                           var items = grp.Details.map(m => m.OrderID)
+
+                           // https://stackoverflow.com/a/57224151
+                           //let arr1 = list1.filter(e => {
+                           //    return !list2.some(item => item.userId === e.userId);
+                           //});
+                           // current selection that not  inner the current response Items properties is a ARticles With Variable DATA
+                           let noItems = self.OrderSelection[groupIdx].Orders.filter(e => items.indexOf(e) == -1)
+                           let areItems = self.OrderSelection[groupIdx].Orders.filter(e => items.indexOf(e) > -1)
+
+                           self.OriginalLabels.push({ noItems: noItems, areItems: areItems });
+                       };
+
+
+                   });
+           },
+
+           _AddRows: function (result) {
+               var self = this;
+               var k = 0;
+               var itemNumber = 0;
+               
+               var $tbody = self.elements.TableContainer.find('tbody');
+
+               for (var i = 0; i < result.length; i++) {
+
+                   var sel = result[i];
+
+                   var trGroup = self._GetRowGroupTemplate(sel, k)
+
+                   $tbody.append(trGroup);
+                   
+                   let itemsGroupedByCategoryName = self._GroupByCategoryName(sel.Details);
+
+                   self._loopTheCategoiresArray(itemsGroupedByCategoryName,k,$tbody);
+
+                   k++;
+               }
+               // bind model and antions inner tbody
+
+               self.model = AppContext.BindModel(self.ViewContainer, self);
+               AppContext.BindActions($tbody, self);
+           },
+
+           _loopTheCategoiresArray: function (itemsGroupedByCategoryName,k,tbody) {
+
+               var self = this;
+               var arrayValues = [0,0];
+
+               for (const category in itemsGroupedByCategoryName) {
+                   if (itemsGroupedByCategoryName.hasOwnProperty(category)) {
+
+                       let trHeader = self._GetRowHeaderCategoryName(category);
+                       tbody.append(trHeader);
+                       arrayValues = self._addRowCategoryItem(itemsGroupedByCategoryName, category, tbody, k, arrayValues[0], arrayValues[0]);
+
+                   }
+               }
+           },
+
+           _addRowCategoryItem: function (itemsGroupedByCategoryName, category, tbody, k, itemNumber, j) {
+               var self = this;
+
+               itemsGroupedByCategoryName[category].forEach((itemExtra) => {
+                   var tr = $(self._GetRowTemplate(itemExtra, k, itemNumber++, j++));
+                   tbody.append(tr);
+               });
+
+               return [itemNumber,j];
+           },
+
+           _GroupByCategoryName : function (arrayItemsExtras){
+               const groupedData = arrayItemsExtras.reduce((result, current) => {
+                   const category = current.CategoryName;
+                   if(category == null) category = "Sin Categoria";
+                   if (!result[category]) {
+                       result[category] = [];
+                   }
+                   result[category].push(current);
+                   return result;
+               }, {});
+
+               return groupedData;
+           },
+
+           _GetRowHeaderCategoryName: function(category){
+               var tr = `
+                               <tr class="table-success">
+                                   <td class="centered-cell" colspan="5">
+                                      <span class="btn btn-sm" style="cursor: auto;">
+                                        @g["Category"]: <strong>${category}</strong>
+                                      </span>
+                                  </td>
+                              </tr>
+                          `;
+
+               return tr;
+           },
+
+           _GetRowGroupTemplate: function (sel, i) {
+
+               var self = this;
+
+               var projectID = self.elements.ProjectID.val();
+
+               var tr = `
+                       <tr class="table-info">
+                           <td colspan="5">
+
+                               <input model name="rq[${i}].OrderNumber" value="${sel.OrderNumber}" type="hidden" />
+                               <input model name="rq[${i}].OrderGroupID" value="${sel.OrderGroupID}" type="hidden" />
+                               <input model name="rq[${i}].WizardStepPosition" value="1" type="hidden" />
+                               <input model name="rq[${i}].ProjectID" value="${projectID}" type="hidden" />
+
+                               <span class="btn btn-sm" style="cursor: auto;">
+    @g["Order N°"] :  ${sel.OrderNumber}
+                               </span>
+
+                               <a href="#" class="btn btn-sm btn-link pull-right" name="Articles" action="ShowArticleList" data-group-position="${i}" data-order-group-id="${sel.OrderOrderGroupID}">@g["Add Article"]</a>
+
+
+                           </td>
+                       </tr>
+                   `;
+
+               return tr;
+           },
+
+           _GetRowTemplate: function (item, groupNumber, itemNumber, unitNumber) {
+
+               var i = groupNumber
+               var j = itemNumber
+               var k = unitNumber
+
+               var max = 1000000;
+
+
+               var orderId = item.OrderID || '';
+               var printerJobId = item.PrinterJobID || '';
+               var printerJobDetailID = item.PrinterJobDetailID || ''
+               var strDescription = item.Description ? item.Description : "";
+               var isBilled = 0;
+
+               //var canEdit = !item.isBilled;
+
+               var readonly = "";
+
+               if (item.IsBilled) {
+                   readonly = 'readonly="readonly"'
+                   isBilled = 1;
+               }
+
+
+               var tr = `
+                       <tr data-idx="${j}" data-group-item-position="${i}">
+                           <th>${j + 1}</th>
+                           <!-- <td><input type="checkbox" action="Mark" name="item-${j}" value="1" no-transform class=" removable" /></td>-->
+                           <td>${item.ArticleCode}</td>
+                           <td>${item.Article}</td>
+                           <td>${strDescription}</td>
+                           <td>
+
+                               <div class="form-inline">
+                                   <div name="item-${k}"  class="input-group input-group-sm " data-index="${k}">
+                                       <input model name="rq[${i}].Items[${k}].IsBilled" value="${isBilled}" type="hidden" class="article-id is-billed " />
+                                       <input model name="rq[${i}].Items[${k}].ArticleID" value="${item.ArticleID}" type="hidden" class="article-id " />
+                                       <input model name="rq[${i}].Items[${k}].ArticleCode" value="${item.ArticleCode}" type="hidden" class="article-id " />
+                                       <input model name="rq[${i}].Items[${k}].PrinterJobID" value="${printerJobId}" type="hidden" class="" />
+                                       <input model name="rq[${i}].Items[${k}].PrinterJobDetailID" value="${printerJobDetailID}" type="hidden" class="" />
+                                       <input model name="rq[${i}].Items[${k}].OrderID" value="${orderId}" type="hidden" class="" />
+                                       <input model name="rq[${i}].Items[${k}].Value" action="keyup:GoNextField; change:QuantityUpdated" type="number" ${readonly} value="${item.Quantity}" validation="range(0,${max})" max="${max}"  class="form-control input-sm mr-1 user-entry text-right" no-transform>
+                                       <!-- la cantidad es ilimitada, se quita boton para asignar cantidades maximas de un click -->
+                                       <!-- <small class="form-text text-muted">
+                                           <a class="btn btn-link" style="font-size: 11px;" href="#" action="SetMax" data-item="item-${j}" >@($"{g["Set Max"]}")(${max})</a>
+                                       </small> -->
+                                   </div>
+                               </div>
+
+                           </td>
+                       </tr>`;
+
+               return tr;
+           },
+
+           // return JQuery.Promise
+           Save: function () {
+
+               var self = this;
+
+               if (!this.model.ValidState()) {
+
+                   var deffered = $.Deferred();
+
+                   deffered.reject();
+
+                   return deffered.promise();
+               };
+
+               //var data = self.GetData();
+
+               var arrayData = $('[name="articleextras-wizard-frm"]').serializeArray();
+               //console.log(arrayData);
+               return AppContext.Wizard.SaveExtrasState(arrayData, self.AsActive).done((response) => {
+
+                   //self.LoadArticles();
+                   self.UpdateUi(response);
+
+               })
+
+           },
+
+           UpdateUi: function (savedResponse) {
+               var self = this;
+
+               //var itemIdx = $(evt.target).closest('.input-group').data('index')
+
+               //var groupIdx = $(evt.target).closest('tr').data('group-item-position')
+
+               for (let groupIdx = 0; groupIdx < savedResponse.Data.length; groupIdx++) {
+
+                   let items = savedResponse.Data[groupIdx].Items;
+                   let currentItems = [];
+                   let row = $(`tr[data-idx="${groupIdx}"]`)
+                   currentItems = items.map(m => m.OrderID);
+
+                   for (let itemIdx = 0; itemIdx < items.length; itemIdx++) {
+
+                       let currentItem = items[itemIdx];
+
+                       row.find(`[model][name="rq[${groupIdx}].Items[${itemIdx}].PrinterJobID"]`).val(currentItem.PrinterJobID)
+                       row.find(`[model][name="rq[${groupIdx}].Items[${itemIdx}].PrinterJobDetailID"]`).val(currentItem.PrinterJobDetailID)
+                       row.find(`[model][name="rq[${groupIdx}].Items[${itemIdx}].OrderID"]`).val(currentItem.OrderID)
+
+                   }
+
+                   self.OrderSelection[groupIdx].Orders = self.OriginalLabels[groupIdx].noItems.concat(currentItems);
+
+               }
+
+           },
+
+           _solve: function () {
+               var self = this;
+
+               //if (!this.model.ValidState()) {
+
+               //    var deffered = $.Deferred();
+
+               //    deffered.reject();
+
+               //    return deffered.promise();
+               //};
+
+
+               //var arrayData = $('[name="articleextras-wizard-frm"]').serializeArray();
+
+
+               //return AppContext.Wizard.SolveExtras(arrayData).done((response) => {
+
+               //    self._refreshItemData(response);
+
+               //});
+
+               return AppContext.Wizard.SolveExtras(self.OrderSelection);
+           },
+
+           _refreshItemData: function (response) {
+
+               var self = this;
+
+               if (!response.Success) {
+                   return;
+               }
+
+               for (var i = 0; i < response.Data.Items.length; i++) {
+
+                   var item = response.Data.Items[i]
+
+                   self.elements.TableContainer.find(`div[data-index="${i}"]`).find('[name$=PrinterJobID]').val(item.PrinterJobID)
+                   self.elements.TableContainer.find(`div[data-index="${i}"]`).find('[name$=PrinterJobDetailID]').val(item.PrinterJobDetailID)
+               }
+           },
+
+           SaveAndNextX: function () {
+
+               var self = this;
+
+               var p = self._solve();
+
+               p.done((response) => {
+
+                   if (response.Success == false) {
+                       return;
+                   }
+
+                   self.GetValidator().GetStep(self.WizardStep.Position + 1);
+
+               })
+           },
+
+           SaveAndNext: function () {
+
+               var self = this;
+
+               // mark items as active
+               self.AsActive = true;
+
+               var p = self.Save();
+
+               p.done((responseSave) => {
+
+                   self.AsActive = false;
+
+                   if (responseSave.Success == false) {
+                       return;
+                   }
+
+                   self._solve().done((responseSolve) => {
+
+                       if (responseSolve.Success == false) {
+                           return;
+                       }
+
+                       self.GetValidator().GetStep(self.WizardStep.Position + 1);
+
+                   });
+
+               }).fail(() => {
+                   self.AsActive = false;
+               })
+           },
+
+           Back: function () {
+               this.GetValidator().GetStep(this.WizardStep.Position - 1);
+           },
+
+           LoadCategories: async function (projectid) {
+               var self = this;
+               await AppContext.HttpGet(`/categories/getbyproject/${projectid}`, (data) => {
+                   if (data != null && data.length > 0) {
+                       self.Categories = data;
+                   }
+               }, null, true);
+           },
+
+
+           ShowArticleList: async function (e) {
+
+               var self = this;
+
+               e.preventDefault();
+
+               if (self.ArticleListReady == false) {
+                   AppContext.ShowInfo('@g["Please, try again"]')
+
+                   return;
+               }
+
+               self.OrderGroupPositionSelected = $(e.currentTarget).data('groupPosition')
+
+               setup = self.FillSetup(await self.LoadCategories(self.elements.ProjectID.val()));
+
+               var ArticleList = new ArticleListView(setup)
+
+               ArticleList.ItemSelected.Subscribe(this, this.ItemSelectedEvent)
+
+               ArticleList.ShowDialog(() => {
+
+                   if (self.ItemSelected) {
+                       self.AddItem(self.ItemSelected, self.OrderGroupPositionSelected);
+
+                       self.ItemSelected = null;
+
+                       self.OrderGroupPositionSelected = null;
+                   }
+
+               }, 600);
+
+
+           },
+
+           FillSetup : function(){
+
+               var self = this;
+
+               return setup = {
+                   ProjectID: self.elements.ProjectID.val(),
+                   AddOption: false,
+                   DeleteOption: false,
+                   OpenOption: true,
+                   ShowFilters: true,
+                   SelectOption: true,
+                   ArticleTypeFilter: 2, // ArticleTypeFilter.Item
+                   ArticleType: self.CategoryDefault,
+                   Categories: self.Categories
+
+               }
+           },
+
+           ItemSelectedEvent: function (e) {
+               var self = this;
+
+
+               if (e.item) {
+                   //self.AddItem(e.item);
+                   self.ItemSelected = e.item;
+
+                   var itemContainer = self.elements.TableContainer.find(`[data-group-item-position="${self.OrderGroupPositionSelected}"]`);
+
+                   if (itemContainer.find(`.article-id[value="${self.ItemSelected.ID}"]`).length) {
+
+                       if (itemContainer.find(`.is-billed[value="0"]`).length) {
+
+                           self.ItemSelected = null;
+
+                           self.OrderGroupPositionSelected = null;
+
+                           AppContext.ShowError('@g["Article already added this Order"]');
+                       }
+                   }
+               }
+
+               if (e.target) {
+                   // target is Component that triggered event, for this case ArticleListView object
+                   //self.Show(e.target.ViewContainer);
+
+                   e.target.Close()
+               }
+
+           },
+
+           /*
+            Item Interface = {
+               ID: 33
+               ProjectID: 40
+               Name: "KDO"
+               Description: null
+               LabelType: "Hang Tag"
+               ArticleCode: "KDO"
+               BillingCode: "BItem01"
+               MaterialID: 6
+               MaterialName: "HandTag 45x190mm"
+               LabelID: 40
+               LabelName: "PVPV5801"
+               EncodeRFID: false
+               }
+            */
+
+           AddItem: function (item, groupPosition) {
+
+               var self = this;
+
+               var sel = self.TableData[groupPosition];
+
+
+               var articleItem = $.extend({
+                   Quantity: '1',
+                   QuantityRequested: 0, // not in original order
+                   RequiresDataEntry: 0,
+                   ProductDataID: -1,
+                   OrderID: -1,
+                   PrinterJoinID: -1,
+                   PrinterJobDetailID: -1,
+                   OrderGroupID: sel.OrderGroupID
+               }, item
+               );
+               articleItem.ArticleID = item.ID;
+               articleItem.Article = item.Name;
+
+               sel.Details.push(articleItem);
+
+               // refresh
+
+               var $tbody = self.elements.TableContainer.find('tbody');
+
+               $tbody.html('');
+
+               self._AddRows(self.TableData);
+
+           },
+
+
+           GoNextField: function (evt) {
+
+               var key = evt.keyCode ? evt.keyCode : evt.which;
+
+               if (key == 13) {
+
+                   evt.preventDefault();
+
+                   var currentPosition = $(evt.target).closest('.input-group').data('index')
+
+                   //if ($(evt.target).closest('.input-group').hasClass('is-last')) {
+                   //    return false;
+                   //}
+
+                   var nextField = $('[data-index="' + (parseInt(currentPosition + 1)) + '"]').find('.user-entry');
+
+                   if (nextField.length == 1) {
+
+                       nextField.focus();
+                       var tmpStr = nextField.val();
+                       nextField.val('');
+                       nextField.val(tmpStr);
+                       nextField.get(0).select();
+                   }
+
+               }
+
+               return true;
+           },
+
+           QuantityUpdated: function (evt) {
+
+               var self = this;
+
+               var itemIdx = $(evt.target).closest('.input-group').data('index')
+
+               var groupIdx = $(evt.target).closest('tr').data('group-item-position')
+
+               self.TableData[groupIdx].Details[itemIdx].Quantity = $(evt.target).val()
+           },
+
+           SetMax: function (evt) {
+
+               var self = this;
+
+               var lnk = $(evt.target)
+
+               var userEntry = lnk.closest('.input-group').find('.user-entry')
+
+               self._setMax(userEntry);
+
+
+           },
+
+           _setMax: function (field) {
+               field.val(field.attr('max'));
+
+               field.change();
+           },
+
+           SetMaxAll: function (evt) {
+
+               var self = this;
+
+               var allEntries = self.elements.TableContainer.find('.user-entry');
+
+               $.each(allEntries, (key, entry) => { self._setMax($(entry)); });
+
+           },
+
+
+           Mark: function (evt) {
+
+               var self = this;
+
+               var $chk = $(evt.target);
+
+               self._mark($chk, true)
+
+           },
+
+           MarkAll: function () {
+
+               self = this;
+
+               var state = self.elements.CheckAll.prop('checked');
+
+
+               var allChk = self.elements.TableContainer.find('input:checkbox.removable')
+               //var allChk = self.elements.TableContainer.find('.removable')
+
+               $.each(allChk, function (index, chk) {
+
+                   $(chk).prop('checked', state)
+
+               })
+
+
+           },
+
+           _mark: function ($chk, verify) {
+
+               var self = this;
+
+               if (verify) {
+
+                   if ($chk.prop('checked')) {
+
+                       var allChk = self.elements.TableContainer.find('input:checkbox.removable')
+
+                       var allAreChecked = true;
+
+                       for (var i = 0; i < allChk.length; i++) {
+                           if ($(allChk.get(i)).prop('checked') !== true) {
+                               allAreChecked = false;
+                               break;
+                           }
+                       }
+
+                       if (allAreChecked && allChk.length > 0) {
+                           self.elements.CheckAll.prop('checked', true);
+                       }
+                   } else {
+                       self.elements.CheckAll.prop('checked', false);
+                   }
+
+               }
+
+           },
+
+           GetValidator: function () {
+
+               var self = this;
+
+               var validator = new ValidatorHelper(self.OrderSelection);
+
+               validator.OnWizardCreated.Subscribe(this, this._validatorHelperOnCreateEvent)
+
+               return validator;
+
+           },
+
+           _validatorHelperOnCreateEvent: function (e) {
+
+               var self = this;
+
+               var wizard = e.wizardController;
+               var wizardStep = e.wizardStep
+
+               wizard.Show(self.ViewContainer);
+           },
+
+           // TODO: ShowStatus method and GoBCGoToStepToStep method, could be better in parent object, to reuse for all wizards views
+           ShowStatus: function () {
+               var self = this;
+               var breadCrumbs = new BreadCrumbsUI({
+                   ContainerElm: this.elements.BreadcrumbContainer,
+                   Controller: self,
+                   LinkClick: 'BCGoToStep',
+                   Crumbs: $.map(self.AllSteps, (wzdStep) => {
+                       // Crumb Object {Text, Position, Href, State }
+                       return {
+                           Text: wzdStep.Name,
+                           Position: wzdStep.Position,
+                           Href: '#',
+                           State: self.WizardStep.ID == wzdStep.ID ? CrumbState.PROGRESS : (wzdStep.IsCompleted ? CrumbState.COMPLETED : CrumbState.PENDING)
+                       }
+                   }),
+                   AutoRender: true,
+                   SizeCls: '', // not implemented
+                   AlignCls: '' // justify-content-center or justify-content-end
+               });
+
+           },
+
+           BCGoToStep: function (evt) {
+
+               var self = this;
+               var stepBtn = $(evt.target);
+               var step = stepBtn.data('position')
+               var wzdStepSelected = self.AllSteps.find((val) => val.Position == step)
+               var beforeStepSelected = self.AllSteps.find((val) => val.Position == step - 1)
+
+               if (!wzdStepSelected
+                   || self.WizardStep.ID == wzdStepSelected.ID
+                   || (wzdStepSelected.IsCompleted == false && beforeStepSelected && beforeStepSelected.IsCompleted == false)
+               ) {
+                   evt.preventDefault();
+                   return;
+               }
+
+               self.GetValidator().GetStep(step);
+           }
+       }
+
+       /// </script>

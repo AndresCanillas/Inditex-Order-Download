@@ -1,0 +1,60 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+
+//# sourceURL=https://Pages/Delivery/DeliveryTrackingInfo.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+///<script>
+		var DeliveryTrackingInfo = function (DeliveryNoteId) {
+
+			this.DeliveryNoteId = DeliveryNoteId;
+
+			FormView.Extend(this, "@g["Delivery Tracking"]", "/Delivery/DeliveryTrackingInfo");
+		};
+
+		DeliveryTrackingInfo.prototype = {
+			constructor: DeliveryTrackingInfo,
+
+			OnLoad: function () {
+				this.GetTrakinginfo(this.DeliveryNoteId);
+			},
+
+			OnUnload: function () {
+
+			},
+
+			GetTrakinginfo: async function (DeliveryNoteId) {
+
+				self = this;
+
+				return AppContext.HttpPost("/delivery/gettrackinginfo", DeliveryNoteId,null, null, true ,"@g["Processing..."]")
+				.then((response) => {
+					if (!response.Success) {
+						return;
+					}
+
+					let trackingresult = JSON.parse(response.Data);
+
+					if (trackingresult.data != null)
+					{
+						let trackinginfo = trackingresult.data.trackings[0];
+
+						self.elements.EventsTable.Rows.LoadData(trackinginfo.events);
+					
+						self.LoadData(trackinginfo.shipment);
+						self.LoadData(trackinginfo.shipment.delivery);
+						self.LoadData(trackinginfo.tracker);
+						self.LoadData(trackinginfo.statistics.timestamps);
+					}
+					else {
+						AppContext.ShowError("@g["Tracking info not found"]: " + trackingresult.errors[0].message);
+					}
+				});
+			}
+		};
+///</script>

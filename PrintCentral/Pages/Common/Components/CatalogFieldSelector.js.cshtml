@@ -1,0 +1,61 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+	var isAdmin = User.IsAnyRole(Roles.SysAdmin, Roles.IDTLabelDesign);
+}
+//# sourceURL=https://Pages/Common/Components/CatalogFieldSelector.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var CatalogFieldSelector = function () {
+		FormView.Extend(this);
+		this.Content = $('<div name="Buttons" class="btn-group" style=""></div>');
+		this.Selector = $(`<button class="btn btn-secondary btn-sm dropdown-toggle" style="padding:0px 10px 0px 10px; font-size:12px; margin:0px; height:20px;" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>`);
+		this.DropDownContainer = $(`<div class="dropdown-menu" style="font-size:12px;max-height:300px;overflow:auto;"></div>`);
+		this.Content.append(this.Selector);
+		this.Content.append(this.DropDownContainer);
+		this.FieldSelected = new AppEvent();
+	};
+
+	CatalogFieldSelector.prototype = {
+        constructor: CatalogFieldSelector,
+
+		OnLoad: function () {
+		},
+
+		OnUnload: function () {
+			this.FieldSelected.Dispose();
+		},
+
+		SetFields: function (fields) {
+			var selectorSet = false;
+			this.DropDownContainer.empty();
+			if (fields == null || fields.length == 0) return;
+			for (var f of fields) {
+				if (!f.IsHidden && (f.Type == 7 || (f.Type > 1 && f.Type < 5))) { // 7 = String
+					if (!selectorSet) {
+						this.Selector.text(f.Name);
+						selectorSet = true;
+					}
+					var btn = $(`<a class="dropdown-item" href="#" action="SelectField">${f.Name}</a>`);
+					this.DropDownContainer.append(btn);
+				}
+			}
+			AppContext.BindActions(this.DropDownContainer, this);
+		},
+
+		SelectField: function (e) {
+			var option = $(e.target).text();
+			this.Selector.text(option);
+			this.DropDownContainer.dropdown('toggle');
+			this.FieldSelected.Raise(option);
+		},
+
+		GetSelectedField: function () {
+			return this.Selector.text();
+		}
+	};
+//</script>

@@ -1,0 +1,24 @@
+﻿@page
+@inject ILocalizationService g
+@inject ICompanyRepository repo
+@inject IUserData userData
+
+@inject IEventQueue events
+@{
+    Layout = null;
+}
+
+<viewrow>
+    <viewcolumn>
+        <viewform>
+            <div style="display:flex;" class="mb-3;">
+                <div style="margin-bottom:15px"><span class="fa" style="font-size:2rem; color:dodgerblue;"></span></div>
+                <div name="Message" style="flex:95%"></div>
+            </div>
+        </viewform>
+    </viewcolumn>
+</viewrow>
+<viewfooter>
+    <button type="button" class="btn btn-primary" action="Ok">@g["OK"]</button>
+    <button type="button" class="btn btn-secondary" action="Cancel">@g["Cancel"]</button>
+</viewfooter>

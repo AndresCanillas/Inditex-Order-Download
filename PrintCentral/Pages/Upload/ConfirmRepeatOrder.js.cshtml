@@ -1,0 +1,72 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages/Upload/Orders/ConfirmRepeatOrder.js
+//<script>
+    var ConfirmRepeatOrder = function (orderData) {
+        FormView.Extend(this, "@g["Selected order will be repeated, please confirm this action"]", `/Upload/ConfirmRepeatOrder`);
+        this.OrderData = orderData;
+        this.Confirmed = false;
+        this.Accepted = false;
+	};
+
+
+    ConfirmRepeatOrder.prototype = {
+        constructor: ConfirmRepeatOrder,
+
+		OnLoad: function () { },
+
+        SelectNewState: function () {
+            var self = this;
+
+            self.EnableSubmit();
+        },
+
+        ClickConfirm: function () {
+            var self = this;
+
+            self.EnableSubmit();
+        },
+
+        Save: function () {
+            var self = this;
+
+            if (self.IsEnableSubmit() == false) {
+
+                AppContext.ShowError('@g["confirm action before"]')
+                return;
+            }
+
+            self.Accepted = true;
+            self.Close(self.model.GetData());
+
+        },
+
+        EnableSubmit: function () {
+
+            var self = this;
+
+            var btn = self.elements.SubmitButton;
+
+            self.Confirmed = self.elements.Confirm.prop('checked');
+
+            if (self.IsEnableSubmit()) {
+                //btn.prop('disabled', false);
+                btn.removeClass('disabled')
+            } else {
+                //btn.prop('disabled', true);
+                btn.addClass('disabled')
+            }
+
+        },
+
+        IsEnableSubmit: function () {
+            return this.Confirmed;
+        }
+    };
+//</script>
+
+

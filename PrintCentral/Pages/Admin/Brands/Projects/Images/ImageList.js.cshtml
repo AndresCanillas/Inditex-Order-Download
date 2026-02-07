@@ -1,0 +1,46 @@
+﻿@page
+@using Microsoft.AspNetCore.Mvc.Razor
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/Projects/Images/ImageList.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+// <script>
+	var ImageList = function (projectid) {
+		FormView.Extend(this, "@g["Images"]", `/Admin/Brands/Projects/Images/ImageList`);
+		this.ProjectID = projectid;
+	};
+
+
+	ImageList.prototype = {
+		constructor: ImageList,
+
+		OnLoad: function () {
+			if (this.ProjectID == null)
+				this.ProjectID = parseInt(this.elements.SelectedProjectID.val(), 10);
+			this.elements.Images.LoadItems({ ProjectID: this.ProjectID, ShowFilters: true, AddOption: true, OpenOption: true, DeleteOption: true });
+			this.elements.Images.ItemSelected.Subscribe(this, this.OpenItem);
+		},
+
+		OnUnload: function () {
+			this.elements.Images.ItemSelected.Unsubscribe(this, this.OpenItem);
+		},
+
+        OpenItem: function (e) {
+			var self = this;
+            AppContext.LoadJS("/Admin/Brands/Projects/Images/ImageView.js").then(() => {
+				var dlg = new ImageView(e.item);
+				dlg.ShowDialog((data) => {
+					if (data)
+						e.item.Description = data.Description
+				}, "550px");
+			});
+		}
+    };
+//</script>
+
+

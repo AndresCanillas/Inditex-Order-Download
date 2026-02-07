@@ -1,0 +1,110 @@
+﻿@page
+@using Service.Contracts.WF;
+@{
+	Layout = null;
+}
+<div style="margin:5px; font-size:10pt;">
+	<div class="form-row">
+		<div class="col-25">&nbsp;</div>
+		<div class="col-50 badge-container">
+			<a href="#" action="ShowItemState" class="badge badge-primary" style="padding:4px; text-decoration:underline;"><u>Item Data</u></a>
+			<a href="#" action="ShowItemHistory" class="badge badge-primary" style="padding:4px; text-decoration:underline;"><u>History</u></a>
+			<a href="#" action="ShowItemLog" class="badge badge-primary" style="padding:4px; text-decoration:underline;"><u>Item Log</u></a>
+		</div>
+	</div>
+	<div class="form-row">
+		<div class="col-25">
+			<label>ItemID:</label>
+		</div>
+		<div class="col-25">
+			<div model name="ItemID"></div>
+		</div>
+		<div class="col-25">
+			<label>Retries:</label>
+		</div>
+		<div class="col-25">
+			<div model name="RetryCount"></div>
+		</div>
+	</div>
+	<div class="form-row">
+		<div class="col-25">
+			<label>Name:</label>
+		</div>
+		<div class="col-75">
+			<div model name="Name"></div>
+		</div>
+	</div>
+	<div class="form-row">
+		<div class="col-25">
+			<label>Task:</label>
+		</div>
+		<div class="col-75">
+			<div model name="TaskName"></div>
+		</div>
+	</div>
+	<div class="form-row">
+		<div class="col-25">
+			<label>Task Date:</label>
+		</div>
+		<div class="col-75">
+			<div model name="TaskDate" data-type="date"></div>
+		</div>
+	</div>
+	<div class="form-row">
+		<div class="col-25">
+			<label>Status:</label>
+		</div>
+		<div class="col-25">
+			<select model name="ItemStatus" disabled style="width:100px; min-width:100px;" class="form-control custom-select-sm" options="@(OptionList.FromEnum<ItemStatus>())"></select>
+		</div>
+	</div>
+	<div class="form-row">
+		<div class="col-25">
+			<label>Status Reason:</label>
+		</div>
+		<div class="col-75">
+			<input model name="StatusReason" type="text" class="form-control form-control-sm" />
+		</div>
+	</div>
+	<div class="form-row">
+		<div class="col-25">
+			<label>RouteCode:</label>
+		</div>
+		<div class="col-75">
+			<div model name="RouteCode"></div>
+		</div>
+	</div>
+	<div class="form-row">
+		<div class="col-25">
+			<label>Keywords:</label>
+		</div>
+		<div class="col-75">
+			<input model name="Keywords" type="text" class="form-control form-control-sm" />
+		</div>
+	</div>
+	<div class="form-row">
+		<div class="col-25">
+			<label>Priority:</label>
+		</div>
+		<div class="col-75">
+			<select model name="ItemPriority" disabled class="form-control custom-select-sm" options="@(OptionList.FromEnum<ItemPriority>())"></select>
+		</div>
+	</div>
+	<div class="form-row">
+		<div class="col-25">
+			<label>Completed From:</label>
+		</div>
+		<div class="col-75">
+			<div model name="CompletedFromTaskName"></div>
+		</div>
+	</div>
+	<div class="form-row">
+		<div class="col-25">
+			<label>Completed Date:</label>
+		</div>
+		<div class="col-75">
+			<div model name="CompletedDate" data-type="date"></div>
+		</div>
+	</div>
+</div>
+

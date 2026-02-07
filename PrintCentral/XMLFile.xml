@@ -1,0 +1,14 @@
+﻿<Envelope>
+  <Body xmlns="http://schemas.xmlsoap.org/soap/envelope/">
+    <save>
+      <callContext>
+        <codeLang>SPA</codeLang>
+        <poolAlias>TEST</poolAlias>
+        <poolId>TEST</poolId>
+        <requestConfig>adxwss.beautify=false</requestConfig>
+      </callContext>
+      <publicName>ZSOH</publicName>
+      <objectXml><![CDATA[<PARAM><GRP ID="SOH0_1"><FLD NAME="SOHTYP" TYPE="Char">WEB</FLD><FLD NAME="SALFCY" TYPE="Char">SDS01</FLD><FLD NAME="REVNUM" TYPE="Char">0</FLD><FLD NAME="ORDDAT" TYPE="Char">20201119</FLD><FLD NAME="BPCORD" TYPE="Char">001369</FLD><FLD NAME="CUSORDREF" TYPE="Char">MYL-50199-400503</FLD></GRP><GRP ID="SOH2_1"><FLD NAME="STOFCY" TYPE="Char">SDS01</FLD></GRP><GRP ID="SOH1_2"><FLD NAME="PJT" TYPE="Char">MYL-I20-400503</FLD></GRP><GRP ID="SOH2_2"><FLD NAME="DEMDLVDAT" TYPE="Char">20201216</FLD></GRP><GRP ID="SOH1_4"><FLD NAME="CUR" TYPE="Char">EUR</FLD></GRP><GRP ID="ADB2_1"><FLD NAME="CRY" TYPE="Char">BH</FLD><FLD NAME="POSCOD" TYPE="Char">11</FLD><FLD NAME="CTY" TYPE="Char">a</FLD><FLD NAME="SAT" TYPE="Char" /><LST NAME="BPAADDLIG" SIZE="3" TYPE="Char"><ITM>a</ITM><ITM>a</ITM><ITM>a</ITM></LST><LST NAME="BPRNAM" SIZE="2" TYPE="Char"><ITM> </ITM><ITM> </ITM></LST></GRP><TAB DIM="1000" ID="SOH4_1" SIZE="1"><LIN NUM="1"><FLD NAME="ITMREF" TYPE="Char">ADHE000010</FLD><FLD NAME="YSUPED" TYPE="Char">0762427</FLD><FLD NAME="QTY" TYPE="Char">4</FLD><FLD NAME="SAU" TYPE="Char">MIL</FLD></LIN></TAB></PARAM>]]></objectXml>
+    </save>
+  </Body>
+</Envelope>

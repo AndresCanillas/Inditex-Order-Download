@@ -1,0 +1,34 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+<viewrow>
+	<viewcolumn>
+		<viewform>
+			<div class="sort-print-queue-view-top-items">
+				@if (userData.CanSeeCompanyFilter)
+				{
+					<select model name="CompanyID" label="@g["Company"]:" action="change:CompanyChanged" />
+				}
+				else
+				{
+				<input model name="CompanyID" type="hidden" value="@userData.CompanyID" />
+				}
+				<button type="button" class="btn btn-secondary sort-reset" action="SortReset">@g["Reset sorting"]</button>
+			</div>
+			<div name="Grid" component="GridView" style="width:100%; height:22vh; min-height:200px; margin-bottom:18px">
+			</div>
+			<div name="Headers" style="display:block;">
+				<viewtitle>@g["Header Fields"]</viewtitle>
+				<div name="HeaderFields" style="min-height:30px;"></div>
+			</div>
+			<div name="Stops" style="display:block;">
+				<viewtitle>@g["Stop Fields"]</viewtitle>
+				<div name="StopFields" style="min-height:30px;"></div>
+			</div>
+		</viewform>
+	</viewcolumn>
+</viewrow>
+<viewfooter>
+	<button type="button" class="btn btn-primary" action="Save">@g["Save"]</button>
+	<button type="button" class="btn btn-secondary" action="Cancel">@g["Cancel"]</button>
+</viewfooter>

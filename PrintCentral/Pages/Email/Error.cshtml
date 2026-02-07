@@ -1,0 +1,56 @@
+﻿@page
+@inject IAppConfig config
+@inject ILocalizationService g
+@inject IOrderEmailService emailService
+@{
+	string tokenCode = "";
+
+	var mark = config.Bind<string>("WebLink.PublishDate");
+
+	if (string.IsNullOrEmpty(mark))
+	{
+		mark = DateTime.Now.ToString("yyyyMMddhh");// refresh every hour
+	}
+
+	if (Request.QueryString.HasValue)
+	{
+		tokenCode = this.Request.QueryString.Value.Substring(1);
+	}
+
+	Layout = null;
+}
+<!DOCTYPE html>
+<html>
+<head>
+	<meta name="robots" content="noindex,nofollow">
+	<meta name="viewport" content="width=device-width" />
+	<title>@g["Email communication"]</title>
+	<link rel="stylesheet" href="/css/bootstrap.css?@mark" />
+	<link rel="stylesheet" href="/css/font-awesome.min.css?@mark">
+	<link rel="stylesheet" href="/css/themify-icons.css?@mark">
+	<link rel="stylesheet" href="/css/AppContext.css?@mark" />
+	<link rel="stylesheet" href="/styles/kendo.common.min.css?@mark" />
+	<link rel="stylesheet" href="/styles/kendo.default.min.css?@mark" />
+	<link rel="stylesheet" href="/styles/kendo.default.mobile.min.css?@mark" />
+	<link rel="stylesheet" href="/css/views.css?@mark" />
+	<link rel="stylesheet" href="/css/email.css?@mark" />
+	<script src="/js/popper.min.js?@mark"></script>
+	<script src="/js/jquery-3.0.0.min.js?@mark"></script>
+	<script src="/js/jquery.validate.min.js?@mark"></script>
+	<script src="/js/jquery.validate.unobtrusive.min.js?@mark"></script>
+	<script src="/js/bootstrap.min.js?@mark"></script>
+	<script src="/js/kendo.all.min.js?@mark"></script>
+	<script src="/js/AppContext.js?@mark"></script>
+	<script src="/js/AppContext.Events.js?@mark"></script>
+	<script src="/js/AppContext.Extensions.js?@mark"></script>
+	<script src="/Email/ErrorEmailNotificationsView.js?@mark"></script>
+</head>
+<body>
+	<script>
+		$(document).ready(function () {
+			var view = new ErrorEmailNotificationsView("@tokenCode");
+			view.Show($("BODY"));
+		});
+	</script>
+</body>
+</html>

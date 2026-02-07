@@ -1,0 +1,34 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+
+<viewcard>
+
+    <viewform>
+
+        <viewrow>
+
+            <viewcolumn>
+
+                <input model name="CatalogID" value="" type="hidden" />
+
+                <div name="UploadElement">
+                    <input name="FileCatalogData" type="hidden" data-type="file" accept=".csv" />
+                </div>
+
+            </viewcolumn>
+
+        </viewrow>
+
+        <viewfooter>
+            
+                <a href="#" class="btn btn-primary" action="Save">@g["Close"]</a>
+                
+        </viewfooter>
+
+    </viewform>
+
+</viewcard>

@@ -1,0 +1,37 @@
+﻿@page
+@inject ILocalizationService g
+@inject ICompanyRepository companies
+@inject IBrandRepository brands
+@inject IProjectRepository projects
+@inject IUserData userData
+@inject IAppConfig cfg
+@{
+	Layout = null;
+	bool isqa = cfg["WebLink.IsQA"] == "true";
+	string fileExtension = isqa ? ".*" : ".xlsx";
+
+	string companyName = "";
+	string brandName = "";
+	string projectName = "";
+	var company = companies.GetByID(userData.SelectedCompanyID);
+	companyName = company.Name;
+	var brand = brands.GetByID(userData.SelectedBrandID);
+	brandName = brand.Name;
+	var project = projects.GetByID(userData.SelectedProjectID);
+	projectName = project.Name;
+}
+<viewcard>
+	<viewrow>
+		<viewcolumn>
+			<viewtitle>@g["Company"]: @companyName</viewtitle>
+			<p>@g["Brand"]: @brandName<br />@g["Project"]: @projectName</p>
+		</viewcolumn>
+	</viewrow>
+	<viewrow>
+		<viewcolumn>
+			<div style="margin:auto; width:450px;">
+				<input name="files" type="file" accept="@fileExtension" />
+			</div>
+		</viewcolumn>
+	</viewrow>
+</viewcard>

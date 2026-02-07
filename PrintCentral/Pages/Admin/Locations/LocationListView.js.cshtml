@@ -1,0 +1,150 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Locations/LocationListView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var LocationListView = function (companyid) {
+		FormView.Extend(this, "@g["Locations"]", "/Admin/Locations/LocationListView");
+		this.CompanyID = companyid;
+		this.locations = null;
+	};
+
+
+	LocationListView.prototype = {
+		constructor: LocationListView,
+
+		OnLoad: function () {
+			var self = this;
+			if (this.CompanyID == null)
+				this.CompanyID = parseInt(this.elements.SelectedCompanyID.val(), 10);
+			AppContext.Locations.GetByCompanyID(this.CompanyID, function(data) {
+				self.locations = data;
+				self.LoadLocations();
+			});
+		},
+
+		LoadLocations: function (e) {
+			var self = this;
+			this.elements.LocationContainer.empty();
+			@(userData.Admin_Locations_CanAdd? "this.NewLocationCard();" : "")
+			if (this.locations != null) {
+				for (var i = 0; i < this.locations.length; i++) {
+					this.CreateLocationCard(this.locations[i]);
+				}
+			}
+		},
+
+		OpenLocation: function (e) {
+			var self = this;
+			var card = $(e.target).closest("[data-entityid]");
+			var id = card.attr("data-entityid");
+			var location = this.locations.find(function (e) { return e.ID == id; });
+			AppContext.LoadJS("/Admin/Locations/LocationView.js").then(() => {
+				var dialog = new LocationView(location.ID);
+				dialog.ShowDialog(function (data) {
+					if (data) {
+						self.UpdateCard(card, data);
+					}
+				});
+			});
+		},
+
+		UpdateCard: function (card, data) {
+			var idx = this.locations.findIndex(function (e) { return e.ID == data.ID; });
+			if (idx >= 0) {
+				this.locations[idx] = data;
+				card.find("[name='Title']").text(data.Name);
+				card.find("[name='Line1']").text(data.AddressLine1);
+				card.find("[name='Line2']").text(data.AddressLine2);
+				card.find("[name='Line3']").text(data.CityOrTown + " " + data.ZipCode);
+				card.find("[name='Line4']").text(data.StateOrProvince + ", " + data.Country);
+			}
+		},
+
+		@if(userData.Admin_Locations_CanAdd)
+		{
+		<text>
+		NewLocationCard: function () {
+			var self = this;
+			var html = $(`
+			<div class="new-item-card location-card">
+				<div>
+					<div style="padding-top:15px;">
+						<div class="btn btn-outline-secondary btn-sm" action="CreateLocation" style="display:block; margin:auto; width:140px;"><span class="fa fa-plus"></span>&nbsp;&nbsp;@g["New Location"]</div>
+					</div>
+				</div>
+			</div>`);
+			AppContext.BindActions(html, this);
+			self.elements.LocationContainer.append(html);
+		},
+
+		CreateLocation: function (e) {
+			var self = this;
+			AppContext.LoadJS("/Common/AskNameDialog.js").then(() => {
+				var dialog = new AskNameDialog("@g["New Location"]");
+				dialog.ShowDialog(function (dlgData) {
+					if (dlgData) {
+						AppContext.Locations.Insert({ Name: dlgData.Name, CompanyID: self.CompanyID }, function (result) {
+							if (result.Success) {
+								var card = self.CreateLocationCard(result.Data);
+								self.locations.push(result.Data);
+								self.OpenLocation({ target: card });
+							}
+						});
+					}
+				});
+			});
+		},
+		</text>
+		}
+
+
+		@if (userData.Admin_Locations_CanDelete)
+		{
+		<text>
+		DeleteLocation: function (e) {
+			var self = this;
+			var card = $(e.target).closest("[data-entityid]");
+			var id = card.attr("data-entityid");
+			var confirm = new ConfirmDialog("@g["Delete location? IMPORTANT: Deleting a location will also delete all printers associated to it."]");
+			confirm.ShowDialog(function (response) {
+				if (response) {
+					AppContext.Locations.Delete(id, function (result) {
+						if (result.Success) {
+							card.off();
+							card.remove();
+							var idx = self.locations.findIndex(function (e) { return e.ID == id; });
+							self.locations.splice(idx, 1);
+						}
+					});
+				}
+			});
+		},
+		</text>
+		}
+
+		CreateLocationCard: function (data) {
+			var self = this;
+			var html = $(`
+			<div class="item-card location-card" data-entityid="${data.ID}" @(userData.Admin_Locations_CanEdit? "action=OpenLocation" : "")>
+				<span class="fa fa-map-marker" style="margin-top:0px; padding-top:0px;"></span>
+				<span class="ti ti-close card-right card-close" @(userData.Admin_Locations_CanDelete? "action=DeleteLocation" : "")></span>
+				<div name="Title">${data.Name}</div>
+				<div name="Line1">${data.AddressLine1}</div>
+				<div name="Line2">${data.AddressLine2}</div>
+				<div name="Line3">${data.CityOrTown} ${data.ZipCode}</div>
+				<div name="Line4">${data.StateOrProvince}, ${data.Country}</div>
+			</div>`);
+			AppContext.BindActions(html, this);
+			self.elements.LocationContainer.append(html);
+			return html;
+		}
+	};
+//</script>

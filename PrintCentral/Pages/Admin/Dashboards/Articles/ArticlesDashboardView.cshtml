@@ -1,0 +1,67 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@inject ILocationRepository fabricRepo
+@{
+    Layout = null;
+	List<ILocation> fabrics = new List<ILocation>();
+
+	if (userData.IsIDT)
+	{
+		if (userData.IsSysAdmin || userData.IsIDTAdminRoles)
+		{
+			fabrics = fabricRepo.GetByCompanyID(1).Select(s => new Location() { ID = s.ID, Name = $"[{s.FactoryCode}] - {s.Name}" }).ToList<ILocation>();
+		}
+		if (userData.IsIDTExternal)
+		{// external user only can see orders related with his factory
+			fabrics = fabrics.Where(w => w.ID == userData.LocationID).ToList();
+		}
+	}
+	else
+	{
+		fabrics = fabricRepo.GetFactoriesInUseFor(userData).ToList();
+	}
+}
+
+<div style="margin-top:10px">
+	<div style="font-size:17px;">@g["Articles"]</div>
+	<hr class="subtitle" />
+
+    <div name="filter" style="margin:10px;">
+        <inlineform>
+			<input type="text" model name="Search" label="@g["Search"]:" style="min-width:120px;max-width:160px;" autocomplete="off" />
+			<select model name="FactoryID" label="@g["Factory"]:" data-type="int" action="change:DoSearch" options="@(OptionList.FromEnumerable(fabrics, "ID", "Name", null, g["All"]))" style="max-width:200px;"></select>
+			<a href="#" title="@g["Search"]" action="DoSearch"><span class="fa fa-search"></span></a>
+        </inlineform>
+    </div>
+
+    <div name="GridArticlesToolbar"  class="toolbar-body" style="width:100%">
+		<span class="toolbar-grip"></span>
+		<a id="ResetDateButton" href="#" title="@g["Reset date"]" action="ResetDate"><span class="fa fa-calendar"></span></a>
+		<a href="#" title="@g["Add"]" action="AddArticles"><span class="fa fa-plus"></span></a>
+		<a href="#" title="@g["Remove"]" action="RemoveArticles"><span class="fa fa-trash"></span></a>
+	</div>
+
+	<div component="OrderGrid" name="Articles" style="padding:0 5px 5px 5px; overflow:auto; max-height:500px;" rowcssclass="SetRowCssClass">
+		<template>
+			<column width="180" field="CompanyName">@g["Company"]</column>
+			<column width="140" field="BrandName">@g["Brand"]</column>
+			<column width="140" field="ProjectName">@g["Project"]</column>
+			<column width="200" field="ArticleCode">@g["Article"]</column>
+			<column width="200" field="Description">@g["Description"]</column>
+			<column width="80" field="Quantity" render="RenderQuantity">@g["Quantity"]</column>
+			<column width="120" field="InitialDate" render="RenderDate">@g["Date"]</column>
+		</template>
+	</div>
+
+	<div name="PageSelector" style="margin:auto;" >
+		<div name="InnerContainer" role="group" class="btn-group">
+			<button type="button" class="btn btn-default" style="margin:0px;" action="PreviousPage"><span class="ti ti-arrow-left"></span></button>
+			<div name="CurrentPageDisplay" class="text-center" style="margin:10px; width:100px;">1/1</div>
+			<button type="button" class="btn btn-default" style="margin:0px;" action="NextPage"><span class="ti ti-arrow-right"></span></button>
+		</div>
+	</div>
+
+</div>
+
+

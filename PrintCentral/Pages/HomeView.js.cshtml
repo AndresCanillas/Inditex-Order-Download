@@ -1,0 +1,204 @@
+﻿@page
+@inject ILocalizationService g
+@inject IAppConfig cfg
+@inject IUserData userData
+@{
+	Layout = null;
+	var showMaintenanceScreen = !User.IsInRole(Roles.SysAdmin) && cfg["WebLink:MaintenanceMode"] == "true";
+}
+//# sourceURL=https://Pages/HomeView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var HomeView = function () {
+		FormView.Extend(this, "@g["Orders"]", "/HomeView");
+	};
+
+
+	HomeView.prototype = {
+		constructor: HomeView,
+
+		OnLoad: function () {
+			@if (!showMaintenanceScreen)
+			{
+				@:this.elements.TopNavBar.MenuOptionClicked.Subscribe(this, this.HandleNavBarMenuEvent);
+				@:this.elements.VMenu.MenuOptionClicked.Subscribe(this, this.HandleVMenuEvent);
+            }
+		},
+
+		HandleNavBarMenuEvent: function (e) {
+			switch (e.option) {
+				case "UserProfile":
+					AppContext.LoadJS("/ProfileView.js").then(() => {
+						var view = new ProfileView();
+						view.Show(this.elements.mainContainer);
+					});
+					return;
+				case "Notifications":
+					AppContext.LoadJS("Notifications/NotificationList.js").then(() => {
+						var notifications = new NotificationList();
+						notifications.Show(this.elements.mainContainer);
+					});
+                    return;
+                case "CompanySelection":
+                    AppContext.LoadJS("/Common/Components/CompanySelection.js").then(() => {
+                        var view = new CompanySelection();
+                        view.Show(this.elements.mainContainer);
+                    });
+                    return;
+                case "ProjectSelection":
+					AppContext.LoadJS("/Common/Components/ProjectSelection.js").then(() => {
+						var view = new ProjectSelection();
+						view.Show(this.elements.mainContainer);
+					});
+                    return;
+			}
+		},
+
+		HandleVMenuEvent: function (e) {
+			switch (e.option) {
+				case "UploadOrder":
+					AppContext.LoadJS("/Upload/UploadStep1.js").then(() => {
+						var view = new UploadStep1("@g["Upload Order"]", "order");
+						view.Show(this.elements.mainContainer);
+					});
+					return;
+				case "UploadVariableData":
+                    AppContext.LoadJS("/Upload/UploadStep1.js").then(() => {
+                        var view = new UploadStep1("@g["Upload Variable Data"]", "variabledata");
+						view.Show(this.elements.mainContainer);
+					});
+					return;
+				case "UploadPoolFile":
+                    AppContext.LoadJS("/OrderPool/Upload.js").then(() => {
+                        var view = new OrderPoolUpload("@g["Upload Order Pool File"]");
+						view.Show(this.elements.mainContainer);
+					});
+					return;
+				case "ShowOrders":
+					AppContext.LoadJS("/Upload/OrderGroupIndexView.js").then(() => {
+						var view = new OrderGroupIndexView();
+						view.Show(this.elements.mainContainer);
+                    });
+					//var view = new OrderGroupIndexView();
+					//view.Show(this.elements.mainContainer);
+					return;
+				case "BatchPrint":
+					AppContext.LoadJS("/Print/PrintGridView.js").then(() => {
+						var view = new PrintGridView();
+						view.Show(this.elements.mainContainer);
+					});
+					return;
+				case "ShowPendingJobs":
+					AppContext.LoadJS("/Print/PendingJobsView.js").then(() => {
+						var view = new PendingJobsView();
+						view.Show(this.elements.mainContainer);
+					});
+					return;
+				case "ShowPrinters":
+					AppContext.LoadJS("/Print/PrinterListView.js").then(() => {
+						var view = new PrinterListView();
+						view.Show(this.elements.mainContainer);
+					});
+					return;
+				case "ShowBrands":
+					AppContext.LoadJS("/Common/Components/CatalogNavigation.js").then(() => {
+						var view = new CatalogNavigation();
+						view.Show(this.elements.mainContainer);
+					});
+					return;
+				case "ShowArticles":
+					AppContext.LoadJS("/Admin/Brands/Projects/Articles/ArticleList.js").then(() => {
+						var view = new ArticleList();
+						view.Show(this.elements.mainContainer);
+					});
+					return;
+				case "ShowLocations":
+					AppContext.LoadJS("/Admin/Locations/LocationListView.js").then(() => {
+						var view = new LocationListView();
+						view.Show(this.elements.mainContainer);
+					});
+					return;
+				case "ShowUsers":
+					AppContext.LoadJS("/Admin/Users/UserListView.js").then(() => {
+						var view = new UserListView();
+						view.Show(this.elements.mainContainer);
+					});
+                    return;
+				case "ShowAddresses":
+                    AppContext.LoadJS("/Admin/AddressList.js").then(() => {
+                        var view = new AddressList();
+                        view.Show(this.elements.mainContainer);
+                    });
+                    return;
+
+                case "ShowReport":
+                    AppContext.LoadJS("/Admin/OrderCustomReportView.js").then(() => {
+                        var view = new OrderCustomReportView();
+                        view.Show(this.elements.mainContainer);
+                    });
+                    return;
+                                case "ShowDashboards":
+					AppContext.LoadJS("/Admin/Dashboards/DashboardsView.js").then(() => {
+						var view = new DashboardsView();
+						view.Show(this.elements.mainContainer);
+					});
+					return;
+                            // case "ShowManualEntry":
+                            //    AppContext.LoadJS("/ManualEntry/OrderEntryView.js").then(() => {
+                            //        var view = new OrderEntryView();
+                            //        view.Show(this.elements.mainContainer);
+                            //    });
+                            //    return;
+                                case "ShowManualEntry":
+                                   
+									
+								AppContext.LoadJS(e.params.Url).then(() => {
+                                        let options = {
+                                            ProjectID : e.params.ProjectID, 
+                                            BrandID : e.params.BrandID, 
+                                            CompanyID: e.params.CompanyID,
+											MyCompanyID: @userData.SelectedCompanyID
+                                        }
+                                        var view = new OrderEntryView(options);
+                                        view.Show(this.elements.mainContainer);
+                                    });
+                                    return;
+					case "UploadDelivery":
+						  AppContext.LoadJS("/Delivery/DeliveryUpload.js").then(() => {
+								var view = new DeliveryUpload("@g["Upload Delivery"]", "delivery");
+								view.Show(this.elements.mainContainer);
+						  });
+						return;
+					case "ShowOrderPoolManager" :
+								AppContext.LoadJS(e.params.Url).then(() => {
+											  let options = {
+												  ProjectID : e.params.ProjectID,
+												  BrandID : e.params.BrandID,
+												  CompanyID: e.params.CompanyID,
+												  MyCompanyID: @userData.SelectedCompanyID
+											  }
+													var view = new OrderPoolManagerView(options);
+											  view.Show(this.elements.mainContainer);
+										  });
+										  return;
+					case "ShowPDFExtractor" :
+
+						AppContext.LoadJS("/ManualEntry/IAPDFZaraExtractor.js").then(() => {
+													let options = {
+														ProjectID : e.params.ProjectID,
+														BrandID : e.params.BrandID,
+														CompanyID: e.params.CompanyID,
+														MyCompanyID: @userData.SelectedCompanyID
+													}
+							  let view = new IAPDFZaraExtractor (options)
+						      view.Show(this.elements.mainContainer)
+						  });
+						return; 
+
+			}
+		}
+	};
+//</script>

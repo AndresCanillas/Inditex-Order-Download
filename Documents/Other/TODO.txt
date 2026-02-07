@@ -1,0 +1,42 @@
+﻿TODO
+-------------------------------------
+
+- Cambios en PrintedLabels
+- Comando de corte
+- Parametros de imp por label y editar sin print job
+- Preview PDF de orden
+- Envio de correo cuando entra orden (cuando ya se crean los print jobs)
+- Notificaciones (Errores)
+- Cambio color
+
+
+
+
+
+NICE TO HAVES
+-------------------------------------
+
+	- Develop capability of identifing the type of document based on its content by proving all file definitions. Document identification process
+	  should return the file mapping that best fits the content, or error conditions if no match is found (or if multiple matches were found).
+	
+	- Encoding detection mechanism (look for a way of automatically detecting file encoding).
+
+	- Streamline file upload option into single option (no more data, order, order + data).
+	
+	- Administration. Develop product management option so users can edit product data directly intead of having to upload an excel file every time.
+
+	- Dashboards. Different pieces of information shown based of the user role.
+		Examples:
+		SysConfig users should be able to:
+			- See error notifications
+		ProdManger (either IDT or external) should:
+			- See a summary of pending orders that need to be produced
+		Commercial users should:
+			- See a summary of orders
+
+	- Reporte para el dashboard: top 10 de clientes, separando lo producido por el cliente y lo producido en IDT (as stacked bars):
+	  select top 10 CompanyID, (select Name from Companies where ID = CompanyID) as Name, count(*) as LabelsPrinted from PrintedLabels
+	  group by CompanyID
+
+
+

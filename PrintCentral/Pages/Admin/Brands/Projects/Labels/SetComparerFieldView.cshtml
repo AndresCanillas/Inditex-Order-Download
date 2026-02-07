@@ -1,0 +1,63 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@inject IProjectRepository projectRepo
+@inject ILabelRepository labelRepo
+
+@{
+    Layout = null;
+    int projectid = Convert.ToInt32(Request.Query["projectid"].ToString());
+    int labelid = Convert.ToInt32(Request.Query["labelid"].ToString());
+    var catalogFields = projectRepo.GetCatalogFields(projectid).Where(x => !x.IsHidden && x.Type != Service.Contracts.Database.ColumnType.Reference);
+    var comparerField = labelRepo.GetComparerField(labelid);
+
+}
+<viewcard>
+    <viewform>
+        <viewrow>
+            <viewcolumn>
+                <viewrow>
+                    @if (userData.Admin_Projects_CanEdit)
+                    {
+                        <viewcolumn>
+                            <div class="card">
+                                <div class="card-body">
+                                    <div style="width:50%">
+                                        @foreach (var item in catalogFields)
+                                        {
+                                            <div class="FormRow" style="display:inline-block;float:left;width:50%">
+                                                <div>
+                                                    <label>
+                                                        <input action="SetField" type="checkbox" name="@item.Name" value="" @(comparerField != null && comparerField.Equals(item.Name) ? "checked=checked" : "") /> @item.Name
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                    <div>
+                                        <div>
+                                            <input model name="ComparerField" type="text" hidden />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </viewcolumn>
+                    }
+                </viewrow>
+
+            </viewcolumn>
+
+        </viewrow>
+    </viewform>
+    <viewfooter>
+        @if (userData.Admin_Projects_CanEdit)
+        {
+            <a href="#" class="btn btn-primary" action="Save">@g["Save"]</a>
+            <a href="#" class="btn btn-secondary" action="Cancel">@g["Cancel"]</a>
+        }
+        else
+        {
+            <a href="#" class="btn btn-secondary" action="Cancel">@g["Close"]</a>
+        }
+    </viewfooter>
+</viewcard>

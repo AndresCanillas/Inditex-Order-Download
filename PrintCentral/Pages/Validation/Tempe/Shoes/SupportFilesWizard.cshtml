@@ -1,0 +1,47 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData  userData
+@inject IOrderRepository  orderRepo
+@inject IProjectRepository projectRepo
+@inject IEventQueue events
+@{
+    Layout = null;
+
+    //if (Request.Query.ContainsKey("projectid"))
+    //{
+    //    var id = Convert.ToInt32(Request.Query["projectid"].ToString());
+
+    //    var info = orderRepo.GetProjectInfo(id);
+
+    //    events.Send(new ReviewStepStartedEvent(id, info.OrderNumber, info.CompanyID, info.BrandID, info.ProjectID));
+    //}
+}
+
+<viewform>
+
+    <viewcard>
+
+        <viewrow>
+            <viewcolumn>
+
+                <div name="BreadcrumbContainer"></div>
+
+            </viewcolumn>
+        </viewrow>
+
+        <viewrow>
+            <viewcolumn>
+                <div class="row" name="TableContainer"></div>               
+            </viewcolumn>
+        </viewrow>
+
+        <viewfooter>
+            <div class="row justify-content-end" name="AvailableActions">
+                <div class="col-4 text-right">
+                    <a href="#" class="btn btn-sm btn-primary" action="SaveAndNext">@g["Save And Next"] <span class="fa fa-fw fa-chevron-right" aria-hidden="true"></span></a>
+                </div>
+            </div>
+        </viewfooter>
+
+    </viewcard>
+</viewform>

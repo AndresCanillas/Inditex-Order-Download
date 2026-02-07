@@ -1,0 +1,15 @@
+﻿@page
+@using Service.Contracts.WF;
+@{
+	Layout = null;
+}
+<div style="margin:5px; font-size:10pt;">
+	<div class="form-row">
+		<textarea model name="ItemState" class="form-control" style="height:50vh; min-width:100%; overflow:scroll; font:normal 10px Consolas; background:white;" readonly></textarea>
+	</div>
+	<div style="float:right; margin-top:10px;">
+		<a href="#" action="Edit" name="btnEdit" class="btn btn-outline-primary" style="margin-right:0px; width:80px;">Edit</a>
+		<a href="#" action="Close" class="btn btn-primary" style="margin-right:0px;">Close</a>
+	</div>
+</div>
+

@@ -1,0 +1,194 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/Projects/ProjectNode.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+/// <reference path="/js/AppContext.UI.js" />
+/// <reference path="/js/AppContext.AppDomain.js" />
+
+//<script>
+    var ProjectNode = function (project, companyid) {
+        this.Project = project;
+        this.CompanyID = companyid;
+		TreeNode.Extend(this, "ProjectNode", project.ID, project.Name);
+		this.CanEdit = true;
+		this.menu = {
+			MenuWidth: "250px",
+			Options: [
+				{ Text: "@Html.Raw(g["Open"])", OnClick: this.OnDoubleClick }
+				@if (userData.Admin_Projects_CanRename)
+				{
+				@:, { Text: "@Html.Raw(g["Rename"])", OnClick: this.Rename }
+				}
+				@if (userData.Admin_Projects_CanEdit)
+				{
+				@:, { Text: "@Html.Raw(g["Hide"])", OnClick: this.Hide }
+				}
+                ,{ Text: "@Html.Raw(g["Export"])", OnClick: this.Export }
+                ,{ Text: "@Html.Raw(g["Import"])", OnClick: this.Import }
+				@if (userData.Admin_Projects_CanDelete)
+				{
+				@:, { IsSeparator: true }
+                @:, { Text: "@Html.Raw(g["Delete"])", OnClick: this.Delete }
+				}
+			]
+		};
+	};
+
+    ProjectNode.prototype = {
+		constructor: ProjectNode,
+
+		loadDependencies: function (callback) {
+			AppContext.LoadJS(
+				"/Admin/Brands/Projects/ProjectView.js",
+				"/Admin/Brands/Projects/Packs/PacksRootNode.js",
+				"/Admin/Brands/Projects/Labels/LabelsRootNode.js",
+				"/Admin/Brands/Projects/Articles/ArticlesRootNode.js",
+				"/Admin/Brands/Projects/Mappings/MappingsRootNode.js",
+                "/Admin/Brands/Projects/Catalogs/CatalogsRootNode.js",
+				"/Admin/Brands/Projects/Images/ImageNode.js",
+				"/Admin/Brands/Projects/Categories/CategoriesRootNode.js"
+            ).then(() => callback());
+		},
+
+		OnDoubleClick: function () {
+			var self = this;
+            this.loadDependencies(function () {
+                var view = new ProjectView(self.EntityID, self.CompanyID, self.Parent.EntityID);
+				view.NodeID = self.NodeID;
+                view.OnSaved.Subscribe(self, function (data) {
+                    this.setText(data.Name);
+                    if (data.Hidden) {
+                        self.Remove();
+                    }
+                });
+				view.Show(self.getViewContainer());
+			});
+		},
+
+
+		@if(userData.Admin_Projects_CanRename)
+		{
+		<text>
+		Rename: function () {
+			this.BeginEdit();
+		},
+
+		OnEditEnding: function (value) {
+            return AppContext.Projects.Rename(this.EntityID, value);
+		},
+		</text>
+		}
+
+
+
+		@if(userData.Admin_Projects_CanEdit)
+		{
+		<text>
+		Hide: function () {
+			var self = this;
+			var confirm = new ConfirmDialog("@g["Are You sure to Hide this Project?."]");
+			confirm.ShowDialog(function (response) {
+                if (response) {
+                    AppContext.Projects.Hide(self.EntityID, function (result) {
+						if (result.Success)
+							self.Remove();
+					});
+				}
+			});
+        },
+		</text>
+		}
+
+
+
+		@if(userData.Admin_Projects_CanDelete)
+		{
+		<text>
+		Delete: function () {
+			var self = this;
+			var confirm = new ConfirmDialog("@g["Delete Project? Note: This operation cannot be undone."]");
+			confirm.ShowDialog(function (response) {
+				if (response) {
+					AppContext.Projects.Delete(self.EntityID, function (result) {
+						if (result.Success)
+							self.Remove();
+					});
+				}
+			});
+        },
+		</text>
+		}
+
+        @if(userData.Admin_Projects_CanDelete)
+		{
+		<text>
+		Export: function () {
+			var self = this;
+			var confirm = new ConfirmDialog("@g["Would you like to Export this Project?."]");
+			confirm.ShowDialog(function (response) {
+                if (response) {
+                    window.open(`/Projects/export/${self.Project.ID}`);
+				}
+			});
+        },
+
+        Import: function () {
+			var self = this;
+			AppContext.LoadJS(
+				"/Admin/Brands/Projects/ProjectNode.js",
+				"/Admin/Brands/Projects/ProjectImport.js").then(() => {
+                    var view = new ProjectImport("@g["Import Project"]", self.Project.BrandID, self.EntityID);
+                    view.ShowDialog();
+			});
+        },
+		</text>
+		}
+
+		GetContextMenu: function () {
+			return this.menu;
+		},
+
+		OnExpanded: function () {
+			var self = this;
+			this.loadDependencies(function () {
+				if (!self.IsLoaded) {
+					self.IsLoaded = true;
+					@if(userData.Admin_Articles_CanSee)
+					{
+						@:self.AddNode(new ArticlesRootNode(self.Project));
+					}
+					@if(userData.Admin_Categories_CanSee)
+					{
+						@:self.AddNode(new CategoriesRootNode(self.EntityID));
+					}
+					@if(userData.Admin_Labels_CanSee)
+					{
+						@:self.AddNode(new LabelsRootNode(self.EntityID));
+					}
+					@if(userData.Admin_Packs_CanSee)
+					{
+						@:self.AddNode(new PacksRootNode(self.EntityID));
+					}
+					@if(userData.Admin_Projects_CanSeeImages)
+                    {
+						@:self.AddNode(new ImageNode(self.EntityID));
+                    }
+					@if(userData.Admin_Catalogs_CanSee)
+					{
+						@:self.AddNode(new CatalogsRootNode(self.EntityID));
+					}
+					@if (userData.Admin_Mappings_CanSee)
+					{
+						@:self.AddNode(new MappingsRootNode(self.EntityID));
+					}
+				}
+			});
+        }
+	};
+//</script>

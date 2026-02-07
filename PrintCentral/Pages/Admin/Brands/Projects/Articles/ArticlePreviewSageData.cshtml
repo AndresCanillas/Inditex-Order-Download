@@ -1,0 +1,48 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+	
+}
+<viewform>
+	<viewrow>
+
+		<viewcolumn>
+
+			<input model name="Reference" label="@g["Article"]" type="text" />
+			<input model name="Descripcion1" label="" />
+			<input model name="StatusText" label="@g["Status"]" />
+			<input model name="SeaKey" lable="@g["Search Key"]" />
+
+		</viewcolumn>
+
+		<viewcolumn>
+			<div class="form-subtitle">@g["Statistical Families"]</div>
+			<hr class="subtitle" />
+			<input model name="FamilyText" label="@g["Family"]" />
+			<input model name="BrandText" label="@g["Brand"]" />
+			<input model name="SubBrandText" label="@g["Sub Brand"]" />
+		</viewcolumn>
+
+
+	</viewrow>
+	<viewrow>
+
+		<viewcolumn>
+			<div class="form-subtitle">@g["Image"]</div>
+			<hr class="subtitle" />
+			<div name="ImageContainer" class="image-container">
+
+			</div>
+
+		</viewcolumn>
+
+	</viewrow>
+
+	<viewfooter>
+		<button type="button" class="btn btn-primary" action="SyncFn">@g["Sync"]</button>
+		<button type="button" class="btn btn-secondary" action="Cancel">@g["Cancel"]</button>
+	</viewfooter>
+
+</viewform>

@@ -1,0 +1,46 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Common/Components/DynamicForm.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+//	<script>
+
+    var DataUploadDialog = function (catalogID) {
+        this.CatalogID = catalogID;
+        this.Uploaded = false;
+
+        FormView.Extend(this, "@g["Upload File Data"]", `/Common/Components/DataUploadDialog`);
+    }
+
+    DataUploadDialog.prototype = {
+
+        constructor: DataUploadDialog,
+
+        OnLoad: function () { },
+
+        GetFileUploadUrl: function () {
+            this.Uploaded = false;// this methos is called after every select file
+            return `/catalogdata/importdata/${this.CatalogID}`;
+        },
+
+        // after success upload
+        KendoUpload__afterUpload: function (fn, fid) {
+            this.Uploaded = true;
+            // TODO: raise event to inform parent
+        },
+
+        CloseDialog: function () {
+            var self = this;
+
+            self.Close(this.Uploaded);
+        }
+
+    }
+
+
+
+//	</script>

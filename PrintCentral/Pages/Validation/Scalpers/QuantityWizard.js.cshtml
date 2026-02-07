@@ -1,0 +1,947 @@
+@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+    var madeInRequiredTxt = g["Made In is required"];
+    var errorMessagesMadeIn = new { range = @madeInRequiredTxt };
+
+    //var errorMessagesStrConfig = Newtonsoft.Json.JsonConvert.SerializeObject(errorMessagesMadeIn, Newtonsoft.Json.Formatting.None, new Newtonsoft.Json.JsonSerializerSettings() { StringEscapeHandling = Newtonsoft.Json.StringEscapeHandling.EscapeHtml });
+    // https://dotnetfiddle.net/s5VppR
+    var sr = new System.IO.StringWriter();
+    var jsonWriter = new JsonTextWriter(sr)
+    {
+        StringEscapeHandling = StringEscapeHandling.EscapeNonAscii
+    };
+    new JsonSerializer().Serialize(jsonWriter, errorMessagesMadeIn);
+
+    var errorMessagesStrConfig = sr.ToString();
+
+}
+//# sourceURL=https://Pages/Validation/Scalpers/QuantityWizard.js
+/// <script>
+
+
+/**
+
+ * @@requires ValidatorHelper from Pages/Validation/Scalpers/js/ScalpersData.js
+ * @@param orderSelection
+ * @@param wizardStep
+ * @@param allSteps
+ */
+/*
+order selection is array of orders selected from OrderGroupIndexView
+[{ OrderGroupID: 1, OrderNumber: '8545', Details: [], Orders: [OrderId, OrderID, ....], WizardStepPosition: 0  }]
+ */
+
+    var QuantityWizard = function (orderSelection, wizardStep, allSteps) {
+        
+        this.OrderSelection = orderSelection;
+        this.OrderData = [],
+        this.GamaID = -1;
+        this.SectionID = -1;
+        this.FormSelector = '[name="setarticlestoorder-wizard-frm"]';
+        this.MadeInData = [];
+        this.ArticlesNames = {};
+        this.Articles = [];
+        this.MaxQuantityPercentage = 0;
+        this.IsApplyAutomaticPercentage = false;
+        this.AllowEditQuantity = false;
+        this.IsReadyToApply = false;
+        this.IsOrderRepeat = false;
+        this.LinesScalpers = [];
+        this.SectionsScalpers = [];
+        this.GamasScalpers = [];
+        this.CategoriesScalpers = [];
+        this.ArticleConfigsScalpers = [];
+        this.ArticlesScalpers = [];
+        this.Importers = [];
+        AWizardBaseView.Extend(this, "@g["Add Order Info Wizard"]", `@Url.Content("~/Validation/Scalpers/QuantityWizard")`, wizardStep, allSteps);
+    };
+
+    QuantityWizard.prototype = {
+
+        constructor: QuantityWizard,
+
+        OnLoad: function () {
+            var self = this;
+            var MadeInCatalogName = '@Catalog.BRAND_MADEIN_CATALOG';
+
+            var catalogs = {
+                LinesCatalog: "LinesScalpers",
+                SectionsCatalog: "SectionsScalpers",
+                GamasCatalog: "GamasScalpers",
+                CategoriesCatalog: "CategoriesScalpers",
+                ArticleConfigsCatalog : "ArticleConfigsScalpers",
+                ArticleCatalog: "ArticlesScalpers"
+            }
+
+            if (self.OrderSelection.length > 0) {
+                self.ProjectID = self.OrderSelection[0].ProjectID;
+                self.LoadProjectData(self.ProjectID);
+            }
+
+            
+            self.GetImportersCatalog(self.ProjectID);
+            self.ShowStatus();
+            // WARN: on order page, user only can validate multiple orders from the same projectID
+
+            AppContext.LoadJS('/js/Wizards/ScalpersDeeply/ScalpersDeeplyData.js').then(() => {
+                ScalpersDeeply.GetCatalogs(self.ProjectID,catalogs).then(() => {               
+                    AppContext.Articles.GetArticlesWithLabels(ScalpersDeeply.Articles,self.OrderSelection[0].ProjectID).then((result) => {
+                        ScalpersDeeply.UpdateArticles(result);
+                        AppContext.Catalogs.GetByName(self.OrderSelection[0].ProjectID, MadeInCatalogName, null, null, false, false)
+                            .done((rsp1) => {
+
+                                AppContext.CatalogData.GetByCatalogID(rsp1.Data.CatalogID, null, null, false)
+                                    .done((madeInResponse) => {
+                                        self.MadeInData = JSON.parse(madeInResponse);
+                                        self.LoadArticles()
+                                            .done((rsp2) => {
+                                                if (self.IsApplyAutomaticPercentage) {
+                                                    self.SetMaxAll();
+                                                    self.IsOrderRepeat = self.OrderSelection[0].OrderNumber.indexOf("R") > 0;
+                                                    if (self.AllowEditQuantity === false && self.IsOrderRepeat == false) {
+                                                        self.elements.MaxQuantityPercentage.prop("disabled", true);
+                                                    }
+                                                    //if (self.AllowEditQuantity == false) self.elements.MaxQuantityPercentage.prop("disabled", true);
+                                                }
+                                            });
+                                    });
+                            });
+                    });
+                });
+            });
+        },
+
+        GetImportersCatalog: async function (projectID){
+            var self = this;
+
+            const result = await AppContext.Catalogs.GetByName(projectID, "Importers");
+            if (!result.Success) return;
+
+            const importersData = await AppContext.CatalogData.GetByCatalogID(
+                result.Data.CatalogID,
+                null,
+                null,
+                false
+            );
+
+            self.Importers = JSON.parse(importersData);
+        },
+
+        GetSection: function (el) {
+            var groupIdx = $(el).closest('tr').data('groupIdx')
+            var codeSection = $(`[name="rq[${groupIdx}].CodeSection"]`).val();
+
+            var section = ScalpersDeeply.Sections.find((item) => item.Name == codeSection.toUpperCase());
+
+            return section;
+        },
+
+        GamaChangeEvent: function (evt) {
+            var self = this;
+            
+            var combo = $(evt.currentTarget);
+
+            self.UpdateLabelsByGama(combo);
+            
+        },
+
+        UpdateLabelsByGama: function (combo) {
+            var self = this;
+
+            var newVal = combo.val();
+
+            //var gama = ScalpersDeeply.Gamas.find((item) => item.Name == newVal);
+            var gama = ScalpersDeeply.FindGama(newVal);
+
+            var section = self.GetSection(combo.get(0));
+
+            var groupIdx = combo.data('groupIdx');
+
+            var importer = self.Importers.find(i => i.Code === gama.Name);
+
+            $(`[name="rq[${groupIdx}].Importer"]`).val(importer?.ID || 1);
+
+            self.SetLabelsLOG(gama.ID, section.ID, groupIdx);
+            self.SetLabelsADH(gama.ID, section.ID, groupIdx);
+            self.SetLabelsCAR(gama.ID, section.ID, groupIdx);
+            self.SetLabelsCMP(gama.ID, section.ID, groupIdx);
+        },
+
+        SetAvailableLabels: function (categoryCode, gamaID, sectionId, groupIdx) {
+            let self = this;
+
+            let articleLine = $(`[name="rq[${groupIdx}].ArticleLine"]`).val();
+
+            let line = ScalpersDeeply.Lines.find(item => item.Name == articleLine);
+
+            let section = ScalpersDeeply.Sections.find(item => item.ID == sectionId);
+
+            let category = ScalpersDeeply.ArticleCategories.find((item) => item.Code == categoryCode);
+
+            let workData = ScalpersDeeply.GetWorkData(section.Name, line.Name);
+
+            let comboData = workData.filter((item) => item.GamaID == gamaID && item.CategoryID == category.ID);
+
+            let combo = $(`[name="rq[${groupIdx}].${categoryCode}"]`);
+
+            let currentLocation = Number.parseInt($(`[name="rq[${groupIdx}].LocationID"]`).val());
+            
+            // Empty ArticleCode will be delete
+            let blankOption = {Value: '', Name: '@g["Without Label"]'}
+            
+            let comboOptions = comboData.map((item) => {
+                let l = ScalpersDeeply.Articles.find((l) => l.ID == item._ArticleCode_DISP);
+
+                if (!l)
+                    return false;
+
+                return { Value: l.ArticleCode, Name: `${l.Name}` }; 
+            });
+
+            combo.empty();
+
+            comboOptions.unshift(blankOption);
+            
+            self.model.SetElementOptions(combo.get(0), comboOptions.filter((x) => x !== false));
+
+        },
+
+        SetLabelsLOG: function (gamaID, sectionID, groupIdx) {
+            this.SetAvailableLabels('Logistic', gamaID, sectionID, groupIdx)
+        },
+
+        SetLabelsADH: function (gamaID, sectionID, groupIdx) {
+            this.SetAvailableLabels('Adhesive', gamaID, sectionID, groupIdx)
+        },
+
+        SetLabelsCAR: function (gamaID, sectionID, groupIdx) {
+            this.SetAvailableLabels('Cardboard', gamaID, sectionID, groupIdx)
+        },
+
+        SetLabelsCMP: function (gamaID, sectionID, groupIdx) {
+            this.SetAvailableLabels('Composition', gamaID, sectionID, groupIdx)
+        },
+
+        GetGamasByCode: function (sectionName, collectionName) {
+
+            //var section = ScalpersDeeply.Sections.find((item) => item.Name.toUpperCase() == sectionName.toUpperCase())
+
+            //var workData = ScalpersDeeply.ArticlesByOrderData.filter((item) => item.SectionID == section.ID && item.CollectionID == collection.ID);
+
+            //var gamaIds = workData.map((w) => w.GamaID);
+
+            //var gamas = ScalpersDeeply.Gamas.filter((item) => gamaIds.indexOf(item.ID) >= 0);
+
+            //return gamas;
+
+            return ScalpersDeeply.GetGamasByCode(sectionName, collectionName)
+
+        },
+
+        // return {ID: line_id, Name: 'Line Name'}
+        GetLine: function (collection) {
+
+            let lineSelected = ScalpersDeeply.Lines.find((item) => item.Name.toUpperCase() == collection.toUpperCase())
+
+            return lineSelected;
+        },
+
+        // +-----------------------------------------------------------------------
+        // | Save State
+        // +-----------------------------------------------------------------------
+
+        Save: function () {
+
+            var self = this;
+            if (!self.model.ValidState()) {
+
+                var deffered = $.Deferred();
+
+                deffered.reject();
+
+                return deffered.promise();
+            };
+
+            var arrayData = $(self.FormSelector).serializeArray();
+
+            var promise = AppContext.Wizard.Scalpers_SaveQuantities(arrayData)
+                .then(() => {
+                    AppContext.Wizard.Scalpers_GetOrderData(self.OrderSelection)
+                        .done((result) => self._UpdateSelection(result))
+                })
+
+            
+            return promise;
+
+        },
+
+
+        _solve: function () {
+            var self = this;
+
+            if (!self.model.ValidState()) {
+
+                var deffered = $.Deferred();
+
+                deffered.reject();
+
+                return deffered.promise();
+            };
+
+            var arrayData = $(self.FormSelector).serializeArray();
+
+
+
+            var promise = AppContext.Wizard.Scalpers_SolveQuantities(arrayData)
+                .then((result) => {
+                    self._UpdateSelection({ Data: { OrderData: result.Data } })
+                })
+            
+            return promise;
+
+        },
+
+        SaveAndNext: function () {
+
+            var self = this;
+
+            if (self.HasArticlesSelected()) {
+
+                if (self.HasMoreThanOneRFIDSelected()) {
+
+                    var p = self._solve();
+
+                    p.done((result) => {
+
+                        self.GetValidator().GetStep(self.WizardStep.Position + 1);
+
+                        //AppContext.Wizard.Scalpers_GetOrderData(self.OrderSelection)
+                        //    .done(() => {
+                        //        self.GetValidator().GetStep(self.WizardStep.Position + 1);
+                        //    })
+                    })
+                }              
+            }         
+        },
+
+
+
+        // +-----------------------------------------------------------------------
+        // | Create Table to show Order Info
+        // +-----------------------------------------------------------------------
+
+        LoadArticles: function () {
+
+            var self = this;
+
+            return AppContext.Wizard.Scalpers_GetOrderData(self.OrderSelection)
+                .done((result) => {
+
+                    // update selection to add all orders inner the group, scalper always validate full order
+                    self._UpdateSelection(result);
+
+                    self._AddRows({ Data: result.Data.OrderData })
+                });
+
+
+        },
+
+        _UpdateSelection: function (result) {
+
+            var self = this;
+
+            for (var i = 0; i < result.Data.OrderData.length; i++) {
+
+                var sel = result.Data.OrderData[i]
+
+                for (var j = 0; j < sel.Orders.length; j++) {
+                    self.OrderSelection[i].Orders.push(sel.Orders[j])
+                }
+                // remove duplicates
+                self.OrderSelection[i].Orders = [...new Set(self.OrderSelection[i].Orders)];
+
+            }
+
+        },
+
+        //begin ijsanchezm
+        HandleValueKeyPress: function (e) {
+            var self = this;
+            let _value = self.elements.MaxQuantityPercentage.val();
+            if (_value < 0 || _value > self.MaxQuantityPercentage) {
+                self.elements.MaxQuantityPercentage.css("border-color", "#f83c3c");
+                self.elements.MaxQuantityPercentage.css("border-width", "1px");
+                self.elements.MaxQuantityPercentage.css("border-style", "solid");
+                //self.elements.btnSetMaxAll.hide();
+            }
+            else {
+                //border: 1px solid #ced4da;
+                self.elements.MaxQuantityPercentage.css("border-color", "#ced4da");
+                self.elements.MaxQuantityPercentage.css("border-width", "1px");
+                self.elements.MaxQuantityPercentage.css("border-style", "solid");
+                //self.elements.btnSetMaxAll.show();
+            }
+        },
+
+
+        LoadProjectData: function (ProjectID) {
+            //AppContext.Projects
+            var self = this;
+            var lbl = $("input[name='MaxQuantityPercentage']").parent().parent().find("label");
+            AppContext.Projects.GetByID(ProjectID)
+                .done((result) => {
+                    self.AllowQuantityEdition = result.AllowQuantityEdition;
+                    self.AllowEditQuantity = result.AllowEditQuantity;
+                    switch (result.AllowQuantityEdition) {
+                        case 2:
+                            self.elements.MaxQuantityPercentage.val(result.MaxQuantityPercentage);
+                            self.elements.MaxQuantityPercentage.attr({ "max": result.MaxQuantityPercentage, "min": 0, "validation": "range(1," + result.MaxQuantityPercentage + "})" });
+                            self.MaxQuantityPercentage = result.MaxQuantityPercentage;
+                            lbl.text("@g["Percentaje"]");
+                            break;
+                        case 1:
+                            self.elements.MaxQuantityPercentage.val(result.MaxQuantity);
+                            self.elements.MaxQuantityPercentage.attr({ "max": result.MaxQuantityPercentage, "min": 0, "validation": "range(1," + result.MaxQuantity + ")" });
+                            lbl.text("@g["Fixed value"]");
+                            self.MaxQuantityPercentage = result.MaxQuantity;
+                            break;
+                        default:
+                            self.elements.divQuantity.hide();
+                            lbl.text("@g["None"]");
+                            break;
+                    }
+                    self.IsApplyAutomaticPercentage = result.IsApplyAutomaticPercentage;
+                });
+        },
+
+        ChangeValues: function () {
+            var self = this;
+                let _value = self.elements.MaxQuantityPercentage.val();
+                if (_value > 0 || _value < self.MaxQuantityPercentage) {
+                    var allEntries = self.elements.TableContainer.find('.user-entry');
+
+                    $.each(allEntries, (key, entry) => {
+                        var lbl = $(`#lblH${key}`);                        
+
+                        var field = $(entry);
+                        field.attr('max', _value);
+                        var request = field.attr('data-quantity-requested');
+                        switch (self.AllowQuantityEdition) {
+                            case 2:
+                                var value = Math.ceil(request * (1.0 + parseFloat(self.elements.MaxQuantityPercentage.val()) / 100.0));
+                                lbl.text(`@(g["Set Max"])(${value})`);
+                                field.val(value);
+                                field.attr("validation", `range(1,${value})`);
+                                break;
+                            case 1:
+                                var value = Math.ceil(parseInt(self.elements.MaxQuantityPercentage.val()) + parseInt(request));
+                                lbl.text(`@(g["Set Max"])(${value})`);
+                                field.val(value);
+                                field.attr("validation", `range(1,${value})`);
+                                break;
+                            default:
+                                field.val(request);
+                                break;
+                        }
+                        field.change();
+                    });
+                }
+        },
+
+        onChanged: function () {
+            this.ChangeValues();
+        },
+
+        focusout: function () {
+            if (this.IsReadyToApply) {
+                this.ChangeValues();
+            }
+        },
+
+        _AddRows: function (result) {
+            var self = this;
+
+            var k = 0;
+            var itemNumber = 0;
+
+            var $tbody = self.elements.TableContainer.find('tbody');
+
+            for (var i = 0; i < result.Data.length; i++) {
+
+                var sel = result.Data[i];
+
+                var trGroup = self._GetRowGroupTemplate(sel, k)
+
+                $tbody.append(trGroup);
+
+                $tbody.append(self._GetRowForSelection(sel, k));
+
+                $tbody.append(self._GetRowForLabelsRequired(sel, k));
+
+                // only require details for one article
+                var lastArticle = ''
+
+                for (var j = 0; j < sel.Details.length; j++) {
+
+                    if (lastArticle == '')
+                        lastArticle = sel.Details[j].ArticleCode;
+
+                    if (lastArticle != sel.Details[j].ArticleCode)
+                        break;// other details are the same, is not required
+                    
+                    var tr = $(self._GetRowTemplate(sel.Details[j], k, itemNumber++, j));
+
+                    $tbody.append(tr);
+
+                }
+
+                k++;
+
+            }
+
+            // bind model and antions inner tbody
+            
+            self.model = AppContext.BindModel(self.ViewContainer, self);
+            AppContext.BindActions($tbody, self);
+
+            // update labels combos 
+            $('select[name$="].CodeGama"]').change()
+
+            // remember selected values for labels
+            for (var i = 0; i < result.Data.length; i++) {
+                
+                var sel = result.Data[i];
+
+                if (!sel.Details || sel.Details.length < 1) return;
+
+                var articles = [];
+                // found articles inner details for current selection
+                sel.Details.forEach(e => {
+                    if(e.OrderStatus == @((int)OrderStatus.Cancelled)) return
+                    articles.push({ ArticleID: e.ArticleID, ArticleCode: e.ArticleCode, Article: e.Article })
+                })
+
+                // remove dulicates
+                var uniqueArticles = getUniqueListBy(articles, 'ArticleID');
+
+                // article category is not required because one article only has one category, then, only appear in one list
+                // use the same article list to select 4 list of articles for scalpers
+
+                var logisticCombo = $(`[name="rq[${i}].Logistic"]`)
+                var adhesiveCombo = $(`[name="rq[${i}].Adhesive"]`)
+                var cardboardCombo = $(`[name="rq[${i}].Cardboard"]`)
+                var compositionCombo = $(`[name="rq[${i}].Composition"]`)
+
+                var allCombos = [logisticCombo, adhesiveCombo, cardboardCombo, compositionCombo];
+
+                allCombos.forEach((combo, idx, arr) => {
+                    // jquery each
+                    combo.find('option').each((jdx, option,options) => {
+
+                        var found = uniqueArticles.find(element => element.ArticleCode == option.value)
+
+                        if (found) {
+                            combo.val(found.ArticleCode)
+                        }
+
+                    });// end combo.find
+
+                });// end allCombos.forEach
+            }// end for remember selected values
+
+        },
+
+        _GetRowGroupTemplate: function (sel, i) {
+            var self = this;
+
+            var tr = `
+                <tr class="table-info" data-group-idx="${i}">
+                    <td colspan="2">
+
+                        <input model name="rq[${i}].OrderNumber" value="${sel.OrderNumber}" type="hidden" />
+                        <input model name="rq[${i}].OrderGroupID" value="${sel.OrderGroupID}" type="hidden" />
+                        <input model name="rq[${i}].WizardStepPosition" value="${self.WizardStep.Position}" type="hidden" />
+                        <input model name="rq[${i}].ProjectID" value="${sel.ProjectID}" type="hidden" />
+                        <input model name="rq[${i}].CodeSection" value="${sel.Details[0].ProductData.CodeSection}" type="hidden" />
+                        <input model name="rq[${i}].ArticleLine" value="${sel.Details[0].ProductData.ArticleLine}" type="hidden" />
+                        <input model name="rq[${i}].LocationID" value="${sel.Details[0].LocationID}" type="hidden" />
+
+                        <span class="btn btn-sm" style="cursor: auto;">
+                            @g["Order N°"] :  ${sel.OrderNumber}
+                        </span>
+
+                    </td>
+                    <td colspan="1">
+                        <span class="btn btn-sm" style="cursor: auto;">
+                            @g["Line"] :  ${sel.Details[0].ProductData.ArticleLine}
+                        </span>
+                    </td>
+
+
+                    <td colspan="4">
+                        <span class="btn btn-sm" style="cursor: auto;">
+                            @g["Section"] :  ${sel.Details[0].ProductData.CodeSection}
+                        </span>
+                    </td>
+                </tr>
+            `;
+
+            return tr;
+        },
+
+        _GetRowTemplate: function (detail, groupNumber, itemNumber, unitNumber) {
+            var self = this;
+            var d = detail;
+
+            var i = groupNumber
+            var j = itemNumber
+            var k = unitNumber
+
+            var strDescription = d.Description || "";
+            var strUnitDetails = d.UnitDetails || "";
+            var strSize = d.Size || "";
+            var strColor = d.Color || "";
+
+            var hasPackCode = d.HasPackCode ? 'has-packcode' : '';
+            var isAut = (self.AllowEditQuantity == true || detail.OrderNumber.indexOf("R") > 0) ? "" : "readonly";
+            var tr = `
+                    <tr data-group-idx="${i}">
+                        <th scope="row">${(j+1)}</th>
+                        <td>${strUnitDetails}</td>
+                        <td>${strSize}</td>
+                        <td>${strColor}</td>
+                        <td>${d.QuantityRequested}</td>
+                        <td>
+
+                            <div class="form-inline">
+                                <div name="item-${j}" class="input-group input-group-sm ${hasPackCode}" data-packcode="${d.PackCode}" data-pack-quantity="${d.PackConfigQuantity}" data-index="${j}">
+
+                                    <input model name="rq[${i}].Quantities[${k}].OrderID" value="${d.OrderID}" type="hidden" />
+                                    <input model name="rq[${i}].Quantities[${k}].PrinterJobDetailID" value="${d.PrinterJobDetailID}" type="hidden" /> 
+                                    <input model name="rq[${i}].Quantities[${k}].Value" ${isAut} action="keyup:GoNextField;change:UpdateDiff" type="number" value="${d.Quantity}" validation="range(${d.MinAllowed},${d.MaxAllowed})" max="${d.MaxAllowed}" data-quantity-requested="${d.QuantityRequested}" class="form-control input-sm mr-1 user-entry" no-transform>
+
+                                    <small class="form-text text-muted">
+                                        <a class="btn btn-link ${hasPackCode}" id="lblH${k}" style="font-size: 11px;" href="#" action="SetMax" data-item="item-${j}" data-packcode="${d.PackCode}">@(g["Set Max"])(${d.MaxAllowed})</a>
+                                    </small>
+                                </div>
+                            </div>
+
+                        </td>
+                        <td><span name="extra-${j}">${(d.Quantity - d.QuantityRequested)}</span></td>
+
+                    </tr>`;
+
+            return tr;
+
+        },
+
+        _GetRowForSelection: function (groupDetails, groupNumber, itemNumber, unitNumber) {
+
+            var self = this;
+            var d = groupDetails.Details[0];
+            var i = groupNumber;
+            var j = itemNumber;
+            var k = unitNumber;
+
+            var workData = self.GetGamasByCode(d.ProductData.CodeSection, d.ProductData.ArticleLine);
+            
+            var gamaDetails = workData.map((item) => {
+                var selected = '';
+                if (item.Name.toUpperCase().indexOf(d.ProductData.CodeGama.toUpperCase()) >=0)
+                    selected = 'selected="selected"';
+
+                return `<option value="${item.Name}" ${selected}> ${item.Name} </option>`;
+            });
+
+            gamaDetails.unshift('<option value="-1">@g["Select Gama"]</option>');
+
+            var madeInDetails = self.MadeInData.map((item) => {
+                var selected = '';
+                if (item.ID == parseInt(d.ProductData.MadeIn) || item.English.indexOf(d.ProductData.FullMadeIn) >= 0 || item.Spanish.indexOf(d.ProductData.FullMadeIn) >= 0)
+                    selected = 'selected="selected"';
+
+                return `<option value="${item.ID}" ${selected}> ${item.English} </option>`;
+            });
+
+            madeInDetails.unshift('<option value="-1">@g["Select Made In"]</option>');
+            
+
+            var tr = `
+                <tr data-group-idx="${i}">
+                <td colspan="7">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <div class="form-group row">
+                            <label class="col-sm-2 col-form-label">
+                                @(g["Gama"])
+                                <i class="fa fa-question-circle text-info" aria-hidden="true" data-toggle="tooltip" data-placement="top" title="${d.ProductData.CodeGama}"></i>
+                            </label>
+                            <div class="col-sm-8">
+                                <select name="rq[${i}].CodeGama"  model validation="required" action="change:GamaChangeEvent" data-group-idx="${i}" class="form-control form-control-sm">${gamaDetails.join('')}</select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-sm-6">
+                        <div class="form-group row">
+                            <label class="col-sm-2 col-form-label">
+                                @(g["Made In"])
+                                <i class="fa fa-question-circle text-info" aria-hidden="true" data-toggle="tooltip" data-placement="top" title="${d.ProductData.FullMadeIn}"></i>
+                            </label>
+                            <div class="col-sm-8">
+                                <select name="rq[${i}].MadeInCode" model validation="required;range(0,1000000)" class="form-control form-control-sm" error-messages="@errorMessagesStrConfig">${madeInDetails.join('')}</select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                </td>
+                <input name="rq[${i}].Importer" model type="hidden" /> 
+                </tr>
+                `;
+
+            return tr;
+
+        },
+
+        _GetRowForLabelsRequired: function (groupDetails, groupNumber, itemNumber, unitNumber) {
+
+            var d = groupDetails.Details[0];
+
+            var i = groupNumber
+            var j = itemNumber
+            var k = unitNumber
+
+            var logDetails = '';
+            var adhDetails = '';
+            var carDetails = '';
+            var cmpDetails = '';
+
+            var tr = `
+                <tr>
+                <td colspan="7">
+                <div class="form-row">
+                    <div class="col-sm-3">
+                        <div class="form-group">
+                            <label class="">@g["Logistic Label"]</label>
+                            <select name="rq[${i}].Logistic" action="change:SelectLabel" data-code="Logistic" class="form-control form-control-sm articles-${i}">${logDetails}</select>
+                        </div>
+                    </div>
+
+                    <div class="col-sm-3">
+                        <div class="form-group">
+                            <label class="">@g["Adhesive Label"]</label>
+                            <select name="rq[${i}].Adhesive" action="change:SelectLabel" data-code="Adhesive" class="form-control form-control-sm articles-${i}">${adhDetails}</select>
+                        </div>
+                    </div>
+
+                    <div class="col-sm-3">
+                        <div class="form-group">
+                            <label class="">@g["Cardboard Label"]</label>
+                            <select name="rq[${i}].Cardboard" action="change:SelectLabel" data-code="Cardboard" class="form-control form-control-sm articles-${i}">${carDetails}</select>
+                        </div>
+                    </div>
+
+                     <div class="col-sm-3">
+                        <div class="form-group">
+                            <label class="">@g["Composition Label"]</label>
+                            <select name="rq[${i}].Composition" action="change:SelectLabel" data-code="Composition" class="form-control form-control-sm articles-${i}">${cmpDetails}</select>
+                        </div>
+                    </div>
+
+                </div>
+                </td>
+                </tr>
+                `;
+
+            return tr;
+        },
+
+        SelectLabel: function () {
+
+        },
+
+        // https://stackoverflow.com/questions/480735/select-all-contents-of-textbox-when-it-receives-focus-vanilla-js-or-jquery
+        // https://stackoverflow.com/questions/5379120/get-the-highlighted-selected-text
+        GoNextField: function (evt) {
+
+            var key = evt.keyCode ? evt.keyCode : evt.which;
+
+            if (key == 13) {
+
+                evt.preventDefault();
+
+                var currentPosition = $(evt.target).closest('.input-group').data('index');
+
+                var nextField = $('[data-index="' + (parseInt(currentPosition + 1)) + '"]').find('.user-entry');
+
+                if (nextField.length == 1) {
+
+                    nextField.focus();
+                    var tmpStr = nextField.val();
+                    nextField.val('');
+                    nextField.val(tmpStr);
+                    nextField.get(0).select();
+                }
+
+            }
+
+            return true;
+        },
+
+        SetMax: function (evt) {
+
+            var self = this;
+
+            var lnk = $(evt.target)
+
+            var userEntry = lnk.closest('.input-group').find('.user-entry')
+
+            self._setMax(userEntry);
+
+
+        },
+
+        _setMax: function (field) {
+            var self = this;
+            //field.val(field.attr('max'));//AllowQuantityEdition
+            var request = field.attr('data-quantity-requested');
+            switch (self.AllowQuantityEdition) {
+                case 2:
+                    field.val(Math.ceil(request * (1.0 + parseFloat(self.elements.MaxQuantityPercentage.val()) / 100.0)));
+                    break;
+                case 1:
+                    field.val(Math.ceil(parseInt(self.elements.MaxQuantityPercentage.val()) + parseInt(request)));
+                    break;
+                default:
+                    field.val(request);
+                    break;
+            }
+            field.change();
+        },
+
+
+        SetMaxAll: function (evt) {
+
+            var self = this;
+
+            var allEntries = self.elements.TableContainer.find('.user-entry');
+
+            $.each(allEntries, (key, entry) => { self._setMax($(entry)); });
+
+        },
+
+        UpdateDiff: function (evt) {
+
+            var self = this;
+
+            var entry = $(evt.target);
+
+            var idx = entry.closest('.input-group').data('index')
+
+            var diff = entry.val() - entry.data('quantityRequested');
+
+            $('[name="extra-' + idx + '"]').text(diff);
+
+        },
+
+        HasArticlesSelected: function () {
+            var self = this;
+            var hasArticles = true;
+            var emptyCombo = [];
+            var allCombos = [];
+
+            $('select[class*="articles"]').removeClass("comboArticlesNull");
+
+            for (var i = 0; i < self.OrderSelection.length; i++) {
+
+                var logisticCombo = $(`[name="rq[${i}].Logistic"]`)
+                var adhesiveCombo = $(`[name="rq[${i}].Adhesive"]`)
+                var cardboardCombo = $(`[name="rq[${i}].Cardboard"]`)
+                var compositionCombo = $(`[name="rq[${i}].Composition"]`)
+
+                allCombos = [logisticCombo, adhesiveCombo, cardboardCombo, compositionCombo];
+
+                allCombos.forEach((combo, idx, arr) => {
+
+                    if (combo.val() == "") {
+                        emptyCombo.push(combo);          
+                    }
+                      
+                });
+
+                if (emptyCombo.length == 4) {
+                    $('select[class~="articles-' + i + '"]').addClass("comboArticlesNull");      
+                    hasArticles = false;
+                }  
+
+                emptyCombo = [];
+            }
+
+            if (!hasArticles)
+                AppContext.ShowError("@g["Select at least one Article per group"]");
+  
+            return hasArticles;
+        },
+
+        HasMoreThanOneRFIDSelected: function () {
+            var self = this;
+            var hasMoreThanOneRFID = false;
+            var RFIDArticles = [];
+            var cloneArticles = [];
+
+            cloneArticles = $.extend([], ScalpersDeeply.Articles);
+        
+            for (var i = 0; i < self.OrderSelection.length; i++) {
+
+                var logisticCombo = $(`[name="rq[${i}].Logistic"]`)
+                var adhesiveCombo = $(`[name="rq[${i}].Adhesive"]`)
+                var cardboardCombo = $(`[name="rq[${i}].Cardboard"]`)
+                var compositionCombo = $(`[name="rq[${i}].Composition"]`)
+
+                var allCombos = [logisticCombo, adhesiveCombo, cardboardCombo, compositionCombo];
+
+                allCombos.forEach((combo, idx, arr) => {
+                    combo.removeClass("comboArticlesNull");
+                    var found = cloneArticles.find(element => element.ArticleCode == combo.val() && element.EncodeRFID);
+
+                    if (found) {
+                        RFIDArticles.push(combo);
+                    }
+                });
+
+                if (RFIDArticles.length > 1) {
+                    hasMoreThanOneRFID = true;
+
+                    RFIDArticles.forEach((combo, idx, arr) => {
+                        combo.addClass("comboArticlesNull");
+                        //$('select[class~="articles-' + i + '"]').removeClass("comboArticlesNull");
+                    })
+
+                    break;
+                } else {
+                    RFIDArticles = [];
+                    hasMoreThanOneRFID = false
+                }           
+            }
+
+            if (hasMoreThanOneRFID)
+                AppContext.ShowError("@g["Only 1 RFID Article can be selected per group"]");
+  
+            return !hasMoreThanOneRFID;
+        }
+    };
+
+
+    // Helper function to get unique from array
+    function getUniqueListBy(arr, key) {
+        return [...new Map(arr.map(item => [item[key], item])).values()]
+    }
+
+    
+    
+
+/// </script>
+

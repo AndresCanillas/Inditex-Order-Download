@@ -1,0 +1,25 @@
+﻿@page
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/WF/ItemDelayDialog.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var ItemDelayDialog = function () {
+		FormView.Extend(this, "Delay Item(s)", `/Admin/WF/ItemDelayDialog`);
+	};
+
+	ItemDelayDialog.prototype = {
+		constructor: ItemDelayDialog,
+
+		OnLoad: async function () {
+			this.model.Minutes = 1;
+		},
+
+		OnUnload: function () {
+		}
+	};
+//</script>

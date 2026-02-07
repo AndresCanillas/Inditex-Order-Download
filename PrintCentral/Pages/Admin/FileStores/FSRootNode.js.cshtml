@@ -1,0 +1,48 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/FileStores/FSRootNode.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var FSRootNode = function () {
+		TreeNode.Extend(this, "FSRootNode", 0, "File Stores");
+        this.CanEdit = false;
+	};
+
+	FSRootNode.prototype = {
+		constructor: FSRootNode,
+
+		@if (userData.IsIDTAdminRoles)
+		{
+		<text>
+
+		OnExpanded: async function () {
+			await AppContext.LoadJS("/Admin/FileStores/FSStoreNode.js");
+			if (!this.IsLoaded) {
+				var response = await AppContext.HttpGet("/fsm");
+				if (response.Success === true) {
+					this.IsLoaded = true;
+					this.loadNodes(response.Data);
+				}
+			}
+		},
+
+		loadNodes: function (data) {
+			for (var store of data) {
+				if (!this.FindNode("FSStoreNode", store, false)) {
+					var node = new FSStoreNode(store);
+					this.AddNode(node);
+				}
+			}
+		}
+
+		</text>
+		}
+    };
+//</script>

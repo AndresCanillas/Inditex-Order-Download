@@ -1,0 +1,138 @@
+﻿@page
+@inject ILocalizationService g
+@inject ICompanyRepository repo
+@inject IUserData  userData
+@{
+    Layout = null;
+    var companies = repo.GetList();
+    var showCompanyFilter = userData.SelectedCompanyID == 1 && userData.IsIDT;
+    var isIDT = userData.IsIDT;
+    var isAdmin = User.IsInRole(Roles.SysAdmin);
+
+
+    var OrderStatusOptions = Enum.GetValues(typeof(OrderStatus)).Cast<OrderStatus>().Select( s => new { 
+		Name = g[s.GetText()],
+		Value = (int)s
+	}).ToList();
+
+	var ConflictOptions = Enum.GetValues(typeof(ConflictFilter)).Cast<ConflictFilter>().Select( s => new { 
+		Name = g[s.GetText()],
+		Value = (int)s
+	}).ToList();
+
+	var StopOptions = Enum.GetValues(typeof(StopFilter)).Cast<ConflictFilter>().Select( s => new { 
+		Name = g[s.GetText()],
+		Value = (int)s
+	}).ToList();
+
+	var BillOptions = Enum.GetValues(typeof(BilledFilter)).Cast<BilledFilter>().Select( s => new { 
+		Name = g[s.GetText()],
+		Value = (int)s
+	}).ToList();
+
+
+    var defaultDate = DateTime.Now.AddDays(-30).ToString("yyyy-MM-dd");
+
+}
+<viewcard>
+	<viewrow>
+		<viewcolumn style="margin:0px;">
+			<inlineform>
+				@if (showCompanyFilter)
+				{
+					<select model name="CompanyID" label="@g["Company"]:" action="change:FilterOrders" options="@(OptionList.FromEnumerable(companies, "ID", "Name", null, g["All"]))" style="max-width:200px;"></select>
+				}
+				else
+				{
+
+					<div class="form-group" style="margin-right:10px;">
+						<label style="margin-right:10px;">@companies.Find(c => c.ID.Equals(userData.SelectedCompanyID)).Name</label>
+					</div>
+					<input model name="CompanyID" type="hidden" value="@userData.SelectedCompanyID" />
+				}
+
+
+				<input type="text" model name="OrderNumber" label="@g["Order Nº"]:" action="change:FilterOrders" style="max-width:200px;" autocomplete="off" />
+
+				<input model name="OrderDate" label="@g["Date"]:" data-type="Date" action="change:FilterOrders" value="@defaultDate" />
+
+			</inlineform>
+		</viewcolumn>
+	</viewrow>
+	<viewrow>
+		<viewcolumn>
+			<inlineform>
+				<select model name="OrderStatus" label="@g["Status"]:" action="change:FilterOrders" style="max-width:200px;" options="@(OptionList.FromEnumerable( OrderStatusOptions, "Value", "Name", (int)OrderStatus.None))"></select>
+
+				<select model name="ProductionType" label="@g["Production"]:" action="change:FilterOrders" style="max-width:200px;" data-type="int">
+					<option selected value="0">@g["All"]</option>
+					<option value="1" @(isIDT ? "selected" : "")>IDT</option>
+					<option value="2" @(!isIDT ? "selected" : "")>@g["Local"]</option>
+				</select>
+
+				<select model name="IsBilled" label="@g["Billed"]:" action="change:FilterOrders" style="max-width:200px;" data-type="int" options="@(OptionList.FromEnumerable( BillOptions, "Value", "Name", (int)BilledFilter.Ignore))"></select>
+
+				<select model name="IsStopped" label="@g["Stopped"]:" action="change:FilterOrders" style="max-width:200px;" data-type="int" options="@(OptionList.FromEnumerable( StopOptions, "Value", "Name", (int)StopFilter.Ignore))"></select>
+
+				<select model name="InConflict" label="@g["In Conflict"]:" action="change:FilterOrders" style="max-width:200px;" data-type="int" options="@(OptionList.FromEnumerable( ConflictOptions, "Value", "Name", (int)ConflictFilter.Ignore))"></select>
+			</inlineform>
+		</viewcolumn>
+	</viewrow>
+	<viewrow>
+		<viewcolumn>
+			<div name="GridOrderToolbar" class="toolbar-body" style="width:100%">
+				@*
+					<span class="toolbar-grip"></span>
+					<a href="#" title="@g["Download Order File"]" action="DownloadFile"><span class="fa fa-download"></span></a>
+					<a href="#" title="@g["Download Order Preview"]" action="DownloadPreview"><span class="fa fa-file-pdf-o"></span></a>
+				*@
+
+				<a href="#" title="@g["Download Order Preview"]" action="DownloadPreview"><span class="fa fa-file-pdf-o"></span></a>
+			</div>
+			<div component="GridView" name="OrderTable" style="width:100%; max-height:70vh;">
+				<template>
+
+					<column width="80" field="OrderID">@g["ID"]</column>
+					<column width="100" field="Actions" render="GridViewActionsRender">@g["Actions"]</column>
+					<column width="80" field="OrderStatusText" render="GridViewStatusRender">@g["Status"]</column>
+					<column width="100" field="Flags" render="GridViewFlagsRender">@g["Flags"]</column>
+					<column width="80" field="OrderDate" type="Date">@g["Date"]</column>
+					<column width="100" field="OrderNumber">@g["Order Nº"]</column>
+					<column width="100" field="MDOrderNumber">@g["IDT Nº"]</column>
+					@if (userData.IsSysAdmin)
+					{
+						<column width="100" field="CompanyName">@g["Company"]</column>
+					}
+					<column width="100" field="Brand">@g["Brand"]</column>
+					<column width="100" field="Project">@g["Project"]</column>
+					<column width="80" field="UserName">@g["User"]</column>
+					<column width="80" field="Source" map='{"1":"Web", "2":"FTP" }'>@g["Source"]</column>
+					<column width="40" field="ProductionType" map='{"1":"IDT", "2":"Local" }'>@g["Type"]</column>
+					<column width="60" field="Quantity">@g["Quantity"]</column>
+					@*<column width="80" field="OrderStatus" map='{"0": "@g["Unknown"]", "1": "@g["Received"]", "2": "@g["Processed"]", "3": "@g["Printing"]", "4":"@g["Ready For Delivery"]", "5":"@g["In Transit"]", "6":"@g["Completed"]"}'>@g["Status"]</column>*@
+
+					@*<column width="100" field="UpdatedDate">@g["Update Date"]</column>*@
+
+					<column width="100" field="BillTo" render="GridViewBillToRender">@g["BillTo"]</column>
+					<column width="100" field="SendTo" render="GridViewSentToRender">@g["SendTo"]</column>
+
+
+					@*@if (isIDT)
+		{
+
+		}*@
+
+
+
+					<!-- Menu -->
+
+					<menu>
+						@*<menuitem action="ChangeState">@g["Change State"]</menuitem>
+			<menuitem>-</menuitem>
+			<menuitem action="Op2">Delete</menuitem>*@
+					</menu>
+				</template>
+			</div>
+		</viewcolumn>
+	</viewrow>
+</viewcard>

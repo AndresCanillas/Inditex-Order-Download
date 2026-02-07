@@ -1,0 +1,24 @@
+﻿@page
+@inject ILocalizationService g
+@inject ICompanyRepository companies
+@inject IBrandRepository brands
+@inject IProjectRepository projects
+@inject IUserData userData
+@inject IAppConfig cfg
+@{
+	Layout = null;
+	bool isqa = cfg["WebLink.IsQA"] == "true";
+	string fileExtension = ".xlsx";
+}
+<viewcard>
+	
+	<viewrow>
+		<viewcolumn>
+			<div style="margin:auto; width:450px;">
+				<input name="files" type="file" accept="@fileExtension" />
+			</div>
+		</viewcolumn>
+	</viewrow>
+
+
+</viewcard>

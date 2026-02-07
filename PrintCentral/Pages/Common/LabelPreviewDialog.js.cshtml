@@ -1,0 +1,19 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Common/LabelPreviewDialog.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var LabelPreviewDialog = function (labelid) {
+		FormView.Extend(this, "@g["Label Preview"]", `/Common/LabelPreviewDialog?LID=${labelid}`);
+	};
+
+	LabelPreviewDialog.prototype = {
+		constructor: LabelPreviewDialog,
+	};
+//</script>

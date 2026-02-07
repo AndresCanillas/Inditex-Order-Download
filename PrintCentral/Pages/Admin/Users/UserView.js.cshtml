@@ -1,0 +1,87 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Users/UserView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var UserView = function (userid) {
+		FormView.Extend(this, "@g["User"]", `/Admin/Users/UserView?userid=${userid}`);
+	};
+
+    UserView.prototype = {
+        constructor: UserView,
+
+		@if (userData.Admin_Users_CanEdit)
+		{
+		<text>
+		Save: function(e) {
+			var self = this;
+			if (!this.model.ValidState()) return;
+			var data = this.GetData();
+			AppContext.Users.Update(data, function(result) {
+				if (result.Success) {
+					self.OnSaved.Raise(data);
+					if (self.dialog === true)
+						self.Close(data);
+				}
+			});
+		},
+
+		SetRole: function (e) {
+			if (e.target.checked)
+				AppContext.Users.AddRole(this.model.Id, e.target.name);
+			else
+				AppContext.Users.RemoveRole(this.model.Id, e.target.name);
+		},
+		</text>
+		}
+
+		@if (userData.Admin_Users_CanResetPassword)
+		{
+		<text>
+		ResetPassword: function (e) {
+			var self = this;
+		
+			if (!self.model.ValidState()) return;
+			var confirm = new ConfirmDialog("@g["Reset user password? IMPORTANT: An email will be sent to the user including a link to reset the password; please ensure the email registered in the system is correct before proceeding."]");
+			confirm.ShowDialog(function (response) {
+				if (response) {
+					AppContext.Users.ResetPassword(self.model.Id, function (result) {
+						if (result.Success) {
+							AppContext.Users.GetResetPasswordURL(self.model.Id, function (data) {
+								self.elements.resetURL[0].innerText = data;
+								self.elements.UserView_btnCopy.show();
+							});
+
+						}
+					});
+					
+				}
+			});
+		},
+				  
+
+		  btnCopyText: function() {
+
+			  var self = this;
+			  var text = self.elements.resetURL.html();
+			  navigator.clipboard.writeText(text);
+		  },
+		</text>
+		}
+
+		OnLoad: function () {
+			var self = this;
+			var text = self.elements.resetURL.html();
+			if (text === "") self.elements.UserView_btnCopy.hide();
+			else self.elements.UserView_btnCopy.show();
+		}
+	};
+
+//</script>

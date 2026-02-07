@@ -1,0 +1,27 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+<div name="ProgressUI" class="card">
+	<div class="card-body">
+		<div style="margin:auto; width:450px;">
+			<h5>@g["Processing file..."]</h5>
+			<div name="ProgressBar" style="width:330px;"></div>
+		</div>
+	</div>
+</div>
+
+<div name="MessageUI" class="container" style="display:none;">
+	<div class="row">
+		<div class="col">
+			<div class="card" style="min-height:50vh;">
+				<div class="card-body">
+					<h2 name="MsgTitle"></h2>
+					<hr class="my-4" />
+					<p name="MsgContent" class="lead"></p>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

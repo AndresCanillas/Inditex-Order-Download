@@ -1,0 +1,148 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/Brands/Projects/Labels/LabelMappings.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var LabelMappings = function (labelid, projectid, data) {
+		FormView.Extend(this, "@g["Label Mappings"]", "/Admin/Brands/Projects/Labels/LabelMappings");
+		this.LabelID = labelid;
+		this.ProjectID = projectid;
+		this.Data = data;
+	};
+
+
+    LabelMappings.prototype = {
+        constructor: LabelMappings,
+
+		OnLoad: function () {
+			var self = this;
+			AppContext.Labels.GetLabelInfo(this.LabelID, (result) => {
+				if (result.Success) {
+					self.LoadVariables(result.Data.Variables);
+					AppContext.Projects.GetFields(this.ProjectID, (result) => {
+						if (result.Success) {
+							self.LoadFields(result.Data);
+							self.LoadMappings();
+						}
+					});
+				}
+			});
+		},
+
+		OnUnload: function () {
+
+		},
+
+		DatabaseFieldsClick: function (e) {
+			if (this.elements.tab1.hasClass("active"))
+				return;
+			this.elements.tab1.addClass("active");
+			this.elements.DBFields.show();
+			this.elements.tab2.removeClass("active");
+			this.elements.PredefinedFields.hide();
+		},
+
+		PredefinedFieldsClick: function (e) {
+			if (this.elements.tab2.hasClass("active"))
+				return;
+			this.elements.tab2.addClass("active");
+			this.elements.PredefinedFields.show();
+			this.elements.tab1.removeClass("active");
+			this.elements.DBFields.hide();
+		},
+
+		@if(userData.Admin_Labels_CanEdit){
+		<text>
+		Save: function (e) {
+			var data = [];
+			var variables = this.elements.Variables.children();
+			$.each(variables, (index, elm) => {
+				data.push({
+					Variable: elm.childNodes[0].nodeValue,
+					Fields: getDBFields($(elm).find(".label-dbfield"))
+				});
+			});
+			this.Close(data);
+
+			function getDBFields(children) {
+				var data = [];
+				$.each(children, (index, elm) => {
+					data.push(elm.innerText);
+				});
+				return data;
+			}
+		},
+
+		AllowDrop: function (e) {
+			e.preventDefault();
+		},
+
+		Drag: function (e) {
+			this.DraggingElement = e.target;
+		},
+
+		Drop: function (e) {
+			e.preventDefault();
+			if (this.DraggingElement != null) {
+				if (e.target.draggable)
+					e.target.parentNode.appendChild(this.DraggingElement);
+				else
+					e.target.appendChild(this.DraggingElement);
+			}
+		},
+		</text>
+		}
+		else
+		{
+		<text>
+		AllowDrop: function (e) {},
+		Drag: function (e) {},
+		Drop: function (e) {},
+		</text>
+		}
+
+
+		LoadVariables: function (variables) {
+			for (var v of variables) {
+				var elm = $(`<div name="${v.Name}" class="label-variable" action="dragover:AllowDrop;drop:Drop">${v.Name}</div>`);
+				this.elements.Variables.append(elm);
+			}
+			AppContext.BindActions(this.elements.Variables, this);
+		},
+
+		LoadFields: function (fields) {
+			for (var f of fields) {
+				var elm = $(`<div name="${f.Name}" class="label-dbfield" draggable="true" action="dragstart:Drag">${f.Name}</div>`);
+				if (f.Predefined === true)
+					this.elements.PredefinedFields.append(elm);
+				else
+					this.elements.DBFields.append(elm);
+			}
+			AppContext.BindActions(this.elements.DBFields, this);
+			AppContext.BindActions(this.elements.PredefinedFields, this);
+		},
+
+		LoadMappings: function () {
+			if (this.Data == null) return;
+			var fieldElm = null;
+			for (var v of this.Data) {
+				if (v.Fields != null && v.Fields.length > 0) {
+					var variableElm = this.elements.Variables.find(`[name="${v.Variable}"]`);
+					for (var f of v.Fields) {
+						fieldElm = this.elements.DBFields.find(`[Name="${f}"]`);
+						if (fieldElm.length == 0)
+							fieldElm = this.elements.PredefinedFields.find(`[Name="${f}"]`);
+						variableElm.append(fieldElm);
+					}
+				}
+			}
+		}
+	};
+//</script>

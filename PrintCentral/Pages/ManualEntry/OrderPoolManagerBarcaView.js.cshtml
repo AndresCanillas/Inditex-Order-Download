@@ -1,0 +1,585 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages/ManualEntry/OrderPoolManagerBarcaView.js
+///<reference path="/js/jquery-3.0.0.min.js" />
+///<reference path="/js/Kendo.all.min.js" />
+///<reference path="/js/AppContext.js" />
+///<reference path="/js/AppContext.AppDomain.js" />
+
+// <script>
+    var OrderPoolManagerView = function (options) {
+
+        if (!options) {
+            options = {};
+        }
+
+        //this.options = OrderEntryView.GetDefaults(options);
+
+        console.log("OrderEntry- Ctor")
+
+        FormView.Extend(this, "@g["Order Pool Manager"]", `/ManualEntry/OrderPoolManagerBarcaView`);
+
+           this.Options = options;
+           this.CompanyId = null;
+           this.OrderId = 0;
+           this.ProjectId = 0;
+           this.Articles = null;
+           this.Providers = null;
+           this.FormSelector = '[name="dataentry-frm"]';
+           this.OrderStatus = null;
+           this.OrderData = null;
+           this.Languages = [{ "Culture": "es-ES", "Lang": "Spanish" }, { "Culture": "ca-ES", "Lang": "Catalan" }, { "Culture": "en-US", "Lang": "English" }, { "Culture": "fr-FR", "Lang": "French" }, { "Culture": "tr-TR", "Lang": "Turkish" }];
+           this.Step = 0;
+           this.DataAllSteps = [];
+           this.OrderSelection = [];
+           this.OnWizardCreated = new AppEvent();
+       };
+
+
+    // public static method
+              OrderPoolManagerView.GetDefaults = function (options) {
+
+        return $.extend({
+            Title: '@g["Custom Report"]',
+            Filter: {},
+            EnableStorageFilter: true,
+        }, options);
+    };
+
+
+    OrderPoolManagerView.prototype = {
+            constructor: OrderPoolManagerView,
+
+            OnLoad: function () {
+                var self = this;
+                console.log("OnLoad - OrderEntry");
+                self.InitializeView().done(() => {
+                    self.LoadCompanyProviders();
+                    self.GetMadeIn(); 
+                });
+            },
+
+            SetOptions: function (options) {
+                this.Options = options;
+            },
+            OnShow: function () {
+                var self = this;
+
+            },
+            OnHide: function () {
+                var self = this;
+                self.ClearPage();
+            },
+            InitializeView: function () {
+                var self = this;
+
+                return AppContext.HttpGet(`/manualorderentry/GetOrdersByProject/${self.Options.ProjectID}`, (data) => {
+                    if (data.Data != null ) {
+                        self.OrdersData = data.Data;
+                        self.SearchOrder();
+
+                    }else {
+                        AppContext.ShowError("@g["No Data Found"]");
+                    }
+                }, null, true);
+            },
+
+            LoadCompanyProviders : function () 
+            {
+                let self = this
+
+                       return AppContext.HttpGet(`/providers/getbycompanyidme/${self.Options.MyCompanyID}`, (data) => {
+                           if (data != null ) {
+                               self.DataProviders = data;
+                               //self.SearchOrder();
+                                      self.FillComboBox(self.elements.BrokerReference, self.DataProviders, "ProviderCompanyID", "CompanyName", true);
+                           }else {
+                               AppContext.ShowError("@g["No Data Found"]");
+                           }
+                       }, null, true);
+            },
+
+            FilterVendors : function (e)
+            {
+               let self = this
+
+                      if (!self.elements.BrokerReference.val())
+                      {
+                          return; 
+                      }
+                             return AppContext.HttpGet(`/manualorderentry/getVendors/${self.Options.ProjectID}/${self.elements.BrokerReference.val()}`, (data) => {
+                                  if (data.Data != null ) {
+                                      self.DataVendors = data.Data 
+                                      self.AddVendorsRow (data.Data)
+                                  }else {
+                                      AppContext.ShowError("@g["No Data Found"]");
+                                  }
+                              }, null, true);
+                   
+            },
+
+            AddVendorsRow : function (dataFiltered) 
+            {
+             let self =this;
+             const table = document.querySelector(`#ResultsVendorsGrid`);
+             if (!table)
+             {
+                 console.error(`No se encontró una tabla con el ID '${tableId}'`);
+                  return;
+             }
+             if (!self.elements.BrokerReference.val()) 
+             {
+                 return 
+             }
+
+            
+            const $tableBody = table.querySelector ("tbody")
+            $tableBody.innerHTML = "";
+
+
+            let trader = self.DataProviders.find (p=> p.ProviderCompanyID == self.elements.BrokerReference.val())
+            if (!trader) 
+            {
+                  return ;
+            }
+                        
+
+             const tableBody = table.querySelector("tbody");
+
+             if (!dataFiltered) return
+
+                       dataFiltered.forEach(o=> {
+                           const newRow = document.createElement("tr");
+                           
+                           newRow.innerHTML = `
+                           <td style="display: none;">${o.ID}</td>
+                           <td>${trader.ClientReference}</td>
+                           <td>${trader.CompanyName}</td>
+                           <td>${o.ClientReference}</td>
+                           <td>${o.CompanyName}</td>
+                           <td>${o.ImporterData}</td>
+                           <td>${o.MadeIn}</td>
+                           <td class="action-buttons">
+                               <button class="setup-button btn btn-primary btn-sm">
+                                   Edit
+                               </button>
+
+                           </td>
+                       `;
+
+                       tableBody.appendChild(newRow);
+
+                       // Añadir eventos a los botones
+                       newRow.querySelector(".setup-button").addEventListener("click", (e) => {
+                           e.preventDefault();
+                           if (e.pointerType === 'mouse')
+                           {
+                                  
+                                  console.log("Target", e.target)
+                                  self.SelectVendorsRow(newRow);
+
+                           }else {
+                               self.SearchOrder()
+                           }
+                       });
+                  })
+            }, 
+            SelectVendorsRow : function (row)
+            {
+                let self = this
+                const cells = row.querySelectorAll("td");
+
+
+                const SelectedProvider = document.querySelector ("#SelectedProvider")
+                // const SelectedArticleCode = document.querySelector("#SelectedArticleCode")
+                const SearchingTool = document.querySelector("#SearchingBrokerTool")
+                const AssignProvider = document.querySelector ("#EditProvider")
+                
+
+                //self.SelectedProvider = self.OrdersData.find(o=>o.ID== cells[0].textContent)
+                SelectedProvider.innerText = cells[4].textContent
+                let provider = self.DataVendors.find (p=>p.ID == cells[0].textContent )
+                if (provider) 
+                {
+                       AssignProvider.style.display = 'block'
+                       SearchingTool.style.display = 'none';
+                       AppContext.HttpGet(`/manualorderentry/getImporters/${self.Options.ProjectID}/${provider.ClientReference}`, (data) => {
+                                         if (data != null ) {
+                                             self.model.Importers = data.Data.ImporterData 
+                                             self.model.MadeIn = data.Data.MadeIn
+                                             self.VendorID = data.Data.ID 
+                                             self.NewImporter = data.Data.IsNew,
+                                             self.VendorCode = provider.ClientReference
+                                         }else {
+                                             AppContext.ShowError("@g["No Data Found"]");
+                                         }
+                                     }, null, true);
+
+
+                }
+
+                
+
+            },
+
+            GetMadeIn : function () 
+            {
+                let self = this 
+                AppContext.HttpGet (`manualorderentry/getmadeindata/${self.Options.ProjectID}`, (data) => {
+                           if (data != null ) {
+                               self.ImportersMadeInData = data.Data
+                                      self.FillComboBox(self.elements.MadeIn, self.ImportersMadeInData, "English", "English", true);
+                           }else {
+                               AppContext.ShowError("@g["No Data Found"]");
+                           }
+                       }, null, true);
+            },
+
+            SaveVendor : function (e) 
+            {
+                let self = this
+
+                if (!(self.model.Importers.startsWith("Imported by") || self.model.Importers.startsWith("Commercialized by")))
+                 {
+                     AppContext.ShowError("Importer text must start with 'Imported by' or 'Commercialized by' ")
+                     return 
+                 }
+                        let escapedImporters = self.model.Importers.replace(/'/g, "''");
+
+                let importer = {
+                           ImporterData : escapedImporters,
+                    MadeIn : self.model.MadeIn,
+                    ID : self.VendorID,
+                    IsNew : self.NewImporter,
+                    VendorCode : self.VendorCode
+                }
+                    AppContext.HttpPost(`/manualorderentry/saveImporters/${self.Options.ProjectID}`, importer, ()=> {
+                            const $table = document.querySelector("#ResultsVendorsGrid")
+                            const $tableBody = $table.querySelector ("tbody")
+                            $tableBody.innerHTML = "";
+                            self.FilterVendors()
+                            const SearchingTool = document.querySelector("#SearchingBrokerTool")
+                            const AssignProvider = document.querySelector ("#EditProvider")  
+                            AssignProvider.style.display = 'none'
+                            SearchingTool.style.display = 'block';
+                    
+                })
+
+
+            }, 
+
+            ClearAllRows: function ()
+            {
+                const $table = document.querySelector("#ResultsGrid")
+                const $tableBody = $table.querySelector ("tbody")
+                    $tableBody.innerHTML = "";
+            },
+            ShowOverlay: function () {
+                var overlay = null;
+                overlay = $('<div><div id="overlay"></div><div id="overlaymessage">Processing...</div></div>');
+                overlay.appendTo(document.body)
+            },
+            LoadDataCatalogs : function (projectid)
+            {
+                let self = this;
+                var d1 = $.Deferred();
+                self.ProjectId = projectid;
+            
+
+        
+            $.when(
+            
+            AppContext.HttpGet(`/providers/getbycompanyidme/${self.Options.MyCompanyID}`),
+                ).fail(function () {
+                    self.RemoveOverlay();
+                    d1.reject();
+                    console.log('fail to get catalogs')
+                }).then(function (providersData) {
+                    self.Providers = providersData;
+                    let Data = self.Providers;
+                    let defaultValueProvider = { ClientReference: -1, CompanyName: '@Html.Raw(g["Select an Option"])' };
+                    self.FillComboBox(self.elements.ProviderReference, Data, "ClientReference", "CompanyName", true);
+                });
+                        return d1.promise();
+
+            },
+
+            AddRows : function (filteredOrders)
+            {
+                let self =this;
+                const table = document.querySelector(`#ResultsGrid`);
+                if (!table) {
+                    console.error(`No se encontró una tabla con el ID '${tableId}'`);
+                return;
+            }
+            const tableBody = table.querySelector("tbody");
+
+            if (!filteredOrders) return
+
+            filteredOrders.forEach(o=> {
+                    const newRow = document.createElement("tr");
+                    let processedDate = o.ProcessedDate ? o.ProcessedDate : ''
+                    newRow.innerHTML = `
+                    <td style="display: none;">${o.ID}</td>
+                    <td>${o.OrderNumber}</td>
+                    <td>${o.ArticleCode}</td>
+                    <td>${o.CreatedDate}</td>
+                    <td>${processedDate} </td>
+                    <td class="action-buttons">
+                        <button class="edit-button btn btn-danger btn-sm">
+                            Delete
+                        </button>
+
+                    </td>
+                `;
+
+                tableBody.appendChild(newRow);
+
+                // Añadir eventos a los botones
+                newRow.querySelector(".edit-button").addEventListener("click", (e) => {
+                    e.preventDefault(); 
+                    if (e.pointerType === 'mouse') 
+                    {
+                           console.log("Target", e.target)
+                           self.SelectRow(newRow);
+
+                    }else {
+                        self.SearchOrder()
+                    }
+                });
+                })
+            },
+
+
+            CancelEditProvider : function ()
+            {
+                const SearchingTool = document.querySelector("#SearchingBrokerTool")
+                const AssignProvider = document.querySelector ("#EditProvider")
+                AssignProvider.style.display = 'none'
+                SearchingTool.style.display = 'block';
+
+            },
+            SelectRow : function (row)
+            {
+                let self = this
+                const cells = row.querySelectorAll("td");
+                self.SelectedOrder = self.OrdersData.find(o=>o.ID== cells[0].textContent)
+                SelectedOrder.innerText = cells[1].textContent
+                SelectedArticleCode.innerText = cells[2].textContent
+
+                orderToDelete = {
+                    ProjectID : self.Options.ProjectID,
+                    OrderNumber : cells[1].textContent,
+                    ArticleCode : cells[2].textContent, 
+                    ManualEntryService : 'BAR'
+                    
+                }
+                       AppContext.HttpPost(`/manualorderentry/deleteorder/`, orderToDelete, (result) => {
+                        if (result.Success) {
+                               let rowIndex = self.OrdersData.findIndex(o=>o.ID== cells[0].textContent)
+                               if (rowIndex >-1)
+                               {
+                                   self.OrdersData.splice(rowIndex,1);
+                               }
+                               row.remove(); 
+                           }else {
+
+                               AppContext.ShowError("@g["The operation could not be completed"]");
+                           }
+                       }, null, true);
+
+            },
+
+            ClearPage: function () {
+                var self = this;
+
+                //raise Clear Methods (Combos)
+
+                self.model.ProviderCompanyID =-1;
+
+                //fields
+
+                self.DeliveryDate = "@DateTime.Now.ToString("yyyy-MM-dd")";
+
+                //hiddens
+                self.model.CreatedDate = "1900-01-01";
+                self.model.ProviderCompanyID = "";
+
+                //grids
+            },
+            SearchOrderEvt: function (e) {
+                e.preventDefault();
+                let self = this;
+                 self.SearchOrder();
+            },
+
+            SearchOrder: function () {
+                       
+                       let self = this;
+                       let ordernumber = self.elements.SearchOrderNumber.val();
+                       let articlecode  = self.elements.SearchArticleCode.val()
+                       console.log("Search Order", ordernumber);
+                       self.ClearPage();
+                       self.ClearAllRows()
+                       const SearchingTool = document.querySelector("#SearchingTool")
+                       const AssignProvider = document.querySelector ("#AssignProvider")
+                       AssignProvider.style.display = 'none'
+                       SearchingTool.style.display = 'block';
+
+                       let filteredOrders = self.OrdersData.filter(x => x.OrderNumber.startsWith(ordernumber) && x.ArticleCode.startsWith(articlecode));
+                       self.AddRows(filteredOrders) ;
+                       console.log(filteredOrders);
+
+
+
+
+                       // self.RemoveOverlay();
+                   },
+            FillComboBox: function (element, data, valueField, textField, triggerChange) {
+                var opValue, opText;
+                var combo = AppContext.GetContainerElement(element);
+                combo.empty();
+                $.each(data, function (i, item) {
+                    opValue = valueField ? item[valueField] : item.ID ? item.ID : item.Value ? item.Value : item;
+                    opText = textField ? item[textField] : item.Name ? item.Name : item.Text ? item.Text : item;
+                    combo.append($('<option>', {
+                        value: opValue,
+                        text: opText
+                    }));
+                    if (i === 0) {
+                        combo.val(opValue);
+
+                        if (triggerChange) {
+                            combo.change();
+                        }
+                    }
+                });
+            },
+
+            SaveAndNext : async function (e)
+            {
+                e.preventDefault()
+                let self = this
+                console.log(self.SelectedOrder)
+
+                let Order = {
+                        CompanyID: self.Options.CompanyID,
+                            SeasonID: self.Options.ProjectID,
+                            OrderNumber: self.SelectedOrder.OrderNumber,
+                            ProviderReference: self.model.ProviderReference,
+                            ArticleCode: self.SelectedOrder.ArticleCode,
+                            Description: self.SelectedOrder.Description,
+                            Price1 : self.SelectedOrder.Price1,
+                            Currency1: self.SelectedOrder.Currency1,
+                            Price2: self.SelectedOrder.Price2,
+                            Currency2: self.SelectedOrder.Currency2,
+                            Sizes: self.SelectedOrder.Sizes,
+                            CreatedDate : self.SelectedOrder.CreatedDate,
+                            ExpectedProductionDate: self.SelectedOrder.ExpectedProductionDate,
+                            CompanyName : self.SelectedProvider.CompanyName,
+                            EAN: self.SelectedOrder.EAN,
+                            UN: self.SelectedOrder.UN,
+                            ManualEntryService: "BAR"
+                }
+                console.log(Order)
+                var result = await AppContext.HttpPost(`/manualorderentry/save`, Order, null, null, true);
+
+                if (result.Success) {
+                    self.OrderSavedHandler2(result.Data, self.Options.ProjectID, self.SelectedOrder.OrderNumber);
+                }
+            },
+
+            OrderSavedHandler2: function (data, projectId,ordernumber) {
+                let self = this;
+                let orderID = data[0].OrderID;
+                AppContext.HttpGet(`/manualorderentry/getsavedorder/${orderID}/${projectId}`, (result) => {
+
+                    if (result.Success) {
+                        if (result.Data) {
+                            result.Data.forEach((order) => {
+
+                                let orderSelection = {
+
+                                    OrderNumber: ordernumber,
+                                    Details: [],
+                                    OrderGroupID: order.OrderGroupID,
+                                    Orders: [order.ID],
+                                    ProjectID: order.ProjectID
+                                }
+
+                                self.OrderSelection.push(orderSelection);
+                            })
+
+                            validatorHandler = new ValidatorHelper(self.OrderSelection);
+
+                            validatorHandler.OnWizardCreated.Subscribe((e) => {
+                                var wizard = e.wizardController;
+                                var wizardStep = e.wizardStep
+                                wizard.Show(self.ViewContainer);
+                            })
+
+                            validatorHandler.Continue();
+
+                        } else {
+                            AppContext.ShowWarning("@g["Order Queued!"]");
+                            self.ClearPage();
+                            self.RemoveOverlay();
+                        }
+                        result.Data.forEach((element) => {
+
+                            console.log("Order Saved", element)
+                        })
+                    } else {
+                        self.ClearPage();
+                        self.RemoveOverlay();
+                        window.location.href = '/';
+
+                    }
+
+                }, null, true)
+
+            },
+
+            SetProviderCompanyID: async function (e) {
+                e.preventDefault()
+                let self = this
+
+                let seletectedProvider = self.Providers.find(p => p.ClientReference == e.target.value)
+                self.SelectedProvider = seletectedProvider
+
+                var result = await AppContext.HttpGet(`/addresses/getdefaultbycompany/${seletectedProvider.ProviderCompanyID}`)
+                console.log(result)
+                // let $SelectedCompanyName = document.querySelector(".SelectedCompanyName")
+                let $SelectedProviderAddress1 = document.querySelector(".SelectedProviderAddress1")
+                // let $SelectedProviderAddress2 = document.querySelector(".SelectedProviderAddress2")
+
+                let $SelectedProviderCountry = document.querySelector(".SelectedProviderCountry")
+                let $SelectedProviderCity = document.querySelector(".SelectedProviderCity")
+                let $SelectedProviderState = document.querySelector(".SelectedProviderState")
+                let $SelectedProviderZipCode = document.querySelector(".SelectedProviderZipCode")
+
+                $SelectedProviderAddress1.innerText="";
+                $SelectedProviderCountry.innerText="";
+                $SelectedProviderCity.innerText = "";
+                $SelectedProviderState.innerText = "";
+                $SelectedProviderZipCode.innerText = "";
+                if (result)
+                {
+                   $SelectedProviderAddress1.innerText = `${result.AddressLine1} ${result.AddressLine2}`
+                   $SelectedProviderCountry.innerText = result.Country
+                   $SelectedProviderCity.innerText = result.CityOrTown
+                   $SelectedProviderState.innerText = result.StateOrProvince
+                   $SelectedProviderZipCode.innerText = result.ZipCode
+                }
+            }
+
+
+
+           //#endregion
+
+	};
+//</script>

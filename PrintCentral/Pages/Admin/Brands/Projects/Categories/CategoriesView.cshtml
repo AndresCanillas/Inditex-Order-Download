@@ -1,0 +1,48 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+	<viewform>
+		<viewcard>
+			<viewrow>
+				<viewcolumn>
+					<viewtitle>@g["Existing Article Categories"]</viewtitle>
+					@if (userData.Admin_Categories_CanEdit)
+					{
+						<div class="toolbar-body" style="width:100%">
+							<span class="toolbar-grip"></span>
+							<a href="#" title="@g["Add Category"]" action="AddCategory"><span class="fa fa-plus"></span></a>
+							<span class="toolbar-separator"></span>
+							<a href="#" title="@g["Remove Category"]" action="RemoveCategory" name="removeCategoryOption"><span class="fa fa-trash"></span></a>
+						</div>
+					}
+					<div component="GridView" name="Categories" style="max-height:300px">
+						<template>
+							<column width="220" field="Name">@g["Name"]</column>
+						</template>
+					</div>
+				</viewcolumn>
+				<viewcolumn>
+					<div name="CategoryProperties" style="display:none">
+						<viewtitle>@g["Category properties"]</viewtitle>
+						<input model name="ID" type="hidden" data-type="int" />
+						<input model name="ProjectID" type="hidden" data-type="int" />
+						@if (userData.Admin_Categories_CanRename)
+						{
+							<input model name="Name" label="@g["Name"]:" type="text" validation="required;maxlen(50)" action="keyup:MarkAsEdited" />
+						}
+						else
+						{
+							<div model name="Name" label="@g["Name"]:"></div>
+						}
+						@if (userData.Admin_Categories_CanEdit)
+						{
+							<a href="#" name="btnSave" class="btn btn-primary disabled" style="float:right;" action="SaveCurrentRow">@g["Save"]</a>
+						}
+					</div>
+				</viewcolumn>
+			</viewrow>
+		</viewcard>
+	</viewform>

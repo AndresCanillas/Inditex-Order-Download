@@ -1,0 +1,233 @@
+
+Global objects
+-----------------------------------------------------------------------------
+There will be three global objects that we can use at all times in all scripts
+and views:
+
+	- AppContext
+	- tree
+	- mainContainer
+
+var tree = new TreeView("treeContainer");
+var mainContainer = new MainContainer("viewContainer");
+
+	treeContainer and viewContainer are the HTML elements that will hold the treeview and mainContainer respectively, these elements will be set their styles automatically.
+
+
+Dinamically loading JS files:
+-----------------------------------------------------------------------------
+AppContext.LoadJS("/js/nodes/companies.js", "/js/nodes/factories.js").then(()=>{ callback code });
+
+...
+
+function callback() {
+	var companiesRoot = new CompaniesRootNode();
+	var factoriesRoot = new FactoriesRootNode();
+	tree.AddNode(companiesRoot);
+	tree.AddNode(factoriesRoot);
+}
+
+NOTES: Multiple js files can be loaded on demand with AppContext.LoadJS, this method takes care
+of validating if the js files have been loaded before on the page or not and automatically avoids
+loading the same js file multiple times.
+
+
+ContextMenu API
+----------------------------------------------------------------------------
+
+	ctor(setupObject)		Constructor, take an object that must contain the following properties:
+							.MenuWidth				Width of the menu (the default width will be 250px)
+							.Options			An array of objects representing the menu options, each option must have the following properties:
+								.Text			The text of the option (ignored for separators)
+								.OnClick		callback to be called when this option is clicked (ignored for separators)
+								.Disabled		a boolean indicating if the option is disabled (options will be enabled by default if not present).
+								.IsSeparator	A boolean indicating if an option is a separator or not.
+
+	MenuWidth				property, controls the width of the menu when it is shown on screen.
+
+	Options					property, the array of menu options
+
+	Show(x, y)				Shows the menu in the specified position on screen. The menu will be automatically hidden after an option is clicked or if the 
+							user clicks outside the menu.
+
+	Close()					Closes the menu (removing it from the DOM)
+
+	Target					Property, the object that will be used to invoke the OnClick callback
+
+
+
+TreeView and Nodes API
+----------------------------------------------------------------------------
+
+All nodes will have the following properties, methods and events (callbacks):
+
+	EntityID							property, is the id of the entity represented by the node. NOTE: Not all nodes represent an entity from the database in which case this must be 0, for those nodes that do represent an entity from the database this must be initialized acordingly.
+	Parent								property, a reference to the parent node (null if the node is not added yet). Note: the parent of root nodes is the treeview object itself.
+	NodeType							property (readonly), returns the constructor function name, for instance "CompaniesRootNode". Can be useful to identify the type of node.
+	Nodes								property, (readonly) array with all the children of this node.
+	IsLoaded							property, tracks if subnodes have been previously loaded or not. This is to allow for loading on demand. NOTE: Must be updated manually by the program.
+	CanEdit								property, returns true if the node text can be edited by clicking the node again while the node is selected.
+	getText()/setText(text)				controls the text displayed by the node.
+	getIcon()/setIcon(url)				- NOT IMPLEMENTED - gets/sets the node icon. The icon must be an url to the image.
+	getLevel()/setLevel(val)			gets/sets the level of the node (how many hoops are there in the hierarchy from the root to the current node). Level will be zero for root nodes.
+	getIsSelected()/setIsSelected(val)	gets/sets the selected state of the node (only has graphical effect, to actually select the node use treeView.setSelectedNode(node))
+	getTreeView()						returns a reference to the TreeView object that contains the node (null if the node is not added yet).
+	AddNode(node)						adds the given node as a child.
+	RemoveNode(node)					removes the given node from the nodes collection (note: does not work if the node is not a direct child)
+	Toggle()							Either expands or collapses the node based on its current state.
+	Expand()							Expands the node showing any child nodes it might have.
+	Collapse()							Collapses the node, hidding its childen nodes.
+	FindNode(type, id, searchSubNodes)	Gets the node with the given type & EntityID, optionally searching within subnodes
+	BeginEdit()							Starts editing the text of the node.
+	Remove()							Removes this node from it's parent.
+
+	-- callbacks --  The following callbacks can be defined in "derived" nodes to respond to user interacting with the node.
+
+	GetContextMenu					callback, nodes can return the options that should be displayed when the node is right clicked. No contextual menu is displayed if this method is not defined or if it does not return a menu.
+	OnClick							callback, invoked when the node is clicked (selected)
+	OnDoubleClick					callback, invoked when the node is double clicked
+	OnContextMenuOpening			callback, invoked right before calling GetContextMenu as a last chance to modify the context menu
+	OnEditStarting					callback, invoked when the user is about to begin editing the node text, this is meant to give a chance to make some validation and cancel the event by returning false.
+	OnEditEnding					callback, invoked when the user has finish editing the node, the method will receive the new text of the node as argument. This is meant to validate that the new text is valid. If the text is not valid this callback can return false to prevent the name change. Important: It is expected that this method is defined and returns true to complete the node edition.
+	OnTextChanged					callback, invoked when the text of the node is updated programatically. This method will receive the original text as parameter.
+	OnIconChanged					- NOT IMPLEMENTED - callback, invoked when the icon of the node is updated programatically
+	OnExpanded						callback, invoked when the node is expanded to show its children
+	OnCollapsed						callback, invoked when the node is collapsed to hide its children
+	OnNodeAdded						callback, invoked when a node is added to the nodes collection
+	OnNodeRemoved					callback, invoked when a node is removed from the nodes collection
+
+The treeview in turn also has the following:
+
+	Nodes							property, (readonly) array with all the children that conform the root nodes of the tree.
+	SelectedNode					gets or sets the currently selected node.
+	AddNode(node)					method, adds the given node as a root node.
+	RemoveNode(node)				method, removes the given node from the nodes collection (note: does not work if the node is not a direct child)
+	FindNode(name, searchSubNodes)	method, gets the node with the given name, optionally searching within subnodes
+	ApplyFilter(text)					Hiddes nodes that do not contain the given text
+
+
+Creating a node example
+-------------------------------------------------------------------------
+
+content of CompaniesRootNode.js:
+
+var CompaniesRootNode = function() {
+	this.Name = "CompaniesRootNode";
+	this.Text = "Companies";
+	this.Icon = "/images/tree/companies.png";
+	this.CanRename = false;
+}
+
+CompaniesRootNode.prototype = {
+	constructor: CompaniesRootNode,
+
+	GetContextMenu : function() {
+		return {
+		MenuWidth: "250px",
+		Options: [
+			{ Text: "Edit", OnClick: this.OpenDetails },
+			{ Text: "Cut" },
+			{ Text: "Copy" },
+			{ Text: "Paste" },
+			{ Text: "Delete" },
+			{ IsSeparator: true },
+			{ Text: "Quit" }
+		]};
+	},
+
+	OpenDetails: function(node) {
+		alert("Context menu option clicked. " + node.Name);
+	},
+	
+	AnotherOption: function(node) {
+		alert("Another option clicked. " + node.Name);
+	},
+
+	OnOpened: function(node) {
+		alert("I was double clicked! " + node.Name);
+	}
+};
+
+
+
+Controllers and Loading views / formularies
+---------------------------------------------------------------------
+
+As nodes are opened, we must load their corresponding "content" in the main
+container, this is done inside the OnDoubleClick callback in the node code, example:
+
+
+CompaniesRootNode.prototype = {
+	...
+	OnDoubleClick : function() {
+		mainContainer.LoadController(this, "js/nodes/companiesRootNodeController.js", "CompaniesRootNodeController");
+	},
+	...
+};
+
+
+The first argument must be the node on which the controller will operate. The controller can get any data it might require from the node
+such as the id of the record represented by the node and such.
+
+LoadController will then load the specified script (if not already in cache) and then execute it.
+The 3rd argument must match the name of the constructor for the controller and will be used to instantiate the controller (if not already done so).
+
+As for the controller structure, All controllers must define the following methods and properties:
+
+	Run						method, Takes the node the controller must on as parameter and starts execution of the controller's logic.
+	OnLoaded				method, Invoked when the view associated to the controller is loaded on screen.
+	Node					property, References the node associated to the controller and the currently loaded view.
+	Data					property, is an object bound to all the fields present in the View. The values stored in this object are automatically updated as the user interacts with the view input fields
+							and likewise, changes in this object properties will be synced back to the View's formulary.
+
+	--	UI event handlers	These are methods that follow a naming convention in order to handle events in the view UI. NOTE: must substract the viewprefix from the input name in all the following.
+
+	FieldName_Changed		Defines a method to be called when the value of the input with the id FieldName is updated. This will work exclusively for formulary inputs (input, select, textarea, etc).
+	FieldName_OnClick		This will work for all types of element (not just inputs), will allow the controller to define code that is executed when the corresponding element is clicked.
+	FieldName_OnDoubleClick	This will work for all types of element (not just inputs), will allow the controller to define code that is executed when the corresponding element is double clicked
+	FieldName_OnEnter		This will work for all types of element (not just inputs), will allow the controller to define code that is executed when the mouse is placed on top of the corresponding element.
+	FieldName_OnLeave		This will work for all types of element (not just inputs), will allow the controller to define code that is executed when the mouse leaves the element.
+	FieldName_Submited		This will work only for input type="submit", if present in the controller, this method will be called automatically when the corresponding button is clicked.
+
+	NOTE: other handlers might be implemented later, but for now these will be all that will be supported.
+
+Example of a controller:
+
+
+var CompaniesRootNodeController = function(){ }
+
+CompaniesRootNodeController.prototype = {
+	constructor: CompaniesRootNodeController,
+
+	Run: function(node) {
+		this.Node = node;   // Might be able to ovbiate this somehow... so will be best if we can remove this in the future. Also the binding of the view with the controller "Data" object must be automatic if possible.
+		mainContainer.LoadView(`/controller/action/{node.EntityID}`);
+	},
+
+	OnLoaded: function() {
+		alert(this.Data.CompanyID);   // there must be an input whose id is "{viewprefix}_CompanyID" in the form for this to work!! All valid HTML5 tags can be used for this, input, select, textarea, etc. 
+	},
+
+	[FieldName]_Changed: function(e) {
+		// Code to execute when the value of the field with id "{viewprefix}_[FieldName]" is updated. Remember that we must remove the "{viewprefix}_" string. This viewprefix is automatically taken into account when dealing with the view formulary.
+	}
+
+	[FieldName]_Submit: function(e) {
+		// code to execute before the formulary is submitted. For instance to validate input...
+		if(this.Data.CompanyID == 0)
+			e.preventDefault();
+	}
+};
+
+
+
+View & Controller automatic data binding
+-------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+

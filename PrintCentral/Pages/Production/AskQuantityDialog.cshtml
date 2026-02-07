@@ -1,0 +1,14 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+<viewrow>
+	<viewcolumn>
+		<input model name="Quantity" label="@g["Quantity"]:" validation="required" type="Number" value="1" />
+	</viewcolumn>
+</viewrow>
+<viewfooter>
+	<button type="button" class="btn btn-primary" action="Ok">@g["OK"]</button>
+	<button type="button" class="btn btn-secondary" action="Cancel">@g["Cancel"]</button>
+</viewfooter>

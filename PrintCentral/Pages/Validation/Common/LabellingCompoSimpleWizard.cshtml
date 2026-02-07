@@ -1,0 +1,113 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData  userData
+@inject IOrderRepository  orderRepo
+@inject IProjectRepository projectRepo
+@inject IEventQueue events
+@{
+    Layout = null;
+    var articles = new List<OrderDetailDTO>();
+    IProject project = new Project();
+    int delta = 0;
+
+    var lastPackCode = string.Empty;
+
+    int id = -1;
+
+    }
+    <form name="labellingcomposimple-wizard-frm" method="post" onsubmit="return false;">
+        <viewform>
+            <viewcard>
+
+                <viewrow>
+                    <viewcolumn>
+                        <div name="BreadcrumbContainer">
+
+                        </div>
+
+                    </viewcolumn>
+                </viewrow>
+                @*
+                <viewrow>
+                    <viewcolumn>
+                        <!--  esta es la zona customizada del wizard  -->
+                        <div class="input-group input-group-sm">
+                            <label class="col-sm col-form-label">@g["Select Article"]</label>
+                            <select model name="ArticleID" class="form-control" label="@g["Select Article"]" no-transform action="change:AfterSelectArticle"></select>
+                            <div class="input-group-append">
+                                <figure name="FigureContainer" class="figure invisible">
+                                    <img name="SelectedPreview" src="" class="figure-img img-fluid rounded" alt="...">
+                                    <figcaption class="figure-caption">A caption for the above image.</figcaption>
+                                </figure>
+                            </div>
+                        </div>
+
+
+                    </viewcolumn>
+                    <viewcolumn>
+                        <figure name="FigureContainer" class="figure invisible">
+                            <img name="SelectedPreview" src="" class="figure-img img-fluid rounded" alt="...">
+                            <figcaption class="figure-caption">A caption for the above image.</figcaption>
+                        </figure>
+                    </viewcolumn>
+                </viewrow>
+                *@
+                <viewrow>
+                    <viewcolumn>
+
+                        <div class="table-responsive" name="TableContainer">
+                            <table class="table table-sm table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">#</th>
+                                        
+                                        <th scope="col" width="150">@g["Article"]</th>
+                                        <th scope="col" width="150">@g["Unit Desc."]</th>
+                                        <th scope="col">@g["Size"]</th>
+                                        <th scope="col">@g["Color"]</th>
+                                        <th scope="col">@g["Quantity Requested"]</th>
+                                        <th scope="col">@g["Quantity Confirmed"]</th>
+                                        @*
+                                        <th scope="col">@g["Composition Label"] </th>*@
+                                        <th scope="col">@g["Defined"] </th>
+                                        <th scope="col"> </th>
+                                        <th scope="col" width="196"> </th>
+                                    </tr>
+                                </thead>
+
+                                <tbody></tbody>
+                            </table>
+                        </div>
+
+                    </viewcolumn>
+                </viewrow>
+
+
+                <viewfooter>
+
+                    <div class="row justify-content-end" name="AvailableActions">
+                        <div class="col-4 text-center">
+                            <a href="#" class="btn btn-sm btn-outline-primary" action="Save"> <span class="fa fa-fw fa-save" aria-hidden="true"></span> @g["Save"]</a>
+                        </div>
+                        <div class="col-4 text-right">
+                            <a href="#" class="btn btn-sm btn-primary" action="SaveAndNext">@g["Save And Next"] <span class="fa fa-fw fa-chevron-right" aria-hidden="true"></span></a>
+                        </div>
+                    </div>
+
+                </viewfooter>
+
+            </viewcard>
+        </viewform>
+
+    </form>
+
+    <!-- Modal -->
+
+    <div class="modal fade" id="the-modal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <figure name="FigureContainer" class="figure">
+                <img id="modal-image" name="SelectedPreview" src="..." class="figure-img img-fluid rounded" alt="...">
+                <figcaption class="figure-caption">@g["Sample Preview"]</figcaption>
+            </figure>
+        </div>
+    </div>

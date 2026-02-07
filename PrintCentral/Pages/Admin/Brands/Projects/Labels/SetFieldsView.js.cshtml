@@ -1,0 +1,130 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+    Layout = null;
+}
+//# sourceURL=https://Admin/Brands/Projects/Labels/SetFieldsView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var SetFieldsView = function (labelData) {
+        var projectId = labelData.ProjectID || 0;
+        FormView.Extend(this, "@g["Display Fields"]", `/Admin/Brands/Projects/Labels/SetFieldsView?projectid=${projectId}&labelid=${labelData.ID}`);
+        this.ProjectID = labelData.ID;
+        this.Data = labelData;
+        this.Selections = 0;
+        this.AllowedOptions = 4;
+        this.GroupingFields = "";
+        this.DisplayFields = "";
+        this.OrderFields = "";
+	};
+
+
+    SetFieldsView.prototype = {
+        constructor: SetFieldsView,
+
+		OnLoad: function () {
+            this.LoadDisplayFields();
+        },
+
+        LoadDisplayFields: function (increaseSelection = true) {
+            var self = this;
+            var elements = [];
+            self.DisplayFields = "";
+            $.each(self.elements, function (index, item) {
+                if (item[0].checked) {
+                    var element = {};
+                    element["Name"] = item[0].name;
+                    elements.push(element);
+                    self.DisplayFields = self.DisplayFields + item[0].name + ",";
+                    if (increaseSelection) {
+                        self.Selections++;
+                    }
+                }
+            });
+
+            self.DisplayFields = self.DisplayFields.slice(0, -1);
+            AppContext.LoadComboBox(self.elements.DisplayData, elements, "Name", "Name");
+            self.model.DisplayData = self.GetObject(self.Data);
+
+            AppContext.LoadComboBox(self.elements.OrderFields, elements, "Name", "Name");
+            self.model.OrderFields = self.GetOrderFields(self.Data);
+        },
+
+        SetDisplayData: function (e) {
+            this.GroupingFields = this.elements.DisplayData.val();
+        },
+
+        SetOrderFields: function (e) {
+            this.OrderFields = this.elements.OrderFields.val();
+        },
+
+        GetObject: function (e) {
+            return JSON.parse(e.GroupingFields).GroupingFields || "";
+        },
+
+        GetOrderFields: function (e) {
+            return JSON.parse(e.GroupingFields).OrderFields || "";
+        },
+
+        SetField: function (e) {
+            var self = this;
+            if (e.target.checked) {
+                self.Selections++;
+
+                if (self.Selections > self.AllowedOptions) {
+                    self.RemoveSelection(e);
+                }
+            }
+            else {
+                self.RemoveSelection(e);
+            }
+
+            self.LoadDisplayFields(false);
+        },
+
+        RemoveSelection: function (e) {
+            var self = this;
+            self.Selections--;
+            e.target.checked = false;
+        },
+
+		@if (userData.Admin_Projects_CanEdit)
+		{
+		<text>
+
+		Save: function (e) {
+            var self = this;
+            if (!this.model.ValidState()) return;
+            var displayFieldsList = self.DisplayFields.split(',');
+            if (displayFieldsList.indexOf(self.GroupingFields) >= 0) {
+                displayFieldsList.splice(displayFieldsList.indexOf(self.GroupingFields), 1);
+            }
+
+            var displayFields = displayFieldsList.join(",");
+
+            var GroupingFields = {};
+            if (self.Selections == self.AllowedOptions && self.GroupingFields) {
+                GroupingFields["GroupingFields"] = self.GroupingFields;
+                GroupingFields["OrderFields"] = self.OrderFields;
+                GroupingFields["DisplayFields"] = displayFields;
+
+                this.Data.GroupingFields = JSON.stringify(GroupingFields);
+
+                AppContext.Labels.UpdateGroupingFields(this.Data.ID, this.Data.GroupingFields, function (result) {
+                    if (result.Success) {
+                        self.Close();
+                    }
+                });
+            }
+            else
+                return AppContext.ShowError("@g["You need to select 4 Display fields and a Grouping one."]");
+        },
+
+		</text>
+		}
+	};
+//</script>

@@ -1,0 +1,137 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData  userData
+@inject IOrderRepository  orderRepo
+@inject IProjectRepository projectRepo
+@inject IEventQueue events
+@{
+    Layout = null;
+    var articles = new List<OrderDetailDTO>();
+    IProject project = new Project();
+    int delta = 0;
+   
+    var lastPackCode = string.Empty;
+
+    int id = -1;
+
+    //if (Request.Query.ContainsKey("OrderGroupID"))
+    //{
+    //    id = Convert.ToInt32(Request.Query["orderid"].ToString());
+    //    articles = orderRepo.GetOrderArticles(new OrderArticlesFilter() { OrderID = id, ArticleType = ArticleTypeFilter.Label}).ToList();
+
+    //    //var orderProjectInfo = orderRepo.GetProjectInfo(id);
+    //    var o = orderRepo.GetByID(id);
+
+    //    project = projectRepo.GetByID(o.ProjectID);
+
+
+    //    // This page is available then this project is allow quantity edition
+    //    if (project.AllowQuantityEdition == (int)OrderQuantityEditionOption.MaxPercentajeValue)
+    //    {
+    //        delta = project.MaxQuantityPercentage.Value;
+    //    }else
+    //    {
+    //        delta = project.MaxQuantity.Value;
+    //    }
+    //    events.Send(new QuantitiesStepStartedEvent(id, o.OrderNumber, o.CompanyID, project.BrandID, project.ID));
+    //}
+
+}
+    <form name="quantity-wizard-frm" method="post" onsubmit="return false;">
+        <viewform>
+            
+            <viewcard>
+
+                <viewrow>
+                    <viewcolumn>
+                        <div name="BreadcrumbContainer">
+                            @*<ul class="breadcrumb centered">
+
+                                <li><a class="completed" href="#"> Paso 1</a></li>
+                                <li><a class="completed" href="#"> Paso 2</a></li>
+                                <li><a class="" href="#"> Paso 3</a></li>
+                                <li><a class="pending" href="#"> Paso 4</a></li>
+
+                            </ul>*@
+                        </div>
+
+                    </viewcolumn>
+                </viewrow>
+
+                <viewrow>
+                    <viewcolumn>
+
+
+                        <div class="table-responsive" name="TableContainer">
+                            <table class="table table-sm table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">#</th>
+                                        <th scope="col">@g["Article"]</th>
+                                        <th scope="col">@g["Article Desc."]</th>
+                                        <th scope="col">@g["Unit Desc."]</th>
+                                        <th scope="col">@g["Size"]</th>
+                                        <th scope="col">@g["Color"]</th>
+                                        <th scope="col">@g["Quantity Requested"]</th>
+                                        <th scope="col">@g["Quantity Confirmed"]</th>
+                                        <th scope="col">@g["Differential"]</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                   
+                                </tbody>
+                            </table>
+                        </div>
+                    </viewcolumn>
+                </viewrow>
+
+
+                <viewrow>
+                    <viewcolumn>
+                        <div class="form-group row" style="margin-bottom:5px;" id="divQuantity">
+                            <label class="col-sm col-form-label">Quantity threshold (%):</label>
+                            <input class="form-control-sm" model action="keyup:HandleValueKeyPress;blur:focusout;change:onChanged" style="width:80px;" id="MaxQuantityPercentage" name="MaxQuantityPercentage" label="@g["Quantity threshold"] (%):" type="number" validation="range(0,10000)" value="" />
+                            <a class="btn btn-link" href="#" name="btnSetMaxAll" action="SetMaxAll">@($"{g["Set Max"]}({g["All"]})")</a>
+                        </div>                        
+                    </viewcolumn>
+
+                    <viewcolumn>
+                        <div name="downloadPreview">
+                            <a class="btn btn-link" href="#" action="DownloadAllPreviews">@g["Download Preview"]</a>
+                        </div>
+                    </viewcolumn>
+                </viewrow>
+
+                <viewrow>
+
+                    <viewcolumn>
+                        <div name="QwProgresListContainer" class="d-none">
+                            <h5>@g["File List"]</h5>
+                            <ul name="QwProgresList" class="list-group qw-pending-download">
+                               
+                            </ul>
+                        </div>
+
+                    </viewcolumn>
+
+                </viewrow>
+
+
+                <viewfooter>
+
+                    <div class="row justify-content-end" name="AvailableActions">
+                        <div class="col-4 text-center">
+                            <a href="#" class="btn btn-sm btn-outline-primary" action="Save"> <span class="fa fa-fw fa-save" aria-hidden="true"></span> @g["Save"]</a>
+                        </div>
+                        <div class="col-4 text-right">
+                            <a href="#" class="btn btn-sm btn-primary" action="SaveAndNext">@g["Save And Next"] <span class="fa fa-fw fa-chevron-right" aria-hidden="true"></span></a>
+                        </div>
+                    </div>
+
+                </viewfooter>
+
+            </viewcard>
+        </viewform>
+        
+    </form>

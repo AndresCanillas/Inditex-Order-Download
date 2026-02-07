@@ -1,0 +1,85 @@
+﻿@page
+@using Service.Contracts.Database
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+	var readOnly = userData.Admin_Catalogs_CanEdit ? "" : "readonly";
+}
+<viewform>
+	<viewrow>
+		<viewcolumn name="MainDisplay">
+			<viewform compact>
+				<div class="form-group row ">
+					<div class="col-sm">
+						<div class="toolbar-body" style="margin-bottom:10px; min-width:340px;">
+							<span name="IsSystemIcon" class='fa fa-database' style="margin:5px;" title="@g["System"]"></span>
+							<span name="IsKeyIcon" class='fa fa-key' style="margin:5px;" title="@g["Primary key"]"></span>
+							<span name="IsIdentityIcon" class='fa fa-credit-card' style="margin:5px;" title="@g["Identity"]"></span>
+							<span class="toolbar-separator" style="margin-left:10px;"></span>
+							@if (userData.Admin_Catalogs_CanEdit)
+							{
+								<a href="#" action="SwapIsLocked"><span name="IsLockedIcon" class='fa fa-lock' style="margin:5px;" title="@g["Locked"]"></span></a>
+								<a href="#" action="SwapIsReadOnly"><span name="IsReadOnlyIcon" class='fa fa-book' style="margin:5px;" title="@g["Readonly"]"></span></a>
+								<a href="#" action="SwapIsUnique"><span name="IsUniqueIcon" class='ti ti-medall' style="margin:5px;" title="@g["Unique"]"></span></a>
+								<a href="#" action="SwapIsHidden"><span name="IsHiddenIcon" class='fa fa-eye-slash' style="margin:5px;" title="@g["Hidden"]"></span></a>
+								<a href="#" action="SwapIsMainDisplay"><span name="IsMainDisplayIcon" class='ti ti-blackboard' style="margin:5px;" title="@g["Display property"]"></span></a>
+								<span class="toolbar-separator"></span>
+								<a href="#" title="@g["Edit Captions"]" action="EditCaptions"><span class="fa fa-contao"></span></a>
+							}
+							else
+							{
+								<span name="IsLockedIcon" class='fa fa-lock' style="margin:5px;" title="@g["Locked"]"></span>
+								<span name="IsReadOnlyIcon" class='fa fa-book' style="margin:5px;" title="@g["Readonly"]"></span>
+								<span name="IsUniqueIcon" class='ti ti-medall' style="margin:5px;" title="@g["Unique"]"></span>
+								<span name="IsHiddenIcon" class='fa fa-eye-slash' style="margin:5px;" title="@g["Hidden"]"></span>
+								<span name="IsMainDisplayIcon" class='ti ti-blackboard' style="margin:5px;" title="@g["Display property"]"></span>
+							}
+						</div>
+					</div>
+				</div>
+				<input model name="FieldID" type="hidden" data-type="Int" />
+				<input model name="IsSystem" type="hidden" data-type="Bool" />
+				<input model name="IsKey" type="hidden" data-type="Bool" />
+				<input model name="IsIdentity" type="hidden" data-type="Bool" />
+				<input model name="IsLocked" type="hidden" data-type="Bool" />
+				<input model name="IsReadOnly" type="hidden" data-type="Bool" />
+				<input model name="IsHidden" type="hidden" data-type="Bool" />
+				<input model name="IsUnique" type="hidden" data-type="Bool" />
+				<input model name="IsIndexed" type="hidden" data-type="Bool" />
+				<input model name="IsMainDisplay" type="hidden" data-type="Bool" />
+				<input model name="Captions" type="hidden" />
+				<input model name="Name" label="@g["Field Name"]" validation="required" @readOnly />
+				<textarea model name="Description" label="@g["Description"]" @readOnly></textarea>
+				<viewtitle>@g["Field Properties"]</viewtitle>
+				@if (userData.Admin_Catalogs_CanEdit)
+				{
+					<select model name="Type" label="@g["Data Type"]" options="@(OptionList.FromEnum<ColumnType>())" validation="required" action="change:UpdateProperties"></select>
+				}
+				else
+				{
+
+					<select model name="Type" label="@g["Data Type"]" options="@(OptionList.FromEnum<ColumnType>())" required readonly class="disabled" validation="required" action="change:UpdateProperties"></select>
+				}
+				<input model name="Length" label="@g["Length"]" validation="numeric;maxlen(4);range(0,9999)" @readOnly />
+				<input model name="MinValue" label="@g["Min Value"]" validation="numeric;maxlen(9);range(0,999999999)" @readOnly />
+				<input model name="MaxValue" label="@g["Max Value"]" validation="numeric;maxlen(9);range(0,999999999)" @readOnly />
+				<input model name="MinDate" label="@g["Min Date"]" data-type="Date" @readOnly />
+				<input model name="MaxDate" label="@g["Max Date"]" data-type="Date" @readOnly />
+				<input model name="MaxWidth" label="@g["Max Width"]" validation="numeric;maxlen(4);required;range(0,9999)" data-type="Int" @readOnly />
+				<input model name="MaxHeight" label="@g["Max Height"]" validation="numeric;maxlen(4);required;range(0,9999)" data-type="Int" @readOnly />
+				<input model name="ValidChars" label="@g["Valid characters"]" validation="maxlen(255)" @readOnly />
+				<input model name="Regex" label="@g["Regular Exp."]" validation="maxlen(255)" @readOnly />
+				@if (userData.Admin_Catalogs_CanEdit)
+				{
+					<select model name="CatalogID" label="@g["Catalog"]:" data-type="Int"></select>
+				}
+				else
+				{
+					<input model name="CatalogID" label="@g["Catalog"]:" type="text" readonly />
+				}
+				<input model name="CanBeEmpty" label="@g["Can be empty"]" type="checkbox" @readOnly />
+			</viewform>
+		</viewcolumn>
+	</viewrow>
+</viewform>

@@ -1,0 +1,30 @@
+﻿@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+
+//# sourceURL=https://Pages/Admin/Utilities/ServicesStatusNode.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var ServicesStatusNode = function () {
+        TreeNode.Extend(this, "ServicesStatus", 0, "@g["Services Status"]");
+        this.CanEdit = false;
+        this.Expand();
+    };
+
+    ServicesStatusNode.prototype = {
+        constructor: ServicesStatusNode,
+        OnDoubleClick: function (e) {
+            var self = this;
+            AppContext.LoadJS("/Admin/Utilities/ServicesStatus.js").then(() => {
+                var view = new ServicesStatus();
+                view.Show(self.getViewContainer());
+            });
+        }
+    }
+
+//</script>

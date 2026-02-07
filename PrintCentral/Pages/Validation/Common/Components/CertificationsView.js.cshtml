@@ -1,0 +1,158 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Validation/Common/Components/CertificationsView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var CertificationsView = function () {
+		FormView.Extend(this, "@g["Certifications"]", "/Validation/Common/Components/CertificationsView");
+		this.Certifications = null;
+	};
+
+
+    CertificationsView.prototype = {
+        constructor: CertificationsView,
+
+		AddRow: function () {
+			var self = this;
+			self.elements.MappingsTable.Rows.Add(self.GetEmptyCertification());
+			self.elements.MappingsTable.BeginEdit(self.elements.MappingsTable.Rows.Count - 1, 0);
+		},
+		GetEmptyCertification: function(){
+			let self = this;
+		  		return {
+			      "ID": 0,
+				  "CompanyID": "@userData.CompanyID",
+				  "SupplierReference": "@userData.UserName",
+				  "CertificateNumber": "",
+				  "CertifyingCompany": "",
+				  "CertificationExpiration": new Date()
+			  };
+		},
+
+		Delete: function () {
+			var self = this;
+			var idx = this.elements.MappingsTable.Rows.SelectedIndex;
+			if (idx >= 0) {
+				var confirm = new ConfirmDialog("@g["Delete certification?"]");
+				confirm.ShowDialog(function (response) {
+					if (response) {
+						self.doRemoveCertification(idx);
+					}
+				});
+			}
+		},
+
+		doRemoveCertification: async function (idx) {
+			var row = this.elements.MappingsTable.Rows.Get(idx);
+			row.IsDeleted = true;
+			AppContext.Certifications.Delete(row).then(response => {
+				if (response.Success) {
+					let certificationSelected = this.elements.MappingsTable.Rows.Get(idx);
+					certificationSelected.IsDeleted = true;
+					this.elements.MappingsTable.Rows.Remove(idx);
+					this.Close(certificationSelected);
+				}
+			})
+		},
+
+		ValidState: function(){
+			let certificaciones = this.elements.MappingsTable.Rows.DataSource;
+			let certificacionSelected = this.elements.MappingsTable.Rows.GetSelected();
+
+			let valid = true;
+			certificaciones.forEach((cert, index) => {
+			  if (!cert.SupplierReference || !cert.CertificateNumber || !cert.CertifyingCompany || !cert.CertificationExpiration)
+				  valid = false;
+			});
+
+			if(!valid)
+				AppContext.ShowError('@g["There is an error in some field of the table"]');
+			return valid;
+		},
+		Selected: function(e) {
+			 let certificationSelected = this.elements.MappingsTable.Rows.GetSelected();
+
+			 if(certificationSelected[0]?.ID == 0){
+				 AppContext.ShowError(`@g["Remember to save before choosing a new certificate."]`);
+				 return;
+			 }
+
+			 if (certificationSelected[0]?.CertificationExpiration) {
+			  let expirationDate = new Date(certificationSelected[0].CertificationExpiration);
+			  let today = new Date();
+
+			  if (expirationDate <= today) {
+				  AppContext.ShowError(`@g["The certificate has already expired. Please select another or change the expiration date."]`);
+				  return;
+			  }
+			}
+
+
+			 let certificationObject = certificationSelected.length > 0 ? { ...certificationSelected[0] } : null;
+			 this.Close(certificationObject);
+			 if(certificationSelected.length > 0)
+				 AppContext.ShowSuccess(`@g["A certificate has been selected"]`);
+		},
+		Save: async function (e) {
+			if (!this.ValidState()) return;
+			let certifications = this.elements.MappingsTable.Rows.DataSource;
+
+			certifications = certifications.map(cert => {
+			  if (!cert.CertificationExpiration) return cert;
+			  let fecha = new Date(cert.CertificationExpiration);
+			  let year = fecha.getFullYear();
+			  let month = String(fecha.getMonth() + 1).padStart(2, '0');
+			  let day = String(fecha.getDate()).padStart(2, '0');
+
+			  cert.CertificateNumber =  cert.CertificateNumber.substring(0, 60);
+			  cert.CertifyingCompany = cert.CertifyingCompany.substring(0, 60);
+
+			  return {
+				  ...cert,
+				  CertificationExpiration: `${year}-${month}-${day}` // Formato YYYY-MM-DD
+			  };
+		  });
+
+			AppContext.Certifications.Save(certifications).then(response => {
+				if(response.Success){
+					this.elements.MappingsTable.Rows.Clear();
+					this.elements.MappingsTable.Rows.LoadData(response.Data.filter(certification => certification.CompanyID == "@userData.CompanyID"));
+				}
+			})
+		},
+		
+
+		OnLoad: function () {
+			var self = this;
+
+			self.LoadCertfications()
+				.then((certifications) => {
+                            console.log("Certificaciones cargadas:", certifications);
+							self.Certifications = certifications;
+							certifications.forEach(certification => certification.Selected = false);
+							self.elements.MappingsTable.Rows.LoadData(certifications);
+                        }).catch((error) => {
+                            console.error("Error al cargar las certificaciones:", error);
+            });
+
+		},
+		LoadCertfications: function () {
+                    return AppContext.Certifications.GetByVendorID("@userData.CompanyID") 
+                        .then(certifications => {
+                            console.log("Certificaciones recibidas:", certifications);
+                            return certifications;
+                        })
+                        .catch(error => {
+                            console.error("Error al obtener certificaciones:", error);
+                            throw error;
+                        });
+        }
+	};
+//</script>

@@ -1,0 +1,14 @@
+﻿@page
+@inject ILocalizationService g
+@{
+	Layout = null;
+}
+<div class="card">
+	<div class="card-body">
+		<div style="margin:auto; width:450px;">
+			<h5>@g["Processing file..."]</h5>
+			<div name="ProgressBar" style="width:330px;"></div>
+		</div>
+	</div>
+</div>
+

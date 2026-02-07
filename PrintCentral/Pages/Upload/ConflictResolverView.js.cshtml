@@ -1,0 +1,504 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData  userData
+@{
+    Layout = null;
+}
+//# sourceURL=https://Pages/Upload/ConflictResolverView.js
+/// <script>
+
+    var ConflictResolverView = function (orderRowInfo) {
+
+        this.OrderRowInfo = orderRowInfo;
+
+        this.PrevUpdates = [];
+
+        this.NewUpdates = [];
+
+        this.PrevMarks = [];
+
+        this.NewMarks = [];
+
+        this.Request = {};
+
+        this.CurrentImage;
+
+        this.NewImage;
+
+        this.EnableAcceptUpdate = true;
+
+        FormView.Extend(this, "@g["Conflict Resolver Tool"]", `@Url.Content("~/Upload/ConflictResolverView")?orderID=${this.OrderRowInfo.OrderID}`);
+    }
+
+    ConflictResolverView.COLOR = 'rgba(255, 118, 0, 0.6)';
+
+
+    ConflictResolverView.prototype = {
+
+        constructor: ConflictResolverView,
+
+
+        PrevGrid: function () { return this.elements.CurrentOrderGrid },
+        NewGrid: function () { return this.elements.NewOrderGrid },
+
+        OnLoad: function () {
+            let self = this;
+
+            let prevData = JSON.parse(self.elements.PrevData.val());
+
+            let newData = JSON.parse(self.elements.NewData.val());
+
+            self.PrevUpdates = JSON.parse(self.elements.PrevUpdates.val())
+            self.NewUpdates = JSON.parse(self.elements.NewUpdates.val())
+
+            self.PrevGrid().Rows.LoadData(prevData);
+            self.NewGrid().Rows.LoadData(newData);
+
+            self.FilterOrders(self.OrderRowInfo);
+
+            //Images Comparer
+            self.PrevGrid().RowClick.Subscribe(self, self.PrevGridRowSelected);
+            self.NewGrid().RowClick.Subscribe(self, self.NewGridRowSelected);
+            self.GetLabelID(self.OrderRowInfo.ArticleID);
+            self.EnableUIButtons(self.OrderRowInfo)
+            self.CheckOrderStatus();
+        },
+
+        EnableUIButtons : function (data) {
+            let self = this; 
+            if (!data || !data.ProjectID) {
+                return; 
+            }
+
+           AppContext.Projects.GetByID(data.ProjectID).done((result) => {
+              self.Project = result;
+              if (self.Project.ForceOverwriteOrderOnManualValidation)
+              {
+                  const btnKeepCurrent = document.getElementById("btn-KeepCurrent");
+                  const btnKeepBoth = document.getElementById("btn-KeepBoth");
+
+                  if (btnKeepCurrent) {
+                      btnKeepCurrent.style.display = 'none';
+                  }
+                  
+                  if (btnKeepBoth) {
+                      btnKeepBoth.style.display = 'none';
+                  }
+              }
+           });
+        },
+
+        FilterOrders: function (data) {
+            let self = this;
+
+            let filter = {
+                CompanyID: 0,
+                CurrentPage: 1,
+                FactoryID: 0,
+                InConflict: 2,
+                IsBilled: 2,
+                IsStopped: 2,
+                OrderDate: data.OrderDate,
+                OrderNumber: data.OrderNumber + "-",
+                ProductionType: 1,
+                ProjectID: data.ProjectID,
+                PageSize: 10,
+                CurrentPage: 1,
+                ProviderClientReference: ""
+            };
+
+            return AppContext.Orders.GetOrderGroups(filter)
+                .done((response) => {
+                    if (response.Success) {
+                        let expression = new RegExp("-([0-9])+[D]$");
+
+                        let rows = response.Data.Records.filter(x => expression.test(x.OrderNumber));
+
+                        if (rows.length > 0) {
+                            $(".order-groups-grid").show();
+                            self.elements.DeriveOrdersGrid.Rows.LoadData(rows);
+                            self.CurrentChecked = {};
+                        }
+                        else
+                            $(".order-groups-grid").hide();
+                    }
+                })
+        },
+
+        GridViewSetRowCssClass: function (rowIdx, data) {
+            if (!data.IsGroup) {
+                return '';
+            }
+            return 'order-group';
+        },
+
+        RenderArticleName: function (value, rowIdx, colIdx, dataType, data) {
+            if (data.IsGroup) {
+                let project = []
+
+                let sendto = [];
+
+                let billto = [];
+
+                @if(userData.IsIDT)
+                {
+                    <text>
+                project.push(data.CompanyName)
+                    </text>
+                }
+
+                project.push(data.Brand);
+                project.push(data.Project);
+
+                if (data.SendTo) {
+                    sendto.push('<b>@g["Send To"]</b>');
+                    sendto.push(data.SendTo);
+                }
+
+                if (data.BillTo) {
+                    billto.push('<b>@g["Bill to"]</b>');
+                    billto.push(data.BillTo);
+                }
+
+                let projectInfo = project.join('&nbsp;<i class="fa fa-fw fa-chevron-right"></i>&nbsp;');
+
+                let shippingTo = sendto.join(':&nbsp;');
+
+                let invoiceTo = billto.join(':&nbsp;');
+
+                return projectInfo + '<div class="order-vendor-info">' + [shippingTo, invoiceTo].join(' - ') + '</div>';
+            }
+            return value;
+        },
+
+        AddPrevConflict: function (value, rowIdx, colIdx, dataType, data) {
+            let self = this;
+            // TODO: por ahora barcode
+            // buscar el barcode que estoy renderizando en lista de updates
+            let rowUpdate = self.PrevUpdates[rowIdx];
+
+            let header = self.PrevGrid().Headers.Get(colIdx)
+
+            if (!rowUpdate) rowUpdate = [];
+
+            if (rowUpdate.indexOf(header.Field) != -1) {
+                return `<div style="background-color: ${ConflictResolverView.COLOR};"> ${value}</div>`;
+            }
+
+            return value;
+        },
+
+        PrevGridLoaded: function (evt) {
+
+        },
+
+        AddNewConflict: function (value, rowIdx, colIdx, dataType, data) {
+            let self = this;
+
+            let rowUpdate = self.NewUpdates[rowIdx];
+
+            let header = self.PrevGrid().Headers.Get(colIdx)
+
+            if (rowUpdate && rowUpdate.indexOf(header.Field) != -1) {
+
+                return `<div style="background-color: ${ConflictResolverView.COLOR};"> ${value}</div>`;
+
+            }
+
+            return value;
+
+        },
+
+        NewGridLoaded: function (evt) {
+
+        },
+
+        KeepCurrent: function () {
+
+            let self = this;
+
+            let rq = {
+                OrdersInConflic: [
+                    {
+                        OrderID: self.model.PrevOrderID,
+                        Accepted: true,
+                        Items: []
+                    },
+                    {
+                        OrderID: self.model.NewOrderID,
+                        Accepted: false,
+                        Items: []
+                    }
+                ]
+            }
+
+            AppContext.Wizard.SolveConflict(rq).done(() => {
+                self.Back();
+            });
+
+        },
+
+        AcceptUpdate: function () {
+            let self = this;
+
+            if (self.EnableAcceptUpdate == false || self.elements['BtnAcceptUpdate'].prop('disabled')) {
+                AppContext.ShowWarning('@g["Current Order cannot be Cancelled, if you need to '{0}', use '{1}' option please contact to Customer Service for help", "Accept Update", "Keep Both"]');
+                return;
+            }
+
+            let rq = {
+                
+                OrdersInConflic: [
+                    {
+                        OrderID: self.model.PrevOrderID,
+                        Accepted: false,
+                        Items: []
+                    },
+                    {
+                        OrderID: self.model.NewOrderID,
+                        Accepted: true,
+                        Items: []
+                    }
+                ]
+            }
+
+            AppContext.Wizard.SolveConflict(rq).done(() => {
+                self.Back();
+            })
+        },
+
+        KeepBoth: function () {
+
+            let self = this;
+
+            let rq = {
+                
+                OrdersInConflic: [
+                    {
+                        OrderID: self.model.PrevOrderID,
+                        Accepted: true,
+                        Items: []
+                    },
+                    {
+                        OrderID: self.model.NewOrderID,
+                        Accepted: true,
+                        Items: []
+                    }
+                ]
+                    
+            }
+
+            AppContext.Wizard.SolveConflict(rq).done(() => {
+            self.Back();
+            })
+        },
+
+        Back: function () {
+            // redirect to the order list
+            let self = this;
+
+            let returnTo = new OrderGroupIndexView();
+
+            returnTo.Show(self.ViewContainer)
+        },
+
+        OnScroll: function (e) {
+            let self = this;
+
+            let grid = e.target.attributes['name'];
+
+            if (grid) {
+                if (e.target == self.PrevGrid().Element) {
+                    let rightGrid = self.NewGrid().Element;
+                    rightGrid.scrollLeft = e.target.scrollLeft;
+                    rightGrid.scrollTop = e.target.scrollTop;
+
+                }
+                else if (e.target == self.NewGrid().Element) {
+                    let leftGrid = self.PrevGrid().Element;
+                    leftGrid.scrollLeft = e.target.scrollLeft;
+                    leftGrid.scrollTop = e.target.scrollTop;
+                }
+            }
+        },
+
+        PrevGridRowSelected: function (e, isSelected) {
+            let self = this;
+
+            if (e) {
+                self.Request.PrevDataId = e.rowData.dataId ? parseInt(e.rowData.dataId) : -Math.abs(self.PrevGrid().Rows.SelectedIndex);
+                self.Request.NewDataId = self.NewGrid().Rows.DataSource[e.rowIndex] && self.NewGrid().Rows.DataSource[e.rowIndex].dataId ?
+                    parseInt(self.NewGrid().Rows.DataSource[e.rowIndex].dataId) :
+                    -Math.abs(self.PrevGrid().Rows.SelectedIndex);
+                isSelected = true;
+
+                if (self.NewGrid().Rows.Count - 1 >= e.rowIndex) {
+                    self.NewGrid().Rows.Select(e.rowIndex);
+                }
+                else {
+                    self.NewGrid().Rows.ClearSelection();
+                }
+            }
+
+            self.GetRequest(e, isSelected);
+        },
+
+        NewGridRowSelected: function (e, isSelected) {
+            let self = this;
+
+            if (e) {
+                self.Request.NewDataId = e.rowData.dataId ? parseInt(e.rowData.dataId) : -Math.abs(self.NewGrid().Rows.SelectedIndex);
+                self.Request.PrevDataId = self.PrevGrid().Rows.DataSource[e.rowIndex] && self.PrevGrid().Rows.DataSource[e.rowIndex].dataId ?
+                    parseInt(self.PrevGrid().Rows.DataSource[e.rowIndex].dataId) :
+                    -Math.abs(self.NewGrid().Rows.SelectedIndex);
+                isSelected = true;
+
+                if (self.PrevGrid().Rows.Count - 1 >= e.rowIndex) {
+                    self.PrevGrid().Rows.Select(e.rowIndex);
+                }
+                else {
+                    self.PrevGrid().Rows.ClearSelection();
+                }
+            }
+
+            self.GetRequest(e, isSelected);
+        },
+
+        GetRequest: function (e, isSelected) {
+            let self = this;
+
+            if (!e) {
+                self.Request.PrevDataId = self.PrevGrid().Rows.DataSource[0] && self.PrevGrid().Rows.DataSource[0].dataId ?
+                    parseInt(self.PrevGrid().Rows.DataSource[0].dataId) :
+                    0;
+                self.Request.NewDataId = self.NewGrid().Rows.DataSource[0] && self.NewGrid().Rows.DataSource[0].dataId ?
+                    parseInt(self.NewGrid().Rows.DataSource[0].dataId) :
+                    0;
+            }
+
+            self.Request.PrevOrderId = self.elements.PrevOrderID.val();
+            self.Request.NewOrderId = self.elements.NewOrderID.val();
+            self.Request.LabelId = self.LabelId;
+
+            //left Image
+            self.GetImageData(self.elements.CurrentOrderPreview[0].attributes["name"].value, self.elements.CurrentOrderPreview, self.Request.PrevDataId,
+                `/labels/getarticlepreview/${self.Request.LabelId}/${self.Request.PrevOrderId}/${self.Request.PrevDataId >= 0 ? self.Request.PrevDataId : 0}`, isSelected);
+
+            //right Image
+            self.GetImageData(self.elements.NewOrderPreview[0].attributes["name"].value, self.elements.NewOrderPreview, self.Request.NewDataId,
+                `/order/imagecomparer/${self.Request.LabelId}/${self.Request.PrevOrderId}/${self.Request.PrevDataId >= 0 ? self.Request.PrevDataId : 0}/${self.model.data.NewOrderLabelID}/${self.Request.NewOrderId}/${self.Request.NewDataId >= 0 ? self.Request.NewDataId : 0}`, isSelected);
+        },
+
+        GetLabelID: function (articleId) {
+            let self = this;
+            AppContext.Articles.GetByID(articleId, (data) => {
+                if (data && data.LabelID) {
+                    self.LabelId = data.LabelID;
+                    self.PrevGridRowSelected(null, true);
+                    self.PrevGrid().Rows.HighlightColor = "#1ea5d6";
+                    self.NewGrid().Rows.HighlightColor = "#1ea5d6";
+                    self.PrevGrid().Rows.Select(0);
+                    self.NewGrid().Rows.Select(0);
+
+                    self.LoadImages();
+                }
+            });
+        },
+
+        LoadImages: function () {
+            let self = this;
+
+            self.Request.PrevOrderId = self.elements.PrevOrderID.val();
+            self.Request.NewOrderId = self.elements.NewOrderID.val();
+            self.Request.LabelId = self.LabelId;
+            //Load left grid images
+            for (let i = 0; i < self.PrevGrid().Rows.Count; i++) {
+                let data = self.PrevGrid().Rows.DataSource[i];
+                let dataId = data.dataId ? data.dataId : -Math.abs(i);
+                self.GetImageData(self.elements.CurrentOrderPreview[0].attributes["name"].value, self.elements.CurrentOrderPreview, dataId,
+                    `/labels/getarticlepreview/${self.Request.LabelId}/${self.Request.PrevOrderId}/${dataId >= 0 ? dataId : 0}`, false);
+            }
+
+            //Load right grid images
+            for (var i = 0; i < self.NewGrid().Rows.Count; i++) {
+                if (self.PrevGrid().Rows.DataSource[i]) {
+                    let currentDataId = self.NewGrid().Rows.DataSource[i] && self.NewGrid().Rows.DataSource[i].dataId ? self.NewGrid().Rows.DataSource[i].dataId : -Math.abs(i);
+                    let predDataId = self.PrevGrid().Rows.DataSource[i].dataId ? self.PrevGrid().Rows.DataSource[i].dataId : -Math.abs(i);
+                    self.GetImageData(self.elements.NewOrderPreview[0].attributes["name"].value, self.elements.NewOrderPreview, currentDataId,
+                        `/order/imagecomparer/${self.Request.LabelId}/${self.Request.PrevOrderId}/${predDataId >= 0 ? predDataId : 0}/${self.model.data.NewOrderLabelID}/${self.Request.NewOrderId}/${currentDataId >= 0 ? currentDataId : 0}`, false);
+                }
+            }
+        },
+
+        GetImageData: function (name, element, dataId, src, isSelected) {
+            var self = this;
+            if (isSelected) {
+                $("div[name='" + name + "'] > img").hide();
+            }
+            var isCurrentPrevLoaded = $("img[data-entityid='" + name + dataId + "']");
+            if (isCurrentPrevLoaded.length == 0) {
+                self.CreateImageElement(element, name + dataId, `${src}?${(new Date()).valueOf()}`, isSelected);
+            }
+            else {
+                let currentElement = $("img[data-entityid='" + name + dataId + "']");
+
+                //update image height
+                let imageName = currentElement[0].attributes['data-entityid'].value;
+
+                if (imageName.includes('NewOrderPreview')) {
+                    self.NewImage = currentElement;
+                } else {
+                    self.CurrentImage = currentElement;
+                }
+
+                if (self.NewImage && self.CurrentImage && dataId < 1) {
+                    if (imageName.includes('NewOrderPreview') && self.CurrentImage[0].height) {
+                        self.NewImage[0].height = self.CurrentImage[0].height;
+                    } else if (imageName.includes('PrevOrderPreview') && self.NewImage[0].height) {
+                        self.CurrentImage[0].height = self.NewImage[0].height;
+                    }
+
+                    self.CurrentImage = null;
+                    self.NewImage = null;
+                }
+
+                if (isSelected) {
+                    currentElement.show();
+                }
+            }
+        },
+
+        CreateImageElement: function (element, fileName, src, isSelected) {
+            let html = $(`
+                    <img  class="image-preview label-preview3" data-entityid="${fileName}"
+                        src="${src}"
+                    />`);
+            element.append(html);
+
+            if (isSelected) {
+                html.show();
+            } else {
+                html.hide();
+            }
+        },
+
+        CheckOrderStatus: function () {
+            let self = this;
+
+            let status = self.OrderRowInfo.OrderStatus;
+
+            let registerInERP = self.OrderRowInfo.SageReference ? true : false;
+
+            if (registerInERP || status == @((int)OrderStatus.Printing) || status ==@((int)OrderStatus.Completed)) {
+                // bootstrap class and properties disabled click event too
+                //self.elements['BtnAcceptUpdate'].prop('disabled', true);
+                //self.elements['BtnAcceptUpdate'].addClass('disabled')
+                self.EnableAcceptUpdate = false;
+                self.elements['EnableUpdateIcon'].removeClass('d-none');
+            }
+
+
+        }
+    }
+
+/// </script>

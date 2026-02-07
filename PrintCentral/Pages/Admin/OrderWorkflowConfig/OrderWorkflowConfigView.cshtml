@@ -1,0 +1,27 @@
+﻿@page
+@inject ILocalizationService g
+@inject IOrderWorkflowConfigRepository repo
+@{
+	Layout = null;
+	IOrderWorkflowConfig data;
+	if(Request.Query.ContainsKey("id"))
+	{
+		int id = Convert.ToInt32(Request.Query["id"]);
+		data = repo.GetByID(id);
+	}
+	else
+	{
+		data = repo.Create();
+	}
+}
+<viewrow>
+	<viewcolumn>
+		<div model name="ID" label="ID:">@data.ID</div>
+		<input model name="SerializedConfig" type="hidden" value="@data.SerializedConfig" />
+		<div name="ConfigContainer"></div>
+	</viewcolumn>
+</viewrow>
+<viewfooter>
+	<a href="#" id="save" class="btn btn-primary" action="Save">@g["Save"]</a>
+	<a href="#" class="btn btn-outline-danger" action="Cancel">@g["Cancel"]</a>
+</viewfooter>

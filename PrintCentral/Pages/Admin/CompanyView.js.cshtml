@@ -1,0 +1,380 @@
+﻿@page
+@inject ILocalizationService g
+@inject IUserData userData
+@{
+	Layout = null;
+}
+//# sourceURL=https://Pages/Admin/CompanyView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+	var CompanyView = function (companyid) {
+		FormView.Extend(this, "@g["Company"]", `/admin/CompanyView?companyid=${companyid}`);
+        this.CompanyID = companyid;
+	};
+
+
+	CompanyView.prototype = {
+		constructor: CompanyView,
+
+        OnLoad: function () {
+            var self = this;
+			@if (userData.Admin_Companies_CanEditLogo)
+			{
+				@:this.elements.Icon[0].SetImage(this.CompanyID);
+			}
+			@if (userData.Admin_Companies_CanEditProviders)
+			{
+			<text>
+            self.elements.ProvidersTable.OnSelectedChanged = function (e) { self.RowSelected(e); };
+            self.elements.ProvidersTable.OnDoubleClick = function (e) {self.DobleClickToEdit(e); };
+            self.ViewContainer.find(".toolbar-body a").slice(1).attr("data-disabled", "true").addClass("toolbar-disabled");
+            AppContext.Providers.GetByCompanyID(this.CompanyID, function (result) {
+				if (result) self.elements.ProvidersTable.LoadData(result);
+			});
+			</text>
+			}
+
+            self.EnableSageSync();
+		},
+
+		@if (userData.Admin_Companies_CanEditLogo)
+		{
+		<text>
+		GetImageUploadUrl: function (fieldName, val) {
+			return `/companies/uploadlogo/${val}`;
+		},
+
+		GetImageDownloadUrl: function (fieldName, val) {
+			return `companies/logo/${val}`;
+		},
+		</text>
+		}
+
+		@if (userData.Admin_Companies_CanEditFTPSettings)
+		{
+		<text>
+		FtpAccount: function (e) {
+			var self = this;
+			AppContext.LoadJS("/admin/FtpAccountDialog.js").then(()=>{
+				var dlg = new FtpAccountDialog(self.CompanyID);
+				dlg.ShowDialog(function (data) { });
+			});
+		},
+		</text>
+		}
+
+		@if (userData.Admin_Companies_CanEditRFIDSettings)
+		{
+		<text>
+		RFIDConfig: function (e) {
+			var self = this;
+			AppContext.LoadJS("/Admin/RfidConfig/RfidConfigView.js").then(() => {
+				var view = new RfidConfigView(self.model.RFIDConfigID);
+				view.ShowDialog((data) => {
+					if (data != null) {
+						self.model.RFIDConfigID = data.ID;
+						if (self.model.ID != null && self.model.ID != 0)
+							AppContext.Companies.AssignRFIDConfig(self.model.ID, data.ID);
+					}
+				}, "60%");
+			});
+		},
+
+		UpdateSequence: function (e) {
+			e.preventDefault();
+			var self = this;
+			if (self.model.RFIDConfigID == 0) return;
+			var dlg = new ConfirmDialog("@g["Are you sure you want to update the serial number sequence? This operation might lead to tags having duplicated serial numbers"]");
+			dlg.ShowDialog(function (response) {
+				if (response) {
+					AppContext.RfidConfig.UpdateSequence(self.model.RFIDConfigID, self.model.SerialNumber, (result) => {});
+				}
+			});
+		},
+		</text>
+		}
+
+		@if(userData.Admin_Companies_CanEditProviders)
+		{
+		<text>
+		RowSelected: function (e) {
+            console.log(e);
+			if (this.elements.ProvidersTable.SelectedIndex >= 0)
+				this.ViewContainer.find(".toolbar-body a").attr("data-disabled", "false").removeClass("toolbar-disabled");
+			else
+				this.ViewContainer.find(".toolbar-body a").slice(1).attr("data-disabled", "true").addClass("toolbar-disabled");
+		},
+
+        DobleClickToEdit: function (e) {
+            this.EditProvider();
+        },
+
+		AddProvider: function (e) {
+			var self = this;
+			AppContext.LoadJS("/Admin/Providers/ProviderDialog.js").then(()=>{
+				var dialog = new ProviderDialog(self.CompanyID, null);
+				dialog.ShowDialog(function (dlgData) {
+                    if (dlgData) {
+						dlgData.ID = 0;
+						AppContext.Providers.AddProviderToCompany(self.CompanyID, dlgData, function (result) {
+                            if (!result.Success) {
+                                return;
+                            } else {
+                                dlgData.ID = result.Data;
+                                self.elements.ProvidersTable.AddRow(dlgData);
+                            }
+						});
+					}
+				});
+			});
+		},
+
+		EditProvider: function (e) {
+			var self = this;
+			var provider = this.elements.ProvidersTable.GetSelectedData();
+			AppContext.LoadJS("/Admin/Providers/ProviderDialog.js").then(()=>{
+				var dialog = new ProviderDialog(self.CompanyID, provider);
+				dialog.ShowDialog(function (dlgData) {
+                    if (dlgData) {
+						AppContext.Providers.UpdateProvider(dlgData, function (result) {
+							if (result.Success) {
+								self.elements.ProvidersTable.UpdateRow(self.elements.ProvidersTable.SelectedIndex, dlgData);
+                            }
+
+                            AppContext.Providers.GetByCompanyID(self.CompanyID, function (result) {
+                                if (result) self.elements.ProvidersTable.LoadData(result);
+                            });
+						});
+                    }
+
+				});
+			});
+		},
+
+		RemoveProvider: function (e) {
+            var self = this;
+			var provider = this.elements.ProvidersTable.GetSelectedData();
+			var dlg = new ConfirmDialog("@g["Remove association between this company and the selected provider?"]");
+			dlg.ShowDialog(function (response) {
+				if (response) {
+					AppContext.Providers.RemoveProviderFromCompany(provider.ID, function (result) {
+						if (result.Success) {
+							self.elements.ProvidersTable.DeleteRow(self.elements.ProvidersTable.SelectedIndex);
+						}
+					});
+				}
+			});
+		},
+		</text>
+		}
+
+		@if (userData.Admin_Companies_CanEdit)
+		{
+		<text>
+		Save: function (e) {
+			var self = this;
+			if (!this.model.ValidState()) return;
+			var data = this.GetData();
+			AppContext.Companies.Update(data, function (result) {
+				if (result.Success) {
+					@if (userData.Admin_Companies_CanSee)
+					{
+					@:self.OnSaved.Raise(data);
+					}
+					if (self.dialog === true)
+						self.Close(data);
+				}
+			});
+        },
+
+
+		EnableSageSync: function () {
+
+            var self = this;
+            self._EnableSage(self.model.SyncWithSage);
+        },
+
+		_EnableSage: function (enabled) {
+
+            this.elements.SageRef.prop('readonly', !enabled);
+            this.elements.SageSyncObject.prop('disabled', !enabled);
+
+        },
+
+		SageSyncObjectFn: function () {
+
+            var self = this;
+
+
+            if (!self.model.SyncWithSage || !self.model.SageRef || self.model.SageRef.length <= 0 ) {
+                return;
+            }
+
+
+			AppContext.LoadJS('/Admin/CompanyPreviewSageData.js').then(() => {
+
+                var confirmSycn = new CompanyPreviewSageData(self.model.ID, self.model.SageRef);
+
+                confirmSycn.ShowDialog((dialogResult) => {
+                    console.log(dialogResult);
+
+                    if (confirmSycn.Data == null) {
+                        return;
+                    }
+
+                    self.LoadData(confirmSycn.Data);
+                });
+
+            });
+
+            //AppContext.Sage.GetCompany(self.model.ID, self.model.SageRef)
+            //    .fail((a, b, c) => {
+            //        console.log(a, b, c)
+            //    })
+            //    .done((response) => {
+            //        if (response.Success == false) {
+            //            return;
+            //        }
+            //    });
+
+        },
+
+	</text>
+        }
+
+        AddLocation: function (e) {
+            var self = this;
+			AppContext.LoadJS("/Common/AskNameDialog.js").then(() => {
+				var dialog = new AskNameDialog("@g["New Location"]");
+				dialog.ShowDialog(function (dlgData) {
+                    if (dlgData) {
+                        dlgData.CompanyID = self.CompanyID;
+                        AppContext.Locations.Insert(dlgData, function (result) {
+                            if (result.Success) {
+                                self.EditLocation(e, result.Data.ID);
+							}
+						});
+					}
+				});
+			});
+        },
+
+        EditLocation: function (e, location) {
+            var self = this;
+            var locationId = location == null ? self.GetLocationId(e) : location;
+            if (locationId != null) {
+                AppContext.LoadJS("/Admin/Locations/LocationView.js").then(() => {
+                    var dialog = new LocationView(locationId);
+                    dialog.ShowDialog(function (data) {
+                        if (data) {
+                            self.GetLocations(self.CompanyID, e, location);
+                        }
+                    }, "50%");
+                });
+            }
+        },
+
+        RemoveLocation: function (e) {
+            var self = this;
+            var locationId = self.GetLocationId(e);
+            if (locationId != null) {
+
+                var dlg = new ConfirmDialog("@g["Remove selected Company Location?"]");
+                dlg.ShowDialog(function (response) {
+                    if (response) {
+                        AppContext.Locations.Delete(locationId, function (result) {
+                            if (result.Success) {
+                                self.GetLocations(self.CompanyID);
+                            }
+                        });
+                    }
+                }, "40%");
+            }
+        },
+
+        GetLocations: function (companyId, e, locationId) {
+            var self = this;
+            AppContext.Locations.GetByCompanyID(companyId, function (data) {
+                var elements = self.GetSelectedItems(data);
+                AppContext.LoadComboBox(self.elements.DefaultDeliveryLocation, data, "ID", "Name");
+                AppContext.LoadComboBox(self.elements.MainLocationID, data, "ID", "Name");
+                self.SetSelectedItems(elements);
+                if (e) {
+                    self.SelectNewLocation(e, locationId);
+                }
+            });
+        },
+
+        GetSelectedItems: function (data) {
+            var self = this;
+            var deliverySelected = data.find(function (e) {
+                return e.ID == self.elements.DefaultDeliveryLocation.val();
+            });
+
+            var mainSelected = data.find(function (e) {
+                return e.ID == self.elements.MainLocationID.val();
+            });
+
+            return [deliverySelected, mainSelected];
+        },
+
+        SetSelectedItems: function (elements) {
+            var self = this;
+
+            if (elements[0]) {
+                self.model.DefaultDeliveryLocation = elements[0].ID;
+            }
+
+            if (elements[1]) {
+                self.model.MainLocationID = elements[1].ID;
+            }
+        },
+
+        GetLocationId: function (e) {
+            var self = this;
+            var locationId = 0;
+            var deliveryLocation = e.currentTarget.parentElement.hasAttribute('delivery');
+            if (deliveryLocation) {
+                var locationId = self.elements.DefaultDeliveryLocation.val();
+            } else {
+                var locationId = self.elements.MainLocationID.val();
+            }
+
+            return locationId;
+        },
+
+        SelectNewLocation: function (e, locationId) {
+            var self = this;
+            var deliveryLocation = e.currentTarget.parentElement.hasAttribute('delivery');
+            if (deliveryLocation) {
+                self.model.DefaultDeliveryLocation = locationId;
+            } else {
+                self.model.MainLocationID = locationId;
+            }
+        },
+
+		ERPConfig: function (e) {
+			var self = this;
+            AppContext.LoadJS("/Admin/Companies/CompanyERPConfigView.js").then(() => {
+                var view = new CompanyERPConfigView(self.CompanyID);
+                view.ShowDialog((data) => {
+					/*empty*/
+				}, "80%");
+			});
+        },
+
+        InlayConfig: function (e) {
+            var self = this;
+            AppContext.LoadJS("/Admin/InlayConfig/InlayConfigView.js").then(() => {
+                var view = new InlayConfigView(self.CompanyID);
+                view.ShowDialog((data) => {
+                    /*empty*/
+                }, "80%");
+            });
+        },
+
+	};
+//</script>

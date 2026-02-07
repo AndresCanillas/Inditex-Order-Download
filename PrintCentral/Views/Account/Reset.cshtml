@@ -1,0 +1,217 @@
+﻿@using WebLink.Controllers
+
+@model ResetRequest
+@inject ILocalizationService g
+@{
+    Layout = null;
+    var msgContainSpecialChars = @"([/^[!@#$%^&*()_+\-=\[\]{};':\\|,.<>\/?]*$/])";
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="robots" content="noindex,nofollow">
+    <meta name="viewport" content="width=device-width" />
+
+    <title>Log In</title>
+
+    <link rel="stylesheet" href="~/css/bootstrap.css" />
+    <link rel="stylesheet" href="~/css/PassRequirements.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark" style="top:0px; left:0px; width:100%; height:57px; background-color:#3F454A; color:#ffffff; border-bottom:solid 1px #000000;">
+        <img src="/images/LOGO_IDT_BY_INDET_GROUP.png" width="140" height="12" />
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+        </div>
+    </nav>
+    <br />
+    <div class="container">
+        <div class="row">
+            <div class="col-sm">&nbsp;</div>
+            @if (Model.Success)
+            {
+                <div class="col-6">
+                    <br />
+                    <div class="alert alert-info" role="alert">
+                        @g["Your password has been changed, please continue to the login page."]
+                        <hr />
+                        <div style="text-align:center">
+                            <a class="nav-link active" style="display:block;color:white;" href="/Account/Login">@g["Login page"]</a>
+                        </div>
+                    </div>
+                </div>
+            }
+            @if (!Model.IsValid && !Model.Success)
+            {
+                <div class="col-6">
+                    <br />
+                    <div class="alert alert-danger">
+                        @g["Sorry, looks like the link you are using has expired, please request you system administrator to reset your password and try again."]
+                    </div>
+                </div>
+            }
+            @if (Model.IsValid && !Model.Success)
+            {
+                <div class="col-4">
+                    <br />
+                    <form asp-action="Reset" asp-controller="Account" method="post">
+                        <h4>@g["Password recovery"]</h4>
+                        <br />
+                        <input type="hidden" id="Token" name="Token" value="@Model.Token" />
+                        <div class="form-group">
+                            <label asp-for="Password">@g["New Password"]:</label>
+                            <div>
+                                <span asp-validation-for="Password" class="text-danger"></span>
+                            </div>
+                            <input id="Password" name="Password" type="password" value="@Model.Password" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label asp-for="Password2">@g["Confirmation"]:</label>
+                            <div>
+                                <span asp-validation-for="Password2" class="text-danger"></span>
+                            </div>
+                            <input id="Password2" name="Password2" type="password" value="@Model.Password2" class="form-control" />
+                        </div>
+                        <button class="btn btn-primary" type="submit">@g["Change Password"]</button>
+                        <br /><br />
+                        <div class="text-danger" asp-validation-summary="All"></div>
+                    </form>
+                </div>
+            }
+            <div class="col-sm">&nbsp;</div>
+        </div>
+    </div>
+    <script src="~/js/jquery-3.0.0.min.js"></script>
+    <script src="~/js/bootstrap.min.js"></script>
+    <script src="~/js/PassRequirements.js"></script>
+    <script>
+        if (typeof jQuery === 'undefined') {
+          throw new Error('PassRequirements requires jQuery')
+        }
+
+        +(function ($) {
+
+            $.fn.PassRequirements = function (options) {
+
+                /*
+                 * TODO
+                 * ====
+                 * 
+                 * store regexes in variables so they can be used by users through string 
+                 * specifications,ex 'number', 'special', etc
+                 * 
+                 */
+
+                var defaults = {
+        //            defaults: true
+                };
+        
+                if(
+                    !options ||                     //if no options are passed                                  /*
+                    options.defaults == true ||     //if default option is passed with defaults set to true      * Extend options with default ones
+                    options.defaults == undefined   //if options are passed but defaults is not passed           */
+                ){
+                    if(!options){                   //if no options are passed, 
+                        options = {};               //create an options object
+                    }
+                    defaults.rules = $.extend({
+                        minlength: {
+                            text: "@g["be at least minLength characters long"]",
+                            minLength: 8,
+                        },
+                        containSpecialChars: {
+                            text: "@g["Your input should contain at least minLength special character"]",
+                            minLength: 1,
+                            regex: new RegExp('@msgContainSpecialChars', 'g')
+                        },
+                        containLowercase: {
+                            text: "@g["Your input should contain at least minLength lower case character"]",
+                            minLength: 1,
+                            regex: new RegExp('[^a-z]', 'g')
+                        },
+                        containUppercase: {
+                            text: "@g["Your input should contain at least minLength upper case character"]",
+                            minLength: 1,
+                            regex: new RegExp('[^A-Z]', 'g')
+                        },
+                        containNumbers: {
+                            text: "@g["Your input should contain at least minLength number"]",
+                            minLength: 1,
+                            regex: new RegExp('[^0-9]', 'g')
+                        }
+                    }, options.rules);
+                }else{
+                    defaults = options;     //if options are passed with defaults === false
+                }
+        
+
+        
+                var i = 0;
+
+                return this.each(function () {
+            
+                    if(!defaults.defaults && !defaults.rules){
+                        console.error('You must pass in your rules if defaults is set to false. Skipping this input with id:[' + this.id + '] with class:[' + this.classList + ']');
+                        return false;
+                    }
+            
+                    var requirementList = "";
+                    $(this).data('pass-req-id', i++);
+
+                    $(this).keyup(function () {
+                        var this_ = $(this);
+                        Object.getOwnPropertyNames(defaults.rules).forEach(function (val, idx, array) {
+                            if (this_.val().replace(defaults.rules[val].regex, "").length > defaults.rules[val].minLength - 1) {
+                                this_.next('.popover').find('#' + val).css('text-decoration','line-through');
+                            } else {
+                                this_.next('.popover').find('#' + val).css('text-decoration','none');
+                            }
+
+                        })
+                    });
+
+                    Object.getOwnPropertyNames(defaults.rules).forEach(function (val, idx, array) {
+                        requirementList += (("<li id='" + val + "'>" + defaults.rules[val].text).replace("minLength", defaults.rules[val].minLength));
+                    })
+                    try{
+                    $(this).popover({
+                        title: '@g["Password Requirements"]',
+                        trigger: options.trigger ? options.trigger : 'focus',
+                        html: true,
+                        placement: options.popoverPlacement ? options.popoverPlacement : 'bottom',
+                        content: '@g["Your password should"]:<ul>' + requirementList + '</ul>'
+                            //                        '<p>The confirm field is actived only if all criteria are met</p>'
+                    });
+                    }catch(e){
+                        throw new Error('PassRequirements requires Bootstraps Popover plugin');
+                    }
+                    $(this).focus(function () {
+                        $(this).keyup();
+                    });
+                });
+            };
+
+        }(jQuery));
+    </script>
+    <script>
+        $('#Password').PassRequirements({
+            rules: {
+                containSpecialChars: {
+                    text: "@g["Your input should contain at least minLength special character(s)"] @msgContainSpecialChars.Replace(",", " ")",
+                    minLength: 1,
+                    regex: new RegExp('@msgContainSpecialChars', 'g')
+                },
+                containNumbers: {
+                    text: "@g["Your input should contain at least minLength number(s)"]",
+                    minLength: 2,
+                    regex: new RegExp('[^0-9]', 'g')
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+
+

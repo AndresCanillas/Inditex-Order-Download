@@ -1,0 +1,251 @@
+﻿@page
+@using Service.Contracts.PrintCentral
+@using System.Text.RegularExpressions;
+@inject ILocalizationService g
+@inject IUserData userData
+@inject IUserRepository userRepo
+@inject IProjectRepository projectRepo
+@inject ILocationRepository locationRepo
+@inject IPluginManager<IFtpWatcherPlugin> pluginManager
+@inject IPluginManager<IOrderProcessingPlugin> orderPluginManager
+@{
+    Layout = null;
+    int companyid = Convert.ToInt32(Request.Query["companyid"]);
+    int projectid = Convert.ToInt32(Request.Query["projectid"]);
+    var data = projectRepo.GetByID(projectid);
+    var customerList = userRepo.GetCustomerList(1, true);
+    var clientContactList = userRepo.GetCustomerList(companyid, false);
+    var editable = userData.Admin_Projects_CanEditFTPSettings ? "editable" : "";
+    var locations = locationRepo.GetByCompanyID(1);
+
+    // TODO: create enum type
+    var thresholdOptions = new List<Object>() {
+new { value=0, desc=g["No"] },
+new { value=1, desc=g["Fixed Value"] },
+new { value=2, desc=g["Percentaje"] }
+};
+
+    // TODO: use enum type
+    // how to solve conflicts
+    var orderUpdateTypeOptions = new List<Object>() {
+new {value=0, desc=g["No"] }, // keep curretn
+new {value=1, desc=g["Auto"] }, // accept update automatic
+new {value=2, desc=g["Require Confirm"] }, // user must be select manually first or second option
+new {value=3, desc=g["Use Merge Tool"] }, // user can create a new order manually with file diff
+new {value=4, desc=g["Always New"] } // user can create a new order manually with file diff
+};
+
+    var projectProductionTypeOptions = Enum.GetValues(typeof(ProjectSetProductionType)).Cast<ProjectSetProductionType>().Select(s => new
+    {
+        Name = g[s.GetText()],
+        Value = (int)s
+    }).ToList();
+
+    var plugins = pluginManager.GetList();
+    var orderPlugins = orderPluginManager.GetList();
+}
+<viewcard>
+    <viewrow>
+        <viewcolumn>
+            <viewrow>
+                <viewform>
+                    <div model name="ID" label="ID:"></div>
+                    <input type="hidden" model name="BrandID" />
+                    <input type="hidden" model name="RFIDConfigID" />
+                    <input type="hidden" model name="OrderWorkflowConfigID" />
+                    @if (userData.Admin_Projects_CanRename)
+                    {
+                        <input model name="Name" label="@g["Name"]:*" validation="required;maxlen(35)" type="text" />
+                    }
+                    else
+                    {
+                        <div model name="Name" label="@g["Name"]:*"></div>
+                    }
+                    <textarea model name="Description" label="@g["Description"]:" type="text" validation="maxlen(4000)"></textarea>
+                    <input model name="ProjectCode" label="@g["Project Code"]:*" validation="required;maxlen(20)" type="text" />
+                    @if (userData.Admin_Projects_CanEditFTPSettings)
+                    {
+                        <input model name="EnableFTPFolder" label="@g["Enable FTP Folder?"]" type="checkbox" action="change:FtpFolderChanged" />
+                        <input model name="FTPFolder" label="@g["FTPFolder"]:" type="text" readonly />
+                    }
+                    else
+                    {
+                        <input model name="EnableFTPFolder" type="hidden" />
+                        <input model name="FTPFolder" type="hidden" />
+                    }
+
+                    @if (userData.IsIDTAdminRoles)
+                    {
+                        <select model name="CustomerSupport1" label="@g["Customer Support 1"]:" options="@(OptionList.FromEnumerable(customerList, "Id", "UserName", !String.IsNullOrEmpty(data.CustomerSupport1) ? data.CustomerSupport1.ToString() : ""))" />
+                        <select model name="CustomerSupport2" label="@g["Customer Support 2"]:" options="@(OptionList.FromEnumerable(customerList, "Id", "UserName", !String.IsNullOrEmpty(data.CustomerSupport2) ? data.CustomerSupport2.ToString() : ""))" />
+                        <select model name="ClientContact1" label="@g["Client Contact 1"]:" options="@(OptionList.FromEnumerable(clientContactList, "Id", "UserName", !String.IsNullOrEmpty(data.ClientContact1) ? data.ClientContact1.ToString() : ""))" />
+                        <select model name="ClientContact2" label="@g["Client Contact 2"]:" options="@(OptionList.FromEnumerable(clientContactList, "Id", "UserName", !String.IsNullOrEmpty(data.ClientContact2) ? data.ClientContact2.ToString() : ""))" />
+                    }
+
+                    <select model name="OrderPlugin" label="@g["Order Plugin"]:" options="@(OptionList.FromEnumerable(orderPlugins, "Name", "Description", data.OrderPlugin))"></select>
+                    <input model name="EnablePoolFile" label="@g["Enable Pool File?"]" type="checkbox" />
+
+                    <input model name="PoolFileHandler" label="@g["Pool File Handler"]:*" validation="maxlen(200)" type="text" />
+                    <input model name="Hidden" label="@g["Hide Project?"]" type="checkbox" />
+                </viewform>
+            </viewrow>
+
+            <viewrow>
+
+                <viewcolumn>
+                    <viewform>
+                        <div class="form-subtitle">@g["Config Custom Orders Report"]</div>
+                        <hr class="subtitle">
+
+                        <!-- fields edited inner modal to config report -->
+                        <input model name="CustomOrderDataReport" value="@data.CustomOrderDataReport" type="hidden" />
+
+                        <viewrow>
+                            <a name="bnt_DefineCustomReport" action="DefineCustomReport" href="#" class="btn btn-outline-primary">@g["Define Custom Fields"]</a>
+                        </viewrow>
+
+                    </viewform>
+                </viewcolumn>
+
+            </viewrow>
+        </viewcolumn>
+        <viewcolumn>
+            <viewrow>
+                <viewcolumn>
+                    <input model name="FTPClients" type="hidden" value="@data.FTPClients" />
+                    <div class="form-subtitle">@g["FTP Clients"]</div>
+                    <hr class="subtitle" />
+                    @if (userData.Admin_Projects_CanEditFTPSettings)
+                    {
+                        <div class="toolbar-body" style="width:100%">
+                            <span class="toolbar-grip"></span>
+                            <a href="#" title="@g["Add"]" action="AddFtpClient"><span class="fa fa-plus" style="color:green;"></span></a>
+                            <a href="#" title="@g["Remove"]" action="RemoveFtpClient"><span class="fa fa-trash"></span></a>
+                        </div>
+                    }
+
+                    <div name="FTPClientsGrid" component="OrderGrid" style="width:100%; height:200px;">
+                        <template>
+                            <column width="100" field="Server" @editable>@g["Server"]</column>
+                            <column width="80" field="Port" type="Int" @editable>@g["Port"]</column>
+                            <column width="80" field="User" @editable>@g["User"]</column>
+                            <column width="80" field="Password" type="Password" @editable>@g["Password"]</column>
+                            <column width="80" field="Mode" map='{"1":"FTP", "2":"FTPS", "3":"SFTP"}' @editable>@g["Protocol"]</column>
+                            <column width="80" field="AllowInvalidCert" type="Bool" @editable>@g["Allow Invalid Certificate?"]</column>
+                            <column width="120" field="WorkDirectory" @editable>@g["Work Directory"]</column>
+                            <column width="120" field="FileMask" @editable>@g["File Mask"]</column>
+                            <column width="100" field="DefaultFactory" @editable map="@Map.FromEnumerable(locations, "ID", "Name", true)">@g["Default Factory"]</column>
+                            <column width="80" field="RemoveFilesAfterDownload" type="Bool" @editable>@g["Remove File?"]</column>
+                            <column width="80" field="ZipArchiveProcessing" type="Bool" @editable>@g["Zip Archive?"]</column>
+                            <column width="160" field="PluginName" @editable map="@Map.FromEnumerable(plugins, "Name", "Name", true)">@g["Plugin"]</column>
+                            <column width="100" field="Microservice" type="Bool" @editable>@g["Use Microservice"]</column>
+                            <column width="100" field="PrivateKeyPath" @editable>@g["Private Key Path"]</column>
+                            <column width="80" field="PrivateKeyPassword" type="Password" @editable>@g["Private Key Password"]</column>
+                        </template>
+                    </div>
+                </viewcolumn>
+            </viewrow>
+
+
+            <viewrow class="@(userData.IsIDTAdminRoles ? "" : "d-none")">
+
+                <viewcolumn>
+                    <viewform>
+                        <div class="form-subtitle">@g["Orders Config"]</div>
+                        <hr class="subtitle">
+                        <!-- fields edited inner modal workflow config -->
+                        <input model name="AllowQuantityEdition" value="@data.AllowQuantityEdition" type="hidden" />
+                        <input model name="MaxQuantityPercentage" value="@data.MaxQuantityPercentage" type="hidden" />
+                        <input model name="MaxQuantity" value="@data.MaxQuantity" type="hidden" />
+                        <input model name="AllowExtrasDuringValidation" value="@data.AllowExtrasDuringValidation" type="hidden" />
+                        <input model name="MaxExtrasPercentage" value="@data.MaxExtrasPercentage" type="hidden" />
+                        <input model name="MaxExtras" value="@data.MaxExtras" type="hidden" />
+                        <input model name="AllowAddOrChangeComposition" value="@data.AllowAddOrChangeComposition" type="hidden" data-type="bool" />
+                        <input model name="TakeOrdersAsValid" value="@data.TakeOrdersAsValid" type="hidden" data-type="bool" />
+                        <input model name="OrderSetValidatorPlugin" value="@data.OrderSetValidatorPlugin" type="hidden" data-type="text" />
+                        <input model name="TemplateConfiguration" value="@data.TemplateConfiguration" type="hidden" />
+                        <input model name="AllowExceptions" value="@data.AllowExceptions" type="hidden" data-type="bool" />
+                        <input model name="AllowAdditionals" value="@data.AllowAdditionals" type="hidden" data-type="bool" />
+                        <input model name="AllowMadeInCompoShoesFiber" value="@data.AllowMadeInCompoShoesFiber" type="hidden" data-type="bool" />
+                        <input model name="EnableSectionWeight" value="@data.EnableSectionWeight" type="hidden" data-type="bool" />
+                        <input model name="EnableShoeComposition" value="@data.EnableShoeComposition" type="hidden" data-type="bool" />
+                        <input model name="EnableAllLangs" value="@data.EnableAllLangs" type="hidden" data-type="bool" />
+                        <input model name="SectionsSeparator" value="@Regex.Escape(data.SectionsSeparator ?? "")" type="hidden" data-type="text" />
+                        <input model name="SectionLanguageSeparator" value="@Regex.Escape(data.SectionLanguageSeparator ?? "")" type="hidden" data-type="text" />
+                        <input model name="FibersSeparator" value="@Regex.Escape(data.FibersSeparator ?? "")" type="hidden" data-type="text" />
+                        <input model name="FiberLanguageSeparator" value="@Regex.Escape(data.FiberLanguageSeparator ?? "")" type="hidden" data-type="text" />
+                        <input model name="CISeparator" value="@Regex.Escape(data.CISeparator ?? "")" type="hidden" data-type="text" />
+                        <input model name="CILanguageSeparator" value="@Regex.Escape(data.CILanguageSeparator ?? "")" type="hidden" data-type="text" />
+                        <input model name="WizardCompositionPlugin" value="@data.WizardCompositionPlugin" type="hidden" data-type="text" />
+                        <input model name="IncludeFiles" value="@data.IncludeFiles" type="hidden" data-type="bool" />
+                        <input model name="RequireItemAssignment" value="@data.RequireItemAssignment" type="hidden" data-type="bool" />
+
+                        <input model name="EnableValidationWorkflow" type="hidden" value="0" />
+                        <input model name="EnableValidationWorkflow" action="change:EnableValidationWorkflow" label="@g["Enable Validation Workflow"]" type="checkbox" value="1" />
+
+                        <input model name="IsApplyAutomaticPercentage" type="hidden" data-type="bool" value="@data.IsApplyAutomaticPercentage" />
+                        <input model name="AllowEditQuantity" type="hidden" data-type="bool" value="@data.AllowEditQuantity" />
+                        <input model name="AllowQuantityZero" type="hidden" data-type="bool" value="@data.AllowQuantityZero" />
+                        <input model name="AllowUpdateMadeIn" value="@data.AllowUpdateMadeIn" type="hidden" />
+                        <input model name="DocumentPreviewDownloadOption" value="@data.DocumentPreviewDownloadOption" type="hidden" />
+                        <input model name="RemoveDuplicateTextFromComposition" value="@data.RemoveDuplicateTextFromComposition" type="hidden" data-type="bool" />
+                        <input model name="IsApplyAutomaticExtraIncrement" type="hidden" data-type="bool" value="@data.IsApplyAutomaticExtraIncrement" />
+                        <input model name="AllowUserEditExtraQuantities" type="hidden" data-type="bool" value="@data.AllowUserEditExtraQuantities" />
+
+                        <input model name="EnableOrderPool" type="hidden" value="0" />
+                        <input model name="EnableOrderPool" label="@g["Enable Manual Entry"]" type="checkbox" value="1" />
+                        <viewrow>
+                            <viewcolumn>
+
+                            </viewcolumn>
+
+                            @* fix disabled cursor on bootstrap 4 https://jsfiddle.net/uLma9ckx/ *@
+                            <viewcolumn>
+                                <a name="btn_ValidationConfig" action="ValidationConfig" href="#" class="btn btn-outline-primary" @(data.EnableValidationWorkflow ? "" : "disabled=\"disabled\"")>@g["Validation Config"]</a>
+                            </viewcolumn>
+                        </viewrow>
+                        <input model name="HasCompoAudit" label="@g["Enable Composition Audit?"]" type="checkbox" />
+                        <input model name="EnableMultipleFiles" type="hidden" value="0" />
+
+                        <input model name="EnableMultipleFiles" label="@g["Enable multiple files"]" type="checkbox" value="1" @(data.EnableMultipleFiles == true ? "checked" : "") />
+
+                        <select model name="UpdateType" label="@g["Update Handler"] :" options="@(OptionList.FromEnumerable(orderUpdateTypeOptions, "value", "desc", data.UpdateType))" />
+
+                        <input model name="ForceOverwriteOrderOnManualValidation" label="@g["Force overwrite order on manual validation?"]" type="checkbox" />
+
+                        <input model name="DisablePrintLocal" type="checkbox" label="@g["Disable PrintLocal for this Orders"]" data-type="bool" value="1" />
+
+                        <select model name="ProductionTypeStrategy" label="@g["Production Type"] :" options="@(OptionList.FromEnumerable(projectProductionTypeOptions, "Value", "Name", data.ProductionTypeStrategy))" />
+
+                    </viewform>
+                </viewcolumn>
+
+            </viewrow>
+
+
+
+        </viewcolumn>
+    </viewrow>
+
+
+    @if (userData.Admin_Projects_CanEdit)
+    {
+        <viewfooter>
+            <a href="#" class="btn btn-primary" action="Save">@g["Save"]</a>
+            @if (userData.Admin_Projects_CanEditRFIDSettings)
+            {
+                <a href="#" class="btn btn-outline-primary" action="RFIDConfig">@g["RFID Configuration"]</a>
+                <a href="#" class="btn btn-outline-primary" action="OrderWorkflowConfig">@g["Order Workflow"]</a>
+            }
+
+            @*<a href="#" class="btn btn-outline-primary" action="FlowConfig">@g["Configure WorkFlow Options"]</a>*@
+
+            @if (userData.IsSysAdmin)
+            {
+                <a href="#" class="btn btn-outline-primary" action="SageImports">@g["Sage Initials Imports"]</a>
+            }
+
+        </viewfooter>
+    }
+</viewcard>
+
