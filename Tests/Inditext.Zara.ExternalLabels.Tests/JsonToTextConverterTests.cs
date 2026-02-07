@@ -161,7 +161,7 @@ namespace Inditex.ZaraHangtagKids.Tests
 
         private static string[] SplitCsvLine(string line)
         {
-            return line.Split(ClientDefinitions.delimeter);
+            return line.Split(';');
         }
 
         private static int CountLabelsExcludingPiggybacks(IEnumerable<Label> labels)

@@ -57,9 +57,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ClientDefinitions.cs" />
+    <Compile Include="JsonToTextConverter.Builds.cs" />
     <Compile Include="Inditext.Zara.ExternalLabels.Plugin.cs" />
     <Compile Include="JsonToTextConverter.cs" />
+    <Compile Include="JsonToTextConverter.Definition.cs" />
+    <Compile Include="JsonToTextConverter.Piggyback.cs" />
+    <Compile Include="JsonToTextConverter.UriHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ProviderHelper.cs" />
   </ItemGroup>
