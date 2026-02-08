@@ -1,4 +1,5 @@
 ﻿using OrderDonwLoadService.Services;
+using OrderDonwLoadService.Services.ImageManagement;
 using OrderDonwLoadService.Synchronization;
 using Service.Contracts;
 
@@ -12,6 +13,9 @@ namespace OrderDonwLoadService
             factory.RegisterSingleton<IPrintCentralService, PrintCentralService>();
             factory.RegisterSingleton<IOrderServices, OrderServices>();
             factory.RegisterTransient<IApiCallerService, ApiCallerService>();
+            factory.RegisterTransient<IImageAssetRepository, ImageAssetRepository>();
+            factory.RegisterSingleton<IImageDownloader, HttpImageDownloader>();
+            factory.RegisterTransient<IImageManagementService, ImageManagementService>();
         }
     }
 }

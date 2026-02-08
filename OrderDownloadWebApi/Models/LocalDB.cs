@@ -18,9 +18,17 @@ namespace OrderDownloadWebApi.Models
             builder.Entity<User>()
                     .HasIndex(u => u.Name)
                     .IsUnique();
+
+            builder.Entity<ImageAsset>()
+                .HasIndex(asset => new { asset.Url, asset.Hash })
+                .IsUnique();
+
+            builder.Entity<ImageAsset>()
+                .HasIndex(asset => new { asset.Url, asset.IsLatest });
         }
 
         public DbSet<User> Users { get; set; }
+        public DbSet<ImageAsset> ImageAssets { get; set; }
 
 
     }

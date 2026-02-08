@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Moq;
 using OrderDonwLoadService.Model;
 using OrderDonwLoadService.Synchronization;
+using OrderDonwLoadService.Services.ImageManagement;
 using Service.Contracts;
 using Xunit;
 
@@ -25,13 +26,14 @@ namespace OrderDownloadService.Tests
             var log = new Mock<IAppLog>();
             var apiCaller = new Mock<IApiCallerService>();
             var events = new Mock<IEventQueue>();
+            var imageManagementService = new Mock<IImageManagementService>();
 
             var credentialsPath = Path.Combine(GetOrderServiceAssemblyDir(), "InditexCredentials.json");
             WriteCredentialsFile(credentialsPath);
 
             try
             {
-                var service = new TestOrderServices(appConfig.Object, log.Object, apiCaller.Object, events.Object);
+                var service = new TestOrderServices(appConfig.Object, log.Object, apiCaller.Object, events.Object, imageManagementService.Object);
 
                 var result = await service.GetOrder("123", "C1", "V1");
 
@@ -67,8 +69,13 @@ namespace OrderDownloadService.Tests
 
         private sealed class TestOrderServices : OrderServices
         {
-            public TestOrderServices(IAppConfig appConfig, IAppLog log, IApiCallerService apiCaller, IEventQueue events)
-                : base(appConfig, log, apiCaller, events)
+            public TestOrderServices(
+                IAppConfig appConfig,
+                IAppLog log,
+                IApiCallerService apiCaller,
+                IEventQueue events,
+                IImageManagementService imageManagementService)
+                : base(appConfig, log, apiCaller, events, imageManagementService)
             {
             }
 

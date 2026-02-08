@@ -1,5 +1,6 @@
 ﻿using OrderDonwLoadService.Model;
 using OrderDonwLoadService.Services;
+using OrderDonwLoadService.Services.ImageManagement;
 using Service.Contracts;
 using Service.Contracts.Database;
 using Service.Contracts.PrintCentral;
@@ -15,19 +16,22 @@ namespace OrderDonwLoadService
         private readonly IAppLog log;
         private readonly IAppConfig appConfig;
         private readonly IEventQueue events;
+        private readonly IImageManagementService imageManagementService;
 
         public SendFileToPrintCentral(
             IPrintCentralService central,
             IAppLog log,
             IConnectionManager db,
             IAppConfig appConfig,
-            IEventQueue events)
+            IEventQueue events,
+            IImageManagementService imageManagementService)
         {
             this.central = central;
             this.log = log;
             this.appConfig = appConfig;
             this.db = db;
             this.events = events;
+            this.imageManagementService = imageManagementService;
         }
 
         
@@ -35,6 +39,18 @@ namespace OrderDonwLoadService
         {
 
             var isClearProcessedFiles = this.appConfig.GetValue<bool>("DownloadServices.IsClearProcessedFiles", false);
+            if(!imageManagementService.AreOrderImagesReadyAsync(e.FilePath).Result)
+            {
+                log.LogMessage($"Order {e.OrderNumber} is waiting for image validation.");
+                events.Send(new NotificationReceivedEvent
+                {
+                    CompanyID = appConfig.GetValue<int>("DownloadServices.ProjectInfoPrinCentral.CompanyID"),
+                    Title = $"Order {e.OrderNumber} en espera",
+                    Message = "El pedido está en espera porque existen imágenes pendientes de validar en fuente.",
+                    FileName = Path.GetFileName(e.FilePath)
+                });
+                return EQEventHandlerResult.Delay5;
+            }
             if(SendOrderToPrintCentral(e.FilePath, e.ProyectId,string.Join( Path.GetFileName(e.FilePath),"_",e.PluginType)).Result)
             {
                 log.LogMessage($"Order {e.OrderNumber} was Sended to PrintCentral.");

@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using OrderDonwLoadService.Model;
 using OrderDonwLoadService.Services;
+using OrderDonwLoadService.Services.ImageManagement;
 using Service.Contracts;
 using StructureInditexOrderFile;
 using System;
@@ -22,14 +23,21 @@ namespace OrderDonwLoadService.Synchronization
         private readonly IAppLog log;
         private readonly IEventQueue events;
         private readonly IApiCallerService apiCaller;
+        private readonly IImageManagementService imageManagementService;
         private string workDirectory = null;
 
-        public OrderServices(IAppConfig appConfig, IAppLog log, IApiCallerService apiCaller, IEventQueue events)
+        public OrderServices(
+            IAppConfig appConfig,
+            IAppLog log,
+            IApiCallerService apiCaller,
+            IEventQueue events,
+            IImageManagementService imageManagementService)
         {
             this.appConfig = appConfig;
             this.log = log;
             this.apiCaller = apiCaller;
             this.events = events;
+            this.imageManagementService = imageManagementService;
             var url = this.appConfig.GetValue<string>("DownloadServices.ApiUrl", "https://api2.Inditex.com/");
             workDirectory = this.appConfig.GetValue<string>("DownloadServices.WorkDirectory", Directory.GetCurrentDirectory() + "/WorkDirectory");
             this.apiCaller.Start(url);
@@ -63,6 +71,17 @@ namespace OrderDonwLoadService.Synchronization
                 message = $"Order number ({orderNumber}) found successfully in {credential.Name} queue.";
 
                 log.LogMessage($"Order {order.POInformation.productionOrderNumber} in process.");
+
+                try
+                {
+                    var imageResult = await imageManagementService.ProcessOrderImagesAsync(order);
+                    if (imageResult.RequiresApproval)
+                        log.LogMessage($"Order {order.POInformation.productionOrderNumber} has pending images to validate.");
+                }
+                catch (Exception ex)
+                {
+                    log.LogException(ex);
+                }
 
                 var filePath = "";
                 try
