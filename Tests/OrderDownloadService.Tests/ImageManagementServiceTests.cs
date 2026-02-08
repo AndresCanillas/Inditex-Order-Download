@@ -1,8 +1,10 @@
 using System;
+using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Moq;
+using Newtonsoft.Json;
 using OrderDonwLoadService.Services.ImageManagement;
 using Service.Contracts;
 using Service.Contracts.OrderImages;
@@ -127,6 +129,82 @@ namespace OrderDownloadService.Tests
             repository.Verify(repo => repo.InsertAsync(It.Is<ImageAssetRecord>(record => record.Status == ImageAssetStatus.Actualizado)), Times.Once);
         }
 
+        [Fact]
+        public void AreOrderImagesReady_WhenNoAssets_ReturnsTrue()
+        {
+            var repository = new Mock<IImageAssetRepository>();
+            var downloader = new Mock<IImageDownloader>();
+            var mailService = new Mock<IMailService>();
+            var config = new Mock<IAppConfig>();
+            var log = new Mock<IAppLog>();
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object);
+
+            var order = new InditexOrderData { assets = new Asset[0] };
+            var path = WriteTempOrder(order);
+
+            try
+            {
+                var result = service.AreOrderImagesReady(path);
+                Assert.True(result);
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void AreOrderImagesReady_WhenAllInFont_ReturnsTrue()
+        {
+            var repository = new Mock<IImageAssetRepository>();
+            repository.Setup(repo => repo.GetLatestByUrl("https://example.com/asset.png"))
+                .Returns(new ImageAssetRecord { Status = ImageAssetStatus.InFont });
+            var downloader = new Mock<IImageDownloader>();
+            var mailService = new Mock<IMailService>();
+            var config = new Mock<IAppConfig>();
+            var log = new Mock<IAppLog>();
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object);
+
+            var order = BuildOrder("https://example.com/asset.png");
+            var path = WriteTempOrder(order);
+
+            try
+            {
+                var result = service.AreOrderImagesReady(path);
+                Assert.True(result);
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void AreOrderImagesReady_WhenPending_ReturnsFalse()
+        {
+            var repository = new Mock<IImageAssetRepository>();
+            repository.Setup(repo => repo.GetLatestByUrl("https://example.com/asset.png"))
+                .Returns(new ImageAssetRecord { Status = ImageAssetStatus.Nuevo });
+            var downloader = new Mock<IImageDownloader>();
+            var mailService = new Mock<IMailService>();
+            var config = new Mock<IAppConfig>();
+            var log = new Mock<IAppLog>();
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object);
+
+            var order = BuildOrder("https://example.com/asset.png");
+            var path = WriteTempOrder(order);
+
+            try
+            {
+                var result = service.AreOrderImagesReady(path);
+                Assert.False(result);
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+        }
+
         private static InditexOrderData BuildOrder(string url)
         {
             return new InditexOrderData
@@ -141,6 +219,14 @@ namespace OrderDownloadService.Tests
                     }
                 }
             };
+        }
+
+        private static string WriteTempOrder(InditexOrderData order)
+        {
+            var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.json");
+            var json = JsonConvert.SerializeObject(order);
+            File.WriteAllText(path, json);
+            return path;
         }
 
         private static string ComputeHash(string value)

@@ -716,6 +716,10 @@ body {
 	margin-bottom: 10px;
 }
 
+.image-row {
+	cursor: pointer;
+}
+
 .card-close{
 	cursor:pointer;
 }

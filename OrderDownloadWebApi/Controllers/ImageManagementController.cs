@@ -42,7 +42,7 @@ namespace OrderDownloadWebApi.Controllers
                             asset.Url,
                             asset.Hash,
                             asset.ContentType,
-                            asset.Status,
+                            Status = asset.Status.ToString(),
                             asset.UpdatedDate
                         })
                         .ToList();
@@ -81,7 +81,7 @@ namespace OrderDownloadWebApi.Controllers
                             asset.Url,
                             asset.Hash,
                             asset.ContentType,
-                            asset.Status,
+                            Status = asset.Status.ToString(),
                             asset.UpdatedDate
                         })
                         .ToList();
@@ -123,6 +123,33 @@ namespace OrderDownloadWebApi.Controllers
             {
                 log.LogException(ex);
                 return OperationResult.InternalError;
+            }
+        }
+
+        [HttpGet("{id:int}/content")]
+        public IActionResult GetContent(int id)
+        {
+            if (!User.IsInRole(Roles.IDTLabelDesign) && !User.IsInRole(Roles.SysAdmin))
+                return Forbid();
+
+            try
+            {
+                using (var ctx = factory.GetInstance<LocalDB>())
+                {
+                    var asset = ctx.ImageAssets.FirstOrDefault(item => item.ID == id);
+                    if (asset == null || asset.Content == null)
+                        return NotFound();
+
+                    var contentType = string.IsNullOrWhiteSpace(asset.ContentType)
+                        ? "application/octet-stream"
+                        : asset.ContentType;
+                    return File(asset.Content, contentType);
+                }
+            }
+            catch (Exception ex)
+            {
+                log.LogException(ex);
+                return StatusCode(500);
             }
         }
     }

@@ -17,6 +17,11 @@ namespace OrderDonwLoadService.Services.ImageManagement
 
         public Task<ImageAssetRecord> GetLatestByUrlAsync(string url)
         {
+            return Task.FromResult(GetLatestByUrl(url));
+        }
+
+        public ImageAssetRecord GetLatestByUrl(string url)
+        {
             if (string.IsNullOrWhiteSpace(url))
                 throw new ArgumentException("Url cannot be null or empty.", nameof(url));
 
@@ -29,9 +34,9 @@ namespace OrderDonwLoadService.Services.ImageManagement
                 ORDER BY ID DESC", url))
             {
                 if (!reader.Read())
-                    return Task.FromResult<ImageAssetRecord>(null);
+                    return null;
 
-                return Task.FromResult(Map(reader));
+                return Map(reader);
             }
         }
 

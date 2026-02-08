@@ -73,6 +73,11 @@ namespace OrderDonwLoadService.Services.ImageManagement
 
         public async Task<bool> AreOrderImagesReadyAsync(string orderFilePath)
         {
+            return await Task.FromResult(AreOrderImagesReady(orderFilePath));
+        }
+
+        public bool AreOrderImagesReady(string orderFilePath)
+        {
             if (string.IsNullOrWhiteSpace(orderFilePath))
                 throw new ArgumentException("Order file path cannot be null or empty.", nameof(orderFilePath));
             if (!File.Exists(orderFilePath))
@@ -85,7 +90,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
 
             foreach (var asset in assets)
             {
-                var latest = await repository.GetLatestByUrlAsync(asset.value);
+                var latest = repository.GetLatestByUrl(asset.value);
                 if (latest == null || latest.Status != ImageAssetStatus.InFont)
                     return false;
             }

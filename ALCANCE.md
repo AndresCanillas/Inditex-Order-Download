@@ -1,17 +1,15 @@
 # Alcance del proyecto (Inditex Order Download)
 
-## Iteración 4 (actual)
-**Objetivo:** Implementar el backend de ImageManagement (persistencia, descarga, validación y bloqueo en APM) con pruebas unitarias TDD.
+## Iteración 5 (actual)
+**Objetivo:** Corregir code smells pendientes y entregar la UI de ImageManagement con principios de usabilidad de Jakob Nielsen.
 
 ### En curso
-- Persistencia de imágenes en LocalDB con hash SHA256 y estados (Nuevo/InFont/Rechazado/Obsoleto/Actualizado).
-- Descarga de imágenes y notificación por correo al equipo de diseño.
-- Bloqueo en APM (SendFileToPrintCentral) cuando hay imágenes pendientes.
-- Endpoints base para consultar imágenes y actualizar estados.
+- Corregir sync-over-async en APM y exponer método sync para validación de imágenes.
+- UI para equipo de diseño: listado, filtros, preview y actualización de estado.
+- Endpoint de contenido para previsualizar imágenes.
 
 ### Fuera de alcance (referencia)
-- Interfaz gráfica de ImageManagement (se abordará en próxima iteración).
+- Recordatorio diario y notificación a PrintCentral por pedidos retenidos.
 
 ### Pendiente para próximas iteraciones
-- UI para equipo de diseño (listado, filtros, actualización de estado).
 - Recordatorio diario y notificación a PrintCentral por pedidos retenidos.

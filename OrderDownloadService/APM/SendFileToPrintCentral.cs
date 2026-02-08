@@ -39,7 +39,7 @@ namespace OrderDonwLoadService
         {
 
             var isClearProcessedFiles = this.appConfig.GetValue<bool>("DownloadServices.IsClearProcessedFiles", false);
-            if(!imageManagementService.AreOrderImagesReadyAsync(e.FilePath).Result)
+            if(!imageManagementService.AreOrderImagesReady(e.FilePath))
             {
                 log.LogMessage($"Order {e.OrderNumber} is waiting for image validation.");
                 events.Send(new NotificationReceivedEvent
