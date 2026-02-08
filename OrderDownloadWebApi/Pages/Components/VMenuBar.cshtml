@@ -1,11 +1,19 @@
 ﻿@page
 @inject ILocalizationService g
+@using Service.Contracts.Authentication
 @{
     Layout = null;
     var top = 6;
 }
 @{
     top += 52;
+    if (User.IsInRole(Roles.IDTLabelDesign) || User.IsInRole(Roles.SysAdmin))
+    {
+        <div class="submenubar-separator"></div>
+        <div name="ImageManagementOption" action="ShowImageManagement" class="menubar-item" title="@g["Image Management"]">
+            <span class="fa fa-image"></span>
+        </div>
+    }
     <div class="submenubar-separator"></div>
     <div name="LogoutOption" action="Logout" class="menubar-item"><span class="ti ti-power-off"></span></div>
     <div class="submenubar-separator"></div>

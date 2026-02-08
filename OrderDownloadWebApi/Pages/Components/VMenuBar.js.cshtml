@@ -47,6 +47,12 @@
 			this.MenuOptionClicked.Raise({ option: "Admin" });
 		},
 
+		ShowImageManagement: function (e) {
+			e.preventDefault();
+			this.HideAll();
+			this.MenuOptionClicked.Raise({ option: "ImageManagement" });
+		},
+
 		Logout: async function (e) {
 			e.preventDefault();
 			var dlg = await AppContext.ViewManager.Load("/Components/ConfirmDialog.js");

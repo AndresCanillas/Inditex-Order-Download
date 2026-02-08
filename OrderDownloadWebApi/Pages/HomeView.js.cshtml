@@ -4,6 +4,7 @@
 @{
     Layout = null;
     var showMaintenanceScreen = !User.IsInRole(Roles.SysAdmin) && cfg["DownloadServicesWeb:MaintenanceMode"] == "true";
+    var canManageImages = User.IsInRole(Roles.IDTLabelDesign) || User.IsInRole(Roles.SysAdmin);
 }
 /// # sourceURL=https://Pages/HomeView.js
 /// <reference path="/js/jquery-3.0.0.min.js" />
@@ -19,16 +20,36 @@
 	HomeView.prototype = {
 		constructor: HomeView,
 
-		OnLoad: async function () {
-			@if (!showMaintenanceScreen)
-			{
-				@:this.elements.VMenu.MenuOptionClicked.Subscribe(this, this.HandleVMenuEvent);
-			}
+	OnLoad: async function () {
+		@if (!showMaintenanceScreen)
+		{
+			@:this.elements.VMenu.MenuOptionClicked.Subscribe(this, this.HandleVMenuEvent);
+		}
 
-						view = await AppContext.ViewManager.Load("/Orders/GetOrdersDialog.js");
+		@if (canManageImages)
+		{
+			@:var view = await AppContext.ViewManager.Load("/ImageManagement/ImageManagementView.js");
+		}
+		@else
+		{
+			@:var view = await AppContext.ViewManager.Load("/Orders/GetOrdersDialog.js");
+		}
+		view.Show(this.elements.mainContainer);
+	},
 
-			view.Show(this.elements.mainContainer);
-		},
+	HandleVMenuEvent: async function (self, ev) {
+		switch (ev.option) {
+			case "ImageManagement":
+				var view = await AppContext.ViewManager.Load("/ImageManagement/ImageManagementView.js");
+				view.Show(self.elements.mainContainer);
+				break;
+			case "Orders":
+			default:
+				var view = await AppContext.ViewManager.Load("/Orders/GetOrdersDialog.js");
+				view.Show(self.elements.mainContainer);
+				break;
+		}
+	},
 
 		OnUnload: function () {
 			console.log("HomeView Unload");

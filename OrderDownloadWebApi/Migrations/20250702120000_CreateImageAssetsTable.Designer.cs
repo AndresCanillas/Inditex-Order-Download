@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OrderDownloadWebApi.Models;
 
 namespace OrderDownloadWebApi.Migrations
 {
     [DbContext(typeof(LocalDB))]
-    partial class LocalDBModelSnapshot : ModelSnapshot
+    [Migration("20250702120000_CreateImageAssetsTable")]
+    partial class CreateImageAssetsTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

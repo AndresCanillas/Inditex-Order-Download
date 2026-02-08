@@ -1,0 +1,176 @@
+﻿@page
+@inject ILocalizationService g
+@{
+    Layout = null;
+}
+/// # sourceURL=https://Pages/ImageManagement/ImageManagementView.js
+/// <reference path="/js/jquery-3.0.0.min.js" />
+/// <reference path="/js/Kendo.all.min.js" />
+/// <reference path="/js/AppContext.js" />
+
+//<script>
+    var ImageManagementView = function () {
+        FormView.Extend(this, "@g["Image Management"]", "/ImageManagement/ImageManagementView");
+        this.state = {
+            items: [],
+            selected: null
+        };
+    };
+
+    ImageManagementView.prototype = {
+        constructor: ImageManagementView,
+
+        OnLoad: async function () {
+            await this.LoadItems("pending");
+        },
+
+        Refresh: async function () {
+            var filter = this.elements.statusFilter.val();
+            await this.LoadItems(filter);
+        },
+
+        ApplyFilters: async function () {
+            await this.Refresh();
+        },
+
+        LoadItems: async function (filter) {
+            this.SetLoading(true, "@g["Loading images..."]");
+            try {
+                var data = null;
+                if (filter === "pending") {
+                    data = await AppContext.HttpGet("/image-management/pending");
+                } else if (filter === "all") {
+                    data = await AppContext.HttpGet("/image-management/list");
+                } else {
+                    data = await AppContext.HttpGet(`/image-management/list?status=${filter}`);
+                }
+
+                if (!data.Success) {
+                    this.ShowFeedback("@g["Unable to load images."]", "text-danger");
+                    return;
+                }
+
+                var searchText = (this.elements.searchText.val() || "").toLowerCase();
+                this.state.items = (data.Data || []).filter(function (item) {
+                    if (!searchText) return true;
+                    return (item.Name || "").toLowerCase().includes(searchText) ||
+                        (item.Url || "").toLowerCase().includes(searchText);
+                });
+
+                this.RenderTable();
+                this.ResetPreview();
+                this.ShowFeedback("@g["Images loaded."]", "text-success");
+            } catch (err) {
+                console.error(err);
+                this.ShowFeedback("@g["Unexpected error while loading images."]", "text-danger");
+            } finally {
+                this.SetLoading(false);
+            }
+        },
+
+        RenderTable: function () {
+            var rows = this.elements.imageRows;
+            rows.empty();
+
+            var items = this.state.items;
+            this.elements.resultCount.text(items.length);
+
+            if (items.length === 0) {
+                this.elements.emptyState.removeClass("d-none");
+                return;
+            }
+
+            this.elements.emptyState.addClass("d-none");
+
+            var self = this;
+            items.forEach(function (item) {
+                var row = $(`
+                    <tr class="image-row" data-id="${item.ID}">
+                        <td>
+                            <div class="font-weight-bold">${item.Name || "@g["Unnamed"]"}</div>
+                            <small class="text-muted text-truncate d-block" style="max-width: 300px;">${item.Url || ""}</small>
+                        </td>
+                        <td>${self.RenderStatusBadge(item.Status)}</td>
+                        <td>${self.FormatDate(item.UpdatedDate)}</td>
+                    </tr>
+                `);
+                row.on("click", function () { self.SelectItem(item); });
+                rows.append(row);
+            });
+        },
+
+        SelectItem: function (item) {
+            this.state.selected = item;
+            this.elements.previewEmpty.addClass("d-none");
+            this.elements.previewContent.removeClass("d-none");
+            this.elements.previewName.text(item.Name || "@g["Unnamed"]");
+            this.elements.previewStatus.html(this.RenderStatusBadge(item.Status));
+            this.elements.previewHash.text(item.Hash || "-");
+            this.elements.previewUrl.text(item.Url || "-").attr("href", item.Url || "#");
+            this.elements.previewImage.attr("src", `/image-management/${item.ID}/content`);
+            this.elements.statusSelect.val(item.Status);
+            this.elements.statusFeedback.text("");
+        },
+
+        UpdateStatus: async function () {
+            if (!this.state.selected) return;
+            var newStatus = this.elements.statusSelect.val();
+            this.elements.statusFeedback.text("@g["Saving..."]");
+
+            try {
+                var response = await AppContext.HttpPost(`/image-management/${this.state.selected.ID}/status`, {
+                    Status: newStatus
+                });
+
+                if (!response.Success) {
+                    this.elements.statusFeedback.addClass("text-danger").text(response.Message || "@g["Unable to update status."]");
+                    return;
+                }
+
+                this.elements.statusFeedback.removeClass("text-danger").addClass("text-success").text("@g["Status updated successfully."]");
+                this.state.selected.Status = newStatus;
+                this.RenderTable();
+                this.SelectItem(this.state.selected);
+            } catch (err) {
+                console.error(err);
+                this.elements.statusFeedback.addClass("text-danger").text("@g["Unexpected error while updating."]");
+            }
+        },
+
+        ResetPreview: function () {
+            this.state.selected = null;
+            this.elements.previewEmpty.removeClass("d-none");
+            this.elements.previewContent.addClass("d-none");
+        },
+
+        RenderStatusBadge: function (status) {
+            var badgeMap = {
+                "Nuevo": "badge-warning",
+                "Actualizado": "badge-info",
+                "Rechazado": "badge-danger",
+                "Obsoleto": "badge-secondary",
+                "InFont": "badge-success"
+            };
+            var css = badgeMap[status] || "badge-light";
+            return `<span class="badge ${css}">${status}</span>`;
+        },
+
+        FormatDate: function (value) {
+            if (!value) return "-";
+            var date = new Date(value);
+            return date.toLocaleString();
+        },
+
+        SetLoading: function (isLoading, message) {
+            if (isLoading) {
+                this.ShowFeedback(message || "@g["Loading..."]", "text-muted");
+            }
+        },
+
+        ShowFeedback: function (message, cssClass) {
+            this.elements.statusFeedback.removeClass("text-danger text-success text-muted");
+            if (cssClass) this.elements.statusFeedback.addClass(cssClass);
+            this.elements.statusFeedback.text(message);
+        }
+    };
+//</script>

@@ -1,5 +1,7 @@
 ﻿using Newtonsoft.Json;
+using OrderDonwLoadService.Model;
 using OrderDonwLoadService.Services;
+using OrderDonwLoadService.Services.ImageManagement;
 using Service.Contracts;
 using StructureInditexOrderFile;
 using System;
@@ -21,14 +23,21 @@ namespace OrderDonwLoadService.Synchronization
         private readonly IAppLog log;
         private readonly IEventQueue events;
         private readonly IApiCallerService apiCaller;
+        private readonly IImageManagementService imageManagementService;
         private string workDirectory = null;
 
-        public OrderServices(IAppConfig appConfig, IAppLog log, IApiCallerService apiCaller, IEventQueue events)
+        public OrderServices(
+            IAppConfig appConfig,
+            IAppLog log,
+            IApiCallerService apiCaller,
+            IEventQueue events,
+            IImageManagementService imageManagementService)
         {
             this.appConfig = appConfig;
             this.log = log;
             this.apiCaller = apiCaller;
             this.events = events;
+            this.imageManagementService = imageManagementService;
             var url = this.appConfig.GetValue<string>("DownloadServices.ApiUrl", "https://api2.Inditex.com/");
             workDirectory = this.appConfig.GetValue<string>("DownloadServices.WorkDirectory", Directory.GetCurrentDirectory() + "/WorkDirectory");
             this.apiCaller.Start(url);
@@ -52,36 +61,27 @@ namespace OrderDonwLoadService.Synchronization
 
                 log.LogMessage($"Searching for Order number ({orderNumber}) in {credential.Name} queue.");
 
-#if DEBUG
-                var rootDirectory = Directory.GetCurrentDirectory();
-                var _order = File.ReadAllText(rootDirectory + @"\TestOrders\15536_05987_I25_NNO_ZARANORTE.json");
-                var order = JsonConvert.DeserializeObject<InditexOrderData>(_order);
-
-
-#else
-
-                AutenticationResult authResult = null;
-                try
+                var order = await FetchOrderAsync(credential, orderNumber, campaignCode, vendorId);
+                if (order == null)
                 {
-                    authResult = await OrderDownloadHelper.CallGetToken(appConfig, credential.User, credential.Password, apiCaller);
-                }
-                catch (Exception ex)
-                {
-                    log.LogMessage($"Error: {ex.Message}.");
+                    log.LogMessage($"Order number ({orderNumber}) not found in {credential.Name} queue.");
                     continue;
                 }
 
-
-                var order = await CallGetOrderbyNumer(authResult.access_token, orderNumber, campaignCode, vendorId);
-#endif
-
-                if (order != null)
-                {
-                    message = $"Order number ({orderNumber}) found successfully in {credential.Name} queue.";
-                    break;
-                }
+                message = $"Order number ({orderNumber}) found successfully in {credential.Name} queue.";
 
                 log.LogMessage($"Order {order.POInformation.productionOrderNumber} in process.");
+
+                try
+                {
+                    var imageResult = await imageManagementService.ProcessOrderImagesAsync(order);
+                    if (imageResult.RequiresApproval)
+                        log.LogMessage($"Order {order.POInformation.productionOrderNumber} has pending images to validate.");
+                }
+                catch (Exception ex)
+                {
+                    log.LogException(ex);
+                }
 
                 var filePath = "";
                 try
@@ -117,9 +117,38 @@ namespace OrderDonwLoadService.Synchronization
 
                     log.LogMessage($"File received event sent for order {order.POInformation.productionOrderNumber}, with label reference{pluginType} ");
                 }
+
+                break;
             }
             log.LogMessage(message);
             return message;
+        }
+
+        protected virtual async Task<InditexOrderData> FetchOrderAsync(
+            Credential credential,
+            string orderNumber,
+            string campaignCode,
+            string vendorId)
+        {
+#if DEBUG
+            var rootDirectory = Directory.GetCurrentDirectory();
+            var orderPath = Path.Combine(rootDirectory, "TestOrders", "15536_05987_I25_NNO_ZARANORTE.json");
+            var orderText = File.ReadAllText(orderPath);
+            return JsonConvert.DeserializeObject<InditexOrderData>(orderText);
+#else
+            AutenticationResult authResult = null;
+            try
+            {
+                authResult = await OrderDownloadHelper.CallGetToken(appConfig, credential.User, credential.Password, apiCaller);
+            }
+            catch (Exception ex)
+            {
+                log.LogMessage($"Error: {ex.Message}.");
+                return null;
+            }
+
+            return await CallGetOrderbyNumer(authResult.access_token, orderNumber, campaignCode, vendorId);
+#endif
         }
 
         private void SaveOrderWithError(string message, InditexOrderData order)
