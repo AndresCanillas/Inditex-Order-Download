@@ -2,6 +2,7 @@
 using OrderDonwLoadService.Synchronization;
 using Service.Contracts;
 using System;
+using System.Threading.Tasks;
 
 namespace OrderDownloadWebApi.Controllers
 {
@@ -22,11 +23,11 @@ namespace OrderDownloadWebApi.Controllers
         }
 
         [HttpPost, Route("/order/get/")]
-        public OperationResult MergePdf([FromBody] GetOderDto  OrderDto)
+        public async Task<OperationResult> MergePdf([FromBody] GetOderDto  OrderDto)
         {
             try
             {
-                var message = orderServices.GetOrder(OrderDto.OrderNumber,OrderDto.CampaignCode,OrderDto.VendorId).Result;
+                var message = await orderServices.GetOrder(OrderDto.OrderNumber,OrderDto.CampaignCode,OrderDto.VendorId);
                 if (message.Contains("Error"))
                 {
                     return new OperationResult(false, g[message]);
