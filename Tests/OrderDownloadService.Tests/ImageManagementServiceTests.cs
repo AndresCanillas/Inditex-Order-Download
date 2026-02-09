@@ -139,7 +139,7 @@ namespace OrderDownloadService.Tests
             var log = new Mock<IAppLog>();
             var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object);
 
-            var order = new InditexOrderData { assets = new Asset[0] };
+            var order = new InditexOrderData { Assets = new Asset[0] };
             var path = WriteTempOrder(order);
 
             try
@@ -209,13 +209,13 @@ namespace OrderDownloadService.Tests
         {
             return new InditexOrderData
             {
-                assets = new[]
+                Assets = new[]
                 {
                     new Asset
                     {
-                        name = "Icono RFID",
-                        type = "url",
-                        value = url
+                        Name = "Icono RFID",
+                        Type = "url",
+                        Value = url
                     }
                 }
             };

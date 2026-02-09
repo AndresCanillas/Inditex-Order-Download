@@ -42,7 +42,7 @@ namespace OrderDonwLoadService.Services
             if (orderLabel?.POInformation == null)
                 throw new ArgumentNullException(nameof(orderLabel), "The order label data cannot be null.");
 
-            var id = orderLabel.POInformation.productionOrderNumber.ToString();
+            var id = orderLabel.POInformation.PONumber.ToString();
             if (string.IsNullOrWhiteSpace(id))
                 throw new ArgumentException("LabelOrderId is null or empty.", nameof(orderLabel));
 

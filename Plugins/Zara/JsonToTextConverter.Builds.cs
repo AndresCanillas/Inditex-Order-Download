@@ -31,7 +31,7 @@ namespace Inidtex.ZaraExterlLables
                 if (label.HasComponent(componentName))
                 {
                     componentLookup.TryGetValue(componentName, out var componentValue);
-                    var value = ResolveComponentValue(componentValue, orderData, color, size.size);
+                    var value = ResolveComponentValue(componentValue, orderData, color, size.SizeRfid);
                     fields.Add(NormalizeComponentOrAssetValue(componentName, value));
                 }
                 else
@@ -63,12 +63,12 @@ namespace Inidtex.ZaraExterlLables
 
             foreach (var component in componentValues)
             {
-                if (string.IsNullOrWhiteSpace(component?.name))
+                if (string.IsNullOrWhiteSpace(component?.Name))
                     continue;
 
-                if (!map.ContainsKey(component.name))
+                if (!map.ContainsKey(component.Name))
                 {
-                    map.Add(component.name, component);
+                    map.Add(component.Name, component);
                 }
             }
 
@@ -83,12 +83,12 @@ namespace Inidtex.ZaraExterlLables
 
             foreach (var asset in assets)
             {
-                if (string.IsNullOrWhiteSpace(asset?.name))
+                if (string.IsNullOrWhiteSpace(asset?.Name))
                     continue;
 
-                if (!map.ContainsKey(asset.name))
+                if (!map.ContainsKey(asset.Name))
                 {
-                    map.Add(asset.name, asset.value ?? string.Empty);
+                    map.Add(asset.Name, asset.Value ?? string.Empty);
                 }
             }
 

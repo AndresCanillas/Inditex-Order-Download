@@ -44,14 +44,14 @@ namespace OrderDonwLoadService.Services.ImageManagement
 
             foreach (var asset in assets)
             {
-                var downloaded = await downloader.DownloadAsync(asset.value);
+                var downloaded = await downloader.DownloadAsync(asset.Value);
                 var hash = ComputeHash(downloaded.Content);
-                var latest = await repository.GetLatestByUrlAsync(asset.value);
+                var latest = await repository.GetLatestByUrlAsync(asset.Value);
 
                 if (latest == null)
                 {
                     await repository.InsertAsync(BuildRecord(asset, downloaded, hash, ImageAssetStatus.Nuevo, true));
-                    MarkPending(result, asset.value);
+                    MarkPending(result, asset.Value);
                     continue;
                 }
 
@@ -62,7 +62,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
 
                 await repository.MarkObsoleteAsync(latest.ID);
                 await repository.InsertAsync(BuildRecord(asset, downloaded, hash, ImageAssetStatus.Actualizado, true));
-                MarkPending(result, asset.value);
+                MarkPending(result, asset.Value);
             }
 
             if (result.RequiresApproval)
@@ -90,7 +90,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
 
             foreach (var asset in assets)
             {
-                var latest = repository.GetLatestByUrl(asset.value);
+                var latest = repository.GetLatestByUrl(asset.Value);
                 if (latest == null || latest.Status != ImageAssetStatus.InFont)
                     return false;
             }
@@ -100,7 +100,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
 
         private IEnumerable<Asset> ExtractUrlAssets(InditexOrderData order)
         {
-            return order.assets?.Where(asset => string.Equals(asset.type, "url", StringComparison.OrdinalIgnoreCase))
+            return order.Assets?.Where(asset => string.Equals(asset.Type, "url", StringComparison.OrdinalIgnoreCase))
                 ?? Enumerable.Empty<Asset>();
         }
 
@@ -126,8 +126,8 @@ namespace OrderDonwLoadService.Services.ImageManagement
             var now = DateTime.UtcNow;
             return new ImageAssetRecord
             {
-                Name = asset.name,
-                Url = asset.value,
+                Name = asset.Name,
+                Url = asset.Value,
                 Hash = hash,
                 ContentType = downloaded.ContentType,
                 Content = downloaded.Content,

@@ -2,6 +2,7 @@
 @inject ILocalizationService g
 @{
     Layout = null;
+	var canManageImages = User.IsInRole(Roles.IDTLabelDesign) || User.IsInRole(Roles.SysAdmin);
 }
 //# sourceURL=https://Pages/Components/VMenuBar.js
 /// <reference path="/js/jquery-3.0.0.min.js" />
@@ -50,7 +51,23 @@
 		ShowImageManagement: function (e) {
 			e.preventDefault();
 			this.HideAll();
-			this.MenuOptionClicked.Raise({ option: "ImageManagement" });
+			@if (canManageImages)
+			{
+				@:AppContext.ViewManager.Load("/ImageManagement/ImageManagementView.js").then(function(view) {
+				@:	view.Show(this.elements.mainContainer);
+				@:}.bind(this));
+			}
+		},
+
+		ShowEntry: function (e) {
+			e.preventDefault();
+			this.HideAll();
+			@if (canManageImages)
+			{
+				@:AppContext.ViewManager.Load("/Orders/GetOrdersDialog.js").then(function(view) {
+				@:	view.Show(this.elements.mainContainer);
+				@:}.bind(this));
+			}
 		},
 
 		Logout: async function (e) {

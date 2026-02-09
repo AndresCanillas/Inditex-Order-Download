@@ -164,6 +164,191 @@
       "Key": "Get Orders by Inditex API",
       "Value": "Get Orders by Inditex API",
       "T": false
+    },
+    {
+      "Key": "Invalid request.",
+      "Value": "Invalid request.",
+      "T": false
+    },
+    {
+      "Key": "Image Management",
+      "Value": "Image Management",
+      "T": false
+    },
+    {
+      "Key": "Review new or updated images and mark them as included in the font.",
+      "Value": "Review new or updated images and mark them as included in the font.",
+      "T": false
+    },
+    {
+      "Key": "Refresh",
+      "Value": "Refresh",
+      "T": false
+    },
+    {
+      "Key": "Status filter",
+      "Value": "Status filter",
+      "T": false
+    },
+    {
+      "Key": "Pending validation",
+      "Value": "Pending validation",
+      "T": false
+    },
+    {
+      "Key": "All statuses",
+      "Value": "All statuses",
+      "T": false
+    },
+    {
+      "Key": "New",
+      "Value": "New",
+      "T": false
+    },
+    {
+      "Key": "Updated",
+      "Value": "Updated",
+      "T": false
+    },
+    {
+      "Key": "Rejected",
+      "Value": "Rejected",
+      "T": false
+    },
+    {
+      "Key": "Obsolete",
+      "Value": "Obsolete",
+      "T": false
+    },
+    {
+      "Key": "In Font",
+      "Value": "In Font",
+      "T": false
+    },
+    {
+      "Key": "Search by name or URL",
+      "Value": "Search by name or URL",
+      "T": false
+    },
+    {
+      "Key": "Type to search...",
+      "Value": "Type to search...",
+      "T": false
+    },
+    {
+      "Key": "Apply filters",
+      "Value": "Apply filters",
+      "T": false
+    },
+    {
+      "Key": "Images",
+      "Value": "Images",
+      "T": false
+    },
+    {
+      "Key": "Name",
+      "Value": "Name",
+      "T": false
+    },
+    {
+      "Key": "Status",
+      "Value": "Status",
+      "T": false
+    },
+    {
+      "Key": "No images match the selected filters.",
+      "Value": "No images match the selected filters.",
+      "T": false
+    },
+    {
+      "Key": "Preview",
+      "Value": "Preview",
+      "T": false
+    },
+    {
+      "Key": "Select an image to preview details.",
+      "Value": "Select an image to preview details.",
+      "T": false
+    },
+    {
+      "Key": "Image preview",
+      "Value": "Image preview",
+      "T": false
+    },
+    {
+      "Key": "URL",
+      "Value": "URL",
+      "T": false
+    },
+    {
+      "Key": "Hash",
+      "Value": "Hash",
+      "T": false
+    },
+    {
+      "Key": "Change status",
+      "Value": "Change status",
+      "T": false
+    },
+    {
+      "Key": "Save status",
+      "Value": "Save status",
+      "T": false
+    },
+    {
+      "Key": "Loading images...",
+      "Value": "Loading images...",
+      "T": false
+    },
+    {
+      "Key": "Unable to load images.",
+      "Value": "Unable to load images.",
+      "T": false
+    },
+    {
+      "Key": "Images loaded.",
+      "Value": "Images loaded.",
+      "T": false
+    },
+    {
+      "Key": "Unexpected error while loading images.",
+      "Value": "Unexpected error while loading images.",
+      "T": false
+    },
+    {
+      "Key": "Unnamed",
+      "Value": "Unnamed",
+      "T": false
+    },
+    {
+      "Key": "Saving...",
+      "Value": "Saving...",
+      "T": false
+    },
+    {
+      "Key": "Unable to update status.",
+      "Value": "Unable to update status.",
+      "T": false
+    },
+    {
+      "Key": "Status updated successfully.",
+      "Value": "Status updated successfully.",
+      "T": false
+    },
+    {
+      "Key": "Unexpected error while updating.",
+      "Value": "Unexpected error while updating.",
+      "T": false
+    },
+    {
+      "Key": "Loading...",
+      "Value": "Loading...",
+      "T": false
+    },
+    {
+      "Key": "Data entry",
+      "Value": "Data entry",
+      "T": false
     }
   ]
 }

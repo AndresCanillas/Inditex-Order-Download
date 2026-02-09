@@ -55,10 +55,10 @@ namespace Inidtex.ZaraExterlLables
 
                 foreach (var label in labels)
                 {
-                    if (label == null || IsPiggyback(label.reference))
+                    if (label == null || IsPiggyback(label.Reference))
                         continue;
 
-                    foreach (var definition in BuildFromLabel(label.reference, label.components, label.assets, label.childrenLabels, log))
+                    foreach (var definition in BuildFromLabel(label.Reference, label.Components, label.Assets, label.ChildrenLabels, log))
                         yield return definition;
                 }
             }
@@ -81,7 +81,7 @@ namespace Inidtex.ZaraExterlLables
 
                 yield return new LabelDefinition(resolvedReference, mergedComponents, mergedAssets);
 
-                foreach (var child in childLabels.Where(child => !IsPiggyback(child.reference)))
+                foreach (var child in childLabels.Where(child => !IsPiggyback(child.Reference)))
                 {
                     foreach (var childDefinition in BuildFromChild(child, log))
                         yield return childDefinition;
@@ -90,10 +90,10 @@ namespace Inidtex.ZaraExterlLables
 
             private static IEnumerable<LabelDefinition> BuildFromChild(Childrenlabel child, ILogService log)
             {
-                if (child == null || IsPiggyback(child.reference))
+                if (child == null || IsPiggyback(child.Reference))
                     yield break;
 
-                foreach (var definition in BuildFromChildData(child.reference, child.components, child.assets, child.childrenLabels, log))
+                foreach (var definition in BuildFromChildData(child.Reference, child.Components, child.Sssets, child.ChildrenLabels, log))
                     yield return definition;
             }
 
@@ -115,7 +115,7 @@ namespace Inidtex.ZaraExterlLables
 
                 yield return new LabelDefinition(resolvedReference, mergedComponents, mergedAssets);
 
-                foreach (var child in childLabels.Where(child => !IsPiggyback(child.reference)))
+                foreach (var child in childLabels.Where(child => !IsPiggyback(child.Reference)))
                 {
                     foreach (var childDefinition in BuildFromChild(child, log))
                         yield return childDefinition;

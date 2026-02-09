@@ -7,6 +7,7 @@ using OrderDonwLoadService.Synchronization;
 using OrderDonwLoadService.Services.ImageManagement;
 using Service.Contracts;
 using Xunit;
+using OrderDonwLoadService.Services;
 
 namespace OrderDownloadService.Tests
 {

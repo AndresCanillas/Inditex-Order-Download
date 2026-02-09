@@ -44,7 +44,7 @@ namespace OrderDonwLoadService
                 log.LogMessage($"Order {e.OrderNumber} is waiting for image validation.");
                 events.Send(new NotificationReceivedEvent
                 {
-                    CompanyID = appConfig.GetValue<int>("DownloadServices.ProjectInfoPrinCentral.CompanyID"),
+                    CompanyID = appConfig.GetValue<int>("DownloadServices.ProjectInfoApiPrinCentral.CompanyID"),
                     Title = $"Order {e.OrderNumber} en espera",
                     Message = "El pedido está en espera porque existen imágenes pendientes de validar en fuente.",
                     FileName = Path.GetFileName(e.FilePath)

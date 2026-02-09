@@ -27,7 +27,7 @@ namespace Inditex.ZaraHangtagKids.Tests
             Assert.Equal(expectedHeader, header);
 
             var expectedLabels = CountLabelsExcludingPiggybacks(orderData.labels);
-            var expectedSizes = orderData.POInformation.colors.Sum(c => c.sizes.Length);
+            var expectedSizes = orderData.POInformation.colors.Sum(c => c.Sizes.Length);
             var expectedRows = expectedLabels * expectedSizes;
 
             Assert.Equal(expectedRows + 1, lines.Length);
@@ -197,11 +197,11 @@ namespace Inditex.ZaraHangtagKids.Tests
             var total = 0;
             foreach(var label in labels ?? Array.Empty<Label>())
             {
-                if (IsPiggyback(label?.reference))
+                if (IsPiggyback(label?.Reference))
                     continue;
 
                 total++;
-                total += CountChildLabels(label?.childrenLabels);
+                total += CountChildLabels(label?.ChildrenLabels);
             }
 
             return total;
@@ -215,14 +215,14 @@ namespace Inditex.ZaraHangtagKids.Tests
             var total = 0;
             foreach (var child in children)
             {
-                if (child == null || IsPiggyback(child.reference))
+                if (child == null || IsPiggyback(child.Reference))
                     continue;
 
                 total++;
-                if (child.childrenLabels == null)
+                if (child.ChildrenLabels == null)
                     continue;
 
-                foreach (var nested in child.childrenLabels)
+                foreach (var nested in child.ChildrenLabels)
                 {
                     if (nested is Childrenlabel nestedChild)
                         total += CountChildLabels(new[] { nestedChild });
@@ -262,11 +262,11 @@ namespace Inditex.ZaraHangtagKids.Tests
 
         private static string GetComponentValue(InditexOrderData orderData, string componentName, string key)
         {
-            var component = orderData.componentValues.First(c => c.name == componentName);
-            if(component.valueMap is Dictionary<string, string> map)
+            var component = orderData.ComponentValues.First(c => c.Name == componentName);
+            if(component.ValueMap is Dictionary<string, string> map)
                 return map[key];
 
-            var mapObj = (Newtonsoft.Json.Linq.JObject)component.valueMap;
+            var mapObj = (Newtonsoft.Json.Linq.JObject)component.ValueMap;
             return mapObj[key]?.ToString();
         }
 
@@ -285,45 +285,45 @@ namespace Inditex.ZaraHangtagKids.Tests
             {
                 POInformation = new Poinformation
                 {
-                    productionOrderNumber = "PO-CHILD",
-                    campaign = "C1",
-                    brand = "Z",
-                    section = "SEC",
-                    productType = "TYPE",
-                    model = 100,
-                    quality = 200,
+                    PONumber = "PO-CHILD",
+                    Campaign = "C1",
+                    BrandRfid = "Z",
+                    SectionRfid = "SEC",
+                    ProductTypeRfid = "TYPE",
+                    ModelRfid = 100,
+                    QualityRfid = 200,
                     colors = new[]
                     {
                         new Color
                         {
-                            color = 123,
-                            sizes = new[]
+                            ColorRfid = 123,
+                            Sizes = new[]
                             {
-                                new Size { size = 40, qty = 1 }
+                                new Size { SizeRfid = 40, Qty = 1 }
                             }
                         }
                     }
                 },
-                assets = new[]
+                Assets = new[]
                 {
-                    new Asset { name = "Icono RFID", value = "RFID-CHILD" }
+                    new Asset { Name = "Icono RFID", Value = "RFID-CHILD" }
                 },
-                componentValues = Array.Empty<Componentvalue>(),
+                ComponentValues = Array.Empty<Componentvalue>(),
                 labels = new[]
                 {
                     new Label
                     {
-                        reference = "HPZPARENT001",
-                        components = Array.Empty<string>(),
-                        assets = Array.Empty<string>(),
-                        childrenLabels = new[]
+                        Reference = "HPZPARENT001",
+                        Components = Array.Empty<string>(),
+                        Assets = Array.Empty<string>(),
+                        ChildrenLabels = new[]
                         {
                             new Childrenlabel
                             {
-                                reference = "HPZCHILD001",
-                                components = Array.Empty<string>(),
-                                assets = new[] { "Icono RFID" },
-                                childrenLabels = null
+                                Reference = "HPZCHILD001",
+                                Components = Array.Empty<string>(),
+                                Sssets = new[] { "Icono RFID" },
+                                ChildrenLabels = null
                             }
                         }
                     }
@@ -337,53 +337,53 @@ namespace Inditex.ZaraHangtagKids.Tests
             {
                 POInformation = new Poinformation
                 {
-                    productionOrderNumber = "PO-BLUE",
-                    campaign = "C1",
-                    brand = "Z",
-                    section = "SEC",
-                    productType = "TYPE",
-                    model = 100,
-                    quality = 200,
+                    PONumber = "PO-BLUE",
+                    Campaign = "C1",
+                    BrandRfid = "Z",
+                    SectionRfid = "SEC",
+                    ProductTypeRfid = "TYPE",
+                    ModelRfid = 100,
+                    QualityRfid = 200,
                     colors = new[]
                     {
                         new Color
                         {
-                            color = 123,
-                            sizes = new[]
+                            ColorRfid = 123,
+                            Sizes = new[]
                             {
-                                new Size { size = 40, qty = 1 }
+                                new Size { SizeRfid = 40, Qty = 1 }
                             }
                         }
                     }
                 },
-                assets = new[]
+                Assets = new[]
                 {
-                    new Asset { name = "Icono RFID", value = "https://static.inditex.com/rfid_alarm.png?ts=1" }
+                    new Asset { Name = "Icono RFID", Value = "https://static.inditex.com/rfid_alarm.png?ts=1" }
                 },
-                componentValues = new[]
+                ComponentValues = new[]
                 {
                     new Componentvalue
                     {
-                        groupKey = "MODEL_QUALITY",
-                        name = "Blue label",
-                        valueMap = new Dictionary<string, string> { ["100/200"] = "22,95" }
+                        GroupKey = "MODEL_QUALITY",
+                        Name = "Blue label",
+                        ValueMap = new Dictionary<string, string> { ["100/200"] = "22,95" }
                     }
                 },
                 labels = new[]
                 {
                     new Label
                     {
-                        reference = "HPZBLUE001",
-                        components = Array.Empty<string>(),
-                        assets = Array.Empty<string>(),
-                        childrenLabels = new[]
+                        Reference = "HPZBLUE001",
+                        Components = Array.Empty<string>(),
+                        Assets = Array.Empty<string>(),
+                        ChildrenLabels = new[]
                         {
                             new Childrenlabel
                             {
-                                reference = "BLUE_LABEL",
-                                components = new[] { "Blue label" },
-                                assets = new[] { "Icono RFID" },
-                                childrenLabels = Array.Empty<object>()
+                                Reference = "BLUE_LABEL",
+                                Components = new[] { "Blue label" },
+                                Sssets = new[] { "Icono RFID" },
+                                ChildrenLabels = Array.Empty<object>()
                             }
                         }
                     }
@@ -397,42 +397,42 @@ namespace Inditex.ZaraHangtagKids.Tests
             {
                 POInformation = new Poinformation
                 {
-                    productionOrderNumber = "PO-RED",
-                    campaign = "C1",
-                    brand = "Z",
-                    section = "SEC",
-                    productType = "TYPE",
-                    model = 100,
-                    quality = 200,
+                    PONumber = "PO-RED",
+                    Campaign = "C1",
+                    BrandRfid = "Z",
+                    SectionRfid = "SEC",
+                    ProductTypeRfid = "TYPE",
+                    ModelRfid = 100,
+                    QualityRfid = 200,
                     colors = new[]
                     {
                         new Color
                         {
-                            color = 123,
-                            sizes = new[]
+                            ColorRfid = 123,
+                            Sizes = new[]
                             {
-                                new Size { size = 40, qty = 1 }
+                                new Size { SizeRfid = 40, Qty = 1 }
                             }
                         }
                     }
                 },
-                assets = Array.Empty<Asset>(),
-                componentValues = Array.Empty<Componentvalue>(),
+                Assets = Array.Empty<Asset>(),
+                ComponentValues = Array.Empty<Componentvalue>(),
                 labels = new[]
                 {
                     new Label
                     {
-                        reference = "HPZRED001",
-                        components = Array.Empty<string>(),
-                        assets = Array.Empty<string>(),
-                        childrenLabels = new[]
+                        Reference = "HPZRED001",
+                        Components = Array.Empty<string>(),
+                        Assets = Array.Empty<string>(),
+                        ChildrenLabels = new[]
                         {
                             new Childrenlabel
                             {
-                                reference = "RED_LABEL",
-                                components = new[] { "Red label" },
-                                assets = Array.Empty<string>(),
-                                childrenLabels = Array.Empty<object>()
+                                Reference = "RED_LABEL",
+                                Components = new[] { "Red label" },
+                                Sssets = Array.Empty<string>(),
+                                ChildrenLabels = Array.Empty<object>()
                             }
                         }
                     }
@@ -445,33 +445,33 @@ namespace Inditex.ZaraHangtagKids.Tests
             {
                 POInformation = new Poinformation
                 {
-                    productionOrderNumber = "PO-DELIM",
-                    campaign = "C1",
-                    brand = "Z",
-                    section = "SEC",
-                    productType = "TYPE",
-                    model = 100,
-                    quality = 200,
+                    PONumber = "PO-DELIM",
+                    Campaign = "C1",
+                    BrandRfid = "Z",
+                    SectionRfid = "SEC",
+                    ProductTypeRfid = "TYPE",
+                    ModelRfid = 100,
+                    QualityRfid = 200,
                     colors = new[]
                     {
                         new Color
                         {
-                            color = 711,
-                            sizes = new[]
+                            ColorRfid = 711,
+                            Sizes = new[]
                             {
-                                new Size { size = 18, qty = 1 }
+                                new Size { SizeRfid = 18, Qty = 1 }
                             }
                         }
                     }
                 },
-                assets = Array.Empty<Asset>(),
-                componentValues = new[]
+                Assets = Array.Empty<Asset>(),
+                ComponentValues = new[]
                 {
                     new Componentvalue
                     {
-                        groupKey = "COLOR",
-                        name = "Colour",
-                        valueMap = new Dictionary<string, string>
+                        GroupKey = "COLOR",
+                        Name = "Colour",
+                        ValueMap = new Dictionary<string, string>
                         {
                             { "711", "Value;With;Semicolon" }
                         }
@@ -481,9 +481,9 @@ namespace Inditex.ZaraHangtagKids.Tests
                 {
                     new Label
                     {
-                        reference = "HPZKALL0032",
-                        components = new[] { "Colour" },
-                        assets = Array.Empty<string>()
+                        Reference = "HPZKALL0032",
+                        Components = new[] { "Colour" },
+                        Assets = Array.Empty<string>()
                     }
                 }
             };
@@ -495,33 +495,33 @@ namespace Inditex.ZaraHangtagKids.Tests
             {
                 POInformation = new Poinformation
                 {
-                    productionOrderNumber = "PO-QUOTES",
-                    campaign = "C1",
-                    brand = "Z",
-                    section = "SEC",
-                    productType = "TYPE",
-                    model = 100,
-                    quality = 200,
+                    PONumber = "PO-QUOTES",
+                    Campaign = "C1",
+                    BrandRfid = "Z",
+                    SectionRfid = "SEC",
+                    ProductTypeRfid = "TYPE",
+                    ModelRfid = 100,
+                    QualityRfid = 200,
                     colors = new[]
                     {
                         new Color
                         {
-                            color = 711,
-                            sizes = new[]
+                            ColorRfid = 711,
+                            Sizes = new[]
                             {
-                                new Size { size = 18, qty = 1 }
+                                new Size { SizeRfid = 18, Qty = 1 }
                             }
                         }
                     }
                 },
-                assets = Array.Empty<Asset>(),
-                componentValues = new[]
+                Assets = Array.Empty<Asset>(),
+                ComponentValues = new[]
                 {
                     new Componentvalue
                     {
-                        groupKey = "COLOR",
-                        name = "Colour",
-                        valueMap = new Dictionary<string, string>
+                        GroupKey = "COLOR",
+                        Name = "Colour",
+                        ValueMap = new Dictionary<string, string>
                         {
                             { "711", "Value \"Quoted\"" }
                         }
@@ -531,9 +531,9 @@ namespace Inditex.ZaraHangtagKids.Tests
                 {
                     new Label
                     {
-                        reference = "HPZKALL0032",
-                        components = new[] { "Colour" },
-                        assets = Array.Empty<string>()
+                        Reference = "HPZKALL0032",
+                        Components = new[] { "Colour" },
+                        Assets = Array.Empty<string>()
                     }
                 }
             };

@@ -20,36 +20,41 @@
 	HomeView.prototype = {
 		constructor: HomeView,
 
-	OnLoad: async function () {
-		@if (!showMaintenanceScreen)
-		{
-			@:this.elements.VMenu.MenuOptionClicked.Subscribe(this, this.HandleVMenuEvent);
-		}
+		OnLoad: async function () {
+			@if (!showMaintenanceScreen)
+			{
+				@:this.elements.VMenu.MenuOptionClicked.Subscribe(this, this.HandleVMenuEvent);
+			}
 
-		@if (canManageImages)
-		{
-			@:var view = await AppContext.ViewManager.Load("/ImageManagement/ImageManagementView.js");
-		}
-		@else
-		{
-			@:var view = await AppContext.ViewManager.Load("/Orders/GetOrdersDialog.js");
-		}
-		view.Show(this.elements.mainContainer);
-	},
+			@if (canManageImages)
+			{
+				@:AppContext.ViewManager.Load("/ImageManagement/ImageManagementView.js").then(function(view) {
+				@:	view.Show(this.elements.mainContainer);
+				@:}.bind(this));
+			}
+			else
+			{
+				@:AppContext.ViewManager.Load("/Orders/GetOrdersDialog.js").then(function(view) {
+				@:	view.Show(this.elements.mainContainer);
+				@:}.bind(this));
+			}
+		},
 
-	HandleVMenuEvent: async function (self, ev) {
-		switch (ev.option) {
-			case "ImageManagement":
-				var view = await AppContext.ViewManager.Load("/ImageManagement/ImageManagementView.js");
-				view.Show(self.elements.mainContainer);
-				break;
-			case "Orders":
-			default:
-				var view = await AppContext.ViewManager.Load("/Orders/GetOrdersDialog.js");
-				view.Show(self.elements.mainContainer);
-				break;
-		}
-	},
+		HandleVMenuEvent: async function (self, ev) {
+			switch (ev.option) {
+				case "ImageManagement":
+					AppContext.ViewManager.Load("/ImageManagement/ImageManagementView.js").then(function(view) {
+						view.Show(self.elements.mainContainer);
+					});
+					break;
+				case "Orders":
+				default:
+					AppContext.ViewManager.Load("/Orders/GetOrdersDialog.js").then(function(view) {
+						view.Show(self.elements.mainContainer);
+					});
+					break;
+			}
+		},
 
 		OnUnload: function () {
 			console.log("HomeView Unload");

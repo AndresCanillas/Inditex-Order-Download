@@ -11,8 +11,8 @@ using System.Text;
 
 namespace Inditex.OrderPlugin
 {
-    [FriendlyName("Inditex - Zara.Hangtag.Kids.Plugin"), Description("InditexZaraHangtagKidsPlugin.Json.DocumentService")]
-    public class InditexZaraHangtagKidsPlugin : IDocumentImportPlugin
+    [FriendlyName("Inditex - Zara.External.Labels.Plugin"), Description("InditexZaraExternalLabelsPlugin.Json.DocumentService")]
+    public class InditexZaraExternalLabelsPlugin : IDocumentImportPlugin
     {
         private readonly IConnectionManager connMng;
         private readonly IFileStoreManager storeManager;
@@ -22,7 +22,7 @@ namespace Inditex.OrderPlugin
         private IFSFile tempFile;
         private Encoding encoding;
 
-        public InditexZaraHangtagKidsPlugin(
+        public InditexZaraExternalLabelsPlugin(
             IConnectionManager connMng,
             IFileStoreManager storeManager,
             ILogService log)
@@ -30,7 +30,7 @@ namespace Inditex.OrderPlugin
         {
         }
 
-        public InditexZaraHangtagKidsPlugin(
+        public InditexZaraExternalLabelsPlugin(
             IConnectionManager connMng,
             IFileStoreManager storeManager,
             ILogService log,
@@ -43,7 +43,7 @@ namespace Inditex.OrderPlugin
             tempStore = storeManager.OpenStore("TempStore");
         }
 
-        public InditexZaraHangtagKidsPlugin()
+        public InditexZaraExternalLabelsPlugin()
         {
 
         }
@@ -52,7 +52,7 @@ namespace Inditex.OrderPlugin
         {
             try
             {
-                log.LogMessage("Inditex.ZaraHangtag.Kids.Plugin.OnPrepareFile, Start OnPrepareFile.");
+                log.LogMessage("Inditex.ZaraExternalLabels.Plugin.OnPrepareFile, Start OnPrepareFile.");
                 try
                 {
                     if(configuration.Input.Encoding.ToLower() == "default") encoding = Encoding.Default;
@@ -74,17 +74,17 @@ namespace Inditex.OrderPlugin
                 tempFile = tempStore.CreateFile($"{fname}_{DateTime.Now.ToString("yyyyMMddHHmmss")}.{pluginType}");
 
 
-                log.LogMessage($"Inditex.ZaraHangtag.Kids.Plugin.OnPrepareFile, loaded file with {fileContent.Length} characters.");
+                log.LogMessage($"Inditex.ZaraExternalLabels.Plugin.OnPrepareFile, loaded file with {fileContent.Length} characters.");
                 if(ProcessingFile(encoding, configuration, fileContent, pluginType))
                 {
                     configuration.FileGUID = tempFile.FileGUID;
                     configuration.FileName = tempFile.FileName;// change filename to avoid use .json extension
                 }
-                log.LogMessage("Inditex.ZaraHangtag.Kids.Plugin.OnPrepareFile, Finish OnPrepareFile.");
+                log.LogMessage("Inditex.ZaraExternalLabels.Plugin.OnPrepareFile, Finish OnPrepareFile.");
             }
             catch(Exception ex)
             {
-                log.LogMessage($"Inditex.ZaraHangtag.Kids.Plugin.OnPrepareFile, Error: {ex.Message}.\r\n Tracer: {ex.StackTrace}. " +
+                log.LogMessage($"Inditex.ZaraExternalLabels.Plugin.OnPrepareFile, Error: {ex.Message}.\r\n Tracer: {ex.StackTrace}. " +
                     $"\r\n Inner:{ex.InnerException?.Message} ");
             }
         }
@@ -101,8 +101,8 @@ namespace Inditex.OrderPlugin
                 {
                     providerVerifier.ValidateProviderData(
                         configuration.CompanyID,
-                        orderData.supplier,
-                        orderData.POInformation.productionOrderNumber,
+                        orderData.Supplier,
+                        orderData.POInformation.PONumber,
                         configuration.ProjectID.ToString(),
                         db,
                         log,
@@ -117,7 +117,7 @@ namespace Inditex.OrderPlugin
             }
             catch(Exception ex)
             {
-                log.LogException($"Inditex.ZaraHangtag.Kids.Plugin.OnPrepareFile, Error: {ex.Message}.", ex);
+                log.LogException($"Inditex.ZaraExternalLabels.Plugin.OnPrepareFile, Error: {ex.Message}.", ex);
                 return false;
             }
         }

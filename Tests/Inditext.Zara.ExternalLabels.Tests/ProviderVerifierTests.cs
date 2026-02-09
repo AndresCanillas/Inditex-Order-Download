@@ -29,7 +29,7 @@ namespace Inditex.ZaraHangtagKids.Tests
 
             verifier.ValidateProviderData(
                 5,
-                new Supplier { supplierCode = "123" },
+                new Supplier { SupplierCode = "123" },
                 "ORD-99",
                 "10",
                 db.Object,
@@ -65,7 +65,7 @@ namespace Inditex.ZaraHangtagKids.Tests
 
             verifier.ValidateProviderData(
                 7,
-                new Supplier { supplierCode = "00123" },
+                new Supplier { SupplierCode = "00123" },
                 "ORD-1",
                 "10",
                 db.Object,

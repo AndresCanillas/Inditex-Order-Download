@@ -31,16 +31,16 @@ namespace Inidtex.ZaraExterlLables
             var sb = new StringBuilder();
             sb.AppendLine(headerLine);
 
-            var componentLookup = BuildComponentLookup(orderData.componentValues);
-            var assetLookup = BuildAssetLookup(orderData.assets);
+            var componentLookup = BuildComponentLookup(orderData.ComponentValues);
+            var assetLookup = BuildAssetLookup(orderData.Assets);
 
             foreach (var color in orderData.POInformation.colors ?? Array.Empty<Color>())
             {
-                foreach (var size in color.sizes ?? Array.Empty<Size>())
+                foreach (var size in color.Sizes ?? Array.Empty<Size>())
                 {
                     foreach (var label in labels)
                     {
-                        var line = BuildDataLine(orderData, color.color, size, label, headerDefinition, componentLookup, assetLookup);
+                        var line = BuildDataLine(orderData, color.ColorRfid, size, label, headerDefinition, componentLookup, assetLookup);
                         sb.AppendLine(line);
                     }
                 }
@@ -53,14 +53,14 @@ namespace Inidtex.ZaraExterlLables
 
         private static string ResolveComponentValue(Componentvalue componentValue, InditexOrderData orderData, int color, int size)
         {
-            if (componentValue == null || componentValue.valueMap == null)
+            if (componentValue == null || componentValue.ValueMap == null)
                 return string.Empty;
 
-            var key = BuildValueMapKey(componentValue.groupKey, orderData, color, size);
+            var key = BuildValueMapKey(componentValue.GroupKey, orderData, color, size);
             if (string.IsNullOrEmpty(key))
                 return string.Empty;
 
-            var valueMap = NormalizeValueMap(componentValue.valueMap);
+            var valueMap = NormalizeValueMap(componentValue.ValueMap);
             return valueMap.TryGetValue(key, out var value) ? value : string.Empty;
         }
 
@@ -72,7 +72,7 @@ namespace Inidtex.ZaraExterlLables
             switch (groupKey.Trim().ToUpperInvariant())
             {
                 case "MODEL_QUALITY":
-                    return $"{orderData.POInformation.model}/{orderData.POInformation.quality}";
+                    return $"{orderData.POInformation.ModelRfid}/{orderData.POInformation.QualityRfid}";
                 case "COLOR":
                     return color.ToString(CultureInfo.InvariantCulture);
                 case "SIZE":
@@ -98,10 +98,10 @@ namespace Inidtex.ZaraExterlLables
                 return color.ToString(CultureInfo.InvariantCulture);
 
             if(string.Equals(field.Path, "Size.size", StringComparison.OrdinalIgnoreCase))
-                return size.size.ToString(CultureInfo.InvariantCulture);
+                return size.SizeRfid.ToString(CultureInfo.InvariantCulture);
 
             if(string.Equals(field.Path, "Size.qty", StringComparison.OrdinalIgnoreCase))
-                return size.qty.ToString(CultureInfo.InvariantCulture);
+                return size.Qty.ToString(CultureInfo.InvariantCulture);
 
             if(string.Equals(field.Path, "Label.reference", StringComparison.OrdinalIgnoreCase))
                 return label.Reference;

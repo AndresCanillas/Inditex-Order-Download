@@ -33,17 +33,17 @@ namespace Inidtex.ZaraExterlLables
 
                     var piggybacks = children
                         .Where(child => child != null)
-                        .Where(child => IsPiggyback(child.reference))
+                        .Where(child => IsPiggyback(child.Reference))
                         .ToList();
 
-                    var hasBlue = piggybacks.Any(child => string.Equals(child.reference, BluePiggybackReference, StringComparison.OrdinalIgnoreCase));
-                    var hasRed = piggybacks.Any(child => string.Equals(child.reference, RedPiggybackReference, StringComparison.OrdinalIgnoreCase));
+                    var hasBlue = piggybacks.Any(child => string.Equals(child.Reference, BluePiggybackReference, StringComparison.OrdinalIgnoreCase));
+                    var hasRed = piggybacks.Any(child => string.Equals(child.Reference, RedPiggybackReference, StringComparison.OrdinalIgnoreCase));
 
                     if (hasRed && !hasBlue)
                         log?.LogWarning($"Se recibió {RedPiggybackReference} sin {BluePiggybackReference} para la referencia {parentReference}.");
 
-                    var components = piggybacks.SelectMany(child => child.components ?? Array.Empty<string>()).ToList();
-                    var assets = piggybacks.SelectMany(child => child.assets ?? Array.Empty<string>()).ToList();
+                    var components = piggybacks.SelectMany(child => child.Components ?? Array.Empty<string>()).ToList();
+                    var assets = piggybacks.SelectMany(child => child.Sssets ?? Array.Empty<string>()).ToList();
 
                     return new PiggybackInfo(hasBlue, hasRed, components, assets);
                 }

@@ -70,13 +70,13 @@ namespace OrderDonwLoadService.Synchronization
 
                 message = $"Order number ({orderNumber}) found successfully in {credential.Name} queue.";
 
-                log.LogMessage($"Order {order.POInformation.productionOrderNumber} in process.");
+                log.LogMessage($"Order {order.POInformation.PONumber} in process.");
 
                 try
                 {
                     var imageResult = await imageManagementService.ProcessOrderImagesAsync(order);
                     if (imageResult.RequiresApproval)
-                        log.LogMessage($"Order {order.POInformation.productionOrderNumber} has pending images to validate.");
+                        log.LogMessage($"Order {order.POInformation.PONumber} has pending images to validate.");
                 }
                 catch (Exception ex)
                 {
@@ -94,28 +94,38 @@ namespace OrderDonwLoadService.Synchronization
                     SaveOrderWithError(ex.Message, order);
                     continue;
                 }
-                log.LogMessage($"Order {order.POInformation.productionOrderNumber} was saved into work directory.");
+                log.LogMessage($"Order {order.POInformation.PONumber} was saved into work directory.");
 
 
-                if (string.IsNullOrEmpty(order.POInformation.section))
-                    throw new Exception("Section property is null or empty.");
-                
-                
+                if (string.IsNullOrEmpty(order.POInformation.Campaign))
+                    throw new Exception("Campaign property is null or empty.");
+                if (string.IsNullOrEmpty(order.POInformation.SectionRfid))
+                    throw new Exception("SectionRfid property is null or empty.");
+                if (string.IsNullOrEmpty(order.POInformation.BrandRfid))
+                    throw new Exception("BrandRfid property is null or empty.");
+                if (string.IsNullOrEmpty(order.POInformation.ProductTypeRfid))
+                    throw new Exception("ProductTypeRfid property is null or empty.");
+                if (order.POInformation.QualityRfid==0)
+                    throw new Exception("QualityRfid property can`t be zero.");
+                if (order.POInformation.ModelRfid == 0)
+                    throw new Exception("ModelRfid property can`t be zero.");
+
+
                 foreach (var label in order.labels)
                 {
-                    if (string.IsNullOrEmpty(label.reference))
+                    if (string.IsNullOrEmpty(label.Reference))
                         throw new Exception("Label reference property is null or empty.");
                     
-                    var pluginType = label.reference.Substring(0,3);
+                    var pluginType = label.Reference.Substring(0,3);
                     events.Send(new FileReceivedEvent
                     {
                         FilePath = filePath,
-                        OrderNumber = order.POInformation.productionOrderNumber.ToString(),
-                        ProyectId = order.POInformation.campaign,
+                        OrderNumber = order.POInformation.PONumber.ToString(),
+                        ProyectId = order.POInformation.Campaign,
                         PluginType = pluginType
                     });
 
-                    log.LogMessage($"File received event sent for order {order.POInformation.productionOrderNumber}, with label reference{pluginType} ");
+                    log.LogMessage($"File received event sent for order {order.POInformation.PONumber}, with label reference{pluginType} ");
                 }
 
                 break;

@@ -54,7 +54,7 @@ namespace Inidtex.ZaraExterlLables
             ILogService log,
             string fileName)
         {
-            var clientReference = supplierData.supplierCode;
+            var clientReference = supplierData.SupplierCode;
 
             if(int.TryParse(clientReference, out int referenceInt))
             {
