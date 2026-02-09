@@ -7,7 +7,7 @@
 }
 @{
     top += 52;
-    if (User.IsInRole(Roles.IDTLabelDesign) || User.IsInRole(Roles.SysAdmin))
+    if ( User.IsInRole(Roles.SysAdmin))
     {
         <div class="submenubar-separator"></div>
         <div name="ImageManagementOption" action="ShowImageManagement" class="menubar-item" title="@g["Image Management"]">
