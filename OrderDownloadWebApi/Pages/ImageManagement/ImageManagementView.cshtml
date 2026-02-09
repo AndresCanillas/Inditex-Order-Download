@@ -74,8 +74,13 @@
                         @g["Select an image to preview details."]
                     </div>
                     <div name="previewContent" class="d-none">
-                        <div class="mb-3 text-center">
+                        <div class="mb-3 d-flex justify-content-center align-items-start">
                             <img name="previewImage" src="" alt="@g["Image preview"]" class="img-fluid border rounded" />
+                            <div class="ml-3">
+                                <button type="button" class="btn btn-outline-primary" name="downloadImage" action="DownloadImage" disabled>
+                                    <span class="fa fa-download"></span> @g["Download image"]
+                                </button>
+                            </div>
                         </div>
                         <dl class="row">
                             <dt class="col-sm-4">@g["Name"]</dt>
@@ -83,7 +88,7 @@
                             <dt class="col-sm-4">@g["Status"]</dt>
                             <dd class="col-sm-8" name="previewStatus"></dd>
                             <dt class="col-sm-4">@g["URL"]</dt>
-                            <dd class="col-sm-8"><a href="#" target="_blank" rel="noopener" name="previewUrl"></a></dd>
+                            <dd class="col-sm-8" name="previewUrl"></dd>
                             <dt class="col-sm-4">@g["Hash"]</dt>
                             <dd class="col-sm-8" name="previewHash"></dd>
                         </dl>

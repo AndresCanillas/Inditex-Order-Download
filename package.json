@@ -1,0 +1,12 @@
+{
+  "name": "inditex-order-download",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Frontend validation tests for Inditex Order Download.",
+  "scripts": {
+    "test": "jest --runInBand"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
