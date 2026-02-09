@@ -94,16 +94,16 @@ namespace Inidtex.ZaraExterlLables
             if(field == null)
                 return string.Empty;
 
-            if(string.Equals(field.Path, "Color.color", StringComparison.OrdinalIgnoreCase))
+            if(string.Equals(field.Path, InditexOrderSchema.Paths.Color, StringComparison.OrdinalIgnoreCase))
                 return color.ToString(CultureInfo.InvariantCulture);
 
-            if(string.Equals(field.Path, "Size.size", StringComparison.OrdinalIgnoreCase))
+            if(string.Equals(field.Path, InditexOrderSchema.Paths.Size, StringComparison.OrdinalIgnoreCase))
                 return size.SizeRfid.ToString(CultureInfo.InvariantCulture);
 
-            if(string.Equals(field.Path, "Size.qty", StringComparison.OrdinalIgnoreCase))
+            if(string.Equals(field.Path, InditexOrderSchema.Paths.Quantity, StringComparison.OrdinalIgnoreCase))
                 return size.Qty.ToString(CultureInfo.InvariantCulture);
 
-            if(string.Equals(field.Path, "Label.reference", StringComparison.OrdinalIgnoreCase))
+            if(string.Equals(field.Path, InditexOrderSchema.Paths.LabelReference, StringComparison.OrdinalIgnoreCase))
                 return label.Reference;
 
             return ResolveByReflection(orderData, field.Path);
