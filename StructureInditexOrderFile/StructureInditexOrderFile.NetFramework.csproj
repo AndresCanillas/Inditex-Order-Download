@@ -45,6 +45,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="InditexOrderData.cs" />
+    <Compile Include="InditexOrderSchema.cs" />
     <Compile Include="LabelSchemaRegistry.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

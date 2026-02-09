@@ -15,9 +15,9 @@ namespace StructureInditexOrderFile
             public static readonly string ProductType = BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.ProductTypeRfid));
             public static readonly string Model = BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.ModelRfid));
             public static readonly string Quality = BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.QualityRfid));
-            public static readonly string Color = BuildPath(nameof(Color), nameof(Color.ColorRfid));
-            public static readonly string Size = BuildPath(nameof(Size), nameof(Size.SizeRfid));
-            public static readonly string Quantity = BuildPath(nameof(Size), nameof(Size.Qty));
+            public static readonly string Color = BuildPath(nameof(StructureInditexOrderFile.Color), nameof(StructureInditexOrderFile.Color.ColorRfid));
+            public static readonly string Size = BuildPath(nameof(StructureInditexOrderFile.Size), nameof(StructureInditexOrderFile.Size.SizeRfid));
+            public static readonly string Quantity = BuildPath(nameof(StructureInditexOrderFile.Size), nameof(StructureInditexOrderFile.Size.Qty));
             public static readonly string LabelReference = BuildPath(nameof(Label), nameof(Label.Reference));
         }
 
@@ -27,17 +27,17 @@ namespace StructureInditexOrderFile
         {
             var fields = new[]
             {
-                new InditexFieldDefinition("ProductionOrderNumber", Paths.ProductionOrderNumber),
-                new InditexFieldDefinition("Campaign", Paths.Campaign),
-                new InditexFieldDefinition("Brand", Paths.Brand),
-                new InditexFieldDefinition("Section", Paths.Section),
-                new InditexFieldDefinition("ProductType", Paths.ProductType),
-                new InditexFieldDefinition("Model", Paths.Model),
-                new InditexFieldDefinition("Quality", Paths.Quality),
-                new InditexFieldDefinition("Color", Paths.Color),
-                new InditexFieldDefinition("Size", Paths.Size),
-                new InditexFieldDefinition("Quantity", Paths.Quantity),
-                new InditexFieldDefinition("LabelReference", Paths.LabelReference)
+                new InditexFieldDefinition(nameof(Poinformation.PONumber), Paths.ProductionOrderNumber),
+                new InditexFieldDefinition(nameof(Poinformation.Campaign), Paths.Campaign),
+                new InditexFieldDefinition(nameof(Poinformation.BrandRfid), Paths.Brand),
+                new InditexFieldDefinition(nameof(Poinformation.SectionRfid), Paths.Section),
+                new InditexFieldDefinition(nameof(Poinformation.ProductTypeRfid), Paths.ProductType),
+                new InditexFieldDefinition(nameof(Poinformation.ModelRfid), Paths.Model),
+                new InditexFieldDefinition(nameof(Poinformation.QualityRfid), Paths.Quality),
+                new InditexFieldDefinition(nameof(Color.ColorRfid), Paths.Color),
+                new InditexFieldDefinition(nameof(Size.SizeRfid), Paths.Size),
+                new InditexFieldDefinition(nameof(Size.Qty), Paths.Quantity),
+                new InditexFieldDefinition(nameof(Label.Reference), Paths.LabelReference)
             };
 
             return fields.ToList().AsReadOnly();

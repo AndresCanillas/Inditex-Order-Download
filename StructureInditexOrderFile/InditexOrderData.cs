@@ -30,7 +30,7 @@ namespace StructureInditexOrderFile
         public int ModelRfid { get; set; }
         [JsonProperty("quality")]
         public int QualityRfid { get; set; }
-        public Color[] colors { get; set; }
+        public Color[] Colors { get; set; }
     }
 
     public class Color

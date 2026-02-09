@@ -27,7 +27,7 @@ namespace Inditex.ZaraHangtagKids.Tests
             Assert.Equal(expectedHeader, header);
 
             var expectedLabels = CountLabelsExcludingPiggybacks(orderData.labels);
-            var expectedSizes = orderData.POInformation.colors.Sum(c => c.Sizes.Length);
+            var expectedSizes = orderData.POInformation.Colors.Sum(c => c.Sizes.Length);
             var expectedRows = expectedLabels * expectedSizes;
 
             Assert.Equal(expectedRows + 1, lines.Length);
@@ -292,7 +292,7 @@ namespace Inditex.ZaraHangtagKids.Tests
                     ProductTypeRfid = "TYPE",
                     ModelRfid = 100,
                     QualityRfid = 200,
-                    colors = new[]
+                    Colors = new[]
                     {
                         new Color
                         {
@@ -344,7 +344,7 @@ namespace Inditex.ZaraHangtagKids.Tests
                     ProductTypeRfid = "TYPE",
                     ModelRfid = 100,
                     QualityRfid = 200,
-                    colors = new[]
+                    Colors = new[]
                     {
                         new Color
                         {
@@ -404,7 +404,7 @@ namespace Inditex.ZaraHangtagKids.Tests
                     ProductTypeRfid = "TYPE",
                     ModelRfid = 100,
                     QualityRfid = 200,
-                    colors = new[]
+                    Colors = new[]
                     {
                         new Color
                         {
@@ -452,7 +452,7 @@ namespace Inditex.ZaraHangtagKids.Tests
                     ProductTypeRfid = "TYPE",
                     ModelRfid = 100,
                     QualityRfid = 200,
-                    colors = new[]
+                    Colors = new[]
                     {
                         new Color
                         {
@@ -502,7 +502,7 @@ namespace Inditex.ZaraHangtagKids.Tests
                     ProductTypeRfid = "TYPE",
                     ModelRfid = 100,
                     QualityRfid = 200,
-                    colors = new[]
+                    Colors = new[]
                     {
                         new Color
                         {

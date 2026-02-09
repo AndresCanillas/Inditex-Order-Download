@@ -34,7 +34,7 @@ namespace Inidtex.ZaraExterlLables
             var componentLookup = BuildComponentLookup(orderData.ComponentValues);
             var assetLookup = BuildAssetLookup(orderData.Assets);
 
-            foreach (var color in orderData.POInformation.colors ?? Array.Empty<Color>())
+            foreach (var color in orderData.POInformation.Colors ?? Array.Empty<Color>())
             {
                 foreach (var size in color.Sizes ?? Array.Empty<Size>())
                 {
