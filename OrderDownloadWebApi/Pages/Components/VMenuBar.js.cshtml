@@ -51,23 +51,13 @@
 		ShowImageManagement: function (e) {
 			e.preventDefault();
 			this.HideAll();
-			@if (canManageImages)
-			{
-				@:AppContext.ViewManager.Load("/ImageManagement/ImageManagementView.js").then(function(view) {
-				@:	view.Show(this.elements.mainContainer);
-				@:}.bind(this));
-			}
+			this.MenuOptionClicked.Raise({ option: "ImageManagement" });
 		},
 
 		ShowEntry: function (e) {
 			e.preventDefault();
 			this.HideAll();
-			@if (canManageImages)
-			{
-				@:AppContext.ViewManager.Load("/Orders/GetOrdersDialog.js").then(function(view) {
-				@:	view.Show(this.elements.mainContainer);
-				@:}.bind(this));
-			}
+			this.MenuOptionClicked.Raise({ option: "Orders" });
 		},
 
 		Logout: async function (e) {

@@ -40,18 +40,18 @@
 			}
 		},
 
-		HandleVMenuEvent: async function (self, ev) {
+		HandleVMenuEvent: async function (ev) {
 			switch (ev.option) {
 				case "ImageManagement":
 					AppContext.ViewManager.Load("/ImageManagement/ImageManagementView.js").then(function(view) {
-						view.Show(self.elements.mainContainer);
-					});
+						view.Show(this.elements.mainContainer);
+					}.bind(this));
 					break;
 				case "Orders":
 				default:
 					AppContext.ViewManager.Load("/Orders/GetOrdersDialog.js").then(function(view) {
-						view.Show(self.elements.mainContainer);
-					});
+						view.Show(this.elements.mainContainer);
+					}.bind(this));
 					break;
 			}
 		},
