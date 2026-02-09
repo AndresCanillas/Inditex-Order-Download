@@ -106,10 +106,40 @@
             this.elements.previewName.text(item.Name || "@g["Unnamed"]");
             this.elements.previewStatus.html(this.RenderStatusBadge(item.Status));
             this.elements.previewHash.text(item.Hash || "-");
-            this.elements.previewUrl.text(item.Url || "-").attr("href", item.Url || "#");
+            this.elements.previewUrl.text(item.Url || "-");
             this.elements.previewImage.attr("src", `/image-management/${item.ID}/content`);
             this.elements.statusSelect.val(item.Status);
             this.elements.statusFeedback.text("");
+            this.elements.downloadImage.prop("disabled", false);
+        },
+
+        DownloadImage: async function () {
+            if (!this.state.selected) return;
+
+            this.ShowFeedback("@g["Preparing download..."]", "text-muted");
+
+            try {
+                var response = await fetch(`/image-management/${this.state.selected.ID}/content`);
+                if (!response.ok) {
+                    this.ShowFeedback("@g["Unable to download image."]", "text-danger");
+                    return;
+                }
+
+                var blob = await response.blob();
+                var fileName = this.BuildFileName(this.state.selected, response.headers.get("Content-Type"));
+                var url = window.URL.createObjectURL(blob);
+                var anchor = document.createElement("a");
+                anchor.href = url;
+                anchor.download = fileName;
+                document.body.appendChild(anchor);
+                anchor.click();
+                anchor.remove();
+                window.URL.revokeObjectURL(url);
+                this.ShowFeedback("@g["Download started."]", "text-success");
+            } catch (err) {
+                console.error(err);
+                this.ShowFeedback("@g["Unexpected error while downloading."]", "text-danger");
+            }
         },
 
         UpdateStatus: async function () {
@@ -141,6 +171,7 @@
             this.state.selected = null;
             this.elements.previewEmpty.removeClass("d-none");
             this.elements.previewContent.addClass("d-none");
+            this.elements.downloadImage.prop("disabled", true);
         },
 
         RenderStatusBadge: function (status) {
@@ -159,6 +190,28 @@
             if (!value) return "-";
             var date = new Date(value);
             return date.toLocaleString();
+        },
+
+        BuildFileName: function (item, contentType) {
+            var fallback = `image-${item.ID}`;
+            var rawName = (item.Name || fallback).trim();
+            var safeName = rawName.replace(/[\\/:*?"<>|]+/g, "_");
+            var extension = this.GetExtensionFromContentType(contentType);
+
+            if (safeName.toLowerCase().endsWith(extension)) {
+                return safeName;
+            }
+
+            return `${safeName}${extension}`;
+        },
+
+        GetExtensionFromContentType: function (contentType) {
+            if (!contentType) return ".png";
+            if (contentType.includes("image/jpeg")) return ".jpg";
+            if (contentType.includes("image/png")) return ".png";
+            if (contentType.includes("image/gif")) return ".gif";
+            if (contentType.includes("image/svg+xml")) return ".svg";
+            return ".png";
         },
 
         SetLoading: function (isLoading, message) {
