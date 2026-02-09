@@ -38,20 +38,7 @@ namespace StructureInditexOrderFile
         private static readonly string[] ExternalLabelPrefixes = { "HPZ", "WTZ", "ADZ", "RED", "BLU" };
         private static readonly string[] InternalLabelPrefixes = { "WLZ", "WPZ", "PLZ", "OTZ" };
 
-        private static readonly IReadOnlyList<InditexFieldDefinition> DefaultBaseFields = new[]
-        {
-            new InditexFieldDefinition("ProductionOrderNumber", "POInformation.productionOrderNumber"),
-            new InditexFieldDefinition("Campaign", "POInformation.campaign"),
-            new InditexFieldDefinition("Brand", "POInformation.brand"),
-            new InditexFieldDefinition("Section", "POInformation.section"),
-            new InditexFieldDefinition("ProductType", "POInformation.productType"),
-            new InditexFieldDefinition("Model", "POInformation.model"),
-            new InditexFieldDefinition("Quality", "POInformation.quality"),
-            new InditexFieldDefinition("Color", "Color.color"),
-            new InditexFieldDefinition("Size", "Size.size"),
-            new InditexFieldDefinition("Quantity", "Size.qty"),
-            new InditexFieldDefinition("LabelReference", "Label.reference")
-        };
+        private static readonly IReadOnlyList<InditexFieldDefinition> DefaultBaseFields = InditexOrderSchema.DefaultBaseFields;
 
         private static readonly LabelSchemaDefinition ExternalSchemaDefinition = new LabelSchemaDefinition(
             DefaultBaseFields,
