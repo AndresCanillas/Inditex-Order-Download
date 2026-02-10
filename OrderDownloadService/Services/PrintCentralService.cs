@@ -17,6 +17,8 @@ namespace OrderDonwLoadService.Services
 
     public class PrintCentralService : BaseServiceClient, IPrintCentralService
     {
+        private const string ProjectImageExistsEndpointTemplate = "api/images/projects/{0}/barcode/{1}/exists";
+        private const string ProjectImageUploadEndpointTemplate = "api/images/projects/{0}/barcode/{1}";
         public PrintCentralService(IAppConfig cfg)
         {
             Url = cfg["DownloadServices.PrintCentralUrl"];
@@ -201,7 +203,7 @@ namespace OrderDonwLoadService.Services
             if (string.IsNullOrWhiteSpace(barcode))
                 throw new ArgumentException("barcode cannot be null or empty.", nameof(barcode));
 
-            var endpoint = $"api/images/projects/{projectId}/barcode/{barcode}/exists";
+            var endpoint = string.Format(ProjectImageExistsEndpointTemplate, projectId, barcode);
             var result = await InvokeAsync<OperationResult>(endpoint);
             if (!result.Success || result.Data == null)
                 return false;
@@ -227,7 +229,7 @@ namespace OrderDonwLoadService.Services
             if (!String.IsNullOrWhiteSpace(Token))
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Token);
 
-            var controller = $"api/images/projects/{projectId}/barcode/{barcode}";
+            var controller = string.Format(ProjectImageUploadEndpointTemplate, projectId, barcode);
             var boundary = Guid.NewGuid().ToString();
             var multipart = new MultipartFormDataContent(boundary);
             multipart.Headers.Remove("Content-Type");

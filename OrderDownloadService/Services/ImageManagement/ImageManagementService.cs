@@ -24,8 +24,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
         private readonly IMailService mailService;
         private readonly IAppConfig config;
         private readonly IAppLog log;
-        private readonly IPrintCentralService printCentralService;
-        private readonly IConnectionManager db;
+        private readonly IQrProductSyncService qrProductSyncService;
 
         public ImageManagementService(
             IImageAssetRepository repository,
@@ -33,7 +32,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
             IMailService mailService,
             IAppConfig config,
             IAppLog log)
-            : this(repository, downloader, mailService, config, log, null, null)
+            : this(repository, downloader, mailService, config, log, null)
         {
         }
 
@@ -43,16 +42,14 @@ namespace OrderDonwLoadService.Services.ImageManagement
             IMailService mailService,
             IAppConfig config,
             IAppLog log,
-            IPrintCentralService printCentralService,
-            IConnectionManager db)
+            IQrProductSyncService qrProductSyncService)
         {
             this.repository = repository;
             this.downloader = downloader;
             this.mailService = mailService;
             this.config = config;
             this.log = log;
-            this.printCentralService = printCentralService;
-            this.db = db;
+            this.qrProductSyncService = qrProductSyncService;
         }
 
         public async Task<ImageProcessingResult> ProcessOrderImagesAsync(InditexOrderData order)
@@ -60,7 +57,8 @@ namespace OrderDonwLoadService.Services.ImageManagement
             if (order == null)
                 throw new ArgumentNullException(nameof(order));
 
-            await SyncQrProductAssetsAsync(order);
+            if (qrProductSyncService != null)
+                await qrProductSyncService.SyncAsync(order);
 
             var result = new ImageProcessingResult();
             var assets = ExtractUrlAssets(order).ToList();
@@ -79,9 +77,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
                 }
 
                 if (string.Equals(latest.Hash, hash, StringComparison.OrdinalIgnoreCase))
-                {
                     continue;
-                }
 
                 await repository.MarkObsoleteAsync(latest.ID);
                 await repository.InsertAsync(BuildRecord(asset, downloaded, hash, ImageAssetStatus.Updated, true));
