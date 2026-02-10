@@ -101,7 +101,7 @@ namespace Inidtex.ZaraExterlLables
                 return size.SizeRfid.ToString(CultureInfo.InvariantCulture);
 
             if(string.Equals(field.Path, InditexOrderSchema.Paths.Quantity, StringComparison.OrdinalIgnoreCase))
-                return size.Qty.ToString(CultureInfo.InvariantCulture);
+                return size.Size_Qty.ToString(CultureInfo.InvariantCulture);
 
             if(string.Equals(field.Path, InditexOrderSchema.Paths.LabelReference, StringComparison.OrdinalIgnoreCase))
                 return label.Reference;

@@ -1,5 +1,4 @@
-﻿using Inidtex.ZaraExterlLables;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Service.Contracts;
 using Service.Contracts.Database;
 using Service.Contracts.Documents;
@@ -9,7 +8,7 @@ using System;
 using System.IO;
 using System.Text;
 
-namespace Inditex.OrderPlugin
+namespace Inidtex.ZaraExterlLables
 {
     [FriendlyName("Inditex - Zara.External.Labels.Plugin"), Description("InditexZaraExternalLabelsPlugin.Json.DocumentService")]
     public class InditexZaraExternalLabelsPlugin : IDocumentImportPlugin
@@ -71,7 +70,7 @@ namespace Inditex.OrderPlugin
 
                 var pluginType = fname.Split('_')[1];
 
-                tempFile = tempStore.CreateFile($"{fname}_{DateTime.Now.ToString("yyyyMMddHHmmss")}.{pluginType}");
+                tempFile = tempStore.CreateFile($"{fname}_{DateTime.Now.ToString("yyyyMMddHHmmss")}.{pluginType.ToUpper()}");
 
 
                 log.LogMessage($"Inditex.ZaraExternalLabels.Plugin.OnPrepareFile, loaded file with {fileContent.Length} characters.");

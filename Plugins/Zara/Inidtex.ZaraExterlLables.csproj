@@ -7,8 +7,8 @@
     <ProjectGuid>{BDA432C3-CC01-45BF-A0A8-8AB1CD4FB6A6}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>JsonColor</RootNamespace>
-    <AssemblyName>Mango.JsonColor</AssemblyName>
+    <RootNamespace>Inidtex.ZaraExterlLables</RootNamespace>
+    <AssemblyName>Iniditex.Zara.ExternalLables</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -86,7 +86,6 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy "$(TargetPath)" "$(SolutionDir)Dependencies\plugins\$(ConfigurationName)\" /y
-xcopy "$(TargetDir)Resources\" "$(SolutionDir)Dependencies\plugins\$(ConfigurationName)\Resources" /h/i/c/k/e/r/y</PostBuildEvent>
+    <PostBuildEvent>xcopy "$(TargetPath)" "$(SolutionDir)Dependencies\plugins\$(ConfigurationName)\" /y</PostBuildEvent>
   </PropertyGroup>
 </Project>

@@ -99,11 +99,11 @@ namespace OrderDonwLoadService.Synchronization
 
                 if (string.IsNullOrEmpty(order.POInformation.Campaign))
                     throw new Exception("Campaign property is null or empty.");
-                if (string.IsNullOrEmpty(order.POInformation.SectionRfid))
+                if (string.IsNullOrEmpty(order.POInformation.Section))
                     throw new Exception("SectionRfid property is null or empty.");
-                if (string.IsNullOrEmpty(order.POInformation.BrandRfid))
+                if (string.IsNullOrEmpty(order.POInformation.Brand_Text))
                     throw new Exception("BrandRfid property is null or empty.");
-                if (string.IsNullOrEmpty(order.POInformation.ProductTypeRfid))
+                if (string.IsNullOrEmpty(order.POInformation.ProductType_Text))
                     throw new Exception("ProductTypeRfid property is null or empty.");
                 if (order.POInformation.QualityRfid==0)
                     throw new Exception("QualityRfid property can`t be zero.");
