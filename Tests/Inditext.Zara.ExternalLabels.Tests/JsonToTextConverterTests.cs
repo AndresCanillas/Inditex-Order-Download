@@ -269,7 +269,7 @@ namespace Inditex.ZaraHangtagKids.Tests
 
         private static InditexOrderData LoadSampleOrder()
         {
-            var path = ResolvePath("Plugins", "Zara", "OrderFiles", "15536_05987_I25_NNO_ZARANORTE.json");
+            var path = ResolvePath("Plugins", "Zara", "OrderFiles", "14185_08574_V26_NEW.json");
             var json = File.ReadAllText(path);
             return JsonConvert.DeserializeObject<InditexOrderData>(json);
         }

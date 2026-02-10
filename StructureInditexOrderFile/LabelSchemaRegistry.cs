@@ -35,7 +35,7 @@ namespace StructureInditexOrderFile
         public const string ExternalPluginType = "EXTERNAL";
         public const string InternalPluginType = "INTERNAL";
 
-        private static readonly string[] ExternalLabelPrefixes = { "HPZ", "WTZ", "ADZ", "RED", "BLU" };
+        private static readonly string[] ExternalLabelPrefixes = { "HPZ", "WTZ", "ADZ" };
         private static readonly string[] InternalLabelPrefixes = { "WLZ", "WPZ", "PLZ", "OTZ" };
 
         private static readonly IReadOnlyList<InditexFieldDefinition> DefaultBaseFields = InditexOrderSchema.DefaultBaseFields;
@@ -78,7 +78,12 @@ namespace StructureInditexOrderFile
             },
             new[]
             {
-                "ICON_RFID"
+                "ICON_EAC", 
+                "ICON_FR_ES" ,
+                "ICON_FSC" ,
+                "ICON_PAP" ,
+                "ICON_RFID" ,
+                "ICON_TRIMAN"
             });
 
         private static readonly LabelSchemaDefinition InternalSchemaDefinition = new LabelSchemaDefinition(
