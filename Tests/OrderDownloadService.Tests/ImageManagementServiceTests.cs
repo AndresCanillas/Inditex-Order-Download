@@ -130,6 +130,95 @@ namespace OrderDownloadService.Tests
         }
 
         [Fact]
+        public async Task ProcessOrderImagesAsync_WhenComponentValueContainsImageUrl_InsertsAndMarksPending()
+        {
+            var repository = new Mock<IImageAssetRepository>();
+            repository.Setup(repo => repo.GetLatestByUrlAsync("https://example.com/from-component.png"))
+                .ReturnsAsync((ImageAssetRecord)null);
+            repository.Setup(repo => repo.InsertAsync(It.IsAny<ImageAssetRecord>()))
+                .ReturnsAsync(1);
+
+            var downloader = new Mock<IImageDownloader>();
+            downloader.Setup(d => d.DownloadAsync("https://example.com/from-component.png"))
+                .ReturnsAsync(new DownloadedImage
+                {
+                    Content = Encoding.UTF8.GetBytes("img"),
+                    ContentType = "image/png"
+                });
+
+            var mailService = new Mock<IMailService>();
+            var config = new Mock<IAppConfig>();
+            config.Setup(c => c.GetValue("DownloadServicesWeb.ImageManagement.DesignEmails", ""))
+                .Returns("design@example.com");
+            config.Setup(c => c.GetValue("DownloadServicesWeb.ImageManagement.EmailSubject", "Nuevas imágenes pendientes de validar"))
+                .Returns("subject");
+            var log = new Mock<IAppLog>();
+
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object);
+            var order = BuildOrderWithComponentValue("https://example.com/from-component.png");
+
+            var result = await service.ProcessOrderImagesAsync(order);
+
+            Assert.True(result.RequiresApproval);
+            downloader.Verify(d => d.DownloadAsync("https://example.com/from-component.png"), Times.Once);
+            repository.Verify(repo => repo.InsertAsync(It.Is<ImageAssetRecord>(record => record.Url == "https://example.com/from-component.png")), Times.Once);
+        }
+
+        [Fact]
+        public async Task ProcessOrderImagesAsync_WhenComponentValueContainsNonImageUrl_IgnoresIt()
+        {
+            var repository = new Mock<IImageAssetRepository>();
+            var downloader = new Mock<IImageDownloader>();
+            var mailService = new Mock<IMailService>();
+            var config = new Mock<IAppConfig>();
+            var log = new Mock<IAppLog>();
+
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object);
+            var order = BuildOrderWithComponentValue("https://example.com/api/orders");
+
+            var result = await service.ProcessOrderImagesAsync(order);
+
+            Assert.False(result.RequiresApproval);
+            downloader.Verify(d => d.DownloadAsync(It.IsAny<string>()), Times.Never);
+            repository.Verify(repo => repo.InsertAsync(It.IsAny<ImageAssetRecord>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task ProcessOrderImagesAsync_WhenComponentValueMapContainsImageUrl_InsertsAndMarksPending()
+        {
+            var repository = new Mock<IImageAssetRepository>();
+            repository.Setup(repo => repo.GetLatestByUrlAsync("https://example.com/nested/logo.jpeg"))
+                .ReturnsAsync((ImageAssetRecord)null);
+            repository.Setup(repo => repo.InsertAsync(It.IsAny<ImageAssetRecord>()))
+                .ReturnsAsync(1);
+
+            var downloader = new Mock<IImageDownloader>();
+            downloader.Setup(d => d.DownloadAsync("https://example.com/nested/logo.jpeg"))
+                .ReturnsAsync(new DownloadedImage
+                {
+                    Content = Encoding.UTF8.GetBytes("img"),
+                    ContentType = "image/jpeg"
+                });
+
+            var mailService = new Mock<IMailService>();
+            var config = new Mock<IAppConfig>();
+            config.Setup(c => c.GetValue("DownloadServicesWeb.ImageManagement.DesignEmails", ""))
+                .Returns("design@example.com");
+            config.Setup(c => c.GetValue("DownloadServicesWeb.ImageManagement.EmailSubject", "Nuevas imágenes pendientes de validar"))
+                .Returns("subject");
+            var log = new Mock<IAppLog>();
+
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object);
+            var order = BuildOrderWithNestedComponentValueMap("https://example.com/nested/logo.jpeg");
+
+            var result = await service.ProcessOrderImagesAsync(order);
+
+            Assert.True(result.RequiresApproval);
+            downloader.Verify(d => d.DownloadAsync("https://example.com/nested/logo.jpeg"), Times.Once);
+            repository.Verify(repo => repo.InsertAsync(It.IsAny<ImageAssetRecord>()), Times.Once);
+        }
+
+        [Fact]
         public void AreOrderImagesReady_WhenNoAssets_ReturnsTrue()
         {
             var repository = new Mock<IImageAssetRepository>();
@@ -216,6 +305,46 @@ namespace OrderDownloadService.Tests
                         Name = "Icono RFID",
                         Type = "url",
                         Value = url
+                    }
+                }
+            };
+        }
+
+        private static InditexOrderData BuildOrderWithComponentValue(string value)
+        {
+            return new InditexOrderData
+            {
+                ComponentValues = new[]
+                {
+                    new Componentvalue
+                    {
+                        GroupKey = "images",
+                        Name = "component-image",
+                        Type = "string",
+                        ValueMap = value
+                    }
+                }
+            };
+        }
+
+        private static InditexOrderData BuildOrderWithNestedComponentValueMap(string url)
+        {
+            return new InditexOrderData
+            {
+                ComponentValues = new[]
+                {
+                    new Componentvalue
+                    {
+                        GroupKey = "images",
+                        Name = "component-image",
+                        Type = "string",
+                        ValueMap = new
+                        {
+                            es = new
+                            {
+                                mobile = url
+                            }
+                        }
                     }
                 }
             };
