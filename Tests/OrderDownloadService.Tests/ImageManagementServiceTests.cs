@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Moq;
 using Newtonsoft.Json;
+using OrderDonwLoadService.Services;
 using OrderDonwLoadService.Services.ImageManagement;
 using Service.Contracts;
 using Service.Contracts.OrderImages;
@@ -218,6 +219,57 @@ namespace OrderDownloadService.Tests
             repository.Verify(repo => repo.InsertAsync(It.IsAny<ImageAssetRecord>()), Times.Once);
         }
 
+
+        [Fact]
+        public async Task ProcessOrderImagesAsync_WhenQrProductDoesNotExistInPrint_UploadsIt()
+        {
+            var repository = new Mock<IImageAssetRepository>();
+            var downloader = new Mock<IImageDownloader>();
+            var mailService = new Mock<IMailService>();
+            var config = new Mock<IAppConfig>();
+            var log = new Mock<IAppLog>();
+            var printCentral = new Mock<IPrintCentralService>();
+
+            config.Setup(c => c.GetValue<int?>("DownloadServices.ImageManagement.QRProduct.ProjectID", null)).Returns(123);
+            config.Setup(c => c.GetValue<string>("DownloadServices.PrintCentralCredentials.User", null)).Returns("user");
+            config.Setup(c => c.GetValue<string>("DownloadServices.PrintCentralCredentials.Password", null)).Returns("pwd");
+            printCentral.Setup(p => p.ProjectImageExistsAsync(123, "33419")).ReturnsAsync(false);
+            downloader.Setup(d => d.DownloadAsync(It.Is<string>(u => u.Contains("_33419.svg"))))
+                .ReturnsAsync(new DownloadedImage { Content = Encoding.UTF8.GetBytes("qr"), ContentType = "image/svg+xml" });
+
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, printCentral.Object, null);
+            var order = BuildOrderWithQrProduct("https://example.com/label-assets/qr_product_uuid_33419.svg?sig=123");
+
+            await service.ProcessOrderImagesAsync(order);
+
+            printCentral.Verify(p => p.LoginAsync("/", "user", "pwd"), Times.Once);
+            printCentral.Verify(p => p.UploadProjectImageAsync(123, "33419", It.IsAny<byte[]>(), "33419.svg"), Times.Once);
+            printCentral.Verify(p => p.LogoutAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task ProcessOrderImagesAsync_WhenQrProductAlreadyExists_DoesNotUpload()
+        {
+            var repository = new Mock<IImageAssetRepository>();
+            var downloader = new Mock<IImageDownloader>();
+            var mailService = new Mock<IMailService>();
+            var config = new Mock<IAppConfig>();
+            var log = new Mock<IAppLog>();
+            var printCentral = new Mock<IPrintCentralService>();
+
+            config.Setup(c => c.GetValue<int?>("DownloadServices.ImageManagement.QRProduct.ProjectID", null)).Returns(123);
+            config.Setup(c => c.GetValue<string>("DownloadServices.PrintCentralCredentials.User", null)).Returns("user");
+            config.Setup(c => c.GetValue<string>("DownloadServices.PrintCentralCredentials.Password", null)).Returns("pwd");
+            printCentral.Setup(p => p.ProjectImageExistsAsync(123, "33419")).ReturnsAsync(true);
+
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, printCentral.Object, null);
+            var order = BuildOrderWithQrProduct("https://example.com/label-assets/qr_product_uuid_33419.svg?sig=123");
+
+            await service.ProcessOrderImagesAsync(order);
+
+            printCentral.Verify(p => p.UploadProjectImageAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<string>()), Times.Never);
+        }
+
         [Fact]
         public void AreOrderImagesReady_WhenNoAssets_ReturnsTrue()
         {
@@ -344,6 +396,31 @@ namespace OrderDownloadService.Tests
                             {
                                 mobile = url
                             }
+                        }
+                    }
+                }
+            };
+        }
+
+
+        private static InditexOrderData BuildOrderWithQrProduct(string qrUrl)
+        {
+            return new InditexOrderData
+            {
+                POInformation = new Poinformation
+                {
+                    Campaign = "I25"
+                },
+                ComponentValues = new[]
+                {
+                    new Componentvalue
+                    {
+                        GroupKey = "COLOR_SIZE",
+                        Name = "QR_product",
+                        Type = "string",
+                        ValueMap = new
+                        {
+                            A = qrUrl
                         }
                     }
                 }
