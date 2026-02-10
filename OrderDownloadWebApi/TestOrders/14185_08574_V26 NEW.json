@@ -1,0 +1,284 @@
+{
+    "POInformation": {
+        "productionOrderNumber": 14185,
+        "campaign": "V26",
+        "orderQty": 9999,
+        "brand": "ZARA",
+        "section": "CABALLERO",
+        "productType": "ROPA",
+        "model": 8574,
+        "quality": 801,
+        "colors": [
+            {
+                "color": 401,
+                "sizes": [
+                    {
+                        "size": 5,
+                        "qty": 4067
+                    },
+                    {
+                        "size": 6,
+                        "qty": 2215
+                    },
+                    {
+                        "size": 4,
+                        "qty": 2750
+                    },
+                    {
+                        "size": 3,
+                        "qty": 967
+                    }
+                ]
+            }
+        ]
+    },
+    "supplier": {
+        "supplierCode": "08574",
+        "name": "ZENO APPAREL CO., LTD.",
+        "address": "6F., NO.41, LANE 221, GANGQIAN RD., NEIHU DIST., TAIPEI, TAIWAN R.O.C",
+        "phoneNumber": "+8651269331621",
+        "email": "charlie@decor-cn.com"
+    },
+    "assets": [],
+    "componentValues": [
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "ICON_BUYER_GROUP",
+            "type": "string",
+            "valueMap": {
+                "8574/801": "https://static.inditex.com/assets/public/40ec/515e/c4e5443ea881/f103283b375c/GLOBAL_BABY_BOY.png?ts=1766393053541"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "PRODUCT_COLOR",
+            "type": "string",
+            "valueMap": {
+                "8574/801": "401"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "PRODUCT_MODEL",
+            "type": "string",
+            "valueMap": {
+                "8574/801": "8574"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "SIZE_SERIE",
+            "type": "string",
+            "valueMap": {
+                "8574/801": "S,M,L,XL,XXL"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "PRICE_USA_CURRENCY",
+            "type": "string",
+            "valueMap": {
+                "8574/801": "$"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "PRODUCT_QUALITY",
+            "type": "string",
+            "valueMap": {
+                "8574/801": "801"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "PRICE_UK_VALUE",
+            "type": "string",
+            "valueMap": {
+                "8574/801": "45,99"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "PRICE_UK_CURRENCY",
+            "type": "string",
+            "valueMap": {
+                "8574/801": "£"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "PRICE_USA_VALUE",
+            "type": "string",
+            "valueMap": {
+                "8574/801": "69,90"
+            }
+        },
+        {
+            "groupKey": "SIZE",
+            "name": "PRODUCT_BARCODE",
+            "type": "string",
+            "valueMap": {
+                "3": "08574801401035",
+                "4": "08574801401042",
+                "5": "08574801401059",
+                "6": "08574801401066"
+            }
+        },
+        {
+            "groupKey": "SIZE",
+            "name": "SIZE_GEOGRAPHIC_BR",
+            "type": "string",
+            "valueMap": {
+                "3": "M",
+                "4": "G",
+                "5": "EG",
+                "6": "EEG"
+            }
+        },
+        {
+            "groupKey": "SIZE",
+            "name": "SIZE_GEOGRAPHIC_MEX",
+            "type": "string",
+            "valueMap": {
+                "3": "40",
+                "4": "42",
+                "5": "44",
+                "6": "46"
+            }
+        },
+        {
+            "groupKey": "SIZE",
+            "name": "PRODUCT_QR",
+            "type": "string",
+            "valueMap": {
+                "3": "https://dvcmrclstaweu1pro001.blob.core.windows.net/icbclbg/label-assets%2F29211%2Fqr_product_8f004ea4-7776-4a12-b88b-d98a2cb292ec_33419.svg?sv=2025-07-05&spr=https&st=2026-02-10T13%3A16%3A11Z&se=2026-02-17T12%3A16%3A11Z&skoid=a93e09d5-16ec-45b1-bf82-ed41afd069ae&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-10T13%3A16%3A11Z&ske=2026-02-17T12%3A16%3A11Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=Lu6iMqQ1nKS2zVgoMH75c83lx2%2BTs3AUm%2BhBr7CXRM8%3D",
+                "4": "https://dvcmrclstaweu1pro001.blob.core.windows.net/icbclbg/label-assets%2F29207%2Fqr_product_40bf41df-ded6-41f0-8cc5-cf09238251f5_33419.svg?sv=2025-07-05&spr=https&st=2026-02-10T13%3A16%3A12Z&se=2026-02-17T12%3A16%3A12Z&skoid=a93e09d5-16ec-45b1-bf82-ed41afd069ae&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-10T13%3A16%3A12Z&ske=2026-02-17T12%3A16%3A12Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=SAZd5cqJQYYUWD8bP2yfGzeWe5Gq5CXQeLiNs1Gpegg%3D",
+                "5": "https://dvcmrclstaweu1pro001.blob.core.windows.net/icbclbg/label-assets%2F29199%2Fqr_product_f97ee4b4-6498-41f4-8190-6c65ea0179b4_33419.svg?sv=2025-07-05&spr=https&st=2026-02-10T13%3A16%3A11Z&se=2026-02-17T12%3A16%3A11Z&skoid=a93e09d5-16ec-45b1-bf82-ed41afd069ae&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-10T13%3A16%3A11Z&ske=2026-02-17T12%3A16%3A11Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=ih6dpDcbwX%2BrPfkWS%2F3NDx4%2FdtdV5bFJzpLHGjmvoRE%3D",
+                "6": "https://dvcmrclstaweu1pro001.blob.core.windows.net/icbclbg/label-assets%2F29203%2Fqr_product_d1651179-41f0-4fae-9ef0-745f1a27aed3_33419.svg?sv=2025-07-05&spr=https&st=2026-02-10T13%3A16%3A12Z&se=2026-02-17T12%3A16%3A12Z&skoid=a93e09d5-16ec-45b1-bf82-ed41afd069ae&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-10T13%3A16%3A12Z&ske=2026-02-17T12%3A16%3A12Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=6MLHawYgffo2D%2Fipf2zoLIh%2FEjN01t5hPh17z05uZgA%3D"
+            }
+        },
+        {
+            "groupKey": "SIZE",
+            "name": "SIZE_GEOGRAPHIC_EUR",
+            "type": "string",
+            "valueMap": {
+                "3": "M",
+                "4": "L",
+                "5": "XL",
+                "6": "XXL"
+            }
+        },
+        {
+            "groupKey": "SIZE",
+            "name": "SIZE_GEOGRAPHIC_USA",
+            "type": "string",
+            "valueMap": {
+                "3": "M",
+                "4": "L",
+                "5": "XL",
+                "6": "XXL"
+            }
+        },
+        {
+            "groupKey": "SIZE",
+            "name": "SIZE_GEOGRAPHIC_UK",
+            "type": "string",
+            "valueMap": {
+                "3": "M",
+                "4": "L",
+                "5": "XL",
+                "6": "XXL"
+            }
+        },
+        {
+            "groupKey": "SIZE",
+            "name": "SIZE_GEOGRAPHIC_IT",
+            "type": "string",
+            "valueMap": {
+                "3": "M",
+                "4": "L",
+                "5": "XL",
+                "6": "XXL"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "PRICE_BLUE_VALUE",
+            "type": "string",
+            "valueMap": {
+                "8574/801": "45,95"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "PRICE_BLUE_CURRENCY",
+            "type": "string",
+            "valueMap": {
+                "8574/801": "€"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "PRICE_RED_CURRENCY",
+            "type": "string",
+            "valueMap": {
+                "8574/801": "€"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "PRICE_RED_VALUE",
+            "type": "string",
+            "valueMap": {
+                "8574/801": "39,95"
+            }
+        }
+    ],
+    "labels": [
+        {
+            "reference": "HPZCALL004",
+            "components": [
+                "SIZE_GEOGRAPHIC_USA",
+                "PRICE_USA_CURRENCY",
+                "PRICE_UK_VALUE",
+                "PRICE_USA_VALUE",
+                "PRODUCT_QR",
+                "SIZE_GEOGRAPHIC_EUR",
+                "SIZE_GEOGRAPHIC_MEX",
+                "ICON_BUYER_GROUP",
+                "SIZE_SERIE",
+                "SIZE_GEOGRAPHIC_IT",
+                "PRODUCT_MODEL",
+                "PRODUCT_BARCODE",
+                "PRICE_UK_CURRENCY",
+                "PRODUCT_COLOR",
+                "SIZE_GEOGRAPHIC_BR",
+                "SIZE_GEOGRAPHIC_UK",
+                "PRODUCT_QUALITY"
+            ],
+            "assets": [
+                "ICON_RFID"
+            ],
+            "childrenLabels": [
+                {
+                    "reference": "BLUE_LABEL",
+                    "components": [
+                        "PRICE_BLUE_CURRENCY",
+                        "PRICE_BLUE_VALUE"
+                    ],
+                    "assets": [],
+                    "childrenLabels": []
+                },
+                {
+                    "reference": "RED_LABEL",
+                    "components": [
+                        "PRICE_RED_CURRENCY",
+                        "PRICE_RED_VALUE"
+                    ],
+                    "assets": [],
+                    "childrenLabels": []
+                }
+            ]
+        }
+    ]
+}
