@@ -37,7 +37,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
             var brandID = config.GetValue<int?>(BrandConfig, null);
             if (!companyID.HasValue || !brandID.HasValue)
             {
-                throw new Exception("ImageManagement: ProjectInfoApiPrinCentral is not configured for QR_product synchronization.");
+                throw new Exception("ImageManagement: ProjectInfoApiPrinCentral is not configured for PRODUCT_QR synchronization.");
             }
 
             using (var conn = db.OpenDB())

@@ -55,6 +55,7 @@ namespace Inidtex.ZaraExterlLables
 
             return string.Join(Delimeter.ToString(), fields.Select(EscapeCsvValue));
         }
+
         private static IReadOnlyDictionary<string, Componentvalue> BuildComponentLookup(IEnumerable<Componentvalue> componentValues)
         {
             var map = new Dictionary<string, Componentvalue>(StringComparer.OrdinalIgnoreCase);

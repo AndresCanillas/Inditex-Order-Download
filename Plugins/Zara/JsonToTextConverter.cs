@@ -14,7 +14,7 @@ namespace Inidtex.ZaraExterlLables
     {
         private const string BluePiggybackReference = "BLUE_LABEL";
         private const string RedPiggybackReference = "RED_LABEL";
-        private const string QrProductComponentName = "QR_product";
+        private const string QrProductComponentName = "PRODUCT_QR";
         private const char Delimeter = ';';
 
         public static string LoadData(InditexOrderData orderData, ILogService log = null, IConnectionManager connMng = null, int projectID = 0, string labelType = null)
@@ -162,13 +162,17 @@ namespace Inidtex.ZaraExterlLables
             if (string.IsNullOrWhiteSpace(value))
                 return string.Empty;
 
-            if (string.Equals(name, QrProductComponentName, StringComparison.OrdinalIgnoreCase))
+            if (IsQrProductComponent(name))
                 return "Por resolver";
 
             if (UriHelper.IsUrl(value))
                 return UriHelper.ExtractFileNameWithoutExtension(value);
 
             return value;
+        }
+        private static bool IsQrProductComponent(string componentName)
+        {
+            return string.Equals(componentName, QrProductComponentName, StringComparison.OrdinalIgnoreCase);
         }
 
         

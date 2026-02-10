@@ -13,7 +13,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
 {
     public class QrProductSyncService : IQrProductSyncService
     {
-        private const string QrProductComponentName = "QR_product";
+        private const string QrProductComponentName = "PRODUCT_QR";
         private const string CompanyConfig = "DownloadServices.ProjectInfoApiPrinCentral.CompanyID";
         private const string BrandConfig = "DownloadServices.ProjectInfoApiPrinCentral.BrandID";
         private const string UserConfig = "DownloadServices.PrintCentralCredentials.User";
@@ -84,7 +84,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
             var password = config.GetValue<string>(PasswordConfig, null);
             if (string.IsNullOrWhiteSpace(user) || string.IsNullOrWhiteSpace(password))
             {
-                log.LogMessage("ImageManagement: PrintCentral credentials are missing for QR_product synchronization.");
+                log.LogMessage("ImageManagement: PrintCentral credentials are missing for PRODUCT_QR synchronization.");
                 return null;
             }
 

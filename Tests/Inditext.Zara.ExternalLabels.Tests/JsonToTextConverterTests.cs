@@ -36,7 +36,7 @@ namespace Inditex.ZaraHangtagKids.Tests
         [Fact]
         public void LoadData_ResuelveComponentesYAssetsPorItem()
         {
-            var orderData = LoadSampleOrder();
+            var orderData = BuildOrderWithNewComponentNames();
             var output = JsonToTextConverter.LoadData(orderData, labelType: LabelSchemaRegistry.ExternalPluginType);
             var lines = SplitLines(output);
             var header = SplitCsvLine(lines[0]);
@@ -45,27 +45,69 @@ namespace Inditex.ZaraHangtagKids.Tests
                 .Select(line => SplitCsvLine(line))
                 .ToList();
 
-            var row = FindRow(rows, header, labelReference: "HPZKALL0032", size: "18", color: "711");
+            var row = FindRow(rows, header, labelReference: "HPZNEW0012", size: "18", color: "711");
 
-            var qrIndex = Array.IndexOf(header, "QR_product");
-            var colorIndex = Array.IndexOf(header, "Colour");
-            var assetIndex = Array.LastIndexOf(header, "Icono RFID");
-            var buyerGroupIndex = Array.IndexOf(header, "BuyerGroup_Icon");
+            var qrIndex = Array.IndexOf(header, "PRODUCT_QR");
+            var colorIndex = Array.IndexOf(header, "PRODUCT_COLOR");
+            var assetIndex = Array.LastIndexOf(header, "ICON_RFID");
+            var buyerGroupIndex = Array.IndexOf(header, "ICON_BUYER_GROUP");
 
             Assert.True(qrIndex >= 0);
             Assert.True(colorIndex >= 0);
             Assert.True(assetIndex >= 0);
             Assert.True(buyerGroupIndex >= 0);
 
-            var expectedQr = "Por resolver";
-            var expectedColor = GetComponentValue(orderData, "Colour", "711");
-            var expectedAsset = "rfid_alarm";
-            var expectedBuyerGroup = "BABY_GIRL";
+            Assert.Equal("Por resolver", row[qrIndex]);
+            Assert.Equal("711", row[colorIndex]);
+            Assert.Equal("rfid_alarm", row[assetIndex]);
+            Assert.Equal("BABY_GIRL", row[buyerGroupIndex]);
+        }
 
-            Assert.Equal(expectedQr, row[qrIndex]);
-            Assert.Equal(expectedColor, row[colorIndex]);
-            Assert.Equal(expectedAsset, row[assetIndex]);
-            Assert.Equal(expectedBuyerGroup, row[buyerGroupIndex]);
+
+        [Fact]
+        public void LoadData_CuandoJsonV26UsaNombresNuevos_ResuelveComponentes()
+        {
+            var orderData = LoadOrderFromWebApiTests("14185_08574_V26 NEW.json");
+
+            var output = JsonToTextConverter.LoadData(orderData, labelType: LabelSchemaRegistry.ExternalPluginType);
+            var lines = SplitLines(output);
+            var header = SplitCsvLine(lines[0]);
+            var rows = lines.Skip(1)
+                .Select(SplitCsvLine)
+                .ToList();
+
+            var row = FindRow(rows, header, labelReference: "HPZCALL0042", size: "5", color: "401");
+
+            var buyerGroupIndex = Array.IndexOf(header, "ICON_BUYER_GROUP");
+            var barcodeIndex = Array.IndexOf(header, "PRODUCT_BARCODE");
+            var qrIndex = Array.IndexOf(header, "PRODUCT_QR");
+            var eurSizeIndex = Array.IndexOf(header, "SIZE_GEOGRAPHIC_EUR");
+
+            Assert.True(buyerGroupIndex >= 0);
+            Assert.True(barcodeIndex >= 0);
+            Assert.True(qrIndex >= 0);
+            Assert.True(eurSizeIndex >= 0);
+
+            Assert.Equal("GLOBAL_BABY_BOY", row[buyerGroupIndex]);
+            Assert.Equal("08574801401059", row[barcodeIndex]);
+            Assert.Equal("Por resolver", row[qrIndex]);
+            Assert.Equal("XL", row[eurSizeIndex]);
+        }
+
+
+        [Fact]
+        public void LoadData_CuandoAssetUsaNombreNuevoIconRfid_ResuelveColumna()
+        {
+            var orderData = BuildOrderWithRfidAssetAlias();
+
+            var output = JsonToTextConverter.LoadData(orderData, labelType: LabelSchemaRegistry.ExternalPluginType);
+            var lines = SplitLines(output);
+            var header = SplitCsvLine(lines[0]);
+            var row = SplitCsvLine(lines[1]);
+
+            var assetIndex = Array.IndexOf(header, "ICON_RFID");
+            Assert.True(assetIndex >= 0);
+            Assert.Equal("rfid_alias", row[assetIndex]);
         }
 
         [Fact]
@@ -99,8 +141,8 @@ namespace Inditex.ZaraHangtagKids.Tests
                 .ToList();
 
             var row = FindRow(rows, header, labelReference: "HPZBLUE0011", size: "40", color: "123");
-            var blueIndex = Array.IndexOf(header, "Blue label");
-            var assetIndex = Array.LastIndexOf(header, "Icono RFID");
+            var blueIndex = Array.IndexOf(header, "PRICE_BLUE_VALUE");
+            var assetIndex = Array.LastIndexOf(header, "ICON_RFID");
 
             Assert.True(blueIndex >= 0);
             Assert.True(assetIndex >= 0);
@@ -134,7 +176,7 @@ namespace Inditex.ZaraHangtagKids.Tests
                 .ToList();
 
             var row = FindRow(rows, header, labelReference: "HPZCHILD001", size: "40", color: "123");
-            var assetIndex = Array.LastIndexOf(header, "Icono RFID");
+            var assetIndex = Array.LastIndexOf(header, "ICON_RFID");
 
             Assert.True(assetIndex >= 0);
             Assert.Equal("RFID-CHILD", row[assetIndex]);
@@ -171,6 +213,14 @@ namespace Inditex.ZaraHangtagKids.Tests
         private static InditexOrderData LoadSampleOrder()
         {
             var path = ResolvePath("Plugins", "Zara", "OrderFiles", "15536_05987_I25_NNO_ZARANORTE.json");
+            var json = File.ReadAllText(path);
+            return JsonConvert.DeserializeObject<InditexOrderData>(json);
+        }
+
+
+        private static InditexOrderData LoadOrderFromWebApiTests(string fileName)
+        {
+            var path = ResolvePath("OrderDownloadWebApi", "TestOrders", fileName);
             var json = File.ReadAllText(path);
             return JsonConvert.DeserializeObject<InditexOrderData>(json);
         }
@@ -279,6 +329,115 @@ namespace Inditex.ZaraHangtagKids.Tests
             return fields.ToArray();
         }
 
+
+
+        private static InditexOrderData BuildOrderWithNewComponentNames()
+        {
+            return new InditexOrderData
+            {
+                POInformation = new Poinformation
+                {
+                    PONumber = "PO-NEW-001",
+                    Campaign = "V26",
+                    Brand_Text = "Z",
+                    Section = "SEC",
+                    ProductType_Text = "TYPE",
+                    ModelRfid = 100,
+                    QualityRfid = 200,
+                    Colors = new[]
+                    {
+                        new Color
+                        {
+                            ColorRfid = 711,
+                            Sizes = new[]
+                            {
+                                new Size { SizeRfid = 18, Size_Qty = 1 }
+                            }
+                        }
+                    }
+                },
+                Assets = new[]
+                {
+                    new Asset { Name = "ICON_RFID", Value = "https://static.inditex.com/rfid_alarm.png" }
+                },
+                ComponentValues = new[]
+                {
+                    new Componentvalue { GroupKey = "COLOR", Name = "PRODUCT_COLOR", ValueMap = new Dictionary<string, string> { ["711"] = "711" } },
+                    new Componentvalue { GroupKey = "MODEL_QUALITY", Name = "ICON_BUYER_GROUP", ValueMap = new Dictionary<string, string> { ["100/200"] = "BABY_GIRL" } },
+                    new Componentvalue { GroupKey = "SIZE", Name = "PRODUCT_QR", ValueMap = new Dictionary<string, string> { ["18"] = "https://example.com/qr_product_uuid_99999.svg" } }
+                },
+                labels = new[]
+                {
+                    new Label
+                    {
+                        Reference = "HPZNEW001",
+                        Components = new[] { "PRODUCT_COLOR", "ICON_BUYER_GROUP", "PRODUCT_QR" },
+                        Assets = new[] { "ICON_RFID" },
+                        ChildrenLabels = new[]
+                        {
+                            new Childrenlabel
+                            {
+                                Reference = "BLUE_LABEL",
+                                Components = Array.Empty<string>(),
+                                Sssets = Array.Empty<string>(),
+                                ChildrenLabels = Array.Empty<object>()
+                            },
+                            new Childrenlabel
+                            {
+                                Reference = "RED_LABEL",
+                                Components = Array.Empty<string>(),
+                                Sssets = Array.Empty<string>(),
+                                ChildrenLabels = Array.Empty<object>()
+                            }
+                        }
+                    }
+                }
+            };
+        }
+
+        private static InditexOrderData BuildOrderWithRfidAssetAlias()
+        {
+            return new InditexOrderData
+            {
+                POInformation = new Poinformation
+                {
+                    PONumber = "PO-ASSET-ALIAS",
+                    Campaign = "V26",
+                    Brand_Text = "Z",
+                    Section = "SEC",
+                    ProductType_Text = "TYPE",
+                    ModelRfid = 100,
+                    QualityRfid = 200,
+                    Colors = new[]
+                    {
+                        new Color
+                        {
+                            ColorRfid = 123,
+                            Sizes = new[]
+                            {
+                                new Size { SizeRfid = 40, Size_Qty = 1 }
+                            }
+                        }
+                    }
+                },
+                Assets = new[]
+                {
+                    new Asset { Name = "ICON_RFID", Value = "https://static.inditex.com/assets/rfid_alias.png" }
+                },
+                ComponentValues = Array.Empty<Componentvalue>(),
+                labels = new[]
+                {
+                    new Label
+                    {
+                        Reference = "HPZASSET001",
+                        Components = Array.Empty<string>(),
+                        Assets = new[] { "ICON_RFID" },
+                        ChildrenLabels = Array.Empty<Childrenlabel>()
+                    }
+                }
+            };
+        }
+
         private static InditexOrderData BuildOrderWithChildAsset()
         {
             return new InditexOrderData
@@ -306,7 +465,7 @@ namespace Inditex.ZaraHangtagKids.Tests
                 },
                 Assets = new[]
                 {
-                    new Asset { Name = "Icono RFID", Value = "RFID-CHILD" }
+                    new Asset { Name = "ICON_RFID", Value = "RFID-CHILD" }
                 },
                 ComponentValues = Array.Empty<Componentvalue>(),
                 labels = new[]
@@ -322,7 +481,7 @@ namespace Inditex.ZaraHangtagKids.Tests
                             {
                                 Reference = "HPZCHILD001",
                                 Components = Array.Empty<string>(),
-                                Sssets = new[] { "Icono RFID" },
+                                Sssets = new[] { "ICON_RFID" },
                                 ChildrenLabels = null
                             }
                         }
@@ -358,14 +517,14 @@ namespace Inditex.ZaraHangtagKids.Tests
                 },
                 Assets = new[]
                 {
-                    new Asset { Name = "Icono RFID", Value = "https://static.inditex.com/rfid_alarm.png?ts=1" }
+                    new Asset { Name = "ICON_RFID", Value = "https://static.inditex.com/rfid_alarm.png?ts=1" }
                 },
                 ComponentValues = new[]
                 {
                     new Componentvalue
                     {
                         GroupKey = "MODEL_QUALITY",
-                        Name = "Blue label",
+                        Name = "PRICE_BLUE_VALUE",
                         ValueMap = new Dictionary<string, string> { ["100/200"] = "22,95" }
                     }
                 },
@@ -381,8 +540,8 @@ namespace Inditex.ZaraHangtagKids.Tests
                             new Childrenlabel
                             {
                                 Reference = "BLUE_LABEL",
-                                Components = new[] { "Blue label" },
-                                Sssets = new[] { "Icono RFID" },
+                                Components = new[] { "PRICE_BLUE_VALUE" },
+                                Sssets = new[] { "ICON_RFID" },
                                 ChildrenLabels = Array.Empty<object>()
                             }
                         }
@@ -430,7 +589,7 @@ namespace Inditex.ZaraHangtagKids.Tests
                             new Childrenlabel
                             {
                                 Reference = "RED_LABEL",
-                                Components = new[] { "Red label" },
+                                Components = new[] { "PRICE_RED_VALUE" },
                                 Sssets = Array.Empty<string>(),
                                 ChildrenLabels = Array.Empty<object>()
                             }
@@ -470,7 +629,7 @@ namespace Inditex.ZaraHangtagKids.Tests
                     new Componentvalue
                     {
                         GroupKey = "COLOR",
-                        Name = "Colour",
+                        Name = "PRODUCT_COLOR",
                         ValueMap = new Dictionary<string, string>
                         {
                             { "711", "Value;With;Semicolon" }
@@ -482,7 +641,7 @@ namespace Inditex.ZaraHangtagKids.Tests
                     new Label
                     {
                         Reference = "HPZKALL0032",
-                        Components = new[] { "Colour" },
+                        Components = new[] { "PRODUCT_COLOR" },
                         Assets = Array.Empty<string>()
                     }
                 }
@@ -520,7 +679,7 @@ namespace Inditex.ZaraHangtagKids.Tests
                     new Componentvalue
                     {
                         GroupKey = "COLOR",
-                        Name = "Colour",
+                        Name = "PRODUCT_COLOR",
                         ValueMap = new Dictionary<string, string>
                         {
                             { "711", "Value \"Quoted\"" }
@@ -532,7 +691,7 @@ namespace Inditex.ZaraHangtagKids.Tests
                     new Label
                     {
                         Reference = "HPZKALL0032",
-                        Components = new[] { "Colour" },
+                        Components = new[] { "PRODUCT_COLOR" },
                         Assets = Array.Empty<string>()
                     }
                 }
