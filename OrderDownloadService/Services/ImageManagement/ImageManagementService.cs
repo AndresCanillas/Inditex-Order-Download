@@ -7,7 +7,9 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using OrderDonwLoadService.Services;
 using Service.Contracts;
+using Service.Contracts.Database;
 using Service.Contracts.OrderImages;
 using StructureInditexOrderFile;
 
@@ -15,11 +17,15 @@ namespace OrderDonwLoadService.Services.ImageManagement
 {
     public class ImageManagementService : IImageManagementService
     {
+        private const string QrProductComponentName = "QR_product";
+
         private readonly IImageAssetRepository repository;
         private readonly IImageDownloader downloader;
         private readonly IMailService mailService;
         private readonly IAppConfig config;
         private readonly IAppLog log;
+        private readonly IPrintCentralService printCentralService;
+        private readonly IConnectionManager db;
 
         public ImageManagementService(
             IImageAssetRepository repository,
@@ -27,18 +33,34 @@ namespace OrderDonwLoadService.Services.ImageManagement
             IMailService mailService,
             IAppConfig config,
             IAppLog log)
+            : this(repository, downloader, mailService, config, log, null, null)
+        {
+        }
+
+        public ImageManagementService(
+            IImageAssetRepository repository,
+            IImageDownloader downloader,
+            IMailService mailService,
+            IAppConfig config,
+            IAppLog log,
+            IPrintCentralService printCentralService,
+            IConnectionManager db)
         {
             this.repository = repository;
             this.downloader = downloader;
             this.mailService = mailService;
             this.config = config;
             this.log = log;
+            this.printCentralService = printCentralService;
+            this.db = db;
         }
 
         public async Task<ImageProcessingResult> ProcessOrderImagesAsync(InditexOrderData order)
         {
             if (order == null)
                 throw new ArgumentNullException(nameof(order));
+
+            await SyncQrProductAssetsAsync(order);
 
             var result = new ImageProcessingResult();
             var assets = ExtractUrlAssets(order).ToList();
@@ -99,6 +121,121 @@ namespace OrderDonwLoadService.Services.ImageManagement
             return true;
         }
 
+        private async Task SyncQrProductAssetsAsync(InditexOrderData order)
+        {
+            if (printCentralService == null)
+                return;
+
+            var projectId = ResolveProjectId(order?.POInformation?.Campaign);
+            if (!projectId.HasValue)
+                return;
+
+            var credentials = ResolvePrintCredentials();
+            if (credentials == null)
+                return;
+
+            var qrAssets = ExtractQrProductAssets(order).ToList();
+            if (qrAssets.Count == 0)
+                return;
+
+            await printCentralService.LoginAsync("/", credentials.Item1, credentials.Item2);
+
+            try
+            {
+                foreach (var qrAsset in qrAssets)
+                {
+                    var barcode = ExtractBarcodeFromQrUrl(qrAsset.Value);
+                    if (string.IsNullOrWhiteSpace(barcode))
+                        continue;
+
+                    if (await printCentralService.ProjectImageExistsAsync(projectId.Value, barcode))
+                        continue;
+
+                    var downloaded = await downloader.DownloadAsync(qrAsset.Value);
+                    await printCentralService.UploadProjectImageAsync(projectId.Value, barcode, downloaded.Content, BuildQrFileName(barcode, qrAsset.Value));
+                }
+            }
+            finally
+            {
+                await printCentralService.LogoutAsync();
+            }
+        }
+
+        private Tuple<string, string> ResolvePrintCredentials()
+        {
+            var user = config.GetValue<string>("DownloadServices.PrintCentralCredentials.User", null);
+            var password = config.GetValue<string>("DownloadServices.PrintCentralCredentials.Password", null);
+
+            if (string.IsNullOrWhiteSpace(user) || string.IsNullOrWhiteSpace(password))
+            {
+                log.LogMessage("ImageManagement: PrintCentral credentials are missing for QR_product synchronization.");
+                return null;
+            }
+
+            return Tuple.Create(user, password);
+        }
+
+        private int? ResolveProjectId(string campaign)
+        {
+            var configuredProjectId = config.GetValue<int?>("DownloadServices.ImageManagement.QRProduct.ProjectID", null);
+            if (configuredProjectId.HasValue && configuredProjectId.Value > 0)
+                return configuredProjectId;
+
+            if (string.IsNullOrWhiteSpace(campaign))
+                return null;
+
+            var companyID = config.GetValue<int?>("DownloadServices.ProjectInfoApiPrinCentral.CompanyID", null);
+            var brandID = config.GetValue<int?>("DownloadServices.ProjectInfoApiPrinCentral.BrandID", null);
+            if (!companyID.HasValue || !brandID.HasValue)
+            {
+                log.LogMessage("ImageManagement: ProjectInfoApiPrinCentral is not configured for QR_product synchronization.");
+                return null;
+            }
+
+            if (db == null)
+                return null;
+
+            using (var conn = db.OpenDB())
+            {
+                var sql = @"
+                    SELECT p.ID
+                    FROM Projects p
+                    JOIN Brands b ON p.BrandID = b.ID
+                    WHERE p.ProjectCode = @season
+                    AND p.BrandID = @brandID
+                    AND b.CompanyID = @companyID";
+
+                return conn.SelectOne<int?>(sql, campaign, brandID.Value, companyID.Value);
+            }
+        }
+
+        private IEnumerable<Asset> ExtractQrProductAssets(InditexOrderData order)
+        {
+            if (order?.ComponentValues == null)
+                return Enumerable.Empty<Asset>();
+
+            var assets = new List<Asset>();
+            foreach (var component in order.ComponentValues)
+            {
+                if (component == null || !string.Equals(component.Name, QrProductComponentName, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                foreach (var url in ExtractImageUrlsFromValueMap(component.ValueMap))
+                {
+                    assets.Add(new Asset
+                    {
+                        Name = component.Name,
+                        Type = "url",
+                        Value = url
+                    });
+                }
+            }
+
+            return assets
+                .GroupBy(asset => asset.Value, StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First());
+        }
+
         private IEnumerable<Asset> ExtractUrlAssets(InditexOrderData order)
         {
             if (order == null)
@@ -118,7 +255,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
             {
                 foreach (var component in order.ComponentValues)
                 {
-                    if (component == null|| component.Name.Contains("QR_product"))
+                    if (component == null || string.Equals(component.Name, QrProductComponentName, StringComparison.OrdinalIgnoreCase))
                         continue;
 
                     foreach (var url in ExtractImageUrlsFromValueMap(component.ValueMap))
@@ -166,6 +303,39 @@ namespace OrderDonwLoadService.Services.ImageManagement
 
             foreach (var child in token.Children())
                 TraverseToken(child, urls);
+        }
+
+        private static string ExtractBarcodeFromQrUrl(string url)
+        {
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+                return null;
+
+            var fileName = Path.GetFileName(uri.AbsolutePath);
+            if (string.IsNullOrWhiteSpace(fileName))
+                return null;
+
+            var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
+            if (string.IsNullOrWhiteSpace(fileNameWithoutExtension))
+                return null;
+
+            var lastUnderscore = fileNameWithoutExtension.LastIndexOf('_');
+            if (lastUnderscore < 0 || lastUnderscore == fileNameWithoutExtension.Length - 1)
+                return null;
+
+            return fileNameWithoutExtension.Substring(lastUnderscore + 1);
+        }
+
+        private static string BuildQrFileName(string barcode, string url)
+        {
+            var extension = ".svg";
+            if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            {
+                var parsedExtension = Path.GetExtension(uri.AbsolutePath);
+                if (!string.IsNullOrWhiteSpace(parsedExtension))
+                    extension = parsedExtension;
+            }
+
+            return $"{barcode}{extension}";
         }
 
         private static bool IsImageUrl(string value)
@@ -269,12 +439,12 @@ namespace OrderDonwLoadService.Services.ImageManagement
         private static string BuildEmailBody(IEnumerable<string> urls)
         {
             var sb = new StringBuilder();
-            sb.AppendLine("<p>Se detectaron nuevas imágenes o imágenes actualizadas:</p>");
-            sb.AppendLine("<ul>");
-            foreach (var url in urls.Distinct())
-                sb.AppendLine($"<li>{url}</li>");
-            sb.AppendLine("</ul>");
-            sb.AppendLine("<p>Por favor, validar e incorporar en la fuente.</p>");
+            sb.AppendLine("Se detectaron imágenes nuevas o actualizadas pendientes de validar en fuente:");
+            sb.AppendLine();
+            foreach (var url in urls.Distinct(StringComparer.OrdinalIgnoreCase))
+                sb.AppendLine($"- {url}");
+            sb.AppendLine();
+            sb.AppendLine("Por favor validar y marcar como InFont en PrintCentral.");
             return sb.ToString();
         }
     }
