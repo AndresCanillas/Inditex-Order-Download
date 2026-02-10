@@ -51,7 +51,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
 
                 if (latest == null)
                 {
-                    await repository.InsertAsync(BuildRecord(asset, downloaded, hash, ImageAssetStatus.Nuevo, true));
+                    await repository.InsertAsync(BuildRecord(asset, downloaded, hash, ImageAssetStatus.New, true));
                     MarkPending(result, asset.Value);
                     continue;
                 }
@@ -62,7 +62,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
                 }
 
                 await repository.MarkObsoleteAsync(latest.ID);
-                await repository.InsertAsync(BuildRecord(asset, downloaded, hash, ImageAssetStatus.Actualizado, true));
+                await repository.InsertAsync(BuildRecord(asset, downloaded, hash, ImageAssetStatus.Updated, true));
                 MarkPending(result, asset.Value);
             }
 
@@ -118,7 +118,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
             {
                 foreach (var component in order.ComponentValues)
                 {
-                    if (component == null)
+                    if (component == null|| component.Name.Contains("QR_product"))
                         continue;
 
                     foreach (var url in ExtractImageUrlsFromValueMap(component.ValueMap))

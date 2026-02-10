@@ -77,7 +77,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
                         IsLatest = 0,
                         UpdatedDate = @UpdatedDate
                     WHERE ID = @ID",
-                    (int)ImageAssetStatus.Obsoleto,
+                    (int)ImageAssetStatus.Obsolete,
                     DateTime.UtcNow,
                     id);
             }

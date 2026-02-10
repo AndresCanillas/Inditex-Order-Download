@@ -46,7 +46,7 @@ namespace OrderDownloadService.Tests
             var result = await service.ProcessOrderImagesAsync(order);
 
             Assert.True(result.RequiresApproval);
-            repository.Verify(repo => repo.InsertAsync(It.Is<ImageAssetRecord>(record => record.Status == ImageAssetStatus.Nuevo)), Times.Once);
+            repository.Verify(repo => repo.InsertAsync(It.Is<ImageAssetRecord>(record => record.Status == ImageAssetStatus.New)), Times.Once);
             mailService.Verify(ms => ms.Enqueue("design@example.com", "subject", It.IsAny<string>()), Times.Once);
         }
 
@@ -126,7 +126,7 @@ namespace OrderDownloadService.Tests
 
             Assert.True(result.RequiresApproval);
             repository.Verify(repo => repo.MarkObsoleteAsync(10), Times.Once);
-            repository.Verify(repo => repo.InsertAsync(It.Is<ImageAssetRecord>(record => record.Status == ImageAssetStatus.Actualizado)), Times.Once);
+            repository.Verify(repo => repo.InsertAsync(It.Is<ImageAssetRecord>(record => record.Status == ImageAssetStatus.Updated)), Times.Once);
         }
 
         [Fact]
@@ -273,7 +273,7 @@ namespace OrderDownloadService.Tests
         {
             var repository = new Mock<IImageAssetRepository>();
             repository.Setup(repo => repo.GetLatestByUrl("https://example.com/asset.png"))
-                .Returns(new ImageAssetRecord { Status = ImageAssetStatus.Nuevo });
+                .Returns(new ImageAssetRecord { Status = ImageAssetStatus.New });
             var downloader = new Mock<IImageDownloader>();
             var mailService = new Mock<IMailService>();
             var config = new Mock<IAppConfig>();

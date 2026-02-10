@@ -51,7 +51,11 @@ namespace OrderDonwLoadService
                 });
                 return EQEventHandlerResult.Delay5;
             }
-            if(SendOrderToPrintCentral(e.FilePath, e.ProyectId,string.Join( Path.GetFileName(e.FilePath),"_",e.PluginType)).Result)
+            var name = Path.GetFileNameWithoutExtension(e.FilePath);
+            var extention = Path.GetExtension(e.FilePath);
+            var fileName = name + "_" + e.PluginType + extention;
+
+            if (SendOrderToPrintCentral(e.FilePath, e.ProyectId, fileName).Result)
             {
                 log.LogMessage($"Order {e.OrderNumber} was Sended to PrintCentral.");
 

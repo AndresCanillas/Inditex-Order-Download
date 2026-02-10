@@ -2,10 +2,10 @@ namespace Service.Contracts.OrderImages
 {
     public enum ImageAssetStatus
     {
-        Nuevo = 0,
+        New = 0,
         InFont = 1,
-        Rechazado = 2,
-        Obsoleto = 3,
-        Actualizado = 4
+        Rejected = 2,
+        Obsolete = 3,
+        Updated = 4
     }
 }
