@@ -16,7 +16,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
 {
     public class ImageManagementService : IImageManagementService
     {
-        private const string QrProductComponentName = "QR_product";
+        private const string QrProductComponentName = "PRODUCT_QR";
 
         private readonly IImageAssetRepository repository;
         private readonly IImageDownloader downloader;
@@ -127,7 +127,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
 
             if (string.IsNullOrWhiteSpace(user) || string.IsNullOrWhiteSpace(password))
             {
-                log.LogMessage("ImageManagement: PrintCentral credentials are missing for QR_product synchronization.");
+                log.LogMessage("ImageManagement: PrintCentral credentials are missing for PRODUCT_QR synchronization.");
                 return null;
             }
 
