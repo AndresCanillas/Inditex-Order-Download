@@ -21,11 +21,10 @@ namespace StructureInditexOrderFile
         public string Campaign { get; set; }
         public int OrderQty { get; set; }
         [JsonProperty("brand")]
-        public string BrandRfid { get; set; }
-        [JsonProperty("section")]
-        public string SectionRfid { get; set; }
-        [JsonProperty("ProductType")]
-        public string ProductTypeRfid { get; set; }
+        public string Brand_Text { get; set; }
+        public string Section { get; set; }
+        [JsonProperty("productType")]
+        public string ProductType_Text { get; set; }
         [JsonProperty("model")]
         public int ModelRfid { get; set; }
         [JsonProperty("quality")]
@@ -44,16 +43,21 @@ namespace StructureInditexOrderFile
     {
         [JsonProperty("size")]
         public int SizeRfid { get; set; }
-        public int Qty { get; set; }
+        [JsonProperty("Qty")]
+        public int Size_Qty { get; set; }
     }
 
     public class Supplier
     {
         public string SupplierCode { get; set; }
-        public string Name { get; set; }
-        public string Address { get; set; }
-        public string PhoneNumber { get; set; }
-        public string Email { get; set; }
+        [JsonProperty("Name")]
+        public string SupplierName { get; set; }
+        [JsonProperty("Address")]
+        public string SupplierAddress { get; set; }
+        [JsonProperty("PhoneNumber")]
+        public string SupplierPhoneNumber { get; set; }
+        [JsonProperty("Email")]
+        public string SupplierEmail { get; set; }
     }
 
     public class Asset

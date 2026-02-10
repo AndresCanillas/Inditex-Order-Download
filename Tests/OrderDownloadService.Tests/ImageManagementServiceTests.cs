@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Moq;
 using Newtonsoft.Json;
+using OrderDonwLoadService.Services;
 using OrderDonwLoadService.Services.ImageManagement;
 using Service.Contracts;
 using Service.Contracts.OrderImages;

@@ -287,9 +287,9 @@ namespace Inditex.ZaraHangtagKids.Tests
                 {
                     PONumber = "PO-CHILD",
                     Campaign = "C1",
-                    BrandRfid = "Z",
-                    SectionRfid = "SEC",
-                    ProductTypeRfid = "TYPE",
+                    Brand_Text = "Z",
+                    Section = "SEC",
+                    ProductType_Text = "TYPE",
                     ModelRfid = 100,
                     QualityRfid = 200,
                     Colors = new[]
@@ -299,7 +299,7 @@ namespace Inditex.ZaraHangtagKids.Tests
                             ColorRfid = 123,
                             Sizes = new[]
                             {
-                                new Size { SizeRfid = 40, Qty = 1 }
+                                new Size { SizeRfid = 40, Size_Qty = 1 }
                             }
                         }
                     }
@@ -339,9 +339,9 @@ namespace Inditex.ZaraHangtagKids.Tests
                 {
                     PONumber = "PO-BLUE",
                     Campaign = "C1",
-                    BrandRfid = "Z",
-                    SectionRfid = "SEC",
-                    ProductTypeRfid = "TYPE",
+                    Brand_Text = "Z",
+                    Section = "SEC",
+                    ProductType_Text = "TYPE",
                     ModelRfid = 100,
                     QualityRfid = 200,
                     Colors = new[]
@@ -351,7 +351,7 @@ namespace Inditex.ZaraHangtagKids.Tests
                             ColorRfid = 123,
                             Sizes = new[]
                             {
-                                new Size { SizeRfid = 40, Qty = 1 }
+                                new Size { SizeRfid = 40, Size_Qty = 1 }
                             }
                         }
                     }
@@ -399,9 +399,9 @@ namespace Inditex.ZaraHangtagKids.Tests
                 {
                     PONumber = "PO-RED",
                     Campaign = "C1",
-                    BrandRfid = "Z",
-                    SectionRfid = "SEC",
-                    ProductTypeRfid = "TYPE",
+                    Brand_Text = "Z",
+                    Section = "SEC",
+                    ProductType_Text = "TYPE",
                     ModelRfid = 100,
                     QualityRfid = 200,
                     Colors = new[]
@@ -411,7 +411,7 @@ namespace Inditex.ZaraHangtagKids.Tests
                             ColorRfid = 123,
                             Sizes = new[]
                             {
-                                new Size { SizeRfid = 40, Qty = 1 }
+                                new Size { SizeRfid = 40, Size_Qty = 1 }
                             }
                         }
                     }
@@ -447,9 +447,9 @@ namespace Inditex.ZaraHangtagKids.Tests
                 {
                     PONumber = "PO-DELIM",
                     Campaign = "C1",
-                    BrandRfid = "Z",
-                    SectionRfid = "SEC",
-                    ProductTypeRfid = "TYPE",
+                    Brand_Text = "Z",
+                    Section = "SEC",
+                    ProductType_Text = "TYPE",
                     ModelRfid = 100,
                     QualityRfid = 200,
                     Colors = new[]
@@ -459,7 +459,7 @@ namespace Inditex.ZaraHangtagKids.Tests
                             ColorRfid = 711,
                             Sizes = new[]
                             {
-                                new Size { SizeRfid = 18, Qty = 1 }
+                                new Size { SizeRfid = 18, Size_Qty = 1 }
                             }
                         }
                     }
@@ -497,9 +497,9 @@ namespace Inditex.ZaraHangtagKids.Tests
                 {
                     PONumber = "PO-QUOTES",
                     Campaign = "C1",
-                    BrandRfid = "Z",
-                    SectionRfid = "SEC",
-                    ProductTypeRfid = "TYPE",
+                    Brand_Text = "Z",
+                    Section = "SEC",
+                    ProductType_Text = "TYPE",
                     ModelRfid = 100,
                     QualityRfid = 200,
                     Colors = new[]
@@ -509,7 +509,7 @@ namespace Inditex.ZaraHangtagKids.Tests
                             ColorRfid = 711,
                             Sizes = new[]
                             {
-                                new Size { SizeRfid = 18, Qty = 1 }
+                                new Size { SizeRfid = 18, Size_Qty = 1 }
                             }
                         }
                     }
