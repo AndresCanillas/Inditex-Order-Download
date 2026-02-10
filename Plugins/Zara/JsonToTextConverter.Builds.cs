@@ -30,8 +30,7 @@ namespace Inidtex.ZaraExterlLables
             {
                 if (label.HasComponent(componentName))
                 {
-                    componentLookup.TryGetValue(componentName, out var componentValue);
-                    var value = ResolveComponentValue(componentValue, orderData, color, size.SizeRfid);
+                    var value = ResolveComponentOutputValue(componentName, componentLookup, orderData, color, size.SizeRfid);
                     fields.Add(NormalizeComponentOrAssetValue(componentName, value));
                 }
                 else
@@ -54,6 +53,26 @@ namespace Inidtex.ZaraExterlLables
             }
 
             return string.Join(Delimeter.ToString(), fields.Select(EscapeCsvValue));
+        }
+
+
+        private static string ResolveComponentOutputValue(
+            string componentName,
+            IReadOnlyDictionary<string, Componentvalue> componentLookup,
+            InditexOrderData orderData,
+            int color,
+            int size)
+        {
+            componentLookup.TryGetValue(componentName, out var componentValue);
+
+            if (IsQrProductComponent(componentName) && componentLookup.TryGetValue("PRODUCT_BARCODE", out var barcodeComponent))
+            {
+                var barcodeValue = ResolveComponentValue(barcodeComponent, orderData, color, size);
+                if (!string.IsNullOrEmpty(barcodeValue))
+                    return barcodeValue;
+            }
+
+            return ResolveComponentValue(componentValue, orderData, color, size);
         }
 
         private static IReadOnlyDictionary<string, Componentvalue> BuildComponentLookup(IEnumerable<Componentvalue> componentValues)

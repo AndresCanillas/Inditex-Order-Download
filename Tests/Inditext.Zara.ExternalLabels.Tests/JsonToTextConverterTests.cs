@@ -90,8 +90,65 @@ namespace Inditex.ZaraHangtagKids.Tests
 
             Assert.Equal("GLOBAL_BABY_BOY", row[buyerGroupIndex]);
             Assert.Equal("08574801401059", row[barcodeIndex]);
-            Assert.Equal("Por resolver", row[qrIndex]);
+            Assert.Equal("08574801401059", row[qrIndex]);
             Assert.Equal("XL", row[eurSizeIndex]);
+        }
+
+        [Fact]
+        public void LoadData_CuandoExisteProductBarcode_PRODUCTQRUsaMismoValorSegunValueMap()
+        {
+            var orderData = new InditexOrderData
+            {
+                POInformation = new Poinformation
+                {
+                    PONumber = "PO-QR-BARCODE",
+                    Campaign = "V26",
+                    Brand_Text = "Z",
+                    Section = "SEC",
+                    ProductType_Text = "TYPE",
+                    ModelRfid = 100,
+                    QualityRfid = 200,
+                    Colors = new[]
+                    {
+                        new Color
+                        {
+                            ColorRfid = 711,
+                            Sizes = new[]
+                            {
+                                new Size { SizeRfid = 18, Size_Qty = 1 }
+                            }
+                        }
+                    }
+                },
+                Assets = Array.Empty<Asset>(),
+                ComponentValues = new[]
+                {
+                    new Componentvalue { GroupKey = "SIZE", Name = "PRODUCT_QR", ValueMap = new Dictionary<string, string> { ["18"] = "https://example.com/qr.svg" } },
+                    new Componentvalue { GroupKey = "SIZE", Name = "PRODUCT_BARCODE", ValueMap = new Dictionary<string, string> { ["18"] = "1234567890123" } }
+                },
+                labels = new[]
+                {
+                    new Label
+                    {
+                        Reference = "HPZQRCODE001",
+                        Components = new[] { "PRODUCT_QR", "PRODUCT_BARCODE" },
+                        Assets = Array.Empty<string>()
+                    }
+                }
+            };
+
+            var output = JsonToTextConverter.LoadData(orderData, labelType: LabelSchemaRegistry.ExternalPluginType);
+            var lines = SplitLines(output);
+            var header = SplitCsvLine(lines[0]);
+            var row = SplitCsvLine(lines[1]);
+
+            var qrIndex = Array.IndexOf(header, "PRODUCT_QR");
+            var barcodeIndex = Array.IndexOf(header, "PRODUCT_BARCODE");
+
+            Assert.True(qrIndex >= 0);
+            Assert.True(barcodeIndex >= 0);
+            Assert.Equal("1234567890123", row[barcodeIndex]);
+            Assert.Equal("1234567890123", row[qrIndex]);
         }
 
 
