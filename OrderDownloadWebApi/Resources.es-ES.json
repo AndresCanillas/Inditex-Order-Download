@@ -121,11 +121,6 @@
       "T": false
     },
     {
-      "Key": "Please enter a valid order number (only numbers, 10 to 11 digits).",
-      "Value": "Please enter a valid order number (only numbers, 10 to 11 digits).",
-      "T": false
-    },
-    {
       "Key": "Order",
       "Value": "Order",
       "T": false
@@ -143,16 +138,6 @@
     {
       "Key": "Please introduce the vendor id",
       "Value": "Please introduce the vendor id",
-      "T": false
-    },
-    {
-      "Key": "Please enter a valid campaign (I or V + 2 last digts of year, example: I25).",
-      "Value": "Please enter a valid campaign (I or V + 2 last digts of year, example: I25).",
-      "T": false
-    },
-    {
-      "Key": "Please enter a valid vendor id (only numbers, 10 to 11 digits).",
-      "Value": "Please enter a valid vendor id (only numbers, 10 to 11 digits).",
       "T": false
     },
     {
@@ -348,6 +333,51 @@
     {
       "Key": "Data entry",
       "Value": "Data entry",
+      "T": false
+    },
+    {
+      "Key": "Download image",
+      "Value": "Download image",
+      "T": false
+    },
+    {
+      "Key": "Preparing download...",
+      "Value": "Preparing download...",
+      "T": false
+    },
+    {
+      "Key": "Unable to download image.",
+      "Value": "Unable to download image.",
+      "T": false
+    },
+    {
+      "Key": "Download started.",
+      "Value": "Download started.",
+      "T": false
+    },
+    {
+      "Key": "Unexpected error while downloading.",
+      "Value": "Unexpected error while downloading.",
+      "T": false
+    },
+    {
+      "Key": "Validation resources are not available. Please reload the page.",
+      "Value": "Validation resources are not available. Please reload the page.",
+      "T": false
+    },
+    {
+      "Key": "Please enter a valid order number (only numbers, 10 digits, no leading zero).",
+      "Value": "Please enter a valid order number (only numbers, 10 digits, no leading zero).",
+      "T": false
+    },
+    {
+      "Key": "Please enter a valid campaign (I, V, P, O + 2 last digits of year, example: I25).",
+      "Value": "Please enter a valid campaign (I, V, P, O + 2 last digits of year, example: I25).",
+      "T": false
+    },
+    {
+      "Key": "Please enter a valid vendor id (only numbers, 5 to 10 digits).",
+      "Value": "Please enter a valid vendor id (only numbers, 5 to 10 digits).",
       "T": false
     }
   ]
