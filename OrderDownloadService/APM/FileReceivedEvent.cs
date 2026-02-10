@@ -11,7 +11,7 @@ namespace OrderDonwLoadService
     {
         public string FilePath { get; set; }
         public string OrderNumber { get; set; }
-        public string ProyectId { get; set; }
+        public string ProyectCode { get; set; }
         public string PluginType { get; set; }
     }
 }

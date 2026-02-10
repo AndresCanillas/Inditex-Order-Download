@@ -121,7 +121,7 @@ namespace OrderDonwLoadService.Synchronization
                     {
                         FilePath = filePath,
                         OrderNumber = order.POInformation.PONumber.ToString(),
-                        ProyectId = order.POInformation.Campaign,
+                        ProyectCode = order.POInformation.Campaign,
                         PluginType = pluginType
                     });
 

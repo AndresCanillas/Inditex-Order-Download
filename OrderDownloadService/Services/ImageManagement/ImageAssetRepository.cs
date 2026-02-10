@@ -1,24 +1,63 @@
 using System;
 using System.Data.Common;
 using System.Threading.Tasks;
+using Service.Contracts;
 using Service.Contracts.Database;
 using Service.Contracts.OrderImages;
+using Service.Contracts.PrintCentral;
 
 namespace OrderDonwLoadService.Services.ImageManagement
 {
     public class ImageAssetRepository : IImageAssetRepository
     {
         private readonly IConnectionManager db;
+        private readonly IAppConfig config;
+        private const string CompanyConfig = "DownloadServices.ProjectInfoApiPrinCentral.CompanyID";
+        private const string BrandConfig = "DownloadServices.ProjectInfoApiPrinCentral.BrandID";
 
-        public ImageAssetRepository(IConnectionManager db)
+
+        public ImageAssetRepository(IConnectionManager db, IAppConfig config)
         {
             this.db = db;
+            this.config = config;
         }
 
         public Task<ImageAssetRecord> GetLatestByUrlAsync(string url)
         {
             return Task.FromResult(GetLatestByUrl(url));
         }
+        public Task<int?> ResolveProjectId(string campaign)
+        {
+            
+
+            if (string.IsNullOrWhiteSpace(campaign) || db == null)
+                return null;
+
+            var companyID = config.GetValue<int?>(CompanyConfig, null);
+            var brandID = config.GetValue<int?>(BrandConfig, null);
+            if (!companyID.HasValue || !brandID.HasValue)
+            {
+                throw new Exception("ImageManagement: ProjectInfoApiPrinCentral is not configured for QR_product synchronization.");
+            }
+
+            using (var conn = db.OpenDB())
+            {
+                var sql = @"
+                    SELECT p.ID
+                    FROM Projects p
+                    JOIN Brands b ON p.BrandID = b.ID
+                    WHERE p.ProjectCode = @campaign
+                    AND p.BrandID = @brandID
+                    AND b.CompanyID = @companyID";
+
+                var proyect= conn.SelectOne<ProjectInfo>(sql, campaign, brandID.Value, companyID.Value);
+                if (proyect==null)
+                    return null;
+
+                return Task.FromResult((int?)proyect.ID);
+            }
+        }
+
 
         public ImageAssetRecord GetLatestByUrl(string url)
         {

@@ -7,7 +7,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using OrderDonwLoadService.Services;
 using Service.Contracts;
 using Service.Contracts.Database;
 using Service.Contracts.OrderImages;
@@ -24,6 +23,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
         private readonly IMailService mailService;
         private readonly IAppConfig config;
         private readonly IAppLog log;
+        private readonly IPrintCentralService printCentralService;
         private readonly IQrProductSyncService qrProductSyncService;
 
         public ImageManagementService(
@@ -32,7 +32,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
             IMailService mailService,
             IAppConfig config,
             IAppLog log)
-            : this(repository, downloader, mailService, config, log, null)
+            : this(repository, downloader, mailService, config, log, null,null)
         {
         }
 
@@ -42,7 +42,8 @@ namespace OrderDonwLoadService.Services.ImageManagement
             IMailService mailService,
             IAppConfig config,
             IAppLog log,
-            IQrProductSyncService qrProductSyncService)
+            IQrProductSyncService qrProductSyncService,
+            IPrintCentralService printCentralService)
         {
             this.repository = repository;
             this.downloader = downloader;
@@ -50,6 +51,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
             this.config = config;
             this.log = log;
             this.qrProductSyncService = qrProductSyncService;
+            this.printCentralService = printCentralService;
         }
 
         public async Task<ImageProcessingResult> ProcessOrderImagesAsync(InditexOrderData order)
@@ -117,45 +119,6 @@ namespace OrderDonwLoadService.Services.ImageManagement
             return true;
         }
 
-        private async Task SyncQrProductAssetsAsync(InditexOrderData order)
-        {
-            if (printCentralService == null)
-                return;
-
-            var projectId = ResolveProjectId(order?.POInformation?.Campaign);
-            if (!projectId.HasValue)
-                return;
-
-            var credentials = ResolvePrintCredentials();
-            if (credentials == null)
-                return;
-
-            var qrAssets = ExtractQrProductAssets(order).ToList();
-            if (qrAssets.Count == 0)
-                return;
-
-            await printCentralService.LoginAsync("/", credentials.Item1, credentials.Item2);
-
-            try
-            {
-                foreach (var qrAsset in qrAssets)
-                {
-                    var barcode = ExtractBarcodeFromQrUrl(qrAsset.Value);
-                    if (string.IsNullOrWhiteSpace(barcode))
-                        continue;
-
-                    if (await printCentralService.ProjectImageExistsAsync(projectId.Value, barcode))
-                        continue;
-
-                    var downloaded = await downloader.DownloadAsync(qrAsset.Value);
-                    await printCentralService.UploadProjectImageAsync(projectId.Value, barcode, downloaded.Content, BuildQrFileName(barcode, qrAsset.Value));
-                }
-            }
-            finally
-            {
-                await printCentralService.LogoutAsync();
-            }
-        }
 
         private Tuple<string, string> ResolvePrintCredentials()
         {
@@ -171,39 +134,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
             return Tuple.Create(user, password);
         }
 
-        private int? ResolveProjectId(string campaign)
-        {
-            var configuredProjectId = config.GetValue<int?>("DownloadServices.ImageManagement.QRProduct.ProjectID", null);
-            if (configuredProjectId.HasValue && configuredProjectId.Value > 0)
-                return configuredProjectId;
-
-            if (string.IsNullOrWhiteSpace(campaign))
-                return null;
-
-            var companyID = config.GetValue<int?>("DownloadServices.ProjectInfoApiPrinCentral.CompanyID", null);
-            var brandID = config.GetValue<int?>("DownloadServices.ProjectInfoApiPrinCentral.BrandID", null);
-            if (!companyID.HasValue || !brandID.HasValue)
-            {
-                log.LogMessage("ImageManagement: ProjectInfoApiPrinCentral is not configured for QR_product synchronization.");
-                return null;
-            }
-
-            if (db == null)
-                return null;
-
-            using (var conn = db.OpenDB())
-            {
-                var sql = @"
-                    SELECT p.ID
-                    FROM Projects p
-                    JOIN Brands b ON p.BrandID = b.ID
-                    WHERE p.ProjectCode = @season
-                    AND p.BrandID = @brandID
-                    AND b.CompanyID = @companyID";
-
-                return conn.SelectOne<int?>(sql, campaign, brandID.Value, companyID.Value);
-            }
-        }
+        
 
         private IEnumerable<Asset> ExtractQrProductAssets(InditexOrderData order)
         {

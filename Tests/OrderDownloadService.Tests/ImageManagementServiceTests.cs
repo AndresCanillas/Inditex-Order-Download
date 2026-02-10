@@ -73,8 +73,9 @@ namespace OrderDownloadService.Tests
             var mailService = new Mock<IMailService>();
             var config = new Mock<IAppConfig>();
             var log = new Mock<IAppLog>();
+            var printServ = new Mock<IPrintCentralService>();
 
-            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, qrSync.Object);
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, qrSync.Object, printServ.Object);
 
             await service.ProcessOrderImagesAsync(BuildOrder("https://example.com/asset.png"));
 

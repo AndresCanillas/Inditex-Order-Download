@@ -14,7 +14,6 @@ namespace OrderDonwLoadService.Services.ImageManagement
     public class QrProductSyncService : IQrProductSyncService
     {
         private const string QrProductComponentName = "QR_product";
-        private const string ProjectIdOverrideConfig = "DownloadServices.ImageManagement.QRProduct.ProjectID";
         private const string CompanyConfig = "DownloadServices.ProjectInfoApiPrinCentral.CompanyID";
         private const string BrandConfig = "DownloadServices.ProjectInfoApiPrinCentral.BrandID";
         private const string UserConfig = "DownloadServices.PrintCentralCredentials.User";
@@ -24,20 +23,20 @@ namespace OrderDonwLoadService.Services.ImageManagement
         private readonly IImageDownloader downloader;
         private readonly IAppConfig config;
         private readonly IAppLog log;
-        private readonly IConnectionManager db;
+        private readonly IImageAssetRepository  imageAssetRepository;
 
         public QrProductSyncService(
             IPrintCentralService printCentralService,
             IImageDownloader downloader,
             IAppConfig config,
             IAppLog log,
-            IConnectionManager db)
+            IImageAssetRepository imageAssetRepository)
         {
             this.printCentralService = printCentralService;
             this.downloader = downloader;
             this.config = config;
             this.log = log;
-            this.db = db;
+            this.imageAssetRepository = imageAssetRepository;
         }
 
         public async Task SyncAsync(InditexOrderData order)
@@ -45,8 +44,8 @@ namespace OrderDonwLoadService.Services.ImageManagement
             if (order == null)
                 return;
 
-            var projectId = ResolveProjectId(order.POInformation?.Campaign);
-            if (!projectId.HasValue)
+            var projectId = await imageAssetRepository.ResolveProjectId(order.POInformation?.Campaign);
+            if (projectId==null)
                 return;
 
             var credentials = ResolvePrintCredentials();
@@ -66,11 +65,11 @@ namespace OrderDonwLoadService.Services.ImageManagement
                     if (string.IsNullOrWhiteSpace(barcode))
                         continue;
 
-                    if (await printCentralService.ProjectImageExistsAsync(projectId.Value, barcode))
+                    if (await printCentralService.ProjectImageExistsAsync(projectId??0, barcode))
                         continue;
 
                     var downloaded = await downloader.DownloadAsync(qrAsset);
-                    await printCentralService.UploadProjectImageAsync(projectId.Value, barcode, downloaded.Content, BuildQrFileName(barcode, qrAsset));
+                    await printCentralService.UploadProjectImageAsync(projectId ?? 0, barcode, downloaded.Content, BuildQrFileName(barcode, qrAsset));
                 }
             }
             finally
@@ -92,37 +91,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
             return Tuple.Create(user, password);
         }
 
-        private int? ResolveProjectId(string campaign)
-        {
-            var configuredProjectId = config.GetValue<int?>(ProjectIdOverrideConfig, null);
-            if (configuredProjectId.HasValue && configuredProjectId.Value > 0)
-                return configuredProjectId;
-
-            if (string.IsNullOrWhiteSpace(campaign) || db == null)
-                return null;
-
-            var companyID = config.GetValue<int?>(CompanyConfig, null);
-            var brandID = config.GetValue<int?>(BrandConfig, null);
-            if (!companyID.HasValue || !brandID.HasValue)
-            {
-                log.LogMessage("ImageManagement: ProjectInfoApiPrinCentral is not configured for QR_product synchronization.");
-                return null;
-            }
-
-            using (var conn = db.OpenDB())
-            {
-                var sql = @"
-                    SELECT p.ID
-                    FROM Projects p
-                    JOIN Brands b ON p.BrandID = b.ID
-                    WHERE p.ProjectCode = @season
-                    AND p.BrandID = @brandID
-                    AND b.CompanyID = @companyID";
-
-                return conn.SelectOne<int?>(sql, campaign, brandID.Value, companyID.Value);
-            }
-        }
-
+       
         private static IEnumerable<string> ExtractQrProductAssets(InditexOrderData order)
         {
             if (order.ComponentValues == null)

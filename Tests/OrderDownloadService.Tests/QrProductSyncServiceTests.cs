@@ -20,6 +20,7 @@ namespace OrderDownloadService.Tests
             var config = new Mock<IAppConfig>();
             var log = new Mock<IAppLog>();
             var db = new Mock<IConnectionManager>();
+            var repo = new Mock<IImageAssetRepository>();
             var dbx = new Mock<IDBX>();
 
             config.Setup(c => c.GetValue<int?>("DownloadServices.ImageManagement.QRProduct.ProjectID", null)).Returns(123);
@@ -32,7 +33,7 @@ namespace OrderDownloadService.Tests
 
             db.Setup(x => x.OpenDB()).Returns(dbx.Object);
 
-            var service = new QrProductSyncService(printCentral.Object, downloader.Object, config.Object, log.Object, db.Object);
+            var service = new QrProductSyncService(printCentral.Object, downloader.Object, config.Object, log.Object, repo.Object);
             var order = BuildOrderWithQrProduct("https://example.com/label-assets/qr_product_uuid_33419.svg?sig=123");
 
             await service.SyncAsync(order);

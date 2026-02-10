@@ -55,7 +55,7 @@ namespace OrderDonwLoadService
             var extention = Path.GetExtension(e.FilePath);
             var fileName = name + "_" + e.PluginType + extention;
 
-            if (SendOrderToPrintCentral(e.FilePath, e.ProyectId, fileName).Result)
+            if (SendOrderToPrintCentral(e.FilePath, e.ProyectCode, fileName).Result)
             {
                 log.LogMessage($"Order {e.OrderNumber} was Sended to PrintCentral.");
 
@@ -79,7 +79,7 @@ namespace OrderDonwLoadService
             return EQEventHandlerResult.Delay5;
         }
 
-        private async Task<bool> SendOrderToPrintCentral(string filePath, string proyectId, string fileName)
+        private async Task<bool> SendOrderToPrintCentral(string filePath, string proyectCode, string fileName)
         {
 
             var companyID = this.appConfig.GetValue<int?>("DownloadServices.ProjectInfoApiPrinCentral.CompanyID", null) ??
@@ -92,10 +92,10 @@ namespace OrderDonwLoadService
             var passwordPrintCentral = this.appConfig.GetValue<string>("DownloadServices.PrintCentralCredentials.Password", null) ??
                 throw new System.Exception("Password is not configured in app settings.");
 
-            if(string.IsNullOrWhiteSpace(proyectId) || string.IsNullOrWhiteSpace(filePath) || string.IsNullOrWhiteSpace(fileName))
+            if(string.IsNullOrWhiteSpace(proyectCode) || string.IsNullOrWhiteSpace(filePath) || string.IsNullOrWhiteSpace(fileName))
             {
                 log.LogMessage($"Error: Invalid parameters for sending order to PrintCentral. " +
-                                       $"ProyectId: {proyectId}, FilePath: {filePath}, FileName: {fileName}");
+                                       $"ProyectCode: {proyectCode}, FilePath: {filePath}, FileName: {fileName}");
                 return false;
             }
             if(!File.Exists(filePath))
@@ -117,21 +117,21 @@ namespace OrderDonwLoadService
 							b.ID as BrandID
 					FROM Projects p
 					JOIN Brands b ON p.BrandID = b.ID
-					WHERE p.ProjectCode = @season
+					WHERE p.ProjectCode = @proyectCode
                     AND p.BrandID = @brandID
                     AND b.CompanyID = @companyID";
 
 
 
-                project = conn.SelectOne<ProjectInfo>(sql, proyectId, brandID, companyID);
+                project = conn.SelectOne<ProjectInfo>(sql, proyectCode, brandID, companyID);
 
                 if(project == null)
                 {
 
-                    var title = $"The seasion missing ({proyectId})";
+                    var title = $"The seasion missing ({proyectCode})";
 
                     var message = $"Error while procesing file {fileName}, " +
-                        $"not found the project ({proyectId}) for CompanyID= {companyID} and CompanyID= {brandID} " +
+                        $"not found the project ({proyectCode}) for CompanyID= {companyID} and CompanyID= {brandID} " +
                         $"to process the order number ({filePath.Substring(0, filePath.Length - 4)}).";
 
                     events.Send(new NotificationReceivedEvent
