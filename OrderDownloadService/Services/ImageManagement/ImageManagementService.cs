@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Service.Contracts;
 using Service.Contracts.OrderImages;
 using StructureInditexOrderFile;
@@ -100,8 +101,107 @@ namespace OrderDonwLoadService.Services.ImageManagement
 
         private IEnumerable<Asset> ExtractUrlAssets(InditexOrderData order)
         {
-            return order.Assets?.Where(asset => string.Equals(asset.Type, "url", StringComparison.OrdinalIgnoreCase))
-                ?? Enumerable.Empty<Asset>();
+            if (order == null)
+                return Enumerable.Empty<Asset>();
+
+            var assets = new List<Asset>();
+
+            if (order.Assets != null)
+            {
+                assets.AddRange(order.Assets.Where(asset =>
+                    asset != null
+                    && string.Equals(asset.Type, "url", StringComparison.OrdinalIgnoreCase)
+                    && IsImageUrl(asset.Value)));
+            }
+
+            if (order.ComponentValues != null)
+            {
+                foreach (var component in order.ComponentValues)
+                {
+                    if (component == null)
+                        continue;
+
+                    foreach (var url in ExtractImageUrlsFromValueMap(component.ValueMap))
+                    {
+                        assets.Add(new Asset
+                        {
+                            Name = component.Name,
+                            Type = "url",
+                            Value = url
+                        });
+                    }
+                }
+            }
+
+            return assets
+                .GroupBy(asset => asset.Value, StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First());
+        }
+
+        private static IEnumerable<string> ExtractImageUrlsFromValueMap(object valueMap)
+        {
+            if (valueMap == null)
+                return Enumerable.Empty<string>();
+
+            var token = valueMap as JToken ?? JToken.FromObject(valueMap);
+            var urls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            TraverseToken(token, urls);
+
+            return urls;
+        }
+
+        private static void TraverseToken(JToken token, ISet<string> urls)
+        {
+            if (token == null)
+                return;
+
+            if (token.Type == JTokenType.String)
+            {
+                var value = token.Value<string>();
+                if (IsImageUrl(value))
+                    urls.Add(value.Trim());
+                return;
+            }
+
+            foreach (var child in token.Children())
+                TraverseToken(child, urls);
+        }
+
+        private static bool IsImageUrl(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return false;
+
+            if (!Uri.TryCreate(value.Trim(), UriKind.Absolute, out var uri))
+                return false;
+
+            if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+                return false;
+
+            var path = uri.AbsolutePath;
+            if (string.IsNullOrWhiteSpace(path))
+                return false;
+
+            var extension = Path.GetExtension(path);
+            if (string.IsNullOrWhiteSpace(extension))
+                return false;
+
+            switch (extension.ToLowerInvariant())
+            {
+                case ".png":
+                case ".jpg":
+                case ".jpeg":
+                case ".gif":
+                case ".bmp":
+                case ".webp":
+                case ".svg":
+                case ".tif":
+                case ".tiff":
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         private static string ComputeHash(byte[] content)
