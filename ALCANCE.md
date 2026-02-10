@@ -19,3 +19,18 @@
 ### Pendiente para próximas iteraciones
 - Ejecutar batería completa en entorno con .NET SDK para validar no-regresión integral.
 - Definir estrategia de versionado de contrato para coexistencia controlada entre V25/V26 en caso de requerimiento de negocio.
+
+
+## Iteración 15 (actual)
+**Objetivo:** Ajustar la salida CSV para que el componente `PRODUCT_QR` use el valor de `PRODUCT_BARCODE` según el `valueMap` correspondiente cuando exista.
+
+### Completado en esta iteración
+- TDD en plugin Zara:
+  - Se agregaron pruebas para validar que en CSV final `PRODUCT_QR` se completa con el mismo valor de `PRODUCT_BARCODE` por clave de `valueMap`.
+  - Se actualizó el escenario V26 para reflejar el nuevo contrato esperado en `PRODUCT_QR`.
+- Implementación:
+  - `JsonToTextConverter` ahora resuelve `PRODUCT_QR` usando primero el `valueMap` de `PRODUCT_BARCODE` y, si no existe valor, mantiene el flujo original de `PRODUCT_QR`.
+
+### Pendiente para próximas iteraciones
+- Validar la batería de pruebas completa en entorno con .NET SDK instalado.
+- Revisar con negocio si este comportamiento debe limitarse por versión de contrato (V26+) o por tipo de etiqueta.
