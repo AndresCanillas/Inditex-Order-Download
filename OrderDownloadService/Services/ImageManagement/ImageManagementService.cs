@@ -15,11 +15,14 @@ namespace OrderDonwLoadService.Services.ImageManagement
 {
     public class ImageManagementService : IImageManagementService
     {
+        private const string QrProductComponentName = "QR_product";
+
         private readonly IImageAssetRepository repository;
         private readonly IImageDownloader downloader;
         private readonly IMailService mailService;
         private readonly IAppConfig config;
         private readonly IAppLog log;
+        private readonly IQrProductSyncService qrProductSyncService;
 
         public ImageManagementService(
             IImageAssetRepository repository,
@@ -27,18 +30,33 @@ namespace OrderDonwLoadService.Services.ImageManagement
             IMailService mailService,
             IAppConfig config,
             IAppLog log)
+            : this(repository, downloader, mailService, config, log, null)
+        {
+        }
+
+        public ImageManagementService(
+            IImageAssetRepository repository,
+            IImageDownloader downloader,
+            IMailService mailService,
+            IAppConfig config,
+            IAppLog log,
+            IQrProductSyncService qrProductSyncService)
         {
             this.repository = repository;
             this.downloader = downloader;
             this.mailService = mailService;
             this.config = config;
             this.log = log;
+            this.qrProductSyncService = qrProductSyncService;
         }
 
         public async Task<ImageProcessingResult> ProcessOrderImagesAsync(InditexOrderData order)
         {
             if (order == null)
                 throw new ArgumentNullException(nameof(order));
+
+            if (qrProductSyncService != null)
+                await qrProductSyncService.SyncAsync(order);
 
             var result = new ImageProcessingResult();
             var assets = ExtractUrlAssets(order).ToList();
@@ -57,9 +75,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
                 }
 
                 if (string.Equals(latest.Hash, hash, StringComparison.OrdinalIgnoreCase))
-                {
                     continue;
-                }
 
                 await repository.MarkObsoleteAsync(latest.ID);
                 await repository.InsertAsync(BuildRecord(asset, downloaded, hash, ImageAssetStatus.Updated, true));
@@ -118,7 +134,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
             {
                 foreach (var component in order.ComponentValues)
                 {
-                    if (component == null|| component.Name.Contains("QR_product"))
+                    if (component == null || string.Equals(component.Name, QrProductComponentName, StringComparison.OrdinalIgnoreCase))
                         continue;
 
                     foreach (var url in ExtractImageUrlsFromValueMap(component.ValueMap))
@@ -269,12 +285,12 @@ namespace OrderDonwLoadService.Services.ImageManagement
         private static string BuildEmailBody(IEnumerable<string> urls)
         {
             var sb = new StringBuilder();
-            sb.AppendLine("<p>Se detectaron nuevas imágenes o imágenes actualizadas:</p>");
-            sb.AppendLine("<ul>");
-            foreach (var url in urls.Distinct())
-                sb.AppendLine($"<li>{url}</li>");
-            sb.AppendLine("</ul>");
-            sb.AppendLine("<p>Por favor, validar e incorporar en la fuente.</p>");
+            sb.AppendLine("Se detectaron imágenes nuevas o actualizadas pendientes de validar en fuente:");
+            sb.AppendLine();
+            foreach (var url in urls.Distinct(StringComparer.OrdinalIgnoreCase))
+                sb.AppendLine($"- {url}");
+            sb.AppendLine();
+            sb.AppendLine("Por favor validar y marcar como InFont en PrintCentral.");
             return sb.ToString();
         }
     }

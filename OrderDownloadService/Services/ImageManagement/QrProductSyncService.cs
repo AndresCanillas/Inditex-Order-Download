@@ -1,0 +1,234 @@
+using Newtonsoft.Json.Linq;
+using OrderDonwLoadService.Services;
+using Service.Contracts;
+using Service.Contracts.Database;
+using StructureInditexOrderFile;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace OrderDonwLoadService.Services.ImageManagement
+{
+    public class QrProductSyncService : IQrProductSyncService
+    {
+        private const string QrProductComponentName = "QR_product";
+        private const string ProjectIdOverrideConfig = "DownloadServices.ImageManagement.QRProduct.ProjectID";
+        private const string CompanyConfig = "DownloadServices.ProjectInfoApiPrinCentral.CompanyID";
+        private const string BrandConfig = "DownloadServices.ProjectInfoApiPrinCentral.BrandID";
+        private const string UserConfig = "DownloadServices.PrintCentralCredentials.User";
+        private const string PasswordConfig = "DownloadServices.PrintCentralCredentials.Password";
+
+        private readonly IPrintCentralService printCentralService;
+        private readonly IImageDownloader downloader;
+        private readonly IAppConfig config;
+        private readonly IAppLog log;
+        private readonly IConnectionManager db;
+
+        public QrProductSyncService(
+            IPrintCentralService printCentralService,
+            IImageDownloader downloader,
+            IAppConfig config,
+            IAppLog log,
+            IConnectionManager db)
+        {
+            this.printCentralService = printCentralService;
+            this.downloader = downloader;
+            this.config = config;
+            this.log = log;
+            this.db = db;
+        }
+
+        public async Task SyncAsync(InditexOrderData order)
+        {
+            if (order == null)
+                return;
+
+            var projectId = ResolveProjectId(order.POInformation?.Campaign);
+            if (!projectId.HasValue)
+                return;
+
+            var credentials = ResolvePrintCredentials();
+            if (credentials == null)
+                return;
+
+            var qrAssets = ExtractQrProductAssets(order).ToList();
+            if (qrAssets.Count == 0)
+                return;
+
+            await printCentralService.LoginAsync("/", credentials.Item1, credentials.Item2);
+            try
+            {
+                foreach (var qrAsset in qrAssets)
+                {
+                    var barcode = ExtractBarcodeFromQrUrl(qrAsset);
+                    if (string.IsNullOrWhiteSpace(barcode))
+                        continue;
+
+                    if (await printCentralService.ProjectImageExistsAsync(projectId.Value, barcode))
+                        continue;
+
+                    var downloaded = await downloader.DownloadAsync(qrAsset);
+                    await printCentralService.UploadProjectImageAsync(projectId.Value, barcode, downloaded.Content, BuildQrFileName(barcode, qrAsset));
+                }
+            }
+            finally
+            {
+                await printCentralService.LogoutAsync();
+            }
+        }
+
+        private Tuple<string, string> ResolvePrintCredentials()
+        {
+            var user = config.GetValue<string>(UserConfig, null);
+            var password = config.GetValue<string>(PasswordConfig, null);
+            if (string.IsNullOrWhiteSpace(user) || string.IsNullOrWhiteSpace(password))
+            {
+                log.LogMessage("ImageManagement: PrintCentral credentials are missing for QR_product synchronization.");
+                return null;
+            }
+
+            return Tuple.Create(user, password);
+        }
+
+        private int? ResolveProjectId(string campaign)
+        {
+            var configuredProjectId = config.GetValue<int?>(ProjectIdOverrideConfig, null);
+            if (configuredProjectId.HasValue && configuredProjectId.Value > 0)
+                return configuredProjectId;
+
+            if (string.IsNullOrWhiteSpace(campaign) || db == null)
+                return null;
+
+            var companyID = config.GetValue<int?>(CompanyConfig, null);
+            var brandID = config.GetValue<int?>(BrandConfig, null);
+            if (!companyID.HasValue || !brandID.HasValue)
+            {
+                log.LogMessage("ImageManagement: ProjectInfoApiPrinCentral is not configured for QR_product synchronization.");
+                return null;
+            }
+
+            using (var conn = db.OpenDB())
+            {
+                var sql = @"
+                    SELECT p.ID
+                    FROM Projects p
+                    JOIN Brands b ON p.BrandID = b.ID
+                    WHERE p.ProjectCode = @season
+                    AND p.BrandID = @brandID
+                    AND b.CompanyID = @companyID";
+
+                return conn.SelectOne<int?>(sql, campaign, brandID.Value, companyID.Value);
+            }
+        }
+
+        private static IEnumerable<string> ExtractQrProductAssets(InditexOrderData order)
+        {
+            if (order.ComponentValues == null)
+                return Enumerable.Empty<string>();
+
+            var urls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var component in order.ComponentValues)
+            {
+                if (component == null || !string.Equals(component.Name, QrProductComponentName, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                foreach (var url in ExtractImageUrlsFromValueMap(component.ValueMap))
+                    urls.Add(url);
+            }
+
+            return urls;
+        }
+
+        private static IEnumerable<string> ExtractImageUrlsFromValueMap(object valueMap)
+        {
+            if (valueMap == null)
+                return Enumerable.Empty<string>();
+
+            var token = valueMap as JToken ?? JToken.FromObject(valueMap);
+            var urls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            TraverseToken(token, urls);
+            return urls;
+        }
+
+        private static void TraverseToken(JToken token, ISet<string> urls)
+        {
+            if (token == null)
+                return;
+
+            if (token.Type == JTokenType.String)
+            {
+                var value = token.Value<string>();
+                if (IsImageUrl(value))
+                    urls.Add(value.Trim());
+                return;
+            }
+
+            foreach (var child in token.Children())
+                TraverseToken(child, urls);
+        }
+
+        private static bool IsImageUrl(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return false;
+
+            if (!Uri.TryCreate(value.Trim(), UriKind.Absolute, out var uri))
+                return false;
+
+            if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+                return false;
+
+            var extension = Path.GetExtension(uri.AbsolutePath);
+            if (string.IsNullOrWhiteSpace(extension))
+                return false;
+
+            switch (extension.ToLowerInvariant())
+            {
+                case ".png":
+                case ".jpg":
+                case ".jpeg":
+                case ".gif":
+                case ".bmp":
+                case ".webp":
+                case ".svg":
+                case ".tif":
+                case ".tiff":
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private static string ExtractBarcodeFromQrUrl(string url)
+        {
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+                return null;
+
+            var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(uri.AbsolutePath);
+            if (string.IsNullOrWhiteSpace(fileNameWithoutExtension))
+                return null;
+
+            var lastUnderscore = fileNameWithoutExtension.LastIndexOf('_');
+            if (lastUnderscore < 0 || lastUnderscore == fileNameWithoutExtension.Length - 1)
+                return null;
+
+            return fileNameWithoutExtension.Substring(lastUnderscore + 1);
+        }
+
+        private static string BuildQrFileName(string barcode, string url)
+        {
+            var extension = ".svg";
+            if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            {
+                var parsedExtension = Path.GetExtension(uri.AbsolutePath);
+                if (!string.IsNullOrWhiteSpace(parsedExtension))
+                    extension = parsedExtension;
+            }
+
+            return $"{barcode}{extension}";
+        }
+    }
+}

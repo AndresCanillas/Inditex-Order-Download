@@ -25,5 +25,7 @@ namespace OrderDonwLoadService.Services
         Task<bool> CreateFile(string storeName, int fileid, string filename);
         Task<int> CreateAttachment(string storeName, int fileid, string category, string filename);
         Task SetAttachmentContent(string storeName, int fileid, string category, int attachmentId, string filePath);
+        Task<bool> ProjectImageExistsAsync(int projectId, string barcode);
+        Task UploadProjectImageAsync(int projectId, string barcode, byte[] content, string fileName);
     }
 }

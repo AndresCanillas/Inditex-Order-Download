@@ -1,20 +1,22 @@
 # Alcance del proyecto (Inditex Order Download)
 
-## Iteración 9 (actual)
-**Objetivo:** Robustecer la extracción de URLs de imágenes en `ImageManagementService` para incluir componentes con `Type=string` y validar seguridad por tipo de recurso.
+## Iteración 11 (actual)
+**Objetivo:** Corregir code smells del flujo `QR_product` aplicando refactor SOLID sin alterar comportamiento funcional.
 
 ### Completado en esta iteración
-- Extensión de `ExtractUrlAssets` para contemplar:
-  - Assets de tipo `url` que realmente sean URLs de imagen.
-  - `ComponentValues` cuyo `ValueMap` (plano o anidado) contenga URLs de imagen válidas.
-- Validación de seguridad para aceptar únicamente URLs HTTP/HTTPS con extensión de imagen permitida.
-- Deduplicación de URLs para evitar descargas repetidas.
-- Nuevas pruebas unitarias para escenarios de componentes:
-  - URL de imagen válida en componente.
-  - URL no imagen ignorada.
-  - URL de imagen en `ValueMap` anidado.
+- Refactor de responsabilidad en `ImageManagementService`:
+  - Se extrajo la sincronización de `QR_product` a un servicio dedicado `IQrProductSyncService`/`QrProductSyncService`.
+  - `ImageManagementService` ahora solo orquesta imágenes de aprobación en fuente + delega sincronización QR.
+- Reducción de acoplamiento y complejidad:
+  - Se removieron dependencias directas a `IPrintCentralService` y `IConnectionManager` desde `ImageManagementService`.
+  - Se corrigió duplicación accidental en validación de `ExtractImageUrlsFromValueMap`.
+- Mejora de mantenibilidad en `PrintCentralService`:
+  - Se reemplazaron strings mágicos de endpoints de imágenes por constantes de plantilla.
+- Pruebas unitarias (TDD de refactor):
+  - Nuevos tests para `QrProductSyncService` (sube/no sube/no login con credenciales incompletas).
+  - Nuevo test en `ImageManagementService` para validar delegación hacia `IQrProductSyncService`.
 
 ### Pendiente para próximas iteraciones
-- Evaluar externalizar la política de “extensiones permitidas” a configuración.
-- Validar contenido por MIME/sniffing durante descarga para una segunda capa de seguridad.
-- Revisar convergencia de extracción de medios en una capa dedicada para reducir complejidad del servicio.
+- Confirmar endpoint final del controlador de imágenes de Print para eliminar supuestos de convención.
+- Extraer política común de detección de URL de imagen para evitar duplicación entre servicios.
+- Incluir pruebas de integración contra entorno real/sandbox de PrintCentral.

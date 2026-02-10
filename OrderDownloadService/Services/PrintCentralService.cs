@@ -17,6 +17,8 @@ namespace OrderDonwLoadService.Services
 
     public class PrintCentralService : BaseServiceClient, IPrintCentralService
     {
+        private const string ProjectImageExistsEndpointTemplate = "api/images/projects/{0}/barcode/{1}/exists";
+        private const string ProjectImageUploadEndpointTemplate = "api/images/projects/{0}/barcode/{1}";
         public PrintCentralService(IAppConfig cfg)
         {
             Url = cfg["DownloadServices.PrintCentralUrl"];
@@ -191,6 +193,61 @@ namespace OrderDonwLoadService.Services
         public async Task SetAttachmentContent(string storeName, int fileid, string category, int attachmentId, string filePath)
         {
             var attachment = await UploadFileAsync<OperationResult>($"/fsm/{storeName}/files/{fileid}/{category}/{attachmentId}", filePath);
+        }
+
+
+        public async Task<bool> ProjectImageExistsAsync(int projectId, string barcode)
+        {
+            if (projectId <= 0)
+                throw new ArgumentException("projectId must be greater than zero.", nameof(projectId));
+            if (string.IsNullOrWhiteSpace(barcode))
+                throw new ArgumentException("barcode cannot be null or empty.", nameof(barcode));
+
+            var endpoint = string.Format(ProjectImageExistsEndpointTemplate, projectId, barcode);
+            var result = await InvokeAsync<OperationResult>(endpoint);
+            if (!result.Success || result.Data == null)
+                return false;
+
+            if (result.Data is bool exists)
+                return exists;
+
+            if (bool.TryParse(result.Data.ToString(), out var parsed))
+                return parsed;
+
+            return false;
+        }
+
+        public async Task UploadProjectImageAsync(int projectId, string barcode, byte[] content, string fileName)
+        {
+            if (projectId <= 0)
+                throw new ArgumentException("projectId must be greater than zero.", nameof(projectId));
+            if (string.IsNullOrWhiteSpace(barcode))
+                throw new ArgumentException("barcode cannot be null or empty.", nameof(barcode));
+            if (content == null || content.Length == 0)
+                throw new ArgumentException("content cannot be null or empty.", nameof(content));
+
+            if (!String.IsNullOrWhiteSpace(Token))
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Token);
+
+            var controller = string.Format(ProjectImageUploadEndpointTemplate, projectId, barcode);
+            var boundary = Guid.NewGuid().ToString();
+            var multipart = new MultipartFormDataContent(boundary);
+            multipart.Headers.Remove("Content-Type");
+            multipart.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary);
+
+            var stream = new MemoryStream(content);
+            var streamContent = new StreamContent(stream);
+            streamContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
+            {
+                Name = "\"file\"",
+                FileName = "\"" + (string.IsNullOrWhiteSpace(fileName) ? barcode + ".svg" : fileName) + "\""
+            };
+            streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+            multipart.Add(streamContent);
+
+            var response = await client.PostAsync(Url + controller, multipart);
+            if (!response.IsSuccessStatusCode)
+                throw new Exception($"Operation can't be performed: {Url + controller} : {response.ReasonPhrase}");
         }
 
         Task IPrintCentralService.LoginAsync(string loginUrl, string userName, string password)

@@ -15,6 +15,7 @@ namespace OrderDonwLoadService
             factory.RegisterTransient<IApiCallerService, ApiCallerService>();
             factory.RegisterTransient<IImageAssetRepository, ImageAssetRepository>();
             factory.RegisterSingleton<IImageDownloader, HttpImageDownloader>();
+            factory.RegisterTransient<IQrProductSyncService, QrProductSyncService>();
             factory.RegisterTransient<IImageManagementService, ImageManagementService>();
         }
     }

@@ -50,6 +50,36 @@ namespace OrderDownloadService.Tests
             mailService.Verify(ms => ms.Enqueue("design@example.com", "subject", It.IsAny<string>()), Times.Once);
         }
 
+
+        [Fact]
+        public async Task ProcessOrderImagesAsync_WhenQrSyncServiceInjected_ExecutesSyncBeforeImageFlow()
+        {
+            var repository = new Mock<IImageAssetRepository>();
+            repository.Setup(repo => repo.GetLatestByUrlAsync("https://example.com/asset.png"))
+                .ReturnsAsync((ImageAssetRecord)null);
+            repository.Setup(repo => repo.InsertAsync(It.IsAny<ImageAssetRecord>()))
+                .ReturnsAsync(1);
+
+            var downloader = new Mock<IImageDownloader>();
+            downloader.Setup(d => d.DownloadAsync("https://example.com/asset.png"))
+                .ReturnsAsync(new DownloadedImage
+                {
+                    Content = Encoding.UTF8.GetBytes("img"),
+                    ContentType = "image/png"
+                });
+
+            var qrSync = new Mock<IQrProductSyncService>();
+            var mailService = new Mock<IMailService>();
+            var config = new Mock<IAppConfig>();
+            var log = new Mock<IAppLog>();
+
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, qrSync.Object);
+
+            await service.ProcessOrderImagesAsync(BuildOrder("https://example.com/asset.png"));
+
+            qrSync.Verify(q => q.SyncAsync(It.IsAny<InditexOrderData>()), Times.Once);
+        }
+
         [Fact]
         public async Task ProcessOrderImagesAsync_WhenHashMatches_DoesNotInsert()
         {
@@ -218,6 +248,7 @@ namespace OrderDownloadService.Tests
             repository.Verify(repo => repo.InsertAsync(It.IsAny<ImageAssetRecord>()), Times.Once);
         }
 
+
         [Fact]
         public void AreOrderImagesReady_WhenNoAssets_ReturnsTrue()
         {
@@ -349,7 +380,6 @@ namespace OrderDownloadService.Tests
                 }
             };
         }
-
         private static string WriteTempOrder(InditexOrderData order)
         {
             var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.json");
