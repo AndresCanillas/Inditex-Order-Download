@@ -22,7 +22,8 @@ namespace StructureInditexOrderFile
         public int OrderQty { get; set; }
         [JsonProperty("brand")]
         public string Brand_Text { get; set; }
-        public string Section { get; set; }
+        [JsonProperty("section")]
+        public string Section_Text { get; set; }
         [JsonProperty("productType")]
         public string ProductType_Text { get; set; }
         [JsonProperty("model")]

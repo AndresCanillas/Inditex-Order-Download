@@ -39,7 +39,13 @@
         "phoneNumber": "+8651269331621",
         "email": "charlie@decor-cn.com"
     },
-    "assets": [],
+  "assets": [
+    {
+      "name": "ICON_RFID",
+      "type": "url",
+      "value": "https://static.inditex.com/assets/public/9856/f8f7/ac9b490facb5/66119bfa54f5/rfid_alarm.png?ts=1765532377981"
+    }
+  ],
     "componentValues": [
         {
             "groupKey": "MODEL_QUALITY",
@@ -118,7 +124,7 @@
             "name": "PRODUCT_BARCODE",
             "type": "string",
             "valueMap": {
-                "3": "08574801401035",
+                "3": "08574801401035;88",
                 "4": "08574801401042",
                 "5": "08574801401059",
                 "6": "08574801401066"

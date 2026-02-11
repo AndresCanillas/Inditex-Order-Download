@@ -26,7 +26,7 @@ namespace Inditex.ZaraHangtagKids.Tests
                 ("ProductionOrderNumber", BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.PONumber))),
                 ("Campaign", BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.Campaign))),
                 ("Brand", BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.Brand_Text))),
-                ("Section", BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.Section))),
+                ("Section", BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.Section_Text))),
                 ("ProductType", BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.ProductType_Text))),
                 ("Model", BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.ModelRfid))),
                 ("Quality", BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.QualityRfid))),

@@ -164,7 +164,7 @@ namespace Inidtex.ZaraExterlLables
 
         private static string EscapeCsvValue(string value)
         {
-            return Rfc4180Writer.QuoteValue(value, Delimeter);
+            return Rfc4180Writer.QuoteValue(value);
         }
 
 

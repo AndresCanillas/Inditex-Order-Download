@@ -10,7 +10,7 @@ namespace StructureInditexOrderFile
             public static readonly string ProductionOrderNumber = BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.PONumber));
             public static readonly string Campaign = BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.Campaign));
             public static readonly string Brand = BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.Brand_Text));
-            public static readonly string Section = BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.Section));
+            public static readonly string Section = BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.Section_Text));
             public static readonly string ProductType = BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.ProductType_Text));
             public static readonly string Model = BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.ModelRfid));
             public static readonly string Quality = BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.QualityRfid));
@@ -35,7 +35,7 @@ namespace StructureInditexOrderFile
                 new InditexFieldDefinition(nameof(Poinformation.PONumber), Paths.ProductionOrderNumber),
                 new InditexFieldDefinition(nameof(Poinformation.Campaign), Paths.Campaign),
                 new InditexFieldDefinition(nameof(Poinformation.Brand_Text), Paths.Brand),
-                new InditexFieldDefinition(nameof(Poinformation.Section), Paths.Section),
+                new InditexFieldDefinition(nameof(Poinformation.Section_Text), Paths.Section),
                 new InditexFieldDefinition(nameof(Poinformation.ProductType_Text), Paths.ProductType),
                 new InditexFieldDefinition(nameof(Poinformation.ModelRfid), Paths.Model),
                 new InditexFieldDefinition(nameof(Poinformation.QualityRfid), Paths.Quality),

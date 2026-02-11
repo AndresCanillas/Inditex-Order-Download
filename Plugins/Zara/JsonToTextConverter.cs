@@ -162,9 +162,6 @@ namespace Inidtex.ZaraExterlLables
             if (string.IsNullOrWhiteSpace(value))
                 return string.Empty;
 
-            if (IsQrProductComponent(name))
-                return "Por resolver";
-
             if (UriHelper.IsUrl(value))
                 return UriHelper.ExtractFileNameWithoutExtension(value);
 
