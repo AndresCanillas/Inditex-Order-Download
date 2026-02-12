@@ -46,3 +46,34 @@ Corregir code smells de mantenibilidad sin romper compatibilidad funcional.
 
 ### Pendientes potenciales para siguiente iteración
 - Seguir normalizando typos históricos (`ClenerFiles`, `ProyectCode`) en una iteración controlada de refactor transversal.
+
+## Iteración 4 (actual)
+### Objetivo
+Reutilizar `BaseServiceClient` de `Service.Contracts-NetCore21` en `ApiCallerService` para unificar la capa de cliente HTTP y sus utilidades comunes.
+
+### Alcance incluido
+- `ApiCallerService` ahora hereda de `BaseServiceClient`.
+- `Start(string url)` delega la configuración de endpoint al `Url` base del `BaseServiceClient`.
+- `GetLabelOrders` reutiliza `PostAsync<Input,Output>` del base para enviar requests y manejar serialización/respuesta.
+- Se agregan pruebas unitarias enfocadas en:
+  - normalización del `Url` al usar `Start`.
+  - retorno `default` cuando el token está vacío.
+
+### Pendientes potenciales para siguiente iteración
+- Introducir pruebas de integración con `HttpMessageHandler` fake para validar headers efectivos (`Bearer`) en llamadas vía `BaseServiceClient`.
+- Evaluar inyección de `HttpClient` en `ApiCallerService` para mejorar testabilidad del flujo de token OAuth sin dependencia de red.
+
+## Iteración 5 (actual)
+### Objetivo
+Garantizar que la llamada de etiquetas cumpla el contrato HTTP requerido (`POST`, `User-Agent`, `Authorization Bearer`) y corregir code smells detectados en `ApiCallerService`.
+
+### Alcance incluido
+- `GetLabelOrders` envía header `User-Agent: BusinessPlatform/1.0` junto al `Authorization: Bearer`.
+- Se valida entrada nula de `request` y se mantiene retorno temprano cuando no hay token.
+- Refactor de `GetToken` para eliminar `async` innecesario (`Task.FromResult`) y disponer correctamente `HttpRequestMessage`/`HttpResponseMessage`.
+- Inclusión de `scope` en el body de token cuando viene informado.
+- Nueva prueba unitaria de contrato HTTP para `GetLabelOrders` validando método, URL final, headers y body JSON.
+
+### Pendientes potenciales para siguiente iteración
+- Extraer `tokenClient` detrás de una abstracción para evitar acoplamiento a infraestructura y habilitar pruebas unitarias puras del flujo OAuth.
+- Evaluar migración de excepciones genéricas a excepciones de dominio para mejorar diagnóstico y resiliencia.
