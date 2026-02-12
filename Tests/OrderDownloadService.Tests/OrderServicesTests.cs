@@ -42,7 +42,7 @@ namespace OrderDownloadService.Tests
                     "User",
                     "Pass",
                     "inditex"))
-                .ReturnsAsync(new AuthenticationResult { access_token = "token" });
+                .ReturnsAsync(new AuthenticationResult { id_token = "token" });
 
             apiCaller.Setup(a => a.GetLabelOrders(
                     "api/v3/label-printing/supplier-data/search",

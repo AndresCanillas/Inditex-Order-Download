@@ -157,7 +157,7 @@ namespace OrderDonwLoadService.Synchronization
                 return null;
             }
 
-            return await CallGetOrderByNumber(authResult.access_token, orderNumber, campaignCode, vendorId);
+            return await CallGetOrderByNumber(authResult.id_token, orderNumber, campaignCode, vendorId);
 //#endif
         }
 
@@ -166,7 +166,7 @@ namespace OrderDonwLoadService.Synchronization
             var controller = appConfig.GetValue<string>(DownloadServiceConfig.ControllerLabels, "api/v3/label-printing/supplier-data/search");
             var request = CreateLabelOrderRequest(orderNumber, campaignCode, vendorId);
 
-            return await apiCaller.GetLabelOrders(controller, token, vendorId, request);
+            return await apiCaller.GetLabelOrders(controller, token, request);
         }
 
         private static LabelOrderRequest CreateLabelOrderRequest(string orderNumber, string campaignCode, string vendorId)

@@ -28,11 +28,11 @@ namespace OrderDownloadService.Tests
                     "client-id",
                     "secret",
                     "scope_1 scope_n"))
-                .ReturnsAsync(new AuthenticationResult { access_token = "token" });
+                .ReturnsAsync(new AuthenticationResult { id_token = "token" });
 
             var result = await OrderDownloadHelper.CallGetToken(appConfig.Object, "client-id", "secret", apiCaller.Object);
 
-            Assert.Equal("token", result.access_token);
+            Assert.Equal("token", result.id_token);
             apiCaller.VerifyAll();
         }
 
@@ -52,7 +52,7 @@ namespace OrderDownloadService.Tests
 
             var result = await OrderDownloadHelper.CallGetToken(appConfig.Object, "client-id", "secret", apiCaller.Object);
 
-            Assert.Equal("id-token-only", result.access_token);
+            Assert.Equal("id-token-only", result.id_token);
         }
 
         [Fact]

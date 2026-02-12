@@ -14,7 +14,7 @@ namespace OrderDonwLoadService.Services
     public interface IApiCallerService
     {
         void Start(string url);
-        Task<InditexOrderData> GetLabelOrders(string controller, string token, string vendorId, LabelOrderRequest request);
+        Task<InditexOrderData> GetLabelOrders(string controller, string token, LabelOrderRequest request);
         Task<AuthenticationResult> GetToken(string url, string user, string password, string scope);
     }
     public class ApiCallerService : IApiCallerService
@@ -40,7 +40,7 @@ namespace OrderDonwLoadService.Services
         }
 
 
-        public async Task<InditexOrderData> GetLabelOrders(string controller, string token, string vendorId, LabelOrderRequest request)
+        public async Task<InditexOrderData> GetLabelOrders(string controller, string token, LabelOrderRequest request)
         {
             if(controller == null)
                 throw new Exception("controller argument cannot be null");
@@ -51,7 +51,6 @@ namespace OrderDonwLoadService.Services
             httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             if(!String.IsNullOrWhiteSpace(token))
             {
-                httpClient.DefaultRequestHeaders.Add("x-vendorid", vendorId);
                 httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
                 var jsonBody = JsonConvert.SerializeObject(request);
@@ -60,12 +59,7 @@ namespace OrderDonwLoadService.Services
                 {
                     response.EnsureSuccessStatusCode();
                     var value = await response.Content.ReadAsStringAsync();
-                    if(!string.IsNullOrEmpty(value) && value != "No hay mensajes para recoger." && value != "There is no messages to retrieve.")
-                    {
-                        return JsonConvert.DeserializeObject<InditexOrderData>(value);
-                    }
-
-                    return default;
+                    return JsonConvert.DeserializeObject<InditexOrderData>(value);
                 }
             }
             else
@@ -81,7 +75,6 @@ namespace OrderDonwLoadService.Services
                 Content = new FormUrlEncodedContent(new List<KeyValuePair<string, string>>
                 {
                     new KeyValuePair<string, string>("grant_type", "client_credentials"),
-                    new KeyValuePair<string, string>("scope", scope)
                 })
             };
 

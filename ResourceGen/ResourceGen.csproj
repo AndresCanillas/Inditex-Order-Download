@@ -175,7 +175,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Service.Contracts\Service.Contracts-NET461.csproj">
-      <Project>{b0c41671-f480-4e3f-90bd-237c7561f8f2}</Project>
+      <Project>{B0C41671-F480-4E3F-90BD-237C7561F8F2}</Project>
       <Name>Service.Contracts-NET461</Name>
     </ProjectReference>
   </ItemGroup>
