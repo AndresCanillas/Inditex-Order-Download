@@ -5,8 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Threading.Tasks;
-using System.Xml.Serialization;
 
 namespace OrderDonwLoadService.Services
 {
@@ -14,8 +14,8 @@ namespace OrderDonwLoadService.Services
     public interface IApiCallerService
     {
         void Start(string url);
-        Task<InditexOrderData> GetLabelOrders(string controller, string token, string vendorId);
-        Task<AutenticationResult> GetToken(string url, string user, string password);
+        Task<InditexOrderData> GetLabelOrders(string controller, string token, string vendorId, LabelOrderRequest request);
+        Task<AuthenticationResult> GetToken(string url, string user, string password, string scope);
     }
     public class ApiCallerService : IApiCallerService
     {
@@ -40,7 +40,7 @@ namespace OrderDonwLoadService.Services
         }
 
 
-        public async Task<InditexOrderData> GetLabelOrders(string controller, string token, string vendorId)
+        public async Task<InditexOrderData> GetLabelOrders(string controller, string token, string vendorId, LabelOrderRequest request)
         {
             if(controller == null)
                 throw new Exception("controller argument cannot be null");
@@ -48,26 +48,24 @@ namespace OrderDonwLoadService.Services
                 controller = controller.Substring(1);
 
             httpClient.DefaultRequestHeaders.Clear();
+            httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             if(!String.IsNullOrWhiteSpace(token))
             {
                 httpClient.DefaultRequestHeaders.Add("x-vendorid", vendorId);
                 httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-
-                using(HttpResponseMessage response = await httpClient.GetAsync(controller))
+                var jsonBody = JsonConvert.SerializeObject(request);
+                using(var content = new StringContent(jsonBody, Encoding.UTF8, "application/json"))
+                using(HttpResponseMessage response = await httpClient.PostAsync(controller, content))
                 {
                     response.EnsureSuccessStatusCode();
                     var value = await response.Content.ReadAsStringAsync();
                     if(!string.IsNullOrEmpty(value) && value != "No hay mensajes para recoger." && value != "There is no messages to retrieve.")
                     {
-                        var resp = JsonConvert.DeserializeObject<InditexOrderData>(await response.Content.ReadAsStringAsync());
-                        return await Task.FromResult(resp);
+                        return JsonConvert.DeserializeObject<InditexOrderData>(value);
+                    }
 
-                    }
-                    else
-                    {
-                        return default;
-                    }
+                    return default;
                 }
             }
             else
@@ -76,24 +74,26 @@ namespace OrderDonwLoadService.Services
             }
 
         }
-        public async Task<AutenticationResult> GetToken(string url, string user, string password)
+        public async Task<AuthenticationResult> GetToken(string url, string user, string password, string scope)
         {
             var request = new HttpRequestMessage(HttpMethod.Post, url)
             {
                 Content = new FormUrlEncodedContent(new List<KeyValuePair<string, string>>
                 {
                     new KeyValuePair<string, string>("grant_type", "client_credentials"),
-                    new KeyValuePair<string, string>("client_id", user),
-                    new KeyValuePair<string, string>("client_secret", password),
-                    new KeyValuePair<string, string>("scope", "inditex")
+                    new KeyValuePair<string, string>("scope", scope)
                 })
             };
+
+            request.Headers.UserAgent.ParseAdd("BusinessPlatform/1.0");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
+                Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{user}:{password}")));
 
             var response = await tokenClient.SendAsync(request);
 
 
             response.EnsureSuccessStatusCode();
-            var resp = JsonConvert.DeserializeObject<AutenticationResult>(await response.Content.ReadAsStringAsync());
+            var resp = JsonConvert.DeserializeObject<AuthenticationResult>(await response.Content.ReadAsStringAsync());
 
             return await Task.FromResult(resp);
 
