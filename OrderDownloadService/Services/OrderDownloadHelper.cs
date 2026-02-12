@@ -187,7 +187,7 @@ namespace OrderDonwLoadService.Services
                 string passwordInditex, IApiCallerService apiCaller)
         {
             //Politica de reintentos acitiva
-            string url = appConfig.GetValue<string>("DownloadServices.TokenApiUrl", "https://Inditex.okta.com/oauth2/default/v1/token");
+            string url = appConfig.GetValue<string>("DownloadServices.TokenApiUrl", "https://auth.inditex.com:443/");
             var maxTrys = appConfig.GetValue<int>("DownloadServices.MaxTrys", 2);
             var timeToWait = TimeSpan.FromSeconds(appConfig.GetValue<double>("DownloadServices.SecondsToWait", 240));
 

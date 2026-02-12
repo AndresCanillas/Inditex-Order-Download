@@ -99,7 +99,7 @@ namespace OrderDonwLoadService.Synchronization
 
                 if (string.IsNullOrEmpty(order.POInformation.Campaign))
                     throw new Exception("Campaign property is null or empty.");
-                if (string.IsNullOrEmpty(order.POInformation.Section))
+                if (string.IsNullOrEmpty(order.POInformation.Section_Text))
                     throw new Exception("SectionRfid property is null or empty.");
                 if (string.IsNullOrEmpty(order.POInformation.Brand_Text))
                     throw new Exception("BrandRfid property is null or empty.");
@@ -140,12 +140,12 @@ namespace OrderDonwLoadService.Synchronization
             string campaignCode,
             string vendorId)
         {
-#if DEBUG
-            var rootDirectory = Directory.GetCurrentDirectory();
-            var orderPath = Path.Combine(rootDirectory, "TestOrders", "15536_05987_I25_NNO_ZARANORTE.json");
-            var orderText = File.ReadAllText(orderPath);
-            return JsonConvert.DeserializeObject<InditexOrderData>(orderText);
-#else
+//#if DEBUG
+            //var rootDirectory = Directory.GetCurrentDirectory();
+            //var orderPath = Path.Combine(rootDirectory, "TestOrders", "15536_05987_I25_NNO_ZARANORTE.json");
+            //var orderText = File.ReadAllText(orderPath);
+            //return JsonConvert.DeserializeObject<InditexOrderData>(orderText);
+//#else
             AutenticationResult authResult = null;
             try
             {
@@ -158,7 +158,7 @@ namespace OrderDonwLoadService.Synchronization
             }
 
             return await CallGetOrderbyNumer(authResult.access_token, orderNumber, campaignCode, vendorId);
-#endif
+//#endif
         }
 
         private void SaveOrderWithError(string message, InditexOrderData order)
