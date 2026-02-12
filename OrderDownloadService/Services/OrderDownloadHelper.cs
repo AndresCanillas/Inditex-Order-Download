@@ -17,13 +17,13 @@ namespace OrderDonwLoadService.Services
 {
     public static class OrderDownloadHelper
     {
-        public static List<Credential> LoadInditexCreadentials(IAppLog _log)
+        public static List<Credential> LoadInditexCredentials(IAppLog log)
         {
             var baseDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase).Replace("file:\\", "");
             var path = Path.Combine(baseDir, "InditexCredentials.json");
             if (!File.Exists(path))
             {
-                _log.LogMessage($"Error not found File InditexCredentials.json in path {path} ");
+                log.LogMessage($"Error not found File InditexCredentials.json in path {path} ");
                 return null;
             }
             string cpf = File.ReadAllText(path);
@@ -31,6 +31,12 @@ namespace OrderDonwLoadService.Services
             return JsonConvert.DeserializeObject<ApiCredentials>(cpf).Credentials;
 
 
+        }
+
+        [Obsolete("Use LoadInditexCredentials")]
+        public static List<Credential> LoadInditexCreadentials(IAppLog log)
+        {
+            return LoadInditexCredentials(log);
         }
 
         public static string SaveFileIntoWorkDirectory(
@@ -182,28 +188,45 @@ namespace OrderDonwLoadService.Services
         }
 
 
-        public static async Task<AutenticationResult> CallGetToken(
+        public static async Task<AuthenticationResult> CallGetToken(
                 IAppConfig appConfig, string userNameInditex,
                 string passwordInditex, IApiCallerService apiCaller)
         {
             //Politica de reintentos acitiva
-            string url = appConfig.GetValue<string>("DownloadServices.TokenApiUrl", "https://auth.inditex.com:443/");
-            var maxTrys = appConfig.GetValue<int>("DownloadServices.MaxTrys", 2);
-            var timeToWait = TimeSpan.FromSeconds(appConfig.GetValue<double>("DownloadServices.SecondsToWait", 240));
+            var tokenApiUrl = appConfig.GetValue<string>(DownloadServiceConfig.TokenApiUrl, "https://auth.inditex.com:443/");
+            var controllerToken = appConfig.GetValue<string>(DownloadServiceConfig.ControllerToken, "openam/oauth2/itxid/itxidmp/b2b/access_token");
+            var scope = appConfig.GetValue<string>(DownloadServiceConfig.TokenScope, "inditex");
+            string url = BuildAbsoluteUrl(tokenApiUrl, controllerToken);
+            var maxTrys = appConfig.GetValue<int>(DownloadServiceConfig.MaxTrys, 2);
+            var timeToWait = TimeSpan.FromSeconds(appConfig.GetValue<double>(DownloadServiceConfig.SecondsToWait, 240));
 
             var retryPolity = Policy.Handle<Exception>().WaitAndRetryAsync(maxTrys - 1, i => timeToWait);
-            var atuenticationresult = await retryPolity.ExecuteAsync
+            var authenticationResult = await retryPolity.ExecuteAsync
             (
-                 async () => await apiCaller.GetToken(url, userNameInditex, passwordInditex)
+                 async () => await apiCaller.GetToken(url, userNameInditex, passwordInditex, scope)
             );
 
-            return await Task.FromResult(atuenticationresult);
+            if (authenticationResult != null && string.IsNullOrWhiteSpace(authenticationResult.access_token))
+                authenticationResult.access_token = authenticationResult.id_token;
+
+            return await Task.FromResult(authenticationResult);
+        }
+
+        private static string BuildAbsoluteUrl(string baseUrl, string controller)
+        {
+            if (string.IsNullOrWhiteSpace(baseUrl))
+                return controller;
+            if (string.IsNullOrWhiteSpace(controller))
+                return baseUrl;
+
+            var sanitizedBase = baseUrl.EndsWith("/") ? baseUrl : baseUrl + "/";
+            return new Uri(new Uri(sanitizedBase), controller.TrimStart('/')).ToString();
         }
 
         public static bool ClenerFiles(string filePath, IAppConfig appConfig)
         {
-            var workDirectory = appConfig.GetValue<string>("DownloadServices.WorkDirectory", Directory.GetCurrentDirectory() + "/WorkDirectory");
-            var historyDirectory = appConfig.GetValue<string>("DownloadServices.HistoryDirectory", Directory.GetCurrentDirectory() + "/HistoryDirectory");
+            var workDirectory = appConfig.GetValue<string>(DownloadServiceConfig.WorkDirectory, Directory.GetCurrentDirectory() + "/WorkDirectory");
+            var historyDirectory = appConfig.GetValue<string>(DownloadServiceConfig.HistoryDirectory, Directory.GetCurrentDirectory() + "/HistoryDirectory");
 
             if (!Directory.Exists(workDirectory))
                 throw new InvalidOperationException("Error: the work directory not found. ");

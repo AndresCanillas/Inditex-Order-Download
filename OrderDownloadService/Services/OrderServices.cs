@@ -38,8 +38,8 @@ namespace OrderDonwLoadService.Synchronization
             this.apiCaller = apiCaller;
             this.events = events;
             this.imageManagementService = imageManagementService;
-            var url = this.appConfig.GetValue<string>("DownloadServices.ApiUrl", "https://api2.Inditex.com/");
-            workDirectory = this.appConfig.GetValue<string>("DownloadServices.WorkDirectory", Directory.GetCurrentDirectory() + "/WorkDirectory");
+            var url = this.appConfig.GetValue<string>(DownloadServiceConfig.ApiUrl, "https://api2.Inditex.com/");
+            workDirectory = this.appConfig.GetValue<string>(DownloadServiceConfig.WorkDirectory, Directory.GetCurrentDirectory() + "/WorkDirectory");
             this.apiCaller.Start(url);
         }
 
@@ -49,7 +49,7 @@ namespace OrderDonwLoadService.Synchronization
             string message = $"Order number ({orderNumber}) not found in any queue.";
 
 
-            var credentials = OrderDownloadHelper.LoadInditexCreadentials(log);
+            var credentials = OrderDownloadHelper.LoadInditexCredentials(log);
             if (credentials == null || credentials.Count == 0)
             {
                 log.LogMessage("No credentials found for Inditex API.");
@@ -146,7 +146,7 @@ namespace OrderDonwLoadService.Synchronization
             //var orderText = File.ReadAllText(orderPath);
             //return JsonConvert.DeserializeObject<InditexOrderData>(orderText);
 //#else
-            AutenticationResult authResult = null;
+            AuthenticationResult authResult = null;
             try
             {
                 authResult = await OrderDownloadHelper.CallGetToken(appConfig, credential.User, credential.Password, apiCaller);
@@ -157,26 +157,47 @@ namespace OrderDonwLoadService.Synchronization
                 return null;
             }
 
-            return await CallGetOrderbyNumer(authResult.access_token, orderNumber, campaignCode, vendorId);
+            return await CallGetOrderByNumber(authResult.access_token, orderNumber, campaignCode, vendorId);
 //#endif
+        }
+
+        protected virtual async Task<InditexOrderData> CallGetOrderByNumber(string token, string orderNumber, string campaignCode, string vendorId)
+        {
+            var controller = appConfig.GetValue<string>(DownloadServiceConfig.ControllerLabels, "api/v3/label-printing/supplier-data/search");
+            var request = CreateLabelOrderRequest(orderNumber, campaignCode, vendorId);
+
+            return await apiCaller.GetLabelOrders(controller, token, vendorId, request);
+        }
+
+        private static LabelOrderRequest CreateLabelOrderRequest(string orderNumber, string campaignCode, string vendorId)
+        {
+            if (!long.TryParse(orderNumber, out var parsedOrderNumber))
+                throw new FormatException("Order number must be numeric.");
+
+            return new LabelOrderRequest
+            {
+                ProductionOrderNumber = parsedOrderNumber,
+                Campaign = campaignCode,
+                SupplierCode = vendorId
+            };
         }
 
         private void SaveOrderWithError(string message, InditexOrderData order)
         {
             var title = $"Can't to load order for Inditex client.";
 
-            var historyDitectory = appConfig.GetValue<string>("DownloadServices.HistoryDirectory");
+            var historyDirectory = appConfig.GetValue<string>(DownloadServiceConfig.HistoryDirectory);
             var fileName = string.Concat(DateTime.Now.ToString("ddMMyyyyhhmmss", CultureInfo.InvariantCulture), ".json");
-            if (!Directory.Exists(historyDitectory))
-                Directory.CreateDirectory(historyDitectory);
+            if (!Directory.Exists(historyDirectory))
+                Directory.CreateDirectory(historyDirectory);
 
             var orderText = JsonConvert.SerializeObject(order, Formatting.Indented);
 
-            File.WriteAllText(Path.Combine(historyDitectory, fileName), orderText);
+            File.WriteAllText(Path.Combine(historyDirectory, fileName), orderText);
 
             events.Send(new NotificationReceivedEvent
             {
-                CompanyID = appConfig.GetValue<int>("DownloadServices.ProjectInfoPrinCentral.CompanyID"),
+                CompanyID = appConfig.GetValue<int>(DownloadServiceConfig.ProjectCompanyId),
                 JsonData = orderText,
                 Title = title,
                 Message = message

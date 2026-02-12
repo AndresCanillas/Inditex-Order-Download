@@ -14,6 +14,56 @@ namespace OrderDownloadService.Tests
     public class OrderServicesTests
     {
         [Fact]
+        public async Task FetchOrderAsync_SendsLabelRequestInBody()
+        {
+            var appConfig = new Mock<IAppConfig>();
+            appConfig.Setup(cfg => cfg.GetValue("DownloadServices.ApiUrl", It.IsAny<string>()))
+                .Returns("https://api.example.com/");
+            appConfig.Setup(cfg => cfg.GetValue("DownloadServices.WorkDirectory", It.IsAny<string>()))
+                .Returns(Path.Combine(Path.GetTempPath(), "workdir"));
+            appConfig.Setup(cfg => cfg.GetValue("DownloadServices.TokenApiUrl", It.IsAny<string>()))
+                .Returns("https://auth.inditex.com:443/");
+            appConfig.Setup(cfg => cfg.GetValue("DownloadServices.ControllerToken", It.IsAny<string>()))
+                .Returns("openam/oauth2/itxid/itxidmp/b2b/access_token");
+            appConfig.Setup(cfg => cfg.GetValue("DownloadServices.TokenScope", It.IsAny<string>()))
+                .Returns("inditex");
+            appConfig.Setup(cfg => cfg.GetValue("DownloadServices.ControllerLabels", It.IsAny<string>()))
+                .Returns("api/v3/label-printing/supplier-data/search");
+            appConfig.Setup(cfg => cfg.GetValue("DownloadServices.MaxTrys", 2)).Returns(2);
+            appConfig.Setup(cfg => cfg.GetValue("DownloadServices.SecondsToWait", 240d)).Returns(1d);
+
+            var log = new Mock<IAppLog>();
+            var apiCaller = new Mock<IApiCallerService>();
+            var events = new Mock<IEventQueue>();
+            var imageManagementService = new Mock<IImageManagementService>();
+
+            apiCaller.Setup(a => a.GetToken(
+                    "https://auth.inditex.com/openam/oauth2/itxid/itxidmp/b2b/access_token",
+                    "User",
+                    "Pass",
+                    "inditex"))
+                .ReturnsAsync(new AuthenticationResult { access_token = "token" });
+
+            apiCaller.Setup(a => a.GetLabelOrders(
+                    "api/v3/label-printing/supplier-data/search",
+                    "token",
+                    "12345",
+                    It.Is<LabelOrderRequest>(rq =>
+                        rq.ProductionOrderNumber == 30049 &&
+                        rq.Campaign == "I25" &&
+                        rq.SupplierCode == "12345")))
+                .ReturnsAsync((StructureInditexOrderFile.InditexOrderData)null)
+                .Verifiable();
+
+            var service = new TestOrderServices(appConfig.Object, log.Object, apiCaller.Object, events.Object, imageManagementService.Object);
+
+            var credential = new Credential { User = "User", Password = "Pass" };
+            await service.ExecuteFetchOrderAsync(credential, "30049", "I25", "12345");
+
+            apiCaller.Verify();
+        }
+
+        [Fact]
         public async Task GetOrder_WhenOrderIsNull_ReturnsNotFoundMessage()
         {
             var appConfig = new Mock<IAppConfig>();
@@ -87,6 +137,15 @@ namespace OrderDownloadService.Tests
                 string vendorId)
             {
                 return Task.FromResult<StructureInditexOrderFile.InditexOrderData>(null);
+            }
+
+            public Task<StructureInditexOrderFile.InditexOrderData> ExecuteFetchOrderAsync(
+                Credential credential,
+                string orderNumber,
+                string campaignCode,
+                string vendorId)
+            {
+                return base.FetchOrderAsync(credential, orderNumber, campaignCode, vendorId);
             }
         }
     }
