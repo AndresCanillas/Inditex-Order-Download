@@ -77,3 +77,59 @@ Garantizar que la llamada de etiquetas cumpla el contrato HTTP requerido (`POST`
 ### Pendientes potenciales para siguiente iteración
 - Extraer `tokenClient` detrás de una abstracción para evitar acoplamiento a infraestructura y habilitar pruebas unitarias puras del flujo OAuth.
 - Evaluar migración de excepciones genéricas a excepciones de dominio para mejorar diagnóstico y resiliencia.
+
+## Iteración 6 (actual)
+### Objetivo
+Alinear el payload del endpoint de búsqueda de pedidos para enviar `productionOrderNumber` como string, según el contrato de integración validado con `curl`.
+
+### Alcance incluido
+- `LabelOrderRequest.ProductionOrderNumber` cambia de `long` a `string` para preservar formato del payload esperado.
+- `CreateLabelOrderRequest` mantiene validación numérica de `orderNumber` pero serializa el valor como string en el body JSON.
+- Actualización de pruebas unitarias para verificar que `productionOrderNumber` se envía como string en el contrato HTTP y en el flujo de `OrderServices`.
+
+### Pendientes potenciales para siguiente iteración
+- Confirmar con entorno real de Inditex si `supplierCode` también requiere normalización/casteo específico (padding o formato fijo).
+- Incorporar prueba de integración de extremo a extremo del POST con `HttpMessageHandler` fake y snapshot de payload.
+
+
+## Iteración 7 (actual)
+### Objetivo
+Mitigar respuestas `403 Forbidden` asegurando que el token OAuth usado en la llamada de etiquetas sea el correcto para flujo `client_credentials`.
+
+### Alcance incluido
+- Se normaliza `AuthenticationResult` para usar `access_token` como fallback cuando `id_token` no viene informado.
+- Se agrega validación defensiva cuando la respuesta de autenticación es nula.
+- Se amplía cobertura unitaria de `OrderDownloadHelper` para validar el escenario OAuth real (`access_token` presente, `id_token` ausente).
+
+### Pendientes potenciales para siguiente iteración
+- Incorporar mapeo de errores HTTP por tipo (`401/403/5xx`) con logs enriquecidos para diagnóstico de permisos y scopes.
+- Evaluar mover la normalización de token a un componente dedicado (SRP) para reducir responsabilidades en `OrderDownloadHelper`.
+
+
+## Iteración 8 (actual)
+### Objetivo
+Corregir el contrato HTTP de búsqueda de etiquetas para incluir el header `x-vendorid`, requerido por el gateway de autorización y evitar `403 Forbidden`.
+
+### Alcance incluido
+- Se actualiza `IApiCallerService.GetLabelOrders` para recibir `vendorId` explícito.
+- Se envía `x-vendorid` junto con `Authorization: Bearer` y `User-Agent: BusinessPlatform/1.0` en la llamada POST de etiquetas.
+- `OrderServices` propaga `vendorId` al cliente HTTP en el flujo principal.
+- Se extienden pruebas unitarias de `ApiCallerService` para validar presencia de `x-vendorid` y validar error cuando `vendorId` es vacío.
+
+### Pendientes potenciales para siguiente iteración
+- Agregar prueba de integración contra handler fake para validar comportamiento ante `403` y logging enriquecido de headers de contexto (sin exponer secretos).
+- Confirmar con Inditex si el scope mínimo productivo debe incluir `market openid` además de `inditex` para el endpoint objetivo.
+
+
+## Iteración 9 (actual)
+### Objetivo
+Alinear el cliente HTTP con el comportamiento observado en el API Portal: `x-vendorid` puede no venir en todas las ejecuciones y no debe bloquear la llamada.
+
+### Alcance incluido
+- `x-vendorid` pasa a ser header opcional en `ApiCallerService.GetLabelOrders`.
+- Se elimina validación rígida que lanzaba excepción cuando `vendorId` era vacío.
+- Se agrega prueba unitaria para validar que, sin `vendorId`, la request continúa y no envía el header.
+
+### Pendientes potenciales para siguiente iteración
+- Añadir estrategia de selección de scope por endpoint (`inditex` vs `market openid`) configurable por canal/cliente.
+- Mapear respuesta `403` a error funcional con trazabilidad de request-id para soporte operativo.

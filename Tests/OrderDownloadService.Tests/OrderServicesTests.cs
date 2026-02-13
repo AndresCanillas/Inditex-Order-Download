@@ -48,7 +48,7 @@ namespace OrderDownloadService.Tests
                     "api/v3/label-printing/supplier-data/search",
                     "token",
                     It.Is<LabelOrderRequest>(rq =>
-                        rq.ProductionOrderNumber == 30049 &&
+                        rq.ProductionOrderNumber == "30049" &&
                         rq.Campaign == "I25" &&
                         rq.SupplierCode == "12345")))
                 .ReturnsAsync((StructureInditexOrderFile.InditexOrderData)null)

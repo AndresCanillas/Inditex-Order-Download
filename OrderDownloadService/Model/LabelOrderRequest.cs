@@ -5,7 +5,7 @@ namespace OrderDonwLoadService.Model
     public class LabelOrderRequest
     {
         [JsonProperty("productionOrderNumber")]
-        public long ProductionOrderNumber { get; set; }
+        public string ProductionOrderNumber { get; set; }
 
         [JsonProperty("campaign")]
         public string Campaign { get; set; }

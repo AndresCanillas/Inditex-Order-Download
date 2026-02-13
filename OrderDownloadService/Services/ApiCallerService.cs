@@ -14,7 +14,7 @@ namespace OrderDonwLoadService.Services
     public interface IApiCallerService
     {
         void Start(string url);
-        Task<InditexOrderData> GetLabelOrders(string controller, string token, LabelOrderRequest request);
+        Task<InditexOrderData> GetLabelOrders(string controller, string token, string vendorId, LabelOrderRequest request);
         Task<AuthenticationResult> GetToken(string url, string user, string password, string scope);
     }
 
@@ -32,13 +32,14 @@ namespace OrderDonwLoadService.Services
             Url = url;
         }
 
-        public async Task<InditexOrderData> GetLabelOrders(string controller, string token, LabelOrderRequest request)
+        public async Task<InditexOrderData> GetLabelOrders(string controller, string token, string vendorId, LabelOrderRequest request)
         {
             if(controller == null)
                 throw new Exception("controller argument cannot be null");
 
             if(request == null)
                 throw new Exception("request argument cannot be null");
+
 
             if(String.IsNullOrWhiteSpace(token))
                 return default;
@@ -48,6 +49,9 @@ namespace OrderDonwLoadService.Services
             {
                 ["User-Agent"] = BusinessPlatformUserAgent
             };
+
+            if (!String.IsNullOrWhiteSpace(vendorId))
+                headers["x-vendorid"] = vendorId;
 
             return await PostAsync<LabelOrderRequest, InditexOrderData>(controller, request, headers);
         }

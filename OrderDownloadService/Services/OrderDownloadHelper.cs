@@ -206,7 +206,14 @@ namespace OrderDonwLoadService.Services
                  async () => await apiCaller.GetToken(url, userNameInditex, passwordInditex, scope)
             );
 
-            authenticationResult.id_token = authenticationResult.id_token;
+            if (authenticationResult == null)
+                throw new Exception("Authentication response was null.");
+
+            if (string.IsNullOrWhiteSpace(authenticationResult.id_token) &&
+                !string.IsNullOrWhiteSpace(authenticationResult.access_token))
+            {
+                authenticationResult.id_token = authenticationResult.access_token;
+            }
 
             return await Task.FromResult(authenticationResult);
         }
