@@ -166,17 +166,17 @@ namespace OrderDonwLoadService.Synchronization
             var controller = appConfig.GetValue<string>(DownloadServiceConfig.ControllerLabels, "api/v3/label-printing/supplier-data/search");
             var request = CreateLabelOrderRequest(orderNumber, campaignCode, vendorId);
 
-            return await apiCaller.GetLabelOrders(controller, token, request);
+            return await apiCaller.GetLabelOrders(controller, token, vendorId, request);
         }
 
         private static LabelOrderRequest CreateLabelOrderRequest(string orderNumber, string campaignCode, string vendorId)
         {
-            if (!long.TryParse(orderNumber, out var parsedOrderNumber))
+            if (!long.TryParse(orderNumber, out _))
                 throw new FormatException("Order number must be numeric.");
 
             return new LabelOrderRequest
             {
-                ProductionOrderNumber = parsedOrderNumber,
+                ProductionOrderNumber = orderNumber,
                 Campaign = campaignCode,
                 SupplierCode = vendorId
             };

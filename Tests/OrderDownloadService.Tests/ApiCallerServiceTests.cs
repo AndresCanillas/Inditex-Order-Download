@@ -31,9 +31,40 @@ namespace OrderDownloadService.Tests
         {
             var service = new ApiCallerService();
 
-            var result = await service.GetLabelOrders("api/orders", string.Empty, new LabelOrderRequest());
+            var result = await service.GetLabelOrders("api/orders", string.Empty, "12345", new LabelOrderRequest());
 
             Assert.Null(result);
+        }
+
+
+        [Fact]
+        public async Task GetLabelOrders_WhenVendorIdIsEmpty_DoesNotSendVendorHeader()
+        {
+            var handler = new CaptureHandler(_ =>
+            {
+                var responseBody = JsonConvert.SerializeObject(new InditexOrderData());
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(responseBody, Encoding.UTF8, "application/json")
+                };
+            });
+
+            BaseServiceClient.client = new HttpClient(handler)
+            {
+                Timeout = TimeSpan.FromMinutes(1)
+            };
+
+            var service = new ApiCallerService();
+            service.Start("https://api.product.inditex.com/pubsup/b2b");
+
+            await service.GetLabelOrders("api/v3/label-printing/supplier-data/search", "ACCESS_TOKEN", string.Empty, new LabelOrderRequest
+            {
+                ProductionOrderNumber = "30049",
+                Campaign = "I25",
+                SupplierCode = "12345"
+            });
+
+            Assert.False(handler.LastRequest.Headers.Contains("x-vendorid"));
         }
 
         [Fact]
@@ -57,12 +88,12 @@ namespace OrderDownloadService.Tests
             service.Start("https://api.product.inditex.com/pubsup/b2b");
             var request = new LabelOrderRequest
             {
-                ProductionOrderNumber = 30049,
+                ProductionOrderNumber = "30049",
                 Campaign = "I25",
                 SupplierCode = "12345"
             };
 
-            await service.GetLabelOrders("api/v3/label-printing/supplier-data/search", "ACCESS_TOKEN", request);
+            await service.GetLabelOrders("api/v3/label-printing/supplier-data/search", "ACCESS_TOKEN", "12345", request);
 
             Assert.NotNull(handler.LastRequest);
             Assert.Equal(HttpMethod.Post, handler.LastRequest.Method);
@@ -72,9 +103,10 @@ namespace OrderDownloadService.Tests
             Assert.Equal("Bearer", handler.LastRequest.Headers.Authorization.Scheme);
             Assert.Equal("ACCESS_TOKEN", handler.LastRequest.Headers.Authorization.Parameter);
             Assert.Equal("BusinessPlatform/1.0", handler.LastRequest.Headers.UserAgent.Single().ToString());
+            Assert.Equal("12345", handler.LastRequest.Headers.GetValues("x-vendorid").Single());
 
             var jsonBody = await handler.LastRequest.Content.ReadAsStringAsync();
-            Assert.Contains("\"productionOrderNumber\":30049", jsonBody);
+            Assert.Contains("\"productionOrderNumber\":\"30049\"", jsonBody);
             Assert.Contains("\"campaign\":\"I25\"", jsonBody);
             Assert.Contains("\"supplierCode\":\"12345\"", jsonBody);
         }

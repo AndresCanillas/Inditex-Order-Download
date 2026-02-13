@@ -49,7 +49,7 @@ namespace OrderDownloadService.Tests
                     "token",
                     "12345",
                     It.Is<LabelOrderRequest>(rq =>
-                        rq.ProductionOrderNumber == 30049 &&
+                        rq.ProductionOrderNumber == "30049" &&
                         rq.Campaign == "I25" &&
                         rq.SupplierCode == "12345")))
                 .ReturnsAsync((StructureInditexOrderFile.InditexOrderData)null)

@@ -36,6 +36,26 @@ namespace OrderDownloadService.Tests
             apiCaller.VerifyAll();
         }
 
+
+        [Fact]
+        public async Task CallGetToken_UsesAccessTokenWhenProvidedByOAuth()
+        {
+            var appConfig = new Mock<IAppConfig>();
+            appConfig.Setup(c => c.GetValue("DownloadServices.TokenApiUrl", It.IsAny<string>())).Returns("https://auth");
+            appConfig.Setup(c => c.GetValue("DownloadServices.ControllerToken", It.IsAny<string>())).Returns("oauth/token");
+            appConfig.Setup(c => c.GetValue("DownloadServices.TokenScope", It.IsAny<string>())).Returns("inditex");
+            appConfig.Setup(c => c.GetValue("DownloadServices.MaxTrys", 2)).Returns(2);
+            appConfig.Setup(c => c.GetValue("DownloadServices.SecondsToWait", 240d)).Returns(1d);
+
+            var apiCaller = new Mock<IApiCallerService>();
+            apiCaller.Setup(a => a.GetToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+                .ReturnsAsync(new AuthenticationResult { access_token = "oauth-access-token" });
+
+            var result = await OrderDownloadHelper.CallGetToken(appConfig.Object, "client-id", "secret", apiCaller.Object);
+
+            Assert.Equal("oauth-access-token", result.id_token);
+        }
+
         [Fact]
         public async Task CallGetToken_UsesIdTokenWhenAccessTokenIsMissing()
         {
