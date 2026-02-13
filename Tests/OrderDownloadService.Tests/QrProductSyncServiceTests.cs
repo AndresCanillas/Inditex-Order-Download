@@ -117,7 +117,7 @@ namespace OrderDownloadService.Tests
         {
             return new InditexOrderData
             {
-                POInformation = new Poinformation
+                ProductionOrder = new ProductionOrder
                 {
                     Campaign = campaign
                 },

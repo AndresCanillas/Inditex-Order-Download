@@ -7,14 +7,14 @@ namespace StructureInditexOrderFile
     public class InditexOrderData
     {
 
-        public Poinformation POInformation { get; set; }
+        public ProductionOrder ProductionOrder { get; set; }
         public Supplier Supplier { get; set; }
         public Asset[] Assets { get; set; }
         public Componentvalue[] ComponentValues { get; set; }
         public Label[] labels { get; set; }
     }
 
-    public class Poinformation
+    public class ProductionOrder
     {
         [JsonProperty("productionOrderNumber")]
         public string PONumber { get; set; }

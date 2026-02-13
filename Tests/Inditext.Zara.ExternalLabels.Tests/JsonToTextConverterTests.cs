@@ -27,7 +27,7 @@ namespace Inditex.ZaraHangtagKids.Tests
             Assert.Equal(expectedHeader, header);
 
             var expectedLabels = CountLabelsExcludingPiggybacks(orderData.labels);
-            var expectedSizes = orderData.POInformation.Colors.Sum(c => c.Sizes.Length);
+            var expectedSizes = orderData.ProductionOrder.Colors.Sum(c => c.Sizes.Length);
             var expectedRows = expectedLabels * expectedSizes;
 
             Assert.Equal(expectedRows + 1, lines.Length);
@@ -99,7 +99,7 @@ namespace Inditex.ZaraHangtagKids.Tests
         {
             var orderData = new InditexOrderData
             {
-                POInformation = new Poinformation
+                ProductionOrder = new ProductionOrder
                 {
                     PONumber = "PO-QR-BARCODE",
                     Campaign = "V26",
@@ -392,7 +392,7 @@ namespace Inditex.ZaraHangtagKids.Tests
         {
             return new InditexOrderData
             {
-                POInformation = new Poinformation
+                ProductionOrder = new ProductionOrder
                 {
                     PONumber = "PO-NEW-001",
                     Campaign = "V26",
@@ -456,7 +456,7 @@ namespace Inditex.ZaraHangtagKids.Tests
         {
             return new InditexOrderData
             {
-                POInformation = new Poinformation
+                ProductionOrder = new ProductionOrder
                 {
                     PONumber = "PO-ASSET-ALIAS",
                     Campaign = "V26",
@@ -499,7 +499,7 @@ namespace Inditex.ZaraHangtagKids.Tests
         {
             return new InditexOrderData
             {
-                POInformation = new Poinformation
+                ProductionOrder = new ProductionOrder
                 {
                     PONumber = "PO-CHILD",
                     Campaign = "C1",
@@ -551,7 +551,7 @@ namespace Inditex.ZaraHangtagKids.Tests
         {
             return new InditexOrderData
             {
-                POInformation = new Poinformation
+                ProductionOrder = new ProductionOrder
                 {
                     PONumber = "PO-BLUE",
                     Campaign = "C1",
@@ -611,7 +611,7 @@ namespace Inditex.ZaraHangtagKids.Tests
         {
             return new InditexOrderData
             {
-                POInformation = new Poinformation
+                ProductionOrder = new ProductionOrder
                 {
                     PONumber = "PO-RED",
                     Campaign = "C1",
@@ -659,7 +659,7 @@ namespace Inditex.ZaraHangtagKids.Tests
         {
             return new InditexOrderData
             {
-                POInformation = new Poinformation
+                ProductionOrder = new ProductionOrder
                 {
                     PONumber = "PO-DELIM",
                     Campaign = "C1",
@@ -709,7 +709,7 @@ namespace Inditex.ZaraHangtagKids.Tests
         {
             return new InditexOrderData
             {
-                POInformation = new Poinformation
+                ProductionOrder = new ProductionOrder
                 {
                     PONumber = "PO-QUOTES",
                     Campaign = "C1",

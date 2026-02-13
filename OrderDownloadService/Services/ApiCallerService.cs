@@ -50,8 +50,8 @@ namespace OrderDonwLoadService.Services
                 ["User-Agent"] = BusinessPlatformUserAgent
             };
 
-            if (!String.IsNullOrWhiteSpace(vendorId))
-                headers["x-vendorid"] = vendorId;
+            //if (!String.IsNullOrWhiteSpace(vendorId))
+            //    headers["x-vendorid"] = vendorId;
 
             return await PostAsync<LabelOrderRequest, InditexOrderData>(controller, request, headers);
         }

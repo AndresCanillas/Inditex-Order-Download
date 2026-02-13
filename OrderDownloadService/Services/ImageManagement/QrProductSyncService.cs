@@ -44,7 +44,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
             if (order == null)
                 return;
 
-            var projectId = await imageAssetRepository.ResolveProjectId(order.POInformation?.Campaign);
+            var projectId = await imageAssetRepository.ResolveProjectId(order.ProductionOrder?.Campaign);
             if (projectId==null)
                 return;
 

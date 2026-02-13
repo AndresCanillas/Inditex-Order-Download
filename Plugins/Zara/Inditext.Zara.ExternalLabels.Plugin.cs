@@ -101,7 +101,7 @@ namespace Inidtex.ZaraExterlLables
                     providerVerifier.ValidateProviderData(
                         configuration.CompanyID,
                         orderData.Supplier,
-                        orderData.POInformation.PONumber,
+                        orderData.ProductionOrder.PONumber,
                         configuration.ProjectID.ToString(),
                         db,
                         log,

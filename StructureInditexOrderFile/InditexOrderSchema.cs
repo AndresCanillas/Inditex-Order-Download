@@ -7,13 +7,13 @@ namespace StructureInditexOrderFile
     {
         public static class Paths
         {
-            public static readonly string ProductionOrderNumber = BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.PONumber));
-            public static readonly string Campaign = BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.Campaign));
-            public static readonly string Brand = BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.Brand_Text));
-            public static readonly string Section = BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.Section_Text));
-            public static readonly string ProductType = BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.ProductType_Text));
-            public static readonly string Model = BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.ModelRfid));
-            public static readonly string Quality = BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.QualityRfid));
+            public static readonly string ProductionOrderNumber = BuildPath(nameof(InditexOrderData.ProductionOrder), nameof(ProductionOrder.PONumber));
+            public static readonly string Campaign = BuildPath(nameof(InditexOrderData.ProductionOrder), nameof(ProductionOrder.Campaign));
+            public static readonly string Brand = BuildPath(nameof(InditexOrderData.ProductionOrder), nameof(ProductionOrder.Brand_Text));
+            public static readonly string Section = BuildPath(nameof(InditexOrderData.ProductionOrder), nameof(ProductionOrder.Section_Text));
+            public static readonly string ProductType = BuildPath(nameof(InditexOrderData.ProductionOrder), nameof(ProductionOrder.ProductType_Text));
+            public static readonly string Model = BuildPath(nameof(InditexOrderData.ProductionOrder), nameof(ProductionOrder.ModelRfid));
+            public static readonly string Quality = BuildPath(nameof(InditexOrderData.ProductionOrder), nameof(ProductionOrder.QualityRfid));
             public static readonly string Color = BuildPath(nameof(StructureInditexOrderFile.Color), nameof(StructureInditexOrderFile.Color.ColorRfid));
             public static readonly string Size = BuildPath(nameof(StructureInditexOrderFile.Size), nameof(StructureInditexOrderFile.Size.SizeRfid));
             public static readonly string Quantity = BuildPath(nameof(StructureInditexOrderFile.Size), nameof(StructureInditexOrderFile.Size.Size_Qty));
@@ -32,13 +32,13 @@ namespace StructureInditexOrderFile
         {
             var fields = new[]
             {
-                new InditexFieldDefinition(nameof(Poinformation.PONumber), Paths.ProductionOrderNumber),
-                new InditexFieldDefinition(nameof(Poinformation.Campaign), Paths.Campaign),
-                new InditexFieldDefinition(nameof(Poinformation.Brand_Text), Paths.Brand),
-                new InditexFieldDefinition(nameof(Poinformation.Section_Text), Paths.Section),
-                new InditexFieldDefinition(nameof(Poinformation.ProductType_Text), Paths.ProductType),
-                new InditexFieldDefinition(nameof(Poinformation.ModelRfid), Paths.Model),
-                new InditexFieldDefinition(nameof(Poinformation.QualityRfid), Paths.Quality),
+                new InditexFieldDefinition(nameof(ProductionOrder.PONumber), Paths.ProductionOrderNumber),
+                new InditexFieldDefinition(nameof(ProductionOrder.Campaign), Paths.Campaign),
+                new InditexFieldDefinition(nameof(ProductionOrder.Brand_Text), Paths.Brand),
+                new InditexFieldDefinition(nameof(ProductionOrder.Section_Text), Paths.Section),
+                new InditexFieldDefinition(nameof(ProductionOrder.ProductType_Text), Paths.ProductType),
+                new InditexFieldDefinition(nameof(ProductionOrder.ModelRfid), Paths.Model),
+                new InditexFieldDefinition(nameof(ProductionOrder.QualityRfid), Paths.Quality),
                 new InditexFieldDefinition(nameof(Color.ColorRfid), Paths.Color),
                 new InditexFieldDefinition(nameof(Size.SizeRfid), Paths.Size),
                 new InditexFieldDefinition(nameof(Size.Size_Qty), Paths.Quantity),

@@ -41,7 +41,7 @@ namespace OrderDownloadService.Tests
                 .Returns("subject");
             var log = new Mock<IAppLog>();
 
-            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object);
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object,null);
             var order = BuildOrder("https://example.com/asset.png");
 
             var result = await service.ProcessOrderImagesAsync(order);
@@ -109,7 +109,7 @@ namespace OrderDownloadService.Tests
             var config = new Mock<IAppConfig>();
             var log = new Mock<IAppLog>();
 
-            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object);
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, null);
             var order = BuildOrder("https://example.com/asset.png");
 
             var result = await service.ProcessOrderImagesAsync(order);
@@ -151,7 +151,7 @@ namespace OrderDownloadService.Tests
                 .Returns("subject");
             var log = new Mock<IAppLog>();
 
-            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object);
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, null);
             var order = BuildOrder("https://example.com/asset.png");
 
             var result = await service.ProcessOrderImagesAsync(order);
@@ -186,7 +186,7 @@ namespace OrderDownloadService.Tests
                 .Returns("subject");
             var log = new Mock<IAppLog>();
 
-            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object);
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, null);
             var order = BuildOrderWithComponentValue("https://example.com/from-component.png");
 
             var result = await service.ProcessOrderImagesAsync(order);
@@ -205,7 +205,7 @@ namespace OrderDownloadService.Tests
             var config = new Mock<IAppConfig>();
             var log = new Mock<IAppLog>();
 
-            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object);
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, null);
             var order = BuildOrderWithComponentValue("https://example.com/api/orders");
 
             var result = await service.ProcessOrderImagesAsync(order);
@@ -240,7 +240,7 @@ namespace OrderDownloadService.Tests
                 .Returns("subject");
             var log = new Mock<IAppLog>();
 
-            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object);
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, null);
             var order = BuildOrderWithNestedComponentValueMap("https://example.com/nested/logo.jpeg");
 
             var result = await service.ProcessOrderImagesAsync(order);
@@ -259,7 +259,7 @@ namespace OrderDownloadService.Tests
             var mailService = new Mock<IMailService>();
             var config = new Mock<IAppConfig>();
             var log = new Mock<IAppLog>();
-            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object);
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, null  );
 
             var order = new InditexOrderData { Assets = new Asset[0] };
             var path = WriteTempOrder(order);
@@ -285,7 +285,7 @@ namespace OrderDownloadService.Tests
             var mailService = new Mock<IMailService>();
             var config = new Mock<IAppConfig>();
             var log = new Mock<IAppLog>();
-            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object);
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, null);
 
             var order = BuildOrder("https://example.com/asset.png");
             var path = WriteTempOrder(order);
@@ -311,7 +311,7 @@ namespace OrderDownloadService.Tests
             var mailService = new Mock<IMailService>();
             var config = new Mock<IAppConfig>();
             var log = new Mock<IAppLog>();
-            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object);
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, null);
 
             var order = BuildOrder("https://example.com/asset.png");
             var path = WriteTempOrder(order);

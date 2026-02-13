@@ -70,13 +70,13 @@ namespace OrderDonwLoadService.Synchronization
 
                 message = $"Order number ({orderNumber}) found successfully in {credential.Name} queue.";
 
-                log.LogMessage($"Order {order.POInformation.PONumber} in process.");
+                log.LogMessage($"Order {order.ProductionOrder.PONumber} in process.");
 
                 try
                 {
                     var imageResult = await imageManagementService.ProcessOrderImagesAsync(order);
                     if (imageResult.RequiresApproval)
-                        log.LogMessage($"Order {order.POInformation.PONumber} has pending images to validate.");
+                        log.LogMessage($"Order {order.ProductionOrder.PONumber} has pending images to validate.");
                 }
                 catch (Exception ex)
                 {
@@ -94,20 +94,20 @@ namespace OrderDonwLoadService.Synchronization
                     SaveOrderWithError(ex.Message, order);
                     continue;
                 }
-                log.LogMessage($"Order {order.POInformation.PONumber} was saved into work directory.");
+                log.LogMessage($"Order {order.ProductionOrder.PONumber} was saved into work directory.");
 
 
-                if (string.IsNullOrEmpty(order.POInformation.Campaign))
+                if (string.IsNullOrEmpty(order.ProductionOrder.Campaign))
                     throw new Exception("Campaign property is null or empty.");
-                if (string.IsNullOrEmpty(order.POInformation.Section_Text))
+                if (string.IsNullOrEmpty(order.ProductionOrder.Section_Text))
                     throw new Exception("SectionRfid property is null or empty.");
-                if (string.IsNullOrEmpty(order.POInformation.Brand_Text))
+                if (string.IsNullOrEmpty(order.ProductionOrder.Brand_Text))
                     throw new Exception("BrandRfid property is null or empty.");
-                if (string.IsNullOrEmpty(order.POInformation.ProductType_Text))
+                if (string.IsNullOrEmpty(order.ProductionOrder.ProductType_Text))
                     throw new Exception("ProductTypeRfid property is null or empty.");
-                if (order.POInformation.QualityRfid==0)
+                if (order.ProductionOrder.QualityRfid==0)
                     throw new Exception("QualityRfid property can`t be zero.");
-                if (order.POInformation.ModelRfid == 0)
+                if (order.ProductionOrder.ModelRfid == 0)
                     throw new Exception("ModelRfid property can`t be zero.");
 
 
@@ -120,12 +120,12 @@ namespace OrderDonwLoadService.Synchronization
                     events.Send(new FileReceivedEvent
                     {
                         FilePath = filePath,
-                        OrderNumber = order.POInformation.PONumber.ToString(),
-                        ProyectCode = order.POInformation.Campaign,
+                        OrderNumber = order.ProductionOrder.PONumber.ToString(),
+                        ProyectCode = order.ProductionOrder.Campaign,
                         PluginType = pluginType
                     });
 
-                    log.LogMessage($"File received event sent for order {order.POInformation.PONumber}, with label reference{pluginType} ");
+                    log.LogMessage($"File received event sent for order {order.ProductionOrder.PONumber}, with label reference{pluginType} ");
                 }
 
                 break;
@@ -140,12 +140,12 @@ namespace OrderDonwLoadService.Synchronization
             string campaignCode,
             string vendorId)
         {
-//#if DEBUG
-            //var rootDirectory = Directory.GetCurrentDirectory();
-            //var orderPath = Path.Combine(rootDirectory, "TestOrders", "15536_05987_I25_NNO_ZARANORTE.json");
-            //var orderText = File.ReadAllText(orderPath);
-            //return JsonConvert.DeserializeObject<InditexOrderData>(orderText);
-//#else
+#if DEBUG
+            var rootDirectory = Directory.GetCurrentDirectory();
+            var orderPath = Path.Combine(rootDirectory, "TestOrders", "14313_14801_V26.json");
+            var orderText = File.ReadAllText(orderPath);
+            return JsonConvert.DeserializeObject<InditexOrderData>(orderText);
+#else
             AuthenticationResult authResult = null;
             try
             {
@@ -158,7 +158,7 @@ namespace OrderDonwLoadService.Synchronization
             }
 
             return await CallGetOrderByNumber(authResult.id_token, orderNumber, campaignCode, vendorId);
-//#endif
+#endif
         }
 
         protected virtual async Task<InditexOrderData> CallGetOrderByNumber(string token, string orderNumber, string campaignCode, string vendorId)

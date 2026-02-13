@@ -21,8 +21,8 @@ namespace Inidtex.ZaraExterlLables
         {
             if (orderData == null)
                 throw new ArgumentNullException(nameof(orderData));
-            if (orderData.POInformation == null)
-                throw new ArgumentException("POInformation no puede ser nulo.", nameof(orderData));
+            if (orderData.ProductionOrder == null)
+                throw new ArgumentException("ProductionOrder no puede ser nulo.", nameof(orderData));
 
             var labels = LabelDefinitionBuilder.Build(orderData.labels, log).ToList();
             var headerDefinition = BuildHeaderDefinition(labels, labelType, log);
@@ -34,7 +34,7 @@ namespace Inidtex.ZaraExterlLables
             var componentLookup = BuildComponentLookup(orderData.ComponentValues);
             var assetLookup = BuildAssetLookup(orderData.Assets);
 
-            foreach (var color in orderData.POInformation.Colors ?? Array.Empty<Color>())
+            foreach (var color in orderData.ProductionOrder.Colors ?? Array.Empty<Color>())
             {
                 foreach (var size in color.Sizes ?? Array.Empty<Size>())
                 {
@@ -72,7 +72,7 @@ namespace Inidtex.ZaraExterlLables
             switch (groupKey.Trim().ToUpperInvariant())
             {
                 case "MODEL_QUALITY":
-                    return $"{orderData.POInformation.ModelRfid}/{orderData.POInformation.QualityRfid}";
+                    return $"{orderData.ProductionOrder.ModelRfid}/{orderData.ProductionOrder.QualityRfid}";
                 case "COLOR":
                     return color.ToString(CultureInfo.InvariantCulture);
                 case "SIZE":

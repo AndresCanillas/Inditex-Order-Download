@@ -45,10 +45,10 @@ namespace OrderDonwLoadService.Services
             bool overwrite = true,
             bool skipIfUnchanged = true)
         {
-            if (orderLabel?.POInformation == null)
+            if (orderLabel?.ProductionOrder == null)
                 throw new ArgumentNullException(nameof(orderLabel), "The order label data cannot be null.");
 
-            var id = orderLabel.POInformation.PONumber.ToString();
+            var id = orderLabel.ProductionOrder.PONumber.ToString();
             if (string.IsNullOrWhiteSpace(id))
                 throw new ArgumentException("LabelOrderId is null or empty.", nameof(orderLabel));
 

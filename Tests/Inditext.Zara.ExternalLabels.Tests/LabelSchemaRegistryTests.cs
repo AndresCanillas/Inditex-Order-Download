@@ -23,13 +23,13 @@ namespace Inditex.ZaraHangtagKids.Tests
         {
             return new List<(string Header, string Path)>
             {
-                ("ProductionOrderNumber", BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.PONumber))),
-                ("Campaign", BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.Campaign))),
-                ("Brand", BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.Brand_Text))),
-                ("Section", BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.Section_Text))),
-                ("ProductType", BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.ProductType_Text))),
-                ("Model", BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.ModelRfid))),
-                ("Quality", BuildPath(nameof(InditexOrderData.POInformation), nameof(Poinformation.QualityRfid))),
+                ("ProductionOrderNumber", BuildPath(nameof(InditexOrderData.ProductionOrder), nameof(ProductionOrder.PONumber))),
+                ("Campaign", BuildPath(nameof(InditexOrderData.ProductionOrder), nameof(ProductionOrder.Campaign))),
+                ("Brand", BuildPath(nameof(InditexOrderData.ProductionOrder), nameof(ProductionOrder.Brand_Text))),
+                ("Section", BuildPath(nameof(InditexOrderData.ProductionOrder), nameof(ProductionOrder.Section_Text))),
+                ("ProductType", BuildPath(nameof(InditexOrderData.ProductionOrder), nameof(ProductionOrder.ProductType_Text))),
+                ("Model", BuildPath(nameof(InditexOrderData.ProductionOrder), nameof(ProductionOrder.ModelRfid))),
+                ("Quality", BuildPath(nameof(InditexOrderData.ProductionOrder), nameof(ProductionOrder.QualityRfid))),
                 ("Color", BuildPath(nameof(Color), nameof(Color.ColorRfid))),
                 ("Size", BuildPath(nameof(Size), nameof(Size.SizeRfid))),
                 ("Quantity", BuildPath(nameof(Size), nameof(Size.Size_Qty))),

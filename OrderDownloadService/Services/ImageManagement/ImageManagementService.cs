@@ -31,8 +31,9 @@ namespace OrderDonwLoadService.Services.ImageManagement
             IImageDownloader downloader,
             IMailService mailService,
             IAppConfig config,
-            IAppLog log)
-            : this(repository, downloader, mailService, config, log, null,null)
+            IAppLog log,
+            IQrProductSyncService qrProductSyncService
+            ): this(repository, downloader, mailService, config, log, qrProductSyncService, null)
         {
         }
 

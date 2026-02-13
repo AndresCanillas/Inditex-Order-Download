@@ -1,58 +1,60 @@
 {
-    "ProductionOrder": {
-        "productionOrderNumber": 14185,
+    "productionOrder": {
+        "productionOrderNumber": 14313,
         "campaign": "V26",
-        "orderQty": 9999,
+        "orderQuantity": 15000,
         "brand": "ZARA",
-        "section": "CABALLERO",
+        "section": "SEÑORA",
         "productType": "ROPA",
-        "model": 8574,
-        "quality": 801,
+        "model": 3046,
+        "quality": 22,
         "colors": [
             {
-                "color": 401,
+                "color": 505,
                 "sizes": [
                     {
-                        "size": 5,
-                        "qty": 4067
+                        "size": 4,
+                        "quantity": 3465
                     },
                     {
                         "size": 6,
-                        "qty": 2215
+                        "quantity": 1065
                     },
                     {
-                        "size": 4,
-                        "qty": 2750
+                        "size": 1,
+                        "quantity": 1500
+                    },
+                    {
+                        "size": 2,
+                        "quantity": 2955
+                    },
+                    {
+                        "size": 5,
+                        "quantity": 2280
                     },
                     {
                         "size": 3,
-                        "qty": 967
+                        "quantity": 3735
                     }
                 ]
             }
         ]
     },
     "supplier": {
-        "supplierCode": "08574",
-        "name": "ZENO APPAREL CO., LTD.",
-        "address": "6F., NO.41, LANE 221, GANGQIAN RD., NEIHU DIST., TAIPEI, TAIWAN R.O.C",
-        "phoneNumber": "+8651269331621",
-        "email": "charlie@decor-cn.com"
+        "supplierCode": "14801",
+        "name": null,
+        "address": "NO. 50, ZHONGHUA ROAD, NANJING",
+        "phoneNumber": "0086-18602562888",
+        "email": "bill-luan@jabp.com"
     },
-  "assets": [
-    {
-      "name": "ICON_RFID",
-      "type": "url",
-      "value": "https://static.inditex.com/assets/public/9856/f8f7/ac9b490facb5/66119bfa54f5/rfid_alarm.png?ts=1765532377981"
-    }
-  ],
+    "assets": [],
     "componentValues": [
         {
             "groupKey": "MODEL_QUALITY",
             "name": "ICON_BUYER_GROUP",
             "type": "string",
             "valueMap": {
-                "8574/801": "https://static.inditex.com/assets/public/40ec/515e/c4e5443ea881/f103283b375c/GLOBAL_BABY_BOY.png?ts=1766393053541"
+                "3046/22": "https://static.inditex.com/assets/public/67fd/e164/f5a646398448/49cfbb21f07f/SQUARE_FILLED_BLACK_70_NO_BORDER/SQUARE_FILLED_BLACK_70_NO_BORDER.jpg?ts=1770977574260"
             }
         },
         {
@@ -60,7 +62,7 @@
             "name": "PRODUCT_COLOR",
             "type": "string",
             "valueMap": {
-                "8574/801": "401"
+                "3046/22": "505"
             }
         },
         {
@@ -68,7 +70,7 @@
             "name": "PRODUCT_MODEL",
             "type": "string",
             "valueMap": {
-                "8574/801": "8574"
+                "3046/22": "3046"
             }
         },
         {
@@ -76,7 +78,7 @@
             "name": "SIZE_SERIE",
             "type": "string",
             "valueMap": {
-                "8574/801": "S,M,L,XL,XXL"
+                "3046/22": "XS,S,M,L,XL,XXL"
             }
         },
         {
@@ -84,7 +86,7 @@
             "name": "PRICE_USA_CURRENCY",
             "type": "string",
             "valueMap": {
-                "8574/801": "$"
+                "3046/22": "$"
             }
         },
         {
@@ -92,7 +94,7 @@
             "name": "PRODUCT_QUALITY",
             "type": "string",
             "valueMap": {
-                "8574/801": "801"
+                "3046/22": "22"
             }
         },
         {
@@ -100,7 +102,7 @@
             "name": "PRICE_UK_VALUE",
             "type": "string",
             "valueMap": {
-                "8574/801": "45,99"
+                "3046/22": "45,99"
             }
         },
         {
@@ -108,7 +110,7 @@
             "name": "PRICE_UK_CURRENCY",
             "type": "string",
             "valueMap": {
-                "8574/801": "£"
+                "3046/22": "£"
             }
         },
         {
@@ -116,7 +118,7 @@
             "name": "PRICE_USA_VALUE",
             "type": "string",
             "valueMap": {
-                "8574/801": "69,90"
+                "3046/22": "71,40"
             }
         },
         {
@@ -124,10 +126,12 @@
             "name": "PRODUCT_BARCODE",
             "type": "string",
             "valueMap": {
-                "3": "08574801401035;88",
-                "4": "08574801401042",
-                "5": "08574801401059",
-                "6": "08574801401066"
+                "1": "03046022505014",
+                "2": "03046022505021",
+                "3": "03046022505038",
+                "4": "03046022505045",
+                "5": "03046022505052",
+                "6": "03046022505069"
             }
         },
         {
@@ -135,6 +139,8 @@
             "name": "SIZE_GEOGRAPHIC_BR",
             "type": "string",
             "valueMap": {
+                "1": "EP",
+                "2": "P",
                 "3": "M",
                 "4": "G",
                 "5": "EG",
@@ -146,10 +152,12 @@
             "name": "SIZE_GEOGRAPHIC_MEX",
             "type": "string",
             "valueMap": {
-                "3": "40",
-                "4": "42",
-                "5": "44",
-                "6": "46"
+                "1": "24",
+                "2": "26",
+                "3": "28",
+                "4": "30",
+                "5": "32",
+                "6": "34"
             }
         },
         {
@@ -157,10 +165,12 @@
             "name": "PRODUCT_QR",
             "type": "string",
             "valueMap": {
-                "3": "https://dvcmrclstaweu1pro001.blob.core.windows.net/icbclbg/label-assets%2F29211%2Fqr_product_8f004ea4-7776-4a12-b88b-d98a2cb292ec_33419.svg?sv=2025-07-05&spr=https&st=2026-02-10T13%3A16%3A11Z&se=2026-02-17T12%3A16%3A11Z&skoid=a93e09d5-16ec-45b1-bf82-ed41afd069ae&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-10T13%3A16%3A11Z&ske=2026-02-17T12%3A16%3A11Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=Lu6iMqQ1nKS2zVgoMH75c83lx2%2BTs3AUm%2BhBr7CXRM8%3D",
-                "4": "https://dvcmrclstaweu1pro001.blob.core.windows.net/icbclbg/label-assets%2F29207%2Fqr_product_40bf41df-ded6-41f0-8cc5-cf09238251f5_33419.svg?sv=2025-07-05&spr=https&st=2026-02-10T13%3A16%3A12Z&se=2026-02-17T12%3A16%3A12Z&skoid=a93e09d5-16ec-45b1-bf82-ed41afd069ae&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-10T13%3A16%3A12Z&ske=2026-02-17T12%3A16%3A12Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=SAZd5cqJQYYUWD8bP2yfGzeWe5Gq5CXQeLiNs1Gpegg%3D",
-                "5": "https://dvcmrclstaweu1pro001.blob.core.windows.net/icbclbg/label-assets%2F29199%2Fqr_product_f97ee4b4-6498-41f4-8190-6c65ea0179b4_33419.svg?sv=2025-07-05&spr=https&st=2026-02-10T13%3A16%3A11Z&se=2026-02-17T12%3A16%3A11Z&skoid=a93e09d5-16ec-45b1-bf82-ed41afd069ae&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-10T13%3A16%3A11Z&ske=2026-02-17T12%3A16%3A11Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=ih6dpDcbwX%2BrPfkWS%2F3NDx4%2FdtdV5bFJzpLHGjmvoRE%3D",
-                "6": "https://dvcmrclstaweu1pro001.blob.core.windows.net/icbclbg/label-assets%2F29203%2Fqr_product_d1651179-41f0-4fae-9ef0-745f1a27aed3_33419.svg?sv=2025-07-05&spr=https&st=2026-02-10T13%3A16%3A12Z&se=2026-02-17T12%3A16%3A12Z&skoid=a93e09d5-16ec-45b1-bf82-ed41afd069ae&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-10T13%3A16%3A12Z&ske=2026-02-17T12%3A16%3A12Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=6MLHawYgffo2D%2Fipf2zoLIh%2FEjN01t5hPh17z05uZgA%3D"
+                "1": "https://dvcmrclstaweu1pro001.blob.core.windows.net/icbclbg/label-assets%2F61950%2Fqr_product_d81b1f45-a192-4cbb-bb43-f2b044d57a99_33419.svg?sv=2025-07-05&spr=https&st=2026-02-13T13%3A22%3A51Z&se=2026-02-20T12%3A22%3A51Z&skoid=a93e09d5-16ec-45b1-bf82-ed41afd069ae&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-13T13%3A22%3A51Z&ske=2026-02-20T12%3A22%3A51Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=lj%2B2HPkKq4yehNUF9MkmeF7hRV4G90R49LyddcYb8Uc%3D",
+                "2": "https://dvcmrclstaweu1pro001.blob.core.windows.net/icbclbg/label-assets%2F61954%2Fqr_product_47acc745-9c8c-4d78-bbed-37c1013103f9_33419.svg?sv=2025-07-05&spr=https&st=2026-02-13T13%3A22%3A51Z&se=2026-02-20T12%3A22%3A51Z&skoid=a93e09d5-16ec-45b1-bf82-ed41afd069ae&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-13T13%3A22%3A51Z&ske=2026-02-20T12%3A22%3A51Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=z3vsfWeiWwvDMwsZapwJATjzFIXLI45jfPnMQQW28Ug%3D",
+                "3": "https://dvcmrclstaweu1pro001.blob.core.windows.net/icbclbg/label-assets%2F61962%2Fqr_product_38ab1cf4-f7c6-4191-ad2a-73e201bf07d2_33419.svg?sv=2025-07-05&spr=https&st=2026-02-13T13%3A22%3A53Z&se=2026-02-20T12%3A22%3A53Z&skoid=a93e09d5-16ec-45b1-bf82-ed41afd069ae&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-13T13%3A22%3A53Z&ske=2026-02-20T12%3A22%3A53Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=tFzNmUIUOfXwgikpR6orAd6ZEAN6eCPxwhPaQlM0vW0%3D",
+                "4": "https://dvcmrclstaweu1pro001.blob.core.windows.net/icbclbg/label-assets%2F61942%2Fqr_product_ff7614ff-8fdf-4d45-9137-710df0db4627_33419.svg?sv=2025-07-05&spr=https&st=2026-02-13T13%3A22%3A52Z&se=2026-02-20T12%3A22%3A52Z&skoid=a93e09d5-16ec-45b1-bf82-ed41afd069ae&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-13T13%3A22%3A52Z&ske=2026-02-20T12%3A22%3A52Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=BIcG6b7XLbyfEwhP%2F2C6X8kPNKJcI4PbbECFHgq4qbg%3D",
+                "5": "https://dvcmrclstaweu1pro001.blob.core.windows.net/icbclbg/label-assets%2F61958%2Fqr_product_031baf93-f10e-4d75-8fb1-56ec73c02274_33419.svg?sv=2025-07-05&spr=https&st=2026-02-13T13%3A22%3A52Z&se=2026-02-20T12%3A22%3A52Z&skoid=a93e09d5-16ec-45b1-bf82-ed41afd069ae&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-13T13%3A22%3A52Z&ske=2026-02-20T12%3A22%3A52Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=XZ4Leca0IqwWYbjdkk1wfetczfhswa%2FUXy0JfXYJk%2BI%3D",
+                "6": "https://dvcmrclstaweu1pro001.blob.core.windows.net/icbclbg/label-assets%2F61946%2Fqr_product_71b9d05f-59b5-4bf6-9367-ee559d473ec6_33419.svg?sv=2025-07-05&spr=https&st=2026-02-13T13%3A22%3A52Z&se=2026-02-20T12%3A22%3A52Z&skoid=a93e09d5-16ec-45b1-bf82-ed41afd069ae&sktid=c8e8bdb6-8e7c-41d5-bc41-37fff3c33b75&skt=2026-02-13T13%3A22%3A52Z&ske=2026-02-20T12%3A22%3A52Z&sks=b&skv=2025-07-05&sr=b&sp=r&sig=cFYKDx1TODq6%2FnqVZ588y%2B6ZCHE%2ByBdt273Z%2B5weE4A%3D"
             }
         },
         {
@@ -168,6 +178,8 @@
             "name": "SIZE_GEOGRAPHIC_EUR",
             "type": "string",
             "valueMap": {
+                "1": "XS",
+                "2": "S",
                 "3": "M",
                 "4": "L",
                 "5": "XL",
@@ -179,6 +191,8 @@
             "name": "SIZE_GEOGRAPHIC_USA",
             "type": "string",
             "valueMap": {
+                "1": "XS",
+                "2": "S",
                 "3": "M",
                 "4": "L",
                 "5": "XL",
@@ -190,6 +204,8 @@
             "name": "SIZE_GEOGRAPHIC_UK",
             "type": "string",
             "valueMap": {
+                "1": "XS",
+                "2": "S",
                 "3": "M",
                 "4": "L",
                 "5": "XL",
@@ -201,6 +217,8 @@
             "name": "SIZE_GEOGRAPHIC_IT",
             "type": "string",
             "valueMap": {
+                "1": "XS",
+                "2": "S",
                 "3": "M",
                 "4": "L",
                 "5": "XL",
@@ -212,7 +230,7 @@
             "name": "PRICE_BLUE_VALUE",
             "type": "string",
             "valueMap": {
-                "8574/801": "45,95"
+                "3046/22": "45,99"
             }
         },
         {
@@ -220,15 +238,7 @@
             "name": "PRICE_BLUE_CURRENCY",
             "type": "string",
             "valueMap": {
-                "8574/801": "€"
-            }
-        },
-        {
-            "groupKey": "MODEL_QUALITY",
-            "name": "PRICE_RED_CURRENCY",
-            "type": "string",
-            "valueMap": {
-                "8574/801": "€"
+                "3046/22": "€"
             }
         },
         {
@@ -236,7 +246,15 @@
             "name": "PRICE_RED_VALUE",
             "type": "string",
             "valueMap": {
-                "8574/801": "39,95"
+                "3046/22": "35,99"
+            }
+        },
+        {
+            "groupKey": "MODEL_QUALITY",
+            "name": "PRICE_RED_CURRENCY",
+            "type": "string",
+            "valueMap": {
+                "3046/22": "€"
             }
         }
     ],
