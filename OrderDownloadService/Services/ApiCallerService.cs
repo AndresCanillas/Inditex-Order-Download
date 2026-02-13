@@ -59,9 +59,6 @@ namespace OrderDonwLoadService.Services
                 new KeyValuePair<string, string>("grant_type", "client_credentials")
             };
 
-            if(!String.IsNullOrWhiteSpace(scope))
-                content.Add(new KeyValuePair<string, string>("scope", scope));
-
             using(var request = new HttpRequestMessage(HttpMethod.Post, url)
             {
                 Content = new FormUrlEncodedContent(content)

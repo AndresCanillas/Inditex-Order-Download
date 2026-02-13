@@ -7,7 +7,9 @@
 })(this, function () {
     "use strict";
 
-    var ORDER_NUMBER_LENGTH = 10;
+    
+    var ORDER_ID_MIN_LENGTH = 5;
+    var ORDER_ID_MAX_LENGTH = 10;
     var VENDOR_ID_MIN_LENGTH = 5;
     var VENDOR_ID_MAX_LENGTH = 10;
     var CAMPAIGN_CODE_PATTERN = /^[IVPO][0-9]{2}$/i;
@@ -24,8 +26,7 @@
     function validateOrderNumber(value) {
         if (!value) return false;
         if (!isNumeric(value)) return false;
-        if (value.length !== ORDER_NUMBER_LENGTH) return false;
-        return value[0] !== "0";
+        return value.length >= ORDER_ID_MIN_LENGTH && value.length <= ORDER_ID_MAX_LENGTH;
     }
 
     function validateVendorId(value) {
@@ -51,7 +52,8 @@
 
     return {
         constants: {
-            ORDER_NUMBER_LENGTH: ORDER_NUMBER_LENGTH,
+            ORDER_ID_MIN_LENGTH: ORDER_ID_MIN_LENGTH,
+            ORDER_ID_MAX_LENGTH: ORDER_ID_MAX_LENGTH,
             VENDOR_ID_MIN_LENGTH: VENDOR_ID_MIN_LENGTH,
             VENDOR_ID_MAX_LENGTH: VENDOR_ID_MAX_LENGTH
         },

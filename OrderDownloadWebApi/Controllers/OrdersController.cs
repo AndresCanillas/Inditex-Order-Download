@@ -23,7 +23,7 @@ namespace OrderDownloadWebApi.Controllers
         }
 
         [HttpPost, Route("/order/get/")]
-        public async Task<OperationResult> MergePdf([FromBody] GetOderDto  OrderDto)
+        public async Task<OperationResult> GetOrder([FromBody] GetOderDto  OrderDto)
         {
             try
             {
