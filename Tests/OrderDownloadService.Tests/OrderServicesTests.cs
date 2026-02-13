@@ -46,6 +46,7 @@ namespace OrderDownloadService.Tests
 
             apiCaller.Setup(a => a.GetLabelOrders(
                     "api/v3/label-printing/supplier-data/search",
+                    "12345",
                     "token",
                     It.Is<LabelOrderRequest>(rq =>
                         rq.ProductionOrderNumber == "30049" &&
