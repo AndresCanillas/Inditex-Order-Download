@@ -107,6 +107,15 @@
         });
     }
 
+    function messageContainsError(message) {
+        var normalizedMessage = (message || "").toLowerCase();
+        return normalizedMessage.includes("error")
+            || normalizedMessage.includes("exception")
+            || normalizedMessage.includes("failed")
+            || normalizedMessage.includes("could not")
+            || normalizedMessage.includes("not be completed");
+    }
+
     function syncStepsFromMessage(steps, message) {
         var normalizedMessage = (message || "").toLowerCase();
 
@@ -134,10 +143,22 @@
             failStep(steps, "search-order", "Pedido no encontrado");
         }
 
-        if (normalizedMessage.includes("error")) {
+        if (messageContainsError(normalizedMessage)) {
             var inProgressStep = steps.find(function (step) { return step.status === STATUS.IN_PROGRESS; });
             if (inProgressStep) {
                 failStep(steps, inProgressStep.id, "Error durante el proceso");
+                return;
+            }
+
+            var pendingStep = steps.find(function (step) { return step.status === STATUS.PENDING; });
+            if (pendingStep) {
+                failStep(steps, pendingStep.id, "Error durante el proceso");
+                return;
+            }
+
+            var latestCompletedStep = steps.slice().reverse().find(function (step) { return step.status === STATUS.COMPLETED; });
+            if (latestCompletedStep) {
+                failStep(steps, latestCompletedStep.id, "Error durante el proceso");
             }
         }
     }
@@ -149,6 +170,7 @@
         completeStep: completeStep,
         failStep: failStep,
         pendingValidationStep: pendingValidationStep,
-        syncStepsFromMessage: syncStepsFromMessage
+        syncStepsFromMessage: syncStepsFromMessage,
+        messageContainsError: messageContainsError
     };
 });
