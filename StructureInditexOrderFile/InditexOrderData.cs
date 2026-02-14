@@ -44,7 +44,7 @@ namespace StructureInditexOrderFile
     {
         [JsonProperty("size")]
         public int SizeRfid { get; set; }
-        [JsonProperty("Qty")]
+        [JsonProperty("quantity")]
         public int Size_Qty { get; set; }
     }
 

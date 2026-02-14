@@ -60,7 +60,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
             {
                 foreach (var qrAsset in qrAssets)
                 {
-                    var barcode = ResolveBarcode(qrAsset);
+                    var barcode = qrAsset.Barcode;
                     if (string.IsNullOrWhiteSpace(barcode))
                         continue;
 
@@ -90,14 +90,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
             return Tuple.Create(user, password);
         }
 
-        private static string ResolveBarcode(QrProductAsset qrAsset)
-        {
-            if (!string.IsNullOrWhiteSpace(qrAsset.Barcode))
-                return qrAsset.Barcode;
-
-            return ExtractBarcodeFromQrUrl(qrAsset.Url);
-        }
-
+       
         private static IEnumerable<QrProductAsset> ExtractQrProductAssets(InditexOrderData order)
         {
             if (order.ComponentValues == null)
@@ -135,8 +128,8 @@ namespace OrderDonwLoadService.Services.ImageManagement
 
                 foreach (var entry in ExtractStringValuesFromValueMap(component.ValueMap))
                 {
-                    if (!string.IsNullOrWhiteSpace(entry.Key) && !result.ContainsKey(entry.Key) && !string.IsNullOrWhiteSpace(entry.Value))
-                        result.Add(entry.Key, entry.Value.Trim());
+                    if (!string.IsNullOrWhiteSpace(entry.Path) && !result.ContainsKey(entry.Path) && !string.IsNullOrWhiteSpace(entry.Value))
+                        result.Add(entry.Path, entry.Value.Trim());
                 }
             }
 

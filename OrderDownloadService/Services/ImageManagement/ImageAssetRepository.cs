@@ -123,6 +123,23 @@ namespace OrderDonwLoadService.Services.ImageManagement
             return Task.CompletedTask;
         }
 
+        public Task MarkPendingAsync(int id)
+        {
+            using (var conn = db.OpenDB("LocalDB"))
+            {
+                conn.ExecuteNonQuery(@"
+                    UPDATE ImageAssets
+                    SET Status = @Status,
+                        IsLatest = 0,
+                        UpdatedDate = @UpdatedDate
+                    WHERE ID = @ID",
+                    (int)ImageAssetStatus.New,
+                    DateTime.UtcNow,
+                    id);
+            }
+            return Task.CompletedTask;
+        }
+
         private static ImageAssetRecord Map(DbDataReader reader)
         {
             return new ImageAssetRecord

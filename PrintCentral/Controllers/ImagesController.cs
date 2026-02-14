@@ -129,10 +129,6 @@ namespace PrintCentral.Controllers
                         var metadata = repo.UploadImage(projectid, finalFileName, fileContent);
                         var json = $"{{\"success\":true, \"message\":\"\", \"Data\":{JsonConvert.SerializeObject(metadata)}}}";
 
-                        var a= Exists(projectid, finalFileName);
-
-
-
                         return Content(json);
                     }
                 }

@@ -241,6 +241,7 @@ namespace OrderDonwLoadService.Services
             {
                 Name = "\"file\"",
                 FileName = "\"" + (string.IsNullOrWhiteSpace(fileName) ? barcode + ".svg" : fileName) + "\""
+                
             };
             streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
             multipart.Add(streamContent);

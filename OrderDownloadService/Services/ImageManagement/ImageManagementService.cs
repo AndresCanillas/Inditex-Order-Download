@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Service.Contracts;
-using Service.Contracts.Database;
 using Service.Contracts.OrderImages;
 using StructureInditexOrderFile;
 
@@ -23,7 +22,6 @@ namespace OrderDonwLoadService.Services.ImageManagement
         private readonly IMailService mailService;
         private readonly IAppConfig config;
         private readonly IAppLog log;
-        private readonly IPrintCentralService printCentralService;
         private readonly IQrProductSyncService qrProductSyncService;
 
         public ImageManagementService(
@@ -32,19 +30,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
             IMailService mailService,
             IAppConfig config,
             IAppLog log,
-            IQrProductSyncService qrProductSyncService
-            ): this(repository, downloader, mailService, config, log, qrProductSyncService, null)
-        {
-        }
-
-        public ImageManagementService(
-            IImageAssetRepository repository,
-            IImageDownloader downloader,
-            IMailService mailService,
-            IAppConfig config,
-            IAppLog log,
-            IQrProductSyncService qrProductSyncService,
-            IPrintCentralService printCentralService)
+            IQrProductSyncService qrProductSyncService)
         {
             this.repository = repository;
             this.downloader = downloader;
@@ -52,7 +38,6 @@ namespace OrderDonwLoadService.Services.ImageManagement
             this.config = config;
             this.log = log;
             this.qrProductSyncService = qrProductSyncService;
-            this.printCentralService = printCentralService;
         }
 
         public async Task<ImageProcessingResult> ProcessOrderImagesAsync(InditexOrderData order)
@@ -80,7 +65,14 @@ namespace OrderDonwLoadService.Services.ImageManagement
                 }
 
                 if (string.Equals(latest.Hash, hash, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (latest.Status == ImageAssetStatus.Obsolete 
+                        || latest.Status == ImageAssetStatus.Rejected)
+                    {
+                        await repository.MarkPendingAsync(latest.ID);
+                    }
                     continue;
+                }
 
                 await repository.MarkObsoleteAsync(latest.ID);
                 await repository.InsertAsync(BuildRecord(asset, downloaded, hash, ImageAssetStatus.Updated, true));
@@ -119,51 +111,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
 
             return true;
         }
-
-
-        private Tuple<string, string> ResolvePrintCredentials()
-        {
-            var user = config.GetValue<string>("DownloadServices.PrintCentralCredentials.User", null);
-            var password = config.GetValue<string>("DownloadServices.PrintCentralCredentials.Password", null);
-
-            if (string.IsNullOrWhiteSpace(user) || string.IsNullOrWhiteSpace(password))
-            {
-                log.LogMessage("ImageManagement: PrintCentral credentials are missing for PRODUCT_QR synchronization.");
-                return null;
-            }
-
-            return Tuple.Create(user, password);
-        }
-
-        
-
-        private IEnumerable<Asset> ExtractQrProductAssets(InditexOrderData order)
-        {
-            if (order?.ComponentValues == null)
-                return Enumerable.Empty<Asset>();
-
-            var assets = new List<Asset>();
-            foreach (var component in order.ComponentValues)
-            {
-                if (component == null || !string.Equals(component.Name, QrProductComponentName, StringComparison.OrdinalIgnoreCase))
-                    continue;
-
-                foreach (var url in ExtractImageUrlsFromValueMap(component.ValueMap))
-                {
-                    assets.Add(new Asset
-                    {
-                        Name = component.Name,
-                        Type = "url",
-                        Value = url
-                    });
-                }
-            }
-
-            return assets
-                .GroupBy(asset => asset.Value, StringComparer.OrdinalIgnoreCase)
-                .Select(group => group.First());
-        }
-
+       
         private IEnumerable<Asset> ExtractUrlAssets(InditexOrderData order)
         {
             if (order == null)
@@ -231,39 +179,6 @@ namespace OrderDonwLoadService.Services.ImageManagement
 
             foreach (var child in token.Children())
                 TraverseToken(child, urls);
-        }
-
-        private static string ExtractBarcodeFromQrUrl(string url)
-        {
-            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
-                return null;
-
-            var fileName = Path.GetFileName(uri.AbsolutePath);
-            if (string.IsNullOrWhiteSpace(fileName))
-                return null;
-
-            var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
-            if (string.IsNullOrWhiteSpace(fileNameWithoutExtension))
-                return null;
-
-            var lastUnderscore = fileNameWithoutExtension.LastIndexOf('_');
-            if (lastUnderscore < 0 || lastUnderscore == fileNameWithoutExtension.Length - 1)
-                return null;
-
-            return fileNameWithoutExtension.Substring(lastUnderscore + 1);
-        }
-
-        private static string BuildQrFileName(string barcode, string url)
-        {
-            var extension = ".svg";
-            if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
-            {
-                var parsedExtension = Path.GetExtension(uri.AbsolutePath);
-                if (!string.IsNullOrWhiteSpace(parsedExtension))
-                    extension = parsedExtension;
-            }
-
-            return $"{barcode}{extension}";
         }
 
         private static bool IsImageUrl(string value)

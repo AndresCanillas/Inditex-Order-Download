@@ -8,6 +8,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
         ImageAssetRecord GetLatestByUrl(string url);
         Task<int> InsertAsync(ImageAssetRecord record);
         Task MarkObsoleteAsync(int id);
+        Task MarkPendingAsync(int id);
         Task<int?> ResolveProjectId(string campaign);
     }
 }
