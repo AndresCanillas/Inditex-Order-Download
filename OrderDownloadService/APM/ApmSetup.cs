@@ -8,6 +8,7 @@ namespace OrderDonwLoadService
         {
             apm.AddHandler<FileReceivedEvent, SendFileToPrintCentral>();
             apm.AddHandler<NotificationReceivedEvent, SendNotificationToPrintCentral>();
+            apm.AddHandler<QrProductSyncRequestedEvent, SyncQrProductToPrintCentral>();
         }
 
 

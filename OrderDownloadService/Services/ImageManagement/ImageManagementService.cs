@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using OrderDonwLoadService;
 using Service.Contracts;
 using Service.Contracts.OrderImages;
 using StructureInditexOrderFile;
@@ -23,6 +24,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
         private readonly IAppConfig config;
         private readonly IAppLog log;
         private readonly IQrProductSyncService qrProductSyncService;
+        private readonly IEventQueue events;
 
         public ImageManagementService(
             IImageAssetRepository repository,
@@ -30,7 +32,8 @@ namespace OrderDonwLoadService.Services.ImageManagement
             IMailService mailService,
             IAppConfig config,
             IAppLog log,
-            IQrProductSyncService qrProductSyncService)
+            IQrProductSyncService qrProductSyncService,
+            IEventQueue events)
         {
             this.repository = repository;
             this.downloader = downloader;
@@ -38,6 +41,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
             this.config = config;
             this.log = log;
             this.qrProductSyncService = qrProductSyncService;
+            this.events = events;
         }
 
         public async Task<ImageProcessingResult> ProcessOrderImagesAsync(InditexOrderData order)
@@ -46,7 +50,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
                 throw new ArgumentNullException(nameof(order));
 
             if (qrProductSyncService != null)
-                await qrProductSyncService.SyncAsync(order);
+                events?.Send(new QrProductSyncRequestedEvent { Order = order });
 
             var result = new ImageProcessingResult();
             var assets = ExtractUrlAssets(order).ToList();
