@@ -1,10 +1,11 @@
 const validation = require("../OrderDownloadWebApi/wwwroot/js/GetOrdersValidation");
 
 describe("GetOrdersValidation", () => {
-  test("validates order number (10 digits, no leading zero)", () => {
+  test("validates order number (5 to 10 digits, no leading zero)", () => {
     expect(validation.validateOrderNumber("1234567890")).toBe(true);
     expect(validation.validateOrderNumber("0123456789")).toBe(false);
-    expect(validation.validateOrderNumber("12345")).toBe(false);
+    expect(validation.validateOrderNumber("12345")).toBe(true);
+    expect(validation.validateOrderNumber("1234")).toBe(false);
     expect(validation.validateOrderNumber("12345678901")).toBe(false);
   });
 
