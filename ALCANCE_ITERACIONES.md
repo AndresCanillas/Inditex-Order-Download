@@ -136,15 +136,14 @@ Alinear el cliente HTTP con el comportamiento observado en el API Portal: `x-ven
 
 ## Iteración 10 (actual)
 ### Objetivo
-Desacoplar la sincronización de `PRODUCT_QR` del flujo síncrono de procesamiento de imágenes para ejecutarla mediante cola de eventos APM.
+Evitar envíos duplicados desde la UI de `Get Order` bloqueando el botón mientras la primera solicitud HTTP está en curso.
 
 ### Alcance incluido
-- `ImageManagementService.ProcessOrderImagesAsync` deja de invocar `IQrProductSyncService.SyncAsync` de forma directa y pasa a publicar `QrProductSyncRequestedEvent` en `IEventQueue`.
-- Se crea el evento `QrProductSyncRequestedEvent` con el payload de la orden (`InditexOrderData`).
-- Se crea el handler `SyncQrProductToPrintCentral` que procesa el evento y ejecuta la sincronización QR mediante `IQrProductSyncService`.
-- Registro del nuevo handler en `ApmSetup`.
-- Ajuste de pruebas unitarias de `ImageManagementService` para validar publicación del evento en cola.
+- Se introduce `GetOrdersRequestState` para encapsular estado de request en progreso y la habilitación/deshabilitación del botón.
+- `GetOrdersDialog` usa el estado para prevenir re-entradas del handler `GetOrder` antes de recibir respuesta.
+- El botón `Get Order` se deshabilita al iniciar la petición y se habilita en `finally` tanto en éxito como en error.
+- Se agregan pruebas unitarias de `GetOrdersRequestState` para validar bloqueo de reenvío y restauración del estado del botón.
 
 ### Pendientes potenciales para siguiente iteración
-- Endurecer resiliencia del handler de sincronización QR (reintentos explícitos, manejo de excepciones y logging contextual por orden).
-- Evitar acoplamiento fuerte en payload de eventos (`InditexOrderData` completo) evaluando evento minimalista con datos necesarios.
+- Agregar prueba de integración UI (con DOM/JSDOM) para validar que múltiples clics rápidos sólo disparan una llamada a `AppContext.HttpPost`.
+- Unificar reglas de validación de `orderNumber` entre mensajes de UI y `GetOrdersValidation` para eliminar inconsistencia funcional/documental.

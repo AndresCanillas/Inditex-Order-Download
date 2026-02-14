@@ -20,6 +20,7 @@
             orderNumberError: null,
             information2: null
         };
+        this.requestState = null;
     };
 
     GetOrdersDialog.prototype = {
@@ -27,6 +28,9 @@
 
         OnLoad: function () {
             var self = this;
+            if (typeof GetOrdersRequestState !== "undefined") {
+                self.requestState = GetOrdersRequestState.createState(self.elements.buttonGetOrder);
+            }
             [this.elements.orderNumber, this.elements.campaignCode, this.elements.vendorId].forEach(function (element) {
                 element.keypress(function (e) {
                     if (e.which === 13) {
@@ -90,8 +94,16 @@
             }
 
             errorLabel.addClass("d-none").text("");
-            output.removeClass("alert-success alert-danger d-none").addClass("alert-secondary").html(`@g["Processing..."]`);
 
+            if (self.requestState && !self.requestState.begin()) {
+                return;
+            }
+
+            if (!self.requestState) {
+                self.elements.buttonGetOrder.prop("disabled", true);
+            }
+
+            output.removeClass("alert-success alert-danger d-none").addClass("alert-secondary").html(`@g["Processing..."]`);
 
             try {
                 const response = await AppContext.HttpPost("/order/get", {
@@ -119,6 +131,12 @@
             } catch (err) {
                 console.error(err);
                 output.removeClass("alert-success alert-secondary d-none").addClass("alert-danger").text("An error occurred while contacting the server.");
+            } finally {
+                if (self.requestState) {
+                    self.requestState.end();
+                } else {
+                    self.elements.buttonGetOrder.prop("disabled", false);
+                }
             }
         }
     };
