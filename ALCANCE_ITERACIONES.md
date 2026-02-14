@@ -133,3 +133,18 @@ Alinear el cliente HTTP con el comportamiento observado en el API Portal: `x-ven
 ### Pendientes potenciales para siguiente iteración
 - Añadir estrategia de selección de scope por endpoint (`inditex` vs `market openid`) configurable por canal/cliente.
 - Mapear respuesta `403` a error funcional con trazabilidad de request-id para soporte operativo.
+
+## Iteración 10 (actual)
+### Objetivo
+Desacoplar la sincronización de `PRODUCT_QR` del flujo síncrono de procesamiento de imágenes para ejecutarla mediante cola de eventos APM.
+
+### Alcance incluido
+- `ImageManagementService.ProcessOrderImagesAsync` deja de invocar `IQrProductSyncService.SyncAsync` de forma directa y pasa a publicar `QrProductSyncRequestedEvent` en `IEventQueue`.
+- Se crea el evento `QrProductSyncRequestedEvent` con el payload de la orden (`InditexOrderData`).
+- Se crea el handler `SyncQrProductToPrintCentral` que procesa el evento y ejecuta la sincronización QR mediante `IQrProductSyncService`.
+- Registro del nuevo handler en `ApmSetup`.
+- Ajuste de pruebas unitarias de `ImageManagementService` para validar publicación del evento en cola.
+
+### Pendientes potenciales para siguiente iteración
+- Endurecer resiliencia del handler de sincronización QR (reintentos explícitos, manejo de excepciones y logging contextual por orden).
+- Evitar acoplamiento fuerte en payload de eventos (`InditexOrderData` completo) evaluando evento minimalista con datos necesarios.
