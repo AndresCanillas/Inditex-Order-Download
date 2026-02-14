@@ -133,3 +133,17 @@ Alinear el cliente HTTP con el comportamiento observado en el API Portal: `x-ven
 ### Pendientes potenciales para siguiente iteración
 - Añadir estrategia de selección de scope por endpoint (`inditex` vs `market openid`) configurable por canal/cliente.
 - Mapear respuesta `403` a error funcional con trazabilidad de request-id para soporte operativo.
+
+## Iteración 10 (actual)
+### Objetivo
+Evitar envíos duplicados desde la UI de `Get Order` bloqueando el botón mientras la primera solicitud HTTP está en curso.
+
+### Alcance incluido
+- Se introduce `GetOrdersRequestState` para encapsular estado de request en progreso y la habilitación/deshabilitación del botón.
+- `GetOrdersDialog` usa el estado para prevenir re-entradas del handler `GetOrder` antes de recibir respuesta.
+- El botón `Get Order` se deshabilita al iniciar la petición y se habilita en `finally` tanto en éxito como en error.
+- Se agregan pruebas unitarias de `GetOrdersRequestState` para validar bloqueo de reenvío y restauración del estado del botón.
+
+### Pendientes potenciales para siguiente iteración
+- Agregar prueba de integración UI (con DOM/JSDOM) para validar que múltiples clics rápidos sólo disparan una llamada a `AppContext.HttpPost`.
+- Unificar reglas de validación de `orderNumber` entre mensajes de UI y `GetOrdersValidation` para eliminar inconsistencia funcional/documental.
