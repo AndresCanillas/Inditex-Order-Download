@@ -14,8 +14,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
     public class QrProductSyncService : IQrProductSyncService
     {
         private const string QrProductComponentName = "PRODUCT_QR";
-        private const string CompanyConfig = "DownloadServices.ProjectInfoApiPrinCentral.CompanyID";
-        private const string BrandConfig = "DownloadServices.ProjectInfoApiPrinCentral.BrandID";
+        private const string ProductBarcodeComponentName = "PRODUCT_BARCODE";
         private const string UserConfig = "DownloadServices.PrintCentralCredentials.User";
         private const string PasswordConfig = "DownloadServices.PrintCentralCredentials.Password";
 
@@ -23,7 +22,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
         private readonly IImageDownloader downloader;
         private readonly IAppConfig config;
         private readonly IAppLog log;
-        private readonly IImageAssetRepository  imageAssetRepository;
+        private readonly IImageAssetRepository imageAssetRepository;
 
         public QrProductSyncService(
             IPrintCentralService printCentralService,
@@ -45,7 +44,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
                 return;
 
             var projectId = await imageAssetRepository.ResolveProjectId(order.ProductionOrder?.Campaign);
-            if (projectId==null)
+            if (projectId == null)
                 return;
 
             var credentials = ResolvePrintCredentials();
@@ -61,15 +60,15 @@ namespace OrderDonwLoadService.Services.ImageManagement
             {
                 foreach (var qrAsset in qrAssets)
                 {
-                    var barcode = ExtractBarcodeFromQrUrl(qrAsset);
+                    var barcode = ResolveBarcode(qrAsset);
                     if (string.IsNullOrWhiteSpace(barcode))
                         continue;
 
-                    if (await printCentralService.ProjectImageExistsAsync(projectId??0, barcode))
+                    if (await printCentralService.ProjectImageExistsAsync(projectId ?? 0, barcode))
                         continue;
 
-                    var downloaded = await downloader.DownloadAsync(qrAsset);
-                    await printCentralService.UploadProjectImageAsync(projectId ?? 0, barcode, downloaded.Content, BuildQrFileName(barcode, qrAsset));
+                    var downloaded = await downloader.DownloadAsync(qrAsset.Url);
+                    await printCentralService.UploadProjectImageAsync(projectId ?? 0, barcode, downloaded.Content, BuildQrFileName(barcode, qrAsset.Url));
                 }
             }
             finally
@@ -91,52 +90,113 @@ namespace OrderDonwLoadService.Services.ImageManagement
             return Tuple.Create(user, password);
         }
 
-       
-        private static IEnumerable<string> ExtractQrProductAssets(InditexOrderData order)
+        private static string ResolveBarcode(QrProductAsset qrAsset)
+        {
+            if (!string.IsNullOrWhiteSpace(qrAsset.Barcode))
+                return qrAsset.Barcode;
+
+            return ExtractBarcodeFromQrUrl(qrAsset.Url);
+        }
+
+        private static IEnumerable<QrProductAsset> ExtractQrProductAssets(InditexOrderData order)
         {
             if (order.ComponentValues == null)
-                return Enumerable.Empty<string>();
+                return Enumerable.Empty<QrProductAsset>();
 
-            var urls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var barcodesByKey = ExtractBarcodesByValueMapKey(order.ComponentValues);
+            var assetsByUrl = new Dictionary<string, QrProductAsset>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var component in order.ComponentValues)
             {
                 if (component == null || !string.Equals(component.Name, QrProductComponentName, StringComparison.OrdinalIgnoreCase))
                     continue;
 
-                foreach (var url in ExtractImageUrlsFromValueMap(component.ValueMap))
-                    urls.Add(url);
+                foreach (var urlEntry in ExtractImageUrlsFromValueMap(component.ValueMap))
+                {
+                    if (assetsByUrl.ContainsKey(urlEntry.Value))
+                        continue;
+
+                    barcodesByKey.TryGetValue(urlEntry.Path, out var barcode);
+                    assetsByUrl.Add(urlEntry.Value, new QrProductAsset(urlEntry.Value, barcode));
+                }
             }
 
-            return urls;
+            return assetsByUrl.Values;
         }
 
-        private static IEnumerable<string> ExtractImageUrlsFromValueMap(object valueMap)
+        private static IDictionary<string, string> ExtractBarcodesByValueMapKey(IEnumerable<Componentvalue> components)
+        {
+            var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var component in components)
+            {
+                if (component == null || !string.Equals(component.Name, ProductBarcodeComponentName, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                foreach (var entry in ExtractStringValuesFromValueMap(component.ValueMap))
+                {
+                    if (!string.IsNullOrWhiteSpace(entry.Key) && !result.ContainsKey(entry.Key) && !string.IsNullOrWhiteSpace(entry.Value))
+                        result.Add(entry.Key, entry.Value.Trim());
+                }
+            }
+
+            return result;
+        }
+
+        private static IEnumerable<ValueMapEntry> ExtractImageUrlsFromValueMap(object valueMap)
+        {
+            return ExtractStringValuesFromValueMap(valueMap)
+                .Where(x => IsImageUrl(x.Value))
+                .Select(x => new ValueMapEntry(x.Path, x.Value));
+        }
+
+        private static IEnumerable<ValueMapEntry> ExtractStringValuesFromValueMap(object valueMap)
         {
             if (valueMap == null)
-                return Enumerable.Empty<string>();
+                return Enumerable.Empty<ValueMapEntry>();
 
             var token = valueMap as JToken ?? JToken.FromObject(valueMap);
-            var urls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            TraverseToken(token, urls);
-            return urls;
+            var values = new List<ValueMapEntry>();
+            TraverseToken(token, string.Empty, values);
+            return values;
         }
 
-        private static void TraverseToken(JToken token, ISet<string> urls)
+        private static void TraverseToken(JToken token, string currentPath, ICollection<ValueMapEntry> values)
         {
             if (token == null)
                 return;
 
-            if (token.Type == JTokenType.String)
+            if (token.Type == JTokenType.Object)
             {
-                var value = token.Value<string>();
-                if (IsImageUrl(value))
-                    urls.Add(value.Trim());
+                foreach (var property in ((JObject)token).Properties())
+                {
+                    var childPath = string.IsNullOrWhiteSpace(currentPath) ? property.Name : $"{currentPath}.{property.Name}";
+                    TraverseToken(property.Value, childPath, values);
+                }
+
                 return;
             }
 
-            foreach (var child in token.Children())
-                TraverseToken(child, urls);
+            if (token.Type == JTokenType.Array)
+            {
+                var index = 0;
+                foreach (var child in token.Children())
+                {
+                    TraverseToken(child, $"{currentPath}[{index}]", values);
+                    index++;
+                }
+
+                return;
+            }
+
+            if (token.Type != JTokenType.String)
+                return;
+
+            var value = token.Value<string>()?.Trim();
+            if (string.IsNullOrWhiteSpace(value))
+                return;
+
+            values.Add(new ValueMapEntry(currentPath, value));
         }
 
         private static bool IsImageUrl(string value)
@@ -198,6 +258,30 @@ namespace OrderDonwLoadService.Services.ImageManagement
             }
 
             return $"{barcode}{extension}";
+        }
+
+        private class QrProductAsset
+        {
+            public string Url { get; }
+            public string Barcode { get; }
+
+            public QrProductAsset(string url, string barcode)
+            {
+                Url = url;
+                Barcode = barcode;
+            }
+        }
+
+        private class ValueMapEntry
+        {
+            public string Path { get; }
+            public string Value { get; }
+
+            public ValueMapEntry(string path, string value)
+            {
+                Path = path;
+                Value = value;
+            }
         }
     }
 }

@@ -66,6 +66,34 @@ namespace OrderDownloadService.Tests
         }
 
         [Fact]
+        public async Task SyncAsync_WhenQrNameDoesNotContainBarcode_UsesProductBarcodeValueMap()
+        {
+            var printCentral = new Mock<IPrintCentralService>();
+            var downloader = new Mock<IImageDownloader>();
+            var config = new Mock<IAppConfig>();
+            var log = new Mock<IAppLog>();
+            var repo = new Mock<IImageAssetRepository>();
+
+            config.Setup(c => c.GetValue<string>("DownloadServices.PrintCentralCredentials.User", null)).Returns("user");
+            config.Setup(c => c.GetValue<string>("DownloadServices.PrintCentralCredentials.Password", null)).Returns("pwd");
+            repo.Setup(r => r.ResolveProjectId("V26")).ReturnsAsync(123);
+
+            printCentral.Setup(p => p.ProjectImageExistsAsync(123, "750000123")).ReturnsAsync(false);
+            downloader.Setup(d => d.DownloadAsync("https://example.com/label-assets/qr_product_uuid.svg"))
+                .ReturnsAsync(new DownloadedImage { Content = Encoding.UTF8.GetBytes("qr"), ContentType = "image/svg+xml" });
+
+            var service = new QrProductSyncService(printCentral.Object, downloader.Object, config.Object, log.Object, repo.Object);
+            var order = BuildOrderWithQrAndBarcode(
+                "https://example.com/label-assets/qr_product_uuid.svg",
+                "750000123",
+                "V26");
+
+            await service.SyncAsync(order);
+
+            printCentral.Verify(p => p.UploadProjectImageAsync(123, "750000123", It.IsAny<byte[]>(), "750000123.svg"), Times.Once);
+        }
+
+        [Fact]
         public async Task SyncAsync_WhenQrAlreadyExists_DoesNotUpload()
         {
             var printCentral = new Mock<IPrintCentralService>();
@@ -131,6 +159,40 @@ namespace OrderDownloadService.Tests
                         ValueMap = new
                         {
                             A = qrUrl
+                        }
+                    }
+                }
+            };
+        }
+
+        private static InditexOrderData BuildOrderWithQrAndBarcode(string qrUrl, string barcode, string campaign)
+        {
+            return new InditexOrderData
+            {
+                ProductionOrder = new ProductionOrder
+                {
+                    Campaign = campaign
+                },
+                ComponentValues = new[]
+                {
+                    new Componentvalue
+                    {
+                        GroupKey = "COLOR_SIZE",
+                        Name = "PRODUCT_QR",
+                        Type = "string",
+                        ValueMap = new
+                        {
+                            A = qrUrl
+                        }
+                    },
+                    new Componentvalue
+                    {
+                        GroupKey = "COLOR_SIZE",
+                        Name = "PRODUCT_BARCODE",
+                        Type = "string",
+                        ValueMap = new
+                        {
+                            A = barcode
                         }
                     }
                 }
