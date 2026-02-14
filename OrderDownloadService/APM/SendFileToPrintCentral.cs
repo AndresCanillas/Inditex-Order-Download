@@ -160,7 +160,7 @@ namespace OrderDonwLoadService
                 };
 
 
-                var result = await central.FtpServiceUpload<OrderData, OrderUploadResponse>($"api/intake/ftp", orderData, filePath,filePath);
+                var result = await central.FtpServiceUpload<OrderData, OrderUploadResponse>($"api/intake/ftp", orderData, filePath, fileName);
 
                 if(!result.Success)
                 {
