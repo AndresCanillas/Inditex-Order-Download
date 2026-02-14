@@ -18,8 +18,13 @@
             vendorId: null,
             buttonGetOrder: null,
             orderNumberError: null,
-            information2: null
+            information2: null,
+            processTrackerContainer: null,
+            processTrackerToggle: null,
+            processTrackerList: null
         };
+
+        this.processSteps = [];
         this.requestState = null;
     };
 
@@ -39,10 +44,123 @@
                     }
                 });
             });
+
+            this.initializeTracker();
+            this.elements.processTrackerToggle.on("click", function () {
+                self.toggleTracker();
+            });
         },
 
         OnUnload: function () {
             // Limpiar listeners si es necesario
+        },
+
+        initializeTracker: function () {
+            if (typeof GetOrderProcessTracker === "undefined") {
+                return;
+            }
+
+            this.processSteps = GetOrderProcessTracker.buildDefaultSteps();
+            this.renderTracker();
+        },
+
+        toggleTracker: function () {
+            var toggle = this.elements.processTrackerToggle;
+            var list = this.elements.processTrackerList;
+            var expanded = toggle.attr("aria-expanded") === "true";
+
+            toggle.attr("aria-expanded", (!expanded).toString());
+            toggle.html((expanded ? "▼" : "▲") + " @g["See process phases"]");
+            list.toggleClass("d-none", expanded);
+        },
+
+        renderTracker: function () {
+            var self = this;
+            var container = this.elements.processTrackerContainer;
+            var list = this.elements.processTrackerList;
+
+            if (!this.processSteps || this.processSteps.length === 0) {
+                container.addClass("d-none");
+                return;
+            }
+
+            container.removeClass("d-none");
+
+            var html = this.processSteps.map(function (step) {
+                return "<li class='order-process-tracker__item'>"
+                    + "<span class='order-process-tracker__badge " + self.getStatusClass(step.status) + "'>" + self.getStatusText(step.status) + "</span>"
+                    + "<div class='order-process-tracker__content'>"
+                    + "<strong>" + step.title + "</strong><br />"
+                    + "<small>" + (step.detail || "") + "</small>"
+                    + "</div>"
+                    + "</li>";
+            }).join("");
+
+            list.html(html);
+        },
+
+        getStatusClass: function (status) {
+            switch (status) {
+                case "completed":
+                    return "order-process-tracker__badge--completed";
+                case "in-progress":
+                    return "order-process-tracker__badge--in-progress";
+                case "failed":
+                    return "order-process-tracker__badge--failed";
+                case "pending-validation":
+                    return "order-process-tracker__badge--pending-validation";
+                default:
+                    return "order-process-tracker__badge--pending";
+            }
+        },
+
+        getStatusText: function (status) {
+            switch (status) {
+                case "completed":
+                    return "@g["Completed"]";
+                case "in-progress":
+                    return "@g["In progress"]";
+                case "failed":
+                    return "@g["Error"]";
+                case "pending-validation":
+                    return "@g["Pending validation"]";
+                default:
+                    return "@g["Pending"]";
+            }
+        },
+
+        startWorkflowTracker: function () {
+            if (typeof GetOrderProcessTracker === "undefined") {
+                return;
+            }
+
+            this.processSteps = GetOrderProcessTracker.buildDefaultSteps();
+            GetOrderProcessTracker.markStepInProgress(this.processSteps, "search-order", "@g["Searching order in queues..."]");
+            this.renderTracker();
+
+            this.elements.processTrackerToggle.attr("aria-expanded", "true").html("▲ @g["See process phases"]");
+            this.elements.processTrackerList.removeClass("d-none");
+        },
+
+        updateTrackerForSuccess: function (resultMessage) {
+            if (typeof GetOrderProcessTracker === "undefined") {
+                return;
+            }
+
+            GetOrderProcessTracker.syncStepsFromMessage(this.processSteps, resultMessage);
+            this.renderTracker();
+        },
+
+        updateTrackerForServerError: function () {
+            if (typeof GetOrderProcessTracker === "undefined") {
+                return;
+            }
+
+            var activeStep = this.processSteps.find(function (step) { return step.status === GetOrderProcessTracker.STATUS.IN_PROGRESS; });
+            var stepId = activeStep ? activeStep.id : "search-order";
+
+            GetOrderProcessTracker.failStep(this.processSteps, stepId, "@g["Server communication error"]");
+            this.renderTracker();
         },
 
         GetOrder: async function (selfOrEvent) {
@@ -78,7 +196,7 @@
 
             var messages = [];
             if (!validation.orderNumberValid) {
-                messages.push(`@g["Please enter a valid order number (only numbers, 10 digits, no leading zero)."]`);
+                messages.push(`@g["Please enter a valid order number (only numbers, 5 to 10 digits, no leading zero)."]`);
             }
             if (!validation.campaignCodeValid) {
                 messages.push(`@g["Please enter a valid campaign (I, V, P, O + 2 last digits of year, example: I25)."]`);
@@ -94,17 +212,17 @@
             }
 
             errorLabel.addClass("d-none").text("");
-
-            if (self.requestState && !self.requestState.begin()) {
+          
+           if (self.requestState && !self.requestState.begin()) {
                 return;
             }
 
             if (!self.requestState) {
                 self.elements.buttonGetOrder.prop("disabled", true);
             }
-
             output.removeClass("alert-success alert-danger d-none").addClass("alert-secondary").html(`@g["Processing..."]`);
-
+            self.startWorkflowTracker();
+           
             try {
                 const response = await AppContext.HttpPost("/order/get", {
                     OrderNumber: orderNumber,
@@ -112,6 +230,8 @@
                     VendorId: vendorId
                 });
                 const result = await response.json();
+
+                self.updateTrackerForSuccess(result.Message || "");
 
                 const css = result.Success ? "alert-success" : "alert-danger";
                 const formatted = result.Message
@@ -130,6 +250,7 @@
 
             } catch (err) {
                 console.error(err);
+                self.updateTrackerForServerError();
                 output.removeClass("alert-success alert-secondary d-none").addClass("alert-danger").text("An error occurred while contacting the server.");
             } finally {
                 if (self.requestState) {

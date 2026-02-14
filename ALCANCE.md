@@ -49,3 +49,35 @@
 ### Pendiente para próximas iteraciones
 - Validar compilación y pruebas en entorno con .NET SDK disponible.
 - Confirmar con negocio si la correlación por path de `valueMap` requiere reglas adicionales para estructuras anidadas complejas.
+
+## Iteración 17 (actual)
+**Objetivo:** Refactorizar la UI de obtención de pedidos para visualizar el progreso por fases del flujo operativo (búsqueda, descarga, imágenes y envíos a Print Central) con detalle expandible.
+
+### Completado en esta iteración
+- TDD frontend:
+  - Se agregaron pruebas unitarias para un nuevo módulo de tracking de fases (`GetOrderProcessTracker`) cubriendo estados `pending`, `in-progress`, `completed`, `failed` y `pending-validation`.
+- Refactor de UI/UX en diálogo de pedidos:
+  - Se incorporó un tracker desplegable con listado de fases y estado por fase.
+  - Se integró renderizado dinámico de detalle por paso dentro del flujo de `GetOrder`.
+- Implementación de lógica de proceso:
+  - Nuevo módulo reusable `GetOrderProcessTracker.js` para gestionar transiciones de estado y sincronización de fases desde mensajes de backend.
+  - Manejo explícito de escenario "pendiente por validación de imagen" para el envío de archivo a Print Central.
+- Consistencia de validaciones:
+  - Se alineó la validación de número de pedido con el criterio funcional: 10 dígitos y sin cero inicial.
+
+### Pendiente para próximas iteraciones
+- Evolucionar el backend para devolver eventos de fase estructurados (en lugar de inferir pasos por parsing de mensaje).
+- Añadir pruebas de integración UI (Playwright) para verificar visualización del tracker en flujos exitosos/error.
+
+## Iteración 18 (actual)
+**Objetivo:** Corregir regresión en validación de número de pedido para admitir rango 5-10 dígitos (sin cero inicial), en coherencia con el requerimiento funcional.
+
+### Completado en esta iteración
+- TDD de regresión:
+  - Se ajustó la prueba unitaria de `GetOrdersValidation` para validar explícitamente el rango 5-10 dígitos.
+- Implementación:
+  - Se actualizó `validateOrderNumber` para aceptar longitudes entre 5 y 10 dígitos y mantener la restricción de no iniciar en cero.
+  - Se actualizó el mensaje de validación en la UI para reflejar correctamente la regla funcional.
+
+### Pendiente para próximas iteraciones
+- Evaluar centralización de mensajes/reglas de validación para evitar desalineaciones entre tests, lógica y copy UI.

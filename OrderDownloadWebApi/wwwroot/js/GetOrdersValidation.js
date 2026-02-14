@@ -26,7 +26,8 @@
     function validateOrderNumber(value) {
         if (!value) return false;
         if (!isNumeric(value)) return false;
-        return value.length >= ORDER_ID_MIN_LENGTH && value.length <= ORDER_ID_MAX_LENGTH;
+        if (value.length < ORDER_ID_MIN_LENGTH || value.length > ORDER_ID_MAX_LENGTH) return false;
+        return value.charAt(0) !== "0";
     }
 
     function validateVendorId(value) {
