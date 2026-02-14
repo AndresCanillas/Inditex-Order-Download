@@ -414,6 +414,11 @@
       "Key": "Please enter a valid order number (only numbers, 5 to 10 digits, no leading zero).",
       "Value": "Please enter a valid order number (only numbers, 5 to 10 digits, no leading zero).",
       "T": false
+    },
+    {
+      "Key": "Operation completed",
+      "Value": "Operation completed",
+      "T": false
     }
   ]
 }
