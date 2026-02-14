@@ -147,3 +147,19 @@ Evitar envíos duplicados desde la UI de `Get Order` bloqueando el botón mientr
 ### Pendientes potenciales para siguiente iteración
 - Agregar prueba de integración UI (con DOM/JSDOM) para validar que múltiples clics rápidos sólo disparan una llamada a `AppContext.HttpPost`.
 - Unificar reglas de validación de `orderNumber` entre mensajes de UI y `GetOrdersValidation` para eliminar inconsistencia funcional/documental.
+
+## Iteración 11 (actual)
+### Objetivo
+Mejorar la trazabilidad visual del workflow de `Get Order` y eliminar inconsistencias entre mensajes de éxito/error mostrados en UI.
+
+### Alcance incluido
+- El tracker de fases ahora pinta cada fila por estado (verde completado, rojo error, azul en progreso, etc.) para identificar rápidamente por dónde pasó el flujo.
+- `GetOrderProcessTracker` reconoce patrones de error y marca fallo en el paso activo o en el siguiente pendiente cuando llega un mensaje mixto (éxito parcial + error).
+- `GetOrdersDialog` deja de asumir JSON válido en todas las respuestas, parsea de forma defensiva y evita mostrar éxito si el mensaje contiene errores funcionales.
+- Se reemplaza el mensaje genérico hardcoded en inglés por texto localizado de error de comunicación en la vista.
+- `OrdersController` detecta errores de forma case-insensitive para evitar falsos positivos de éxito por diferencias de mayúsculas/minúsculas.
+- Se amplía cobertura unitaria del tracker para escenarios de mensaje mixto y detección de error.
+
+### Pendientes potenciales para siguiente iteración
+- Añadir pruebas unitarias/UI del archivo `GetOrdersDialog.js.cshtml` (JSDOM) para validar render final de alertas y clases CSS por paso.
+- Normalizar el contrato backend para devolver un objeto estructurado por fases (en vez de texto libre) y reducir heurísticas de parsing.

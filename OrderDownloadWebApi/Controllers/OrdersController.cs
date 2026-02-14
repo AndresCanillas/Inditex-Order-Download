@@ -28,7 +28,7 @@ namespace OrderDownloadWebApi.Controllers
             try
             {
                 var message = await orderServices.GetOrder(OrderDto.OrderNumber,OrderDto.CampaignCode,OrderDto.VendorId);
-                if (message.Contains("Error"))
+                if (message?.IndexOf("error", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     return new OperationResult(false, g[message]);
                 }

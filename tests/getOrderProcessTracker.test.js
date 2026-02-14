@@ -70,4 +70,24 @@ describe("GetOrderProcessTracker", () => {
     expect(step.status).toBe(tracker.STATUS.FAILED);
     expect(step.detail).toBe("No se pudo conectar");
   });
+
+  test("syncStepsFromMessage marks next phase as failed when message mixes success and error", () => {
+    const steps = tracker.buildDefaultSteps();
+
+    tracker.syncStepsFromMessage(
+      steps,
+      "Order number (12345) found successfully in ZARA queue. Error while saving order file."
+    );
+
+    const searchStep = steps.find((x) => x.id === "search-order");
+    const downloadStep = steps.find((x) => x.id === "download-order");
+
+    expect(searchStep.status).toBe(tracker.STATUS.COMPLETED);
+    expect(downloadStep.status).toBe(tracker.STATUS.FAILED);
+  });
+
+  test("messageContainsError detects known error patterns", () => {
+    expect(tracker.messageContainsError("Error: timeout while contacting server")).toBe(true);
+    expect(tracker.messageContainsError("Order found successfully in queue")).toBe(false);
+  });
 });

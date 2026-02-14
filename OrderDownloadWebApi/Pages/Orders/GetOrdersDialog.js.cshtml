@@ -87,7 +87,7 @@
             container.removeClass("d-none");
 
             var html = this.processSteps.map(function (step) {
-                return "<li class='order-process-tracker__item'>"
+                return "<li class='order-process-tracker__item " + self.getItemStatusClass(step.status) + "'>"
                     + "<span class='order-process-tracker__badge " + self.getStatusClass(step.status) + "'>" + self.getStatusText(step.status) + "</span>"
                     + "<div class='order-process-tracker__content'>"
                     + "<strong>" + step.title + "</strong><br />"
@@ -111,6 +111,22 @@
                     return "order-process-tracker__badge--pending-validation";
                 default:
                     return "order-process-tracker__badge--pending";
+            }
+        },
+
+
+        getItemStatusClass: function (status) {
+            switch (status) {
+                case "completed":
+                    return "order-process-tracker__item--completed";
+                case "in-progress":
+                    return "order-process-tracker__item--in-progress";
+                case "failed":
+                    return "order-process-tracker__item--failed";
+                case "pending-validation":
+                    return "order-process-tracker__item--pending-validation";
+                default:
+                    return "order-process-tracker__item--pending";
             }
         },
 
@@ -151,15 +167,21 @@
             this.renderTracker();
         },
 
-        updateTrackerForServerError: function () {
+        updateTrackerForServerError: function (errorMessage) {
             if (typeof GetOrderProcessTracker === "undefined") {
                 return;
             }
 
-            var activeStep = this.processSteps.find(function (step) { return step.status === GetOrderProcessTracker.STATUS.IN_PROGRESS; });
-            var stepId = activeStep ? activeStep.id : "search-order";
+            var detail = errorMessage || "@g["Server communication error"]";
+            GetOrderProcessTracker.syncStepsFromMessage(this.processSteps, detail);
 
-            GetOrderProcessTracker.failStep(this.processSteps, stepId, "@g["Server communication error"]");
+            var failedStep = this.processSteps.find(function (step) { return step.status === GetOrderProcessTracker.STATUS.FAILED; });
+            if (!failedStep) {
+                var activeStep = this.processSteps.find(function (step) { return step.status === GetOrderProcessTracker.STATUS.IN_PROGRESS; });
+                var stepId = activeStep ? activeStep.id : "search-order";
+                GetOrderProcessTracker.failStep(this.processSteps, stepId, detail);
+            }
+
             this.renderTracker();
         },
 
@@ -229,12 +251,29 @@
                     CampaignCode: campaignCode,
                     VendorId: vendorId
                 });
-                const result = await response.json();
 
-                self.updateTrackerForSuccess(result.Message || "");
+                const rawBody = await response.text();
+                let result = null;
+                if (rawBody && rawBody.trim().length > 0) {
+                    try {
+                        result = JSON.parse(rawBody);
+                    } catch (parseError) {
+                        console.error(parseError);
+                    }
+                }
 
-                const css = result.Success ? "alert-success" : "alert-danger";
-                const formatted = result.Message
+                const backendMessage = result && result.Message ? result.Message : "";
+                const messageToShow = backendMessage || (response.ok ? "@g["Operation completed"]" : "@g["Operation could not be completed."]");
+                const isSuccess = !!(result && result.Success === true && response.ok && !(typeof GetOrderProcessTracker !== "undefined" && GetOrderProcessTracker.messageContainsError(messageToShow)));
+
+                if (isSuccess) {
+                    self.updateTrackerForSuccess(messageToShow);
+                } else {
+                    self.updateTrackerForServerError(messageToShow);
+                }
+
+                const css = isSuccess ? "alert-success" : "alert-danger";
+                const formatted = messageToShow
                     .split(/\r?\n|\r|<br\s*\/?>/g)
                     .filter(x => x.trim().length)
                     .map(x => `<li>${x.trim()}</li>`)
@@ -250,8 +289,8 @@
 
             } catch (err) {
                 console.error(err);
-                self.updateTrackerForServerError();
-                output.removeClass("alert-success alert-secondary d-none").addClass("alert-danger").text("An error occurred while contacting the server.");
+                self.updateTrackerForServerError("@g["Server communication error"]");
+                output.removeClass("alert-success alert-secondary d-none").addClass("alert-danger").text("@g["Server communication error"]");
             } finally {
                 if (self.requestState) {
                     self.requestState.end();
