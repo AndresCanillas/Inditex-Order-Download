@@ -366,11 +366,6 @@
       "T": false
     },
     {
-      "Key": "Please enter a valid order number (only numbers, 10 digits, no leading zero).",
-      "Value": "Please enter a valid order number (only numbers, 10 digits, no leading zero).",
-      "T": false
-    },
-    {
       "Key": "Please enter a valid campaign (I, V, P, O + 2 last digits of year, example: I25).",
       "Value": "Please enter a valid campaign (I, V, P, O + 2 last digits of year, example: I25).",
       "T": false
@@ -378,6 +373,46 @@
     {
       "Key": "Please enter a valid vendor id (only numbers, 5 to 10 digits).",
       "Value": "Please enter a valid vendor id (only numbers, 5 to 10 digits).",
+      "T": false
+    },
+    {
+      "Key": "See process phases",
+      "Value": "See process phases",
+      "T": false
+    },
+    {
+      "Key": "Completed",
+      "Value": "Completed",
+      "T": false
+    },
+    {
+      "Key": "In progress",
+      "Value": "In progress",
+      "T": false
+    },
+    {
+      "Key": "Error",
+      "Value": "Error",
+      "T": false
+    },
+    {
+      "Key": "Pending",
+      "Value": "Pending",
+      "T": false
+    },
+    {
+      "Key": "Searching order in queues...",
+      "Value": "Searching order in queues...",
+      "T": false
+    },
+    {
+      "Key": "Server communication error",
+      "Value": "Server communication error",
+      "T": false
+    },
+    {
+      "Key": "Please enter a valid order number (only numbers, 5 to 10 digits, no leading zero).",
+      "Value": "Please enter a valid order number (only numbers, 5 to 10 digits, no leading zero).",
       "T": false
     }
   ]

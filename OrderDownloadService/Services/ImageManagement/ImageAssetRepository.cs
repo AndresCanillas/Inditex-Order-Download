@@ -130,7 +130,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
                 conn.ExecuteNonQuery(@"
                     UPDATE ImageAssets
                     SET Status = @Status,
-                        IsLatest = 0,
+                        IsLatest = 1,
                         UpdatedDate = @UpdatedDate
                     WHERE ID = @ID",
                     (int)ImageAssetStatus.New,
