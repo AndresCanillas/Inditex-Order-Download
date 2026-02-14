@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Moq;
 using Newtonsoft.Json;
+using OrderDonwLoadService;
 using OrderDonwLoadService.Services;
 using OrderDonwLoadService.Services.ImageManagement;
 using Service.Contracts;
@@ -41,7 +42,7 @@ namespace OrderDownloadService.Tests
                 .Returns("subject");
             var log = new Mock<IAppLog>();
 
-            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object,null);
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, null, new Mock<IEventQueue>().Object);
             var order = BuildOrder("https://example.com/asset.png");
 
             var result = await service.ProcessOrderImagesAsync(order);
@@ -53,7 +54,7 @@ namespace OrderDownloadService.Tests
 
 
         [Fact]
-        public async Task ProcessOrderImagesAsync_WhenQrSyncServiceInjected_ExecutesSyncBeforeImageFlow()
+        public async Task ProcessOrderImagesAsync_WhenQrSyncServiceInjected_EnqueuesQrSyncEvent()
         {
             var repository = new Mock<IImageAssetRepository>();
             repository.Setup(repo => repo.GetLatestByUrlAsync("https://example.com/asset.png"))
@@ -69,16 +70,17 @@ namespace OrderDownloadService.Tests
                     ContentType = "image/png"
                 });
 
-            var qrSync = new Mock<IQrProductSyncService>();
             var mailService = new Mock<IMailService>();
             var config = new Mock<IAppConfig>();
             var log = new Mock<IAppLog>();
-            
-            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, qrSync.Object);
+            var events = new Mock<IEventQueue>();
 
-            await service.ProcessOrderImagesAsync(BuildOrder("https://example.com/asset.png"));
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, new Mock<IQrProductSyncService>().Object, events.Object);
+            var order = BuildOrder("https://example.com/asset.png");
 
-            qrSync.Verify(q => q.SyncAsync(It.IsAny<InditexOrderData>()), Times.Once);
+            await service.ProcessOrderImagesAsync(order);
+
+            events.Verify(e => e.Send(It.Is<QrProductSyncRequestedEvent>(x => ReferenceEquals(x.Order, order))), Times.Once);
         }
 
         [Fact]
@@ -108,7 +110,7 @@ namespace OrderDownloadService.Tests
             var config = new Mock<IAppConfig>();
             var log = new Mock<IAppLog>();
 
-            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, null);
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, null, new Mock<IEventQueue>().Object);
             var order = BuildOrder("https://example.com/asset.png");
 
             var result = await service.ProcessOrderImagesAsync(order);
@@ -150,7 +152,7 @@ namespace OrderDownloadService.Tests
                 .Returns("subject");
             var log = new Mock<IAppLog>();
 
-            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, null);
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, null, new Mock<IEventQueue>().Object);
             var order = BuildOrder("https://example.com/asset.png");
 
             var result = await service.ProcessOrderImagesAsync(order);
@@ -185,7 +187,7 @@ namespace OrderDownloadService.Tests
                 .Returns("subject");
             var log = new Mock<IAppLog>();
 
-            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, null);
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, null, new Mock<IEventQueue>().Object);
             var order = BuildOrderWithComponentValue("https://example.com/from-component.png");
 
             var result = await service.ProcessOrderImagesAsync(order);
@@ -204,7 +206,7 @@ namespace OrderDownloadService.Tests
             var config = new Mock<IAppConfig>();
             var log = new Mock<IAppLog>();
 
-            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, null);
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, null, new Mock<IEventQueue>().Object);
             var order = BuildOrderWithComponentValue("https://example.com/api/orders");
 
             var result = await service.ProcessOrderImagesAsync(order);
@@ -239,7 +241,7 @@ namespace OrderDownloadService.Tests
                 .Returns("subject");
             var log = new Mock<IAppLog>();
 
-            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, null);
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, null, new Mock<IEventQueue>().Object);
             var order = BuildOrderWithNestedComponentValueMap("https://example.com/nested/logo.jpeg");
 
             var result = await service.ProcessOrderImagesAsync(order);
@@ -258,7 +260,7 @@ namespace OrderDownloadService.Tests
             var mailService = new Mock<IMailService>();
             var config = new Mock<IAppConfig>();
             var log = new Mock<IAppLog>();
-            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, null  );
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, null, new Mock<IEventQueue>().Object);
 
             var order = new InditexOrderData { Assets = new Asset[0] };
             var path = WriteTempOrder(order);
@@ -284,7 +286,7 @@ namespace OrderDownloadService.Tests
             var mailService = new Mock<IMailService>();
             var config = new Mock<IAppConfig>();
             var log = new Mock<IAppLog>();
-            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, null);
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, null, new Mock<IEventQueue>().Object);
 
             var order = BuildOrder("https://example.com/asset.png");
             var path = WriteTempOrder(order);
@@ -310,7 +312,7 @@ namespace OrderDownloadService.Tests
             var mailService = new Mock<IMailService>();
             var config = new Mock<IAppConfig>();
             var log = new Mock<IAppLog>();
-            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, null);
+            var service = new ImageManagementService(repository.Object, downloader.Object, mailService.Object, config.Object, log.Object, null, new Mock<IEventQueue>().Object);
 
             var order = BuildOrder("https://example.com/asset.png");
             var path = WriteTempOrder(order);
