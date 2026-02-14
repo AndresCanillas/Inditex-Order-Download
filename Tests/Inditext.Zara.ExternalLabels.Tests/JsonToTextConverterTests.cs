@@ -269,7 +269,7 @@ namespace Inditex.ZaraHangtagKids.Tests
 
         private static InditexOrderData LoadSampleOrder()
         {
-            var path = ResolvePath("Plugins", "Zara", "OrderFiles", "14185_08574_V26_NEW.json");
+            var path = ResolvePath("Plugins", "Zara", "OrderFiles", "14313_14801_V26.json");
             var json = File.ReadAllText(path);
             return JsonConvert.DeserializeObject<InditexOrderData>(json);
         }
@@ -285,7 +285,7 @@ namespace Inditex.ZaraHangtagKids.Tests
         private static string ResolvePath(params string[] segments)
         {
             var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            var path = Path.GetFullPath(Path.Combine(baseDir, "../../../../"));
+            var path = Path.GetFullPath(Path.Combine(baseDir, "../../../../../"));
             return Path.Combine(path, Path.Combine(segments));
         }
 

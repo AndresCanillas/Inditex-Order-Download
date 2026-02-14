@@ -128,6 +128,11 @@ namespace PrintCentral.Controllers
                     {
                         var metadata = repo.UploadImage(projectid, finalFileName, fileContent);
                         var json = $"{{\"success\":true, \"message\":\"\", \"Data\":{JsonConvert.SerializeObject(metadata)}}}";
+
+                        var a= Exists(projectid, finalFileName);
+
+
+
                         return Content(json);
                     }
                 }
@@ -185,7 +190,9 @@ namespace PrintCentral.Controllers
         {
             try
             {
+                
                 repo.DeleteImage(projectid, filename);
+
                 return new OperationResult(true, "");
             }
             catch(Exception ex)
@@ -194,6 +201,25 @@ namespace PrintCentral.Controllers
                 return new OperationResult(false, g["Operation could not be completed."]);
             }
         }
+
+        [HttpPost, Route("/images/exists/{projectid}/{filename}")]
+        public OperationResult Exists(int projectid, string filename)
+        {
+            try
+            {
+                var image = repo.GetImage(projectid, filename);
+                if (image!=null && image.Length!=0)
+                    return new OperationResult(true, "Image exist!");
+                else
+                    return new OperationResult(false, "Image not found!");
+            }
+            catch (Exception ex)
+            {
+                log.LogException(ex);
+                return new OperationResult(false, g["Operation could not be completed."]);
+            }
+        }
+
 
 
         [HttpPost, Route("/images/delete/{projectid}/{filename}")]
