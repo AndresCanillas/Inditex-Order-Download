@@ -117,7 +117,7 @@
 - Ejecutar validación UX con usuarios de negocio y medir KPIs de uso (tiempo de tarea, satisfacción, reducción de errores).
 - Revisar accesibilidad cromática completa (WCAG) de los nuevos estilos en distintos temas/pantallas.
 
-## Iteración 21 
+## Iteración 21 (actual)
 **Objetivo:** Resolver fallos de visualización del rediseño (`Get Orders`) causados por herencia de CSS global y corregir localización en castellano para textos clave de `Get Orders` e `Image Management`.
 
 ### Completado en esta iteración
@@ -141,3 +141,13 @@
 
 ### Pendiente para próximas iteraciones
 - Ejecutar validación visual E2E con backend .NET activo y verificación completa de i18n por idioma.
+
+## Iteración 23 (actual)
+**Objetivo:** Resolver la causa raíz de que la nueva maquetación no aparezca en UI: el archivo `views.css` no estaba incluido en `Index.cshtml`.
+
+### Completado en esta iteración
+- Se añadió la referencia a `views.css` en `Index.cshtml` con versión `?@mark`.
+- Se agregó prueba automatizada para evitar regresión de carga de stylesheet principal de vistas.
+
+### Pendiente para próximas iteraciones
+- Revisar segmentación de estilos por feature para reducir acoplamiento al CSS global.

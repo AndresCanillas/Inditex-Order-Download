@@ -203,7 +203,7 @@ Reubicar visualmente el bloque de fases del proceso en `Get Orders` para mostrar
 - Evaluar mover el output de resultado (`information2`) al mismo panel derecho para consolidar feedback del flujo en una sola zona.
 - Añadir prueba de integración visual (DOM) para verificar que el tracker no desplace el formulario cuando cambia entre `d-none` y visible.
 
-## Iteración 15 
+## Iteración 15 (actual)
 ### Objetivo
 Rediseñar visualmente las vistas `Get Orders` e `Image Management` para mejorar uso del espacio, reforzar visualización de flujo por etapas y aplicar principios de usabilidad de Nielsen con identidad visual de Zara.
 
@@ -224,7 +224,7 @@ Rediseñar visualmente las vistas `Get Orders` e `Image Management` para mejorar
 - Validar contraste AA/AAA de toda la paleta nueva en revisión UX formal.
 - Incorporar métricas de usabilidad (tiempo para completar tarea, tasa de error) para confirmar mejora real post-rediseño.
 
-## Iteración 16 
+## Iteración 16 (actual)
 ### Objetivo
 Corregir regresiones de maquetado en `Get Orders` por herencia de estilos globales y habilitar traducciones reales en castellano para textos clave de `Get Orders` e `Image Management`.
 
@@ -253,3 +253,17 @@ Reemitir PR con el mismo alcance funcional ya implementado en UI/UX (`Get Orders
 
 ### Pendientes potenciales para siguiente iteración
 - Completar validación E2E en entorno .NET desplegado con cambio de idioma en caliente.
+
+## Iteración 18 (actual)
+### Objetivo
+Corregir que los cambios de maquetación no se reflejen en runtime garantizando la carga del stylesheet `views.css` en la página principal (`Index`).
+
+### Alcance incluido
+- TDD:
+  - Se agrega `tests/indexStylesheetReferences.test.js` para validar que `Index.cshtml` referencia `views.css` con `?@mark`.
+- Implementación:
+  - Se añade `<link rel="stylesheet" href="/css/views.css?@mark" />` en `OrderDownloadWebApi/Pages/Index.cshtml`.
+  - Con esto se habilitan en runtime las clases de layout (`get-orders-flow`, `get-orders-layout`, `image-management-shell`) que antes no se estaban aplicando por falta de carga del CSS.
+
+### Pendientes potenciales para siguiente iteración
+- Evaluar mover estilos críticos de `Get Orders` a un CSS modular de feature para reducir dependencia de un archivo global monolítico.
