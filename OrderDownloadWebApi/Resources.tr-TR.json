@@ -419,6 +419,16 @@
       "Key": "Operation completed",
       "Value": "Operation completed",
       "T": false
+    },
+    {
+      "Key": "Catalan (Catalan)",
+      "Value": "Catalan (Catalan)",
+      "T": false
+    },
+    {
+      "Key": "Turkish (Turkey)",
+      "Value": "Turkish (Turkey)",
+      "T": false
     }
   ]
 }
