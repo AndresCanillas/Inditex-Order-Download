@@ -81,3 +81,19 @@
 
 ### Pendiente para próximas iteraciones
 - Evaluar centralización de mensajes/reglas de validación para evitar desalineaciones entre tests, lógica y copy UI.
+
+## Iteración 19 (actual)
+**Objetivo:** Reubicar visualmente el bloque de fases del proceso en la vista de GetPhoto/Get Orders para mostrarlo al lado de los campos de entrada y mejorar legibilidad.
+
+### Completado en esta iteración
+- TDD frontend de layout:
+  - Se agregó prueba unitaria (`getOrdersLayout.test.js`) para verificar estructura de dos columnas en `GetOrdersDialog.cshtml` y reglas CSS responsivas asociadas en `views.css`.
+- Implementación UI:
+  - Se reorganizó el markup de `GetOrdersDialog` en un contenedor de layout con columna de formulario y columna de tracker.
+  - Se movió el bloque `processTrackerContainer` a la columna lateral, manteniendo compatibilidad de selectores existentes (`name` attributes) para no romper la lógica JS.
+- Estilos responsivos:
+  - Se añadieron clases `get-orders-layout*` para disposición horizontal en escritorio y apilado en móvil.
+
+### Pendiente para próximas iteraciones
+- Validar visualmente en entorno ejecutable .NET con captura funcional de pantalla.
+- Ajustar proporciones/espaciados finales con feedback UX del negocio (alineación exacta con mock).
