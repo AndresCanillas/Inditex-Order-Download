@@ -316,6 +316,40 @@ div[name='catalogFieldsGrid'].k-grid tbody td {
     width: 50%;
 }
 /***************** End Select Brand Project view************************/
+/***************** Get Order dialog layout ************************/
+.get-orders-layout {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+}
+
+.get-orders-layout__form-column {
+    flex: 0 1 420px;
+    min-width: 320px;
+}
+
+.get-orders-layout__tracker-column {
+    flex: 1 1 360px;
+    min-width: 280px;
+}
+
+.get-orders-layout__tracker-column .order-process-tracker {
+    min-height: 100%;
+}
+
+@media (max-width: 991.98px) {
+    .get-orders-layout {
+        flex-direction: column;
+    }
+
+    .get-orders-layout__form-column,
+    .get-orders-layout__tracker-column {
+        width: 100%;
+        min-width: 0;
+    }
+}
+
+/***************** End Get Order dialog layout ************************/
 /***************** Get Order process tracker ************************/
 .order-process-tracker {
     border: 1px solid rgba(255, 255, 255, 0.1);
