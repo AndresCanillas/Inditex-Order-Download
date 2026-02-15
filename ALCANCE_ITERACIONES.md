@@ -191,8 +191,7 @@ Asegurar que la vista de **Image Management** renderice todos los textos visible
 - Incorporar prueba de integración UI (JSDOM o Playwright) que valide en runtime el idioma renderizado según cultura activa.
 - Revisar otras vistas legacy para detectar textos hardcodeados fuera de `@g[...]` y consolidar checklist de localización.
 
-## Iteración 14 (actual)
-### Objetivo
+## Iteración 14 
 Reubicar visualmente el bloque de fases del proceso en `Get Orders` para mostrarlo en un panel dedicado a la derecha del formulario, mejorando legibilidad y aprovechamiento del espacio.
 
 ### Alcance incluido
