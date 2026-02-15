@@ -163,3 +163,17 @@ Mejorar la trazabilidad visual del workflow de `Get Order` y eliminar inconsiste
 ### Pendientes potenciales para siguiente iteración
 - Añadir pruebas unitarias/UI del archivo `GetOrdersDialog.js.cshtml` (JSDOM) para validar render final de alertas y clases CSS por paso.
 - Normalizar el contrato backend para devolver un objeto estructurado por fases (en vez de texto libre) y reducir heurísticas de parsing.
+
+## Iteración 12 (actual)
+### Objetivo
+Eliminar falso error de comunicación en `GetOrdersDialog` cuando la llamada `AppContext.HttpPost` retorna objeto JSON (no `fetch Response`) y el flujo ya completó el envío de archivo a Print Central.
+
+### Alcance incluido
+- Se agrega `GetOrdersApiResponse` para normalizar respuestas de API desde ambos contratos soportados (objeto JSON y `Response` con `text()`).
+- `GetOrdersDialog` consume el normalizador y deja de llamar siempre `response.text()`/`response.ok`, evitando el `catch` falso que marcaba error final.
+- Se registra el nuevo script en `GetOrdersDialog.cshtml` para disponibilidad en runtime.
+- Se agregan pruebas unitarias de parser para validar escenarios: objeto JSON exitoso, `Response` fallido y body inválido.
+
+### Pendientes potenciales para siguiente iteración
+- Extraer lógica de render del resultado (`htmlResult`) a un helper testeable para reducir complejidad ciclomática del handler `GetOrder`.
+- Incorporar prueba de integración UI (JSDOM) que simule click y valide que no aparece `Server communication error` cuando backend retorna `{ Success: true }`.

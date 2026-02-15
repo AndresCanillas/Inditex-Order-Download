@@ -295,19 +295,17 @@
                     VendorId: vendorId
                 });
 
-                const rawBody = await response.text();
-                let result = null;
-                if (rawBody && rawBody.trim().length > 0) {
-                    try {
-                        result = JSON.parse(rawBody);
-                    } catch (parseError) {
-                        console.error(parseError);
-                    }
-                }
+                const parsedResponse = typeof GetOrdersApiResponse !== "undefined"
+                    ? await GetOrdersApiResponse.parse(response)
+                    : {
+                        ok: response && response.Success === true,
+                        result: response || null,
+                        message: response && response.Message ? response.Message : ""
+                    };
 
-                const backendMessage = result && result.Message ? result.Message : "";
-                const messageToShow = backendMessage || (response.ok ? "@g["Operation completed"]" : "@g["Operation could not be completed."]");
-                const isSuccess = !!(result && result.Success === true && response.ok && !(typeof GetOrderProcessTracker !== "undefined" && GetOrderProcessTracker.messageContainsError(messageToShow)));
+                const backendMessage = parsedResponse.message || "";
+                const messageToShow = backendMessage || (parsedResponse.ok ? "@g["Operation completed"]" : "@g["Operation could not be completed."]");
+                const isSuccess = !!(parsedResponse.result && parsedResponse.result.Success === true && parsedResponse.ok && !(typeof GetOrderProcessTracker !== "undefined" && GetOrderProcessTracker.messageContainsError(messageToShow)));
 
                 if (isSuccess) {
                     self.updateTrackerForSuccess(messageToShow);
