@@ -4,41 +4,57 @@
     Layout = null;
 }
 <div id="GetOrdersDialog" class="p-3">
-    <div class="get-orders-layout">
-        <div class="get-orders-layout__form-column">
-            <img src="~/images/zara-logo.jpg" width="140" height="80" />
-            <div class="form-group">
-                <label name="information" style="font-family:Calibri; align-content:center; font-size:20pt; color:black">@g["Please introduce the order number"]</label>
-                <input type="text" name="orderNumber" class="form-control" maxlength="10" minlength="5" pattern="[0-9]*" required />
+    <section class="get-orders-flow" aria-label="@g["Get Orders by Inditex API"]">
+        <header class="get-orders-flow__header">
+            <div class="get-orders-flow__brand">
+                <img src="~/images/zara-logo.jpg" width="140" height="80" alt="Zara" class="get-orders-flow__logo" />
+                <div>
+                    <h2 class="get-orders-flow__title mb-1">@g["Get Orders by Inditex API"]</h2>
+                    <p class="get-orders-flow__subtitle mb-0">@g["Follow the flow to capture and validate each stage of the process."]</p>
+                </div>
             </div>
-            <div class="form-group">
-                <label name="information" style="font-family:Calibri; align-content:center; font-size:20pt; color:black">@g["Please introduce the campaign code"]</label>
-                <input type="text" name="campaignCode" class="form-control" maxlength="3" minlength="3" pattern="[IVPOivpo][0-9]{2}" required />
+            <div class="get-orders-flow__nielsen" role="note">
+                <span class="fa fa-check-circle" aria-hidden="true"></span>
+                @g["Visibility of system status and clear feedback at every step."]
             </div>
-            <div class="form-group">
-                <label name="information" style="font-family:Calibri; align-content:center; font-size:20pt; color:black">@g["Please introduce the vendor id"]</label>
-                <input type="text" name="vendorId" class="form-control" maxlength="10" minlength="5" pattern="[0-9]*" required />
-            </div>
-            <div name="orderNumberError" class="invalid-feedback d-none"></div>
-            <button type="button" class="btn btn-primary" align-content:center; name="buttonGetOrder" ; action="GetOrder">@g["Get Order"] </button>
-        </div>
+        </header>
 
-        <div class="get-orders-layout__tracker-column">
-            <div class="get-orders-layout__tracker-panel">
-                <div class="order-process-tracker d-none" name="processTrackerContainer">
-                <button type="button" class="btn btn-link order-process-tracker__toggle p-0" name="processTrackerToggle" aria-expanded="false">
-                    ▼ @g["See process phases"]
-                </button>
-                    <ul class="order-process-tracker__list mt-2" name="processTrackerList"></ul>
+        <div class="get-orders-layout">
+            <div class="get-orders-layout__form-column">
+                <div class="get-orders-flow__card">
+                    <div class="form-group">
+                        <label name="information" class="get-orders-flow__label">@g["Please introduce the order number"]</label>
+                        <input type="text" name="orderNumber" class="form-control" maxlength="10" minlength="5" pattern="[0-9]*" required />
+                    </div>
+                    <div class="form-group">
+                        <label name="information" class="get-orders-flow__label">@g["Please introduce the campaign code"]</label>
+                        <input type="text" name="campaignCode" class="form-control" maxlength="3" minlength="3" pattern="[IVPOivpo][0-9]{2}" required />
+                    </div>
+                    <div class="form-group">
+                        <label name="information" class="get-orders-flow__label">@g["Please introduce the vendor id"]</label>
+                        <input type="text" name="vendorId" class="form-control" maxlength="10" minlength="5" pattern="[0-9]*" required />
+                    </div>
+                    <div name="orderNumberError" class="invalid-feedback d-none"></div>
+                    <button type="button" class="btn btn-primary get-orders-flow__cta" name="buttonGetOrder" action="GetOrder">@g["Get Order"]</button>
+                </div>
+            </div>
+
+            <div class="get-orders-layout__tracker-column">
+                <div class="get-orders-layout__tracker-panel">
+                    <div class="order-process-tracker d-none" name="processTrackerContainer">
+                        <button type="button" class="btn btn-link order-process-tracker__toggle p-0" name="processTrackerToggle" aria-expanded="false">
+                            ▼ @g["See process phases"]
+                        </button>
+                        <ul class="order-process-tracker__list mt-2" name="processTrackerList"></ul>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div name="information2" class="mt-3"></div>
+        <div name="information2" class="get-orders-flow__feedback mt-3"></div>
+    </section>
 </div>
 <script src="~/js/GetOrdersValidation.js"></script>
 <script src="~/js/GetOrderProcessTracker.js"></script>
 <script src="~/js/GetOrdersRequestState.js"></script>
 <script src="~/js/GetOrdersApiResponse.js"></script>
-

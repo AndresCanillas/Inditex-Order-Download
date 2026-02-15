@@ -97,3 +97,22 @@
 ### Pendiente para próximas iteraciones
 - Validar visualmente en entorno ejecutable .NET con captura funcional de pantalla.
 - Ajustar proporciones/espaciados finales con feedback UX del negocio (alineación exacta con mock).
+
+## Iteración 20 (actual)
+**Objetivo:** Mejorar la experiencia visual y el aprovechamiento del espacio en las vistas de `Get Orders` e `Image Management`, incorporando un layout de flujo paso a paso más claro, alegre y alineado con heurísticas de usabilidad de Jacob Nielsen.
+
+### Completado en esta iteración
+- Se consolidó un layout de flujo formal en `Get Orders` con:
+  - cabecera contextual,
+  - identidad visual con logo de Zara,
+  - recordatorio explícito de “visibilidad del estado del sistema”,
+  - panel lateral de fases reforzado para lectura secuencial.
+- Se modernizó el estilo del tracker de proceso para mejorar escaneabilidad de estados (`in-progress`, `completed`, `failed`, etc.) con mayor contraste visual.
+- Se rediseñó `Image Management` en un shell visual branded, manteniendo la funcionalidad actual (filtros, tabla, preview y acciones).
+- Se aplicó enfoque TDD en frontend:
+  - ampliación de pruebas de layout de `Get Orders`,
+  - nuevas pruebas de layout/branding para `Image Management`.
+
+### Pendiente para próximas iteraciones
+- Ejecutar validación UX con usuarios de negocio y medir KPIs de uso (tiempo de tarea, satisfacción, reducción de errores).
+- Revisar accesibilidad cromática completa (WCAG) de los nuevos estilos en distintos temas/pantallas.
