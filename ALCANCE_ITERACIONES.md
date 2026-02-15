@@ -190,3 +190,16 @@ Asegurar que la vista de **Image Management** renderice todos los textos visible
 ### Pendientes potenciales para siguiente iteración
 - Incorporar prueba de integración UI (JSDOM o Playwright) que valide en runtime el idioma renderizado según cultura activa.
 - Revisar otras vistas legacy para detectar textos hardcodeados fuera de `@g[...]` y consolidar checklist de localización.
+
+## Iteración 14 (actual)
+### Objetivo
+Eliminar textos hardcodeados en castellano del tracker visual de `Get Order` y asegurar que los labels/detalles visibles se resuelvan vía localización en la vista (`@g[...]`).
+
+### Alcance incluido
+- `GetOrderProcessTracker` se refactoriza para aceptar un diccionario de localización opcional y resolver títulos/detalles de pasos con fallback en inglés.
+- `GetOrdersDialog` incorpora `getTrackerLocalization()` con claves localizadas mediante `ILocalizationService` y pasa ese diccionario al tracker al inicializar y al sincronizar mensajes.
+- Se agregan pruebas unitarias de regresión para validar que el módulo del tracker soporta localización y que la vista le inyecta el diccionario localizado.
+
+### Pendientes potenciales para siguiente iteración
+- Extraer a recursos centralizados las claves del diccionario de tracker para evitar divergencia entre vistas que reutilicen el componente.
+- Añadir prueba de integración UI que cambie cultura y valide texto final renderizado en cada fase del tracker.

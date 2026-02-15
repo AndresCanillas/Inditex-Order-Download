@@ -16,20 +16,26 @@
     };
 
     var STEP_DEFINITIONS = [
-        { id: "search-order", title: "Búsqueda del pedido" },
-        { id: "download-order", title: "Descarga del pedido" },
-        { id: "download-images", title: "Descarga de imágenes (File Manager)" },
-        { id: "send-qr-print-central", title: "Envío de QRs a Print Central" },
-        { id: "send-file-print-central", title: "Envío de archivo a Print Central" }
+        { id: "search-order", title: "Order lookup" },
+        { id: "download-order", title: "Order download" },
+        { id: "download-images", title: "Image download (File Manager)" },
+        { id: "send-qr-print-central", title: "QR send to Print Central" },
+        { id: "send-file-print-central", title: "File send to Print Central" }
     ];
 
-    function buildDefaultSteps() {
+    function getLocalizedText(localization, key, fallback) {
+        if (!localization) return fallback;
+        var value = localization[key];
+        return value || fallback;
+    }
+
+    function buildDefaultSteps(localization) {
         return STEP_DEFINITIONS.map(function (definition) {
             return {
                 id: definition.id,
-                title: definition.title,
+                title: getLocalizedText(localization, "stepTitle." + definition.id, definition.title),
                 status: STATUS.PENDING,
-                detail: "Pendiente",
+                detail: getLocalizedText(localization, "detail.pending", "Pending"),
                 startedAt: null,
                 completedAt: null
             };
@@ -63,7 +69,7 @@
     function markStepInProgress(steps, stepId, detail, dateOverride) {
         var step = findStep(steps, stepId);
         if (!step) return;
-        setStatus(step, STATUS.IN_PROGRESS, detail || "En proceso", dateOverride);
+        setStatus(step, STATUS.IN_PROGRESS, detail || "In progress", dateOverride);
     }
 
     function completeStep(steps, stepId, detail, dateOverride) {
@@ -72,7 +78,7 @@
         if (!step.startedAt) {
             step.startedAt = nowIso(dateOverride);
         }
-        setStatus(step, STATUS.COMPLETED, detail || "Completado", dateOverride);
+        setStatus(step, STATUS.COMPLETED, detail || "Completed", dateOverride);
     }
 
     function failStep(steps, stepId, detail, dateOverride) {
@@ -90,15 +96,15 @@
         if (!step.startedAt) {
             step.startedAt = nowIso(dateOverride);
         }
-        setStatus(step, STATUS.PENDING_VALIDATION, detail || "Pendiente de validación", dateOverride);
+        setStatus(step, STATUS.PENDING_VALIDATION, detail || "Pending validation", dateOverride);
     }
 
-    function completeUntil(steps, lastCompletedId) {
+    function completeUntil(steps, lastCompletedId, localization) {
         var reachedTarget = false;
 
         steps.forEach(function (step) {
             if (!reachedTarget) {
-                completeStep(steps, step.id, "Completado");
+                completeStep(steps, step.id, getLocalizedText(localization, "detail.completed", "Completed"));
             }
 
             if (step.id === lastCompletedId) {
@@ -146,49 +152,49 @@
         return true;
     }
 
-    function syncStepsFromMessage(steps, message) {
+    function syncStepsFromMessage(steps, message, localization) {
         var normalizedMessage = (message || "").toLowerCase();
 
         if (normalizedMessage.includes("found successfully")) {
-            completeStep(steps, "search-order", "Pedido encontrado");
+            completeStep(steps, "search-order", getLocalizedText(localization, "detail.orderFound", "Order found"));
         }
 
         if (normalizedMessage.includes("saved into work directory")) {
-            completeStep(steps, "download-order", "Pedido descargado y guardado");
+            completeStep(steps, "download-order", getLocalizedText(localization, "detail.orderDownloaded", "Order downloaded and saved"));
         }
 
         if (normalizedMessage.includes("pending images to validate")) {
-            completeStep(steps, "download-images", "Imágenes descargadas");
-            pendingValidationStep(steps, "send-file-print-central", "Pendiente por validación de imagen");
+            completeStep(steps, "download-images", getLocalizedText(localization, "detail.imagesDownloaded", "Images downloaded"));
+            pendingValidationStep(steps, "send-file-print-central", getLocalizedText(localization, "detail.pendingImageValidation", "Pending image validation"));
         }
 
         if (normalizedMessage.includes("file received event sent")) {
-            completeUntil(steps, "send-file-print-central");
-            completeStep(steps, "download-images", "Imágenes procesadas");
-            completeStep(steps, "send-qr-print-central", "QRs enviados a Print Central");
-            completeStep(steps, "send-file-print-central", "Archivo enviado a Print Central");
+            completeUntil(steps, "send-file-print-central", localization);
+            completeStep(steps, "download-images", getLocalizedText(localization, "detail.imagesProcessed", "Images processed"));
+            completeStep(steps, "send-qr-print-central", getLocalizedText(localization, "detail.qrSent", "QRs sent to Print Central"));
+            completeStep(steps, "send-file-print-central", getLocalizedText(localization, "detail.fileSent", "File sent to Print Central"));
         }
 
         if (normalizedMessage.includes("not found in any queue")) {
-            failStep(steps, "search-order", "Pedido no encontrado");
+            failStep(steps, "search-order", getLocalizedText(localization, "detail.orderNotFound", "Order not found"));
         }
 
         if (messageContainsError(normalizedMessage)) {
             var inProgressStep = steps.find(function (step) { return step.status === STATUS.IN_PROGRESS; });
             if (inProgressStep) {
-                failStep(steps, inProgressStep.id, "Error durante el proceso");
+                failStep(steps, inProgressStep.id, getLocalizedText(localization, "detail.errorDuringProcessing", "Error during processing"));
                 return;
             }
 
             var pendingStep = steps.find(function (step) { return step.status === STATUS.PENDING; });
             if (pendingStep) {
-                failStep(steps, pendingStep.id, "Error durante el proceso");
+                failStep(steps, pendingStep.id, getLocalizedText(localization, "detail.errorDuringProcessing", "Error during processing"));
                 return;
             }
 
             var latestCompletedStep = steps.slice().reverse().find(function (step) { return step.status === STATUS.COMPLETED; });
             if (latestCompletedStep) {
-                failStep(steps, latestCompletedStep.id, "Error durante el proceso");
+                failStep(steps, latestCompletedStep.id, getLocalizedText(localization, "detail.errorDuringProcessing", "Error during processing"));
             }
         }
     }

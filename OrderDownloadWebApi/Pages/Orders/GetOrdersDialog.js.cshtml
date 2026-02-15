@@ -72,7 +72,7 @@
                 return;
             }
 
-            this.processSteps = GetOrderProcessTracker.buildDefaultSteps();
+            this.processSteps = GetOrderProcessTracker.buildDefaultSteps(this.getTrackerLocalization());
             this.renderTracker();
         },
 
@@ -157,12 +157,33 @@
             }
         },
 
+        getTrackerLocalization: function () {
+            return {
+                "stepTitle.search-order": "@g["Order lookup"]",
+                "stepTitle.download-order": "@g["Order download"]",
+                "stepTitle.download-images": "@g["Image download (File Manager)"]",
+                "stepTitle.send-qr-print-central": "@g["QR send to Print Central"]",
+                "stepTitle.send-file-print-central": "@g["File send to Print Central"]",
+                "detail.pending": "@g["Pending"]",
+                "detail.completed": "@g["Completed"]",
+                "detail.orderFound": "@g["Order found"]",
+                "detail.orderDownloaded": "@g["Order downloaded and saved"]",
+                "detail.imagesDownloaded": "@g["Images downloaded"]",
+                "detail.pendingImageValidation": "@g["Pending image validation"]",
+                "detail.imagesProcessed": "@g["Images processed"]",
+                "detail.qrSent": "@g["QRs sent to Print Central"]",
+                "detail.fileSent": "@g["File sent to Print Central"]",
+                "detail.orderNotFound": "@g["Order not found"]",
+                "detail.errorDuringProcessing": "@g["Error during processing"]"
+            };
+        },
+
         startWorkflowTracker: function () {
             if (typeof GetOrderProcessTracker === "undefined") {
                 return;
             }
 
-            this.processSteps = GetOrderProcessTracker.buildDefaultSteps();
+            this.processSteps = GetOrderProcessTracker.buildDefaultSteps(this.getTrackerLocalization());
             GetOrderProcessTracker.markStepInProgress(this.processSteps, "search-order", "@g["Searching order in queues..."]");
             this.renderTracker();
 
@@ -175,7 +196,7 @@
                 return;
             }
 
-            GetOrderProcessTracker.syncStepsFromMessage(this.processSteps, resultMessage);
+            GetOrderProcessTracker.syncStepsFromMessage(this.processSteps, resultMessage, this.getTrackerLocalization());
             this.renderTracker();
         },
 
@@ -209,7 +230,7 @@
             }
 
             var detail = errorMessage || "@g["Server communication error"]";
-            GetOrderProcessTracker.syncStepsFromMessage(this.processSteps, detail);
+            GetOrderProcessTracker.syncStepsFromMessage(this.processSteps, detail, this.getTrackerLocalization());
 
             var failedStep = this.processSteps.find(function (step) { return step.status === GetOrderProcessTracker.STATUS.FAILED; });
             if (!failedStep) {
