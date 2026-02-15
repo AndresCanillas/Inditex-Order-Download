@@ -382,12 +382,12 @@
     },
     {
       "Key": "Completed",
-      "Value": "Completed",
+      "Value": "Completado",
       "T": false
     },
     {
       "Key": "In progress",
-      "Value": "In progress",
+      "Value": "En progreso",
       "T": false
     },
     {
@@ -397,17 +397,17 @@
     },
     {
       "Key": "Pending",
-      "Value": "Pending",
+      "Value": "Pendiente",
       "T": false
     },
     {
       "Key": "Searching order in queues...",
-      "Value": "Searching order in queues...",
+      "Value": "Buscando pedido en colas...",
       "T": false
     },
     {
       "Key": "Server communication error",
-      "Value": "Server communication error",
+      "Value": "Error de comunicación con el servidor",
       "T": false
     },
     {
@@ -417,7 +417,7 @@
     },
     {
       "Key": "Operation completed",
-      "Value": "Operation completed",
+      "Value": "Operación completada",
       "T": false
     },
     {
@@ -428,6 +428,86 @@
     {
       "Key": "Visibility of system status and clear feedback at every step.",
       "Value": "Visibilidad del estado del sistema y retroalimentación clara en cada paso.",
+      "T": false
+    },
+    {
+      "Key": "Order lookup",
+      "Value": "Búsqueda de pedido",
+      "T": false
+    },
+    {
+      "Key": "Order download",
+      "Value": "Descarga de pedido",
+      "T": false
+    },
+    {
+      "Key": "Image download (File Manager)",
+      "Value": "Descarga de imágenes (Gestor de archivos)",
+      "T": false
+    },
+    {
+      "Key": "QR send to Print Central",
+      "Value": "Envío de QR a Print Central",
+      "T": false
+    },
+    {
+      "Key": "File send to Print Central",
+      "Value": "Envío de archivo a Print Central",
+      "T": false
+    },
+    {
+      "Key": "Order found",
+      "Value": "Pedido encontrado",
+      "T": false
+    },
+    {
+      "Key": "Order downloaded and saved",
+      "Value": "Pedido descargado y guardado",
+      "T": false
+    },
+    {
+      "Key": "Images downloaded",
+      "Value": "Imágenes descargadas",
+      "T": false
+    },
+    {
+      "Key": "Pending image validation",
+      "Value": "Validación de imágenes pendiente",
+      "T": false
+    },
+    {
+      "Key": "Images processed",
+      "Value": "Imágenes procesadas",
+      "T": false
+    },
+    {
+      "Key": "QRs sent to Print Central",
+      "Value": "QR enviados a Print Central",
+      "T": false
+    },
+    {
+      "Key": "File sent to Print Central",
+      "Value": "Archivo enviado a Print Central",
+      "T": false
+    },
+    {
+      "Key": "Order not found",
+      "Value": "Pedido no encontrado",
+      "T": false
+    },
+    {
+      "Key": "Error during processing",
+      "Value": "Error durante el procesamiento",
+      "T": false
+    },
+    {
+      "Key": "Order number ({0}) found successfully in {1} queue.",
+      "Value": "Pedido número ({0}) encontrado correctamente en la cola {1}.",
+      "T": false
+    },
+    {
+      "Key": "Order number ({0}) not found in any queue.",
+      "Value": "Pedido número ({0}) no encontrado en ninguna cola.",
       "T": false
     }
   ]
