@@ -97,3 +97,57 @@
 ### Pendiente para próximas iteraciones
 - Validar visualmente en entorno ejecutable .NET con captura funcional de pantalla.
 - Ajustar proporciones/espaciados finales con feedback UX del negocio (alineación exacta con mock).
+
+## Iteración 20 (actual)
+**Objetivo:** Mejorar la experiencia visual y el aprovechamiento del espacio en las vistas de `Get Orders` e `Image Management`, incorporando un layout de flujo paso a paso más claro, alegre y alineado con heurísticas de usabilidad de Jacob Nielsen.
+
+### Completado en esta iteración
+- Se consolidó un layout de flujo formal en `Get Orders` con:
+  - cabecera contextual,
+  - identidad visual con logo de Zara,
+  - recordatorio explícito de “visibilidad del estado del sistema”,
+  - panel lateral de fases reforzado para lectura secuencial.
+- Se modernizó el estilo del tracker de proceso para mejorar escaneabilidad de estados (`in-progress`, `completed`, `failed`, etc.) con mayor contraste visual.
+- Se rediseñó `Image Management` en un shell visual branded, manteniendo la funcionalidad actual (filtros, tabla, preview y acciones).
+- Se aplicó enfoque TDD en frontend:
+  - ampliación de pruebas de layout de `Get Orders`,
+  - nuevas pruebas de layout/branding para `Image Management`.
+
+### Pendiente para próximas iteraciones
+- Ejecutar validación UX con usuarios de negocio y medir KPIs de uso (tiempo de tarea, satisfacción, reducción de errores).
+- Revisar accesibilidad cromática completa (WCAG) de los nuevos estilos en distintos temas/pantallas.
+
+## Iteración 21 (actual)
+**Objetivo:** Resolver fallos de visualización del rediseño (`Get Orders`) causados por herencia de CSS global y corregir localización en castellano para textos clave de `Get Orders` e `Image Management`.
+
+### Completado en esta iteración
+- Se reforzó el CSS con selectores scopiados a `#GetOrdersDialog` para evitar que estilos globales anulen el layout en dos columnas y el formateo del tracker.
+- Se aplicaron overrides defensivos en inputs del formulario para garantizar contraste legible aun con tema oscuro heredado.
+- Se actualizó `Resources.es-ES.json` con traducciones en castellano de textos clave, incluyendo los nuevos mensajes introducidos en el rediseño.
+- Se incorporó cobertura TDD adicional para:
+  - validación de traducciones en español,
+  - validación de reglas CSS de alta especificidad para maquetado resistente.
+
+### Pendiente para próximas iteraciones
+- Ejecutar validación E2E en entorno .NET desplegado para comprobar visual final con todos los bundles reales.
+- Completar traducciones equivalentes en cat/fr/tr para mantener paridad funcional entre idiomas.
+
+## Iteración 22 (actual)
+**Objetivo:** Reemitir PR con los mismos cambios funcionales de layout/localización ya aplicados, corrigiendo el incidente de PR previo con mensaje placeholder.
+
+### Completado en esta iteración
+- Se mantiene sin cambios el alcance funcional implementado en UI/UX y localización.
+- Se añade trazabilidad documental para formalizar la reemisión del PR.
+
+### Pendiente para próximas iteraciones
+- Ejecutar validación visual E2E con backend .NET activo y verificación completa de i18n por idioma.
+
+## Iteración 23 (actual)
+**Objetivo:** Resolver la causa raíz de que la nueva maquetación no aparezca en UI: el archivo `views.css` no estaba incluido en `Index.cshtml`.
+
+### Completado en esta iteración
+- Se añadió la referencia a `views.css` en `Index.cshtml` con versión `?@mark`.
+- Se agregó prueba automatizada para evitar regresión de carga de stylesheet principal de vistas.
+
+### Pendiente para próximas iteraciones
+- Revisar segmentación de estilos por feature para reducir acoplamiento al CSS global.
