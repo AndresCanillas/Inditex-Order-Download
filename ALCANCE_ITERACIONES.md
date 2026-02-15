@@ -193,13 +193,13 @@ Asegurar que la vista de **Image Management** renderice todos los textos visible
 
 ## Iteración 14 (actual)
 ### Objetivo
-Eliminar textos hardcodeados en castellano del tracker visual de `Get Order` y asegurar que los labels/detalles visibles se resuelvan vía localización en la vista (`@g[...]`).
+Reubicar visualmente el bloque de fases del proceso en `Get Orders` para mostrarlo en un panel dedicado a la derecha del formulario, mejorando legibilidad y aprovechamiento del espacio.
 
 ### Alcance incluido
-- `GetOrderProcessTracker` se refactoriza para aceptar un diccionario de localización opcional y resolver títulos/detalles de pasos con fallback en inglés.
-- `GetOrdersDialog` incorpora `getTrackerLocalization()` con claves localizadas mediante `ILocalizationService` y pasa ese diccionario al tracker al inicializar y al sincronizar mensajes.
-- Se agregan pruebas unitarias de regresión para validar que el módulo del tracker soporta localización y que la vista le inyecta el diccionario localizado.
+- Se ajusta el markup de `GetOrdersDialog.cshtml` para envolver el tracker dentro de `get-orders-layout__tracker-panel` en la columna derecha.
+- Se actualizan estilos en `views.css` para reservar un área visual fija (`min-height`) al tracker y mantener comportamiento responsive.
+- Se amplían pruebas unitarias de layout para validar la nueva estructura del panel y la regla de altura mínima.
 
 ### Pendientes potenciales para siguiente iteración
-- Extraer a recursos centralizados las claves del diccionario de tracker para evitar divergencia entre vistas que reutilicen el componente.
-- Añadir prueba de integración UI que cambie cultura y valide texto final renderizado en cada fase del tracker.
+- Evaluar mover el output de resultado (`information2`) al mismo panel derecho para consolidar feedback del flujo en una sola zona.
+- Añadir prueba de integración visual (DOM) para verificar que el tracker no desplace el formulario cuando cambia entre `d-none` y visible.

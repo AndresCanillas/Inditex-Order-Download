@@ -333,8 +333,17 @@ div[name='catalogFieldsGrid'].k-grid tbody td {
     min-width: 280px;
 }
 
+.get-orders-layout__tracker-panel {
+    min-height: 420px;
+    border: 1px dashed rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.08);
+}
+
 .get-orders-layout__tracker-column .order-process-tracker {
     min-height: 100%;
+    margin-top: 0;
 }
 
 @media (max-width: 991.98px) {
@@ -346,6 +355,10 @@ div[name='catalogFieldsGrid'].k-grid tbody td {
     .get-orders-layout__tracker-column {
         width: 100%;
         min-width: 0;
+    }
+
+    .get-orders-layout__tracker-panel {
+        min-height: 0;
     }
 }
 
