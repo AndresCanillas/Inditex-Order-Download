@@ -116,3 +116,18 @@
 ### Pendiente para próximas iteraciones
 - Ejecutar validación UX con usuarios de negocio y medir KPIs de uso (tiempo de tarea, satisfacción, reducción de errores).
 - Revisar accesibilidad cromática completa (WCAG) de los nuevos estilos en distintos temas/pantallas.
+
+## Iteración 21 (actual)
+**Objetivo:** Resolver fallos de visualización del rediseño (`Get Orders`) causados por herencia de CSS global y corregir localización en castellano para textos clave de `Get Orders` e `Image Management`.
+
+### Completado en esta iteración
+- Se reforzó el CSS con selectores scopiados a `#GetOrdersDialog` para evitar que estilos globales anulen el layout en dos columnas y el formateo del tracker.
+- Se aplicaron overrides defensivos en inputs del formulario para garantizar contraste legible aun con tema oscuro heredado.
+- Se actualizó `Resources.es-ES.json` con traducciones en castellano de textos clave, incluyendo los nuevos mensajes introducidos en el rediseño.
+- Se incorporó cobertura TDD adicional para:
+  - validación de traducciones en español,
+  - validación de reglas CSS de alta especificidad para maquetado resistente.
+
+### Pendiente para próximas iteraciones
+- Ejecutar validación E2E en entorno .NET desplegado para comprobar visual final con todos los bundles reales.
+- Completar traducciones equivalentes en cat/fr/tr para mantener paridad funcional entre idiomas.

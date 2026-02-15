@@ -224,3 +224,22 @@ Rediseñar visualmente las vistas `Get Orders` e `Image Management` para mejorar
 ### Pendientes potenciales para siguiente iteración
 - Validar contraste AA/AAA de toda la paleta nueva en revisión UX formal.
 - Incorporar métricas de usabilidad (tiempo para completar tarea, tasa de error) para confirmar mejora real post-rediseño.
+
+## Iteración 16 (actual)
+### Objetivo
+Corregir regresiones de maquetado en `Get Orders` por herencia de estilos globales y habilitar traducciones reales en castellano para textos clave de `Get Orders` e `Image Management`.
+
+### Alcance incluido
+- TDD:
+  - Se agrega `getOrdersSpanishLocalization.test.js` para validar traducciones `es-ES` en textos críticos del flujo y gestión de imágenes.
+  - Se amplía `getOrdersLayout.test.js` para exigir selectores con mayor especificidad (`#GetOrdersDialog`) y overrides defensivos frente a CSS heredado.
+- Implementación de CSS robusto:
+  - `#GetOrdersDialog .get-orders-layout` ahora fuerza grid con `display: grid !important` para evitar colapso a una sola columna por estilos globales.
+  - Se endurece estilo de inputs (`background`/`color`) para evitar herencia de temas oscuros que dejaban campos negros e ilegibles.
+  - Se refuerzan estilos de lista/item del tracker con selectores scopiados para evitar viñetas/formato por defecto del navegador.
+- Implementación de localización:
+  - Se actualizan valores en `Resources.es-ES.json` para mostrar textos en castellano en `Get Orders` e `Image Management`, incluyendo los nuevos mensajes de flujo/Nielsen.
+
+### Pendientes potenciales para siguiente iteración
+- Replicar traducciones faltantes en otros idiomas (`ca-ES`, `fr-FR`, `tr-TR`) para evitar inconsistencia multi-idioma.
+- Evaluar externalizar tokens de color y espaciado en variables de tema para reducir riesgo de sobreescritura futura.

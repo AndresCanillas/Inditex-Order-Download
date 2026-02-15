@@ -368,6 +368,13 @@ div[name='catalogFieldsGrid'].k-grid tbody td {
     align-items: flex-start;
 }
 
+#GetOrdersDialog .get-orders-layout {
+    display: grid !important;
+    grid-template-columns: minmax(320px, 430px) minmax(320px, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+
 .get-orders-layout__form-column {
     flex: 0 1 430px;
     min-width: 320px;
@@ -387,6 +394,12 @@ div[name='catalogFieldsGrid'].k-grid tbody td {
 
 .get-orders-flow__card .form-control {
     background: rgba(255, 255, 255, 0.96);
+}
+
+#GetOrdersDialog .get-orders-flow__card .form-control {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid #c7d2e6;
 }
 
 .get-orders-flow__cta {
@@ -429,6 +442,10 @@ div[name='catalogFieldsGrid'].k-grid tbody td {
         flex-direction: column;
     }
 
+    #GetOrdersDialog .get-orders-layout {
+        grid-template-columns: 1fr;
+    }
+
     .get-orders-layout__form-column,
     .get-orders-layout__tracker-column {
         width: 100%;
@@ -466,12 +483,22 @@ div[name='catalogFieldsGrid'].k-grid tbody td {
     padding: 0;
 }
 
+#GetOrdersDialog .order-process-tracker__list {
+    list-style: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
 .order-process-tracker__item {
     display: flex;
     align-items: flex-start;
     gap: 8px;
     padding: 6px 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+#GetOrdersDialog .order-process-tracker__item {
+    display: flex !important;
 }
 
 .order-process-tracker__item--pending {

@@ -22,6 +22,11 @@ describe("GetOrdersDialog layout", () => {
     const css = fs.readFileSync(cssPath, "utf8");
 
     expect(css).toContain('.get-orders-layout {');
+    expect(css).toContain('#GetOrdersDialog .get-orders-layout {');
+    expect(css).toContain('display: grid !important;');
+    expect(css).toContain('#GetOrdersDialog .get-orders-flow__card .form-control {');
+    expect(css).toContain('#GetOrdersDialog .order-process-tracker__list {');
+    expect(css).toContain('background: #ffffff !important;');
     expect(css).toContain('.get-orders-flow {');
     expect(css).toContain('background: linear-gradient(135deg, rgba(17, 30, 54, 0.95), rgba(29, 50, 86, 0.9));');
     expect(css).toContain('display: flex;');
