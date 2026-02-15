@@ -117,7 +117,7 @@
 - Ejecutar validación UX con usuarios de negocio y medir KPIs de uso (tiempo de tarea, satisfacción, reducción de errores).
 - Revisar accesibilidad cromática completa (WCAG) de los nuevos estilos en distintos temas/pantallas.
 
-## Iteración 21 (actual)
+## Iteración 21 
 **Objetivo:** Resolver fallos de visualización del rediseño (`Get Orders`) causados por herencia de CSS global y corregir localización en castellano para textos clave de `Get Orders` e `Image Management`.
 
 ### Completado en esta iteración
@@ -131,3 +131,13 @@
 ### Pendiente para próximas iteraciones
 - Ejecutar validación E2E en entorno .NET desplegado para comprobar visual final con todos los bundles reales.
 - Completar traducciones equivalentes en cat/fr/tr para mantener paridad funcional entre idiomas.
+
+## Iteración 22 (actual)
+**Objetivo:** Reemitir PR con los mismos cambios funcionales de layout/localización ya aplicados, corrigiendo el incidente de PR previo con mensaje placeholder.
+
+### Completado en esta iteración
+- Se mantiene sin cambios el alcance funcional implementado en UI/UX y localización.
+- Se añade trazabilidad documental para formalizar la reemisión del PR.
+
+### Pendiente para próximas iteraciones
+- Ejecutar validación visual E2E con backend .NET activo y verificación completa de i18n por idioma.
