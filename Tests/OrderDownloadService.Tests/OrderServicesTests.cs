@@ -89,6 +89,14 @@ namespace OrderDownloadService.Tests
                 var result = await service.GetOrder("123", "C1", "V1");
 
                 Assert.Equal("Order number (123) not found in any queue.", result);
+                events.Verify(e => e.Send(It.Is<OrderGetProgressEvent>(x =>
+                    x.OrderNumber == "123" &&
+                    x.StepId == "search-order" &&
+                    x.Status == "in-progress")), Times.Once);
+                events.Verify(e => e.Send(It.Is<OrderGetProgressEvent>(x =>
+                    x.OrderNumber == "123" &&
+                    x.StepId == "search-order" &&
+                    x.Status == "failed")), Times.Once);
             }
             finally
             {
@@ -97,10 +105,83 @@ namespace OrderDownloadService.Tests
             }
         }
 
+
+        [Fact]
+        public async Task GetOrder_WhenOrderIsFetched_PublishesDownloadOrderCompletedProgressEvent()
+        {
+            var appConfig = new Mock<IAppConfig>();
+            var workdir = Path.Combine(Path.GetTempPath(), "workdir_" + Guid.NewGuid().ToString("N"));
+            var historydir = Path.Combine(Path.GetTempPath(), "history_" + Guid.NewGuid().ToString("N"));
+
+            appConfig.Setup(cfg => cfg.GetValue("DownloadServices.ApiUrl", It.IsAny<string>()))
+                .Returns("https://api.example.com/");
+            appConfig.Setup(cfg => cfg.GetValue("DownloadServices.WorkDirectory", It.IsAny<string>()))
+                .Returns(workdir);
+            appConfig.Setup(cfg => cfg.GetValue<string>("DownloadServices.HistoryDirectory"))
+                .Returns(historydir);
+
+            var log = new Mock<IAppLog>();
+            var apiCaller = new Mock<IApiCallerService>();
+            var events = new Mock<IEventQueue>();
+            var imageManagementService = new Mock<IImageManagementService>();
+            imageManagementService
+                .Setup(x => x.ProcessOrderImagesAsync(It.IsAny<StructureInditexOrderFile.InditexOrderData>()))
+                .ReturnsAsync(new ImageProcessingResult { RequiresApproval = false });
+
+            var credentialsPath = Path.Combine(GetOrderServiceAssemblyDir(), "InditexCredentials.json");
+            WriteCredentialsFile(credentialsPath);
+
+            try
+            {
+                var order = BuildValidOrder("30049");
+                var service = new TestOrderServicesWithFetchedOrder(appConfig.Object, log.Object, apiCaller.Object, events.Object, imageManagementService.Object, order);
+
+                var result = await service.GetOrder("30049", "I25", "12345");
+
+                Assert.Contains("found successfully", result);
+                events.Verify(e => e.Send(It.Is<OrderGetProgressEvent>(x =>
+                    x.OrderNumber == "30049" &&
+                    x.StepId == "download-order" &&
+                    x.Status == "completed" &&
+                    x.Message.Contains("downloaded", StringComparison.OrdinalIgnoreCase))), Times.AtLeastOnce);
+            }
+            finally
+            {
+                if (File.Exists(credentialsPath))
+                    File.Delete(credentialsPath);
+                if (Directory.Exists(workdir))
+                    Directory.Delete(workdir, true);
+                if (Directory.Exists(historydir))
+                    Directory.Delete(historydir, true);
+            }
+        }
+
         private static string GetOrderServiceAssemblyDir()
         {
             var location = typeof(OrderServices).Assembly.Location;
             return Path.GetDirectoryName(location);
+        }
+
+
+        private static StructureInditexOrderFile.InditexOrderData BuildValidOrder(string poNumber)
+        {
+            return new StructureInditexOrderFile.InditexOrderData
+            {
+                ProductionOrder = new StructureInditexOrderFile.ProductionOrder
+                {
+                    PONumber = poNumber,
+                    Campaign = "I25",
+                    Section_Text = "SEC",
+                    Brand_Text = "BR",
+                    ProductType_Text = "PT",
+                    QualityRfid = 1,
+                    ModelRfid = 1
+                },
+                labels = new[]
+                {
+                    new StructureInditexOrderFile.Label { Reference = "ABC123" }
+                }
+            };
         }
 
         private static void WriteCredentialsFile(string path)
@@ -116,6 +197,33 @@ namespace OrderDownloadService.Tests
   ]
 }";
             File.WriteAllText(path, json);
+        }
+
+
+        private sealed class TestOrderServicesWithFetchedOrder : OrderServices
+        {
+            private readonly StructureInditexOrderFile.InditexOrderData order;
+
+            public TestOrderServicesWithFetchedOrder(
+                IAppConfig appConfig,
+                IAppLog log,
+                IApiCallerService apiCaller,
+                IEventQueue events,
+                IImageManagementService imageManagementService,
+                StructureInditexOrderFile.InditexOrderData order)
+                : base(appConfig, log, apiCaller, events, imageManagementService)
+            {
+                this.order = order;
+            }
+
+            protected override Task<StructureInditexOrderFile.InditexOrderData> FetchOrderAsync(
+                Credential credential,
+                string orderNumber,
+                string campaignCode,
+                string vendorId)
+            {
+                return Task.FromResult(order);
+            }
         }
 
         private sealed class TestOrderServices : OrderServices

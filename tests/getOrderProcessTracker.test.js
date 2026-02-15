@@ -86,6 +86,35 @@ describe("GetOrderProcessTracker", () => {
     expect(downloadStep.status).toBe(tracker.STATUS.FAILED);
   });
 
+
+  test("applyProgressEvent updates the requested step using typed stream event data", () => {
+    const steps = tracker.buildDefaultSteps();
+
+    const wasUpdated = tracker.applyProgressEvent(steps, {
+      StepId: "download-order",
+      Status: "in-progress",
+      Message: "Saving order into work directory"
+    });
+
+    const step = steps.find((x) => x.id === "download-order");
+    expect(wasUpdated).toBe(true);
+    expect(step.status).toBe(tracker.STATUS.IN_PROGRESS);
+    expect(step.detail).toBe("Saving order into work directory");
+  });
+
+  test("applyProgressEvent ignores unknown step ids", () => {
+    const steps = tracker.buildDefaultSteps();
+
+    const wasUpdated = tracker.applyProgressEvent(steps, {
+      StepId: "unknown-step",
+      Status: "completed",
+      Message: "Done"
+    });
+
+    expect(wasUpdated).toBe(false);
+    expect(steps.every((x) => x.status === tracker.STATUS.PENDING)).toBe(true);
+  });
+
   test("messageContainsError detects known error patterns", () => {
     expect(tracker.messageContainsError("Error: timeout while contacting server")).toBe(true);
     expect(tracker.messageContainsError("Order found successfully in queue")).toBe(false);

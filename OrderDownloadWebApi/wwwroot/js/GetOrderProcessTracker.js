@@ -116,6 +116,36 @@
             || normalizedMessage.includes("not be completed");
     }
 
+
+    function normalizeStatus(status) {
+        var normalized = (status || "").toLowerCase();
+        switch (normalized) {
+            case STATUS.PENDING:
+            case STATUS.IN_PROGRESS:
+            case STATUS.COMPLETED:
+            case STATUS.FAILED:
+            case STATUS.PENDING_VALIDATION:
+                return normalized;
+            default:
+                return STATUS.PENDING;
+        }
+    }
+
+    function applyProgressEvent(steps, progressEvent) {
+        if (!steps || !progressEvent) {
+            return false;
+        }
+
+        var step = findStep(steps, progressEvent.StepId);
+        if (!step) {
+            return false;
+        }
+
+        var status = normalizeStatus(progressEvent.Status);
+        setStatus(step, status, progressEvent.Message || step.detail);
+        return true;
+    }
+
     function syncStepsFromMessage(steps, message) {
         var normalizedMessage = (message || "").toLowerCase();
 
@@ -171,6 +201,7 @@
         failStep: failStep,
         pendingValidationStep: pendingValidationStep,
         syncStepsFromMessage: syncStepsFromMessage,
-        messageContainsError: messageContainsError
+        messageContainsError: messageContainsError,
+        applyProgressEvent: applyProgressEvent
     };
 });
