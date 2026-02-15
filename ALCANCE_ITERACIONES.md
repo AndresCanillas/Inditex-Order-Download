@@ -191,8 +191,7 @@ Asegurar que la vista de **Image Management** renderice todos los textos visible
 - Incorporar prueba de integración UI (JSDOM o Playwright) que valide en runtime el idioma renderizado según cultura activa.
 - Revisar otras vistas legacy para detectar textos hardcodeados fuera de `@g[...]` y consolidar checklist de localización.
 
-## Iteración 14 (actual)
-### Objetivo
+## Iteración 14 
 Reubicar visualmente el bloque de fases del proceso en `Get Orders` para mostrarlo en un panel dedicado a la derecha del formulario, mejorando legibilidad y aprovechamiento del espacio.
 
 ### Alcance incluido
@@ -204,7 +203,7 @@ Reubicar visualmente el bloque de fases del proceso en `Get Orders` para mostrar
 - Evaluar mover el output de resultado (`information2`) al mismo panel derecho para consolidar feedback del flujo en una sola zona.
 - Añadir prueba de integración visual (DOM) para verificar que el tracker no desplace el formulario cuando cambia entre `d-none` y visible.
 
-## Iteración 15 (actual)
+## Iteración 15 
 ### Objetivo
 Rediseñar visualmente las vistas `Get Orders` e `Image Management` para mejorar uso del espacio, reforzar visualización de flujo por etapas y aplicar principios de usabilidad de Nielsen con identidad visual de Zara.
 
@@ -225,7 +224,7 @@ Rediseñar visualmente las vistas `Get Orders` e `Image Management` para mejorar
 - Validar contraste AA/AAA de toda la paleta nueva en revisión UX formal.
 - Incorporar métricas de usabilidad (tiempo para completar tarea, tasa de error) para confirmar mejora real post-rediseño.
 
-## Iteración 16 (actual)
+## Iteración 16 
 ### Objetivo
 Corregir regresiones de maquetado en `Get Orders` por herencia de estilos globales y habilitar traducciones reales en castellano para textos clave de `Get Orders` e `Image Management`.
 

@@ -117,7 +117,7 @@
 - Ejecutar validación UX con usuarios de negocio y medir KPIs de uso (tiempo de tarea, satisfacción, reducción de errores).
 - Revisar accesibilidad cromática completa (WCAG) de los nuevos estilos en distintos temas/pantallas.
 
-## Iteración 21 (actual)
+## Iteración 21 
 **Objetivo:** Resolver fallos de visualización del rediseño (`Get Orders`) causados por herencia de CSS global y corregir localización en castellano para textos clave de `Get Orders` e `Image Management`.
 
 ### Completado en esta iteración
