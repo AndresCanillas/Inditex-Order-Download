@@ -190,3 +190,16 @@ Asegurar que la vista de **Image Management** renderice todos los textos visible
 ### Pendientes potenciales para siguiente iteración
 - Incorporar prueba de integración UI (JSDOM o Playwright) que valide en runtime el idioma renderizado según cultura activa.
 - Revisar otras vistas legacy para detectar textos hardcodeados fuera de `@g[...]` y consolidar checklist de localización.
+
+## Iteración 14 (actual)
+### Objetivo
+Reubicar visualmente el bloque de fases del proceso en `Get Orders` para mostrarlo en un panel dedicado a la derecha del formulario, mejorando legibilidad y aprovechamiento del espacio.
+
+### Alcance incluido
+- Se ajusta el markup de `GetOrdersDialog.cshtml` para envolver el tracker dentro de `get-orders-layout__tracker-panel` en la columna derecha.
+- Se actualizan estilos en `views.css` para reservar un área visual fija (`min-height`) al tracker y mantener comportamiento responsive.
+- Se amplían pruebas unitarias de layout para validar la nueva estructura del panel y la regla de altura mínima.
+
+### Pendientes potenciales para siguiente iteración
+- Evaluar mover el output de resultado (`information2`) al mismo panel derecho para consolidar feedback del flujo en una sola zona.
+- Añadir prueba de integración visual (DOM) para verificar que el tracker no desplace el formulario cuando cambia entre `d-none` y visible.
