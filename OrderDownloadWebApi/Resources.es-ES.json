@@ -87,17 +87,17 @@
     },
     {
       "Key": "English (United States)",
-      "Value": "English (United States)",
+      "Value": "Inglés (Estados Unidos)",
       "T": false
     },
     {
       "Key": "Spanish (Spain, International Sort)",
-      "Value": "Spanish (Spain, International Sort)",
+      "Value": "Español (España, internacional)",
       "T": false
     },
     {
       "Key": "French (France)",
-      "Value": "French (France)",
+      "Value": "Francés (Francia)",
       "T": false
     },
     {
@@ -508,6 +508,16 @@
     {
       "Key": "Order number ({0}) not found in any queue.",
       "Value": "Pedido número ({0}) no encontrado en ninguna cola.",
+      "T": false
+    },
+    {
+      "Key": "Catalan (Catalan)",
+      "Value": "Catalán (Catalán)",
+      "T": false
+    },
+    {
+      "Key": "Turkish (Turkey)",
+      "Value": "Turco (Turquía)",
       "T": false
     }
   ]

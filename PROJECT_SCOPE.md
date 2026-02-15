@@ -9,3 +9,13 @@
 - No incluye:
   - Refactor mayor del servicio `OrderServices`.
   - Cambios en otros idiomas distintos de español.
+
+## Iteración 2
+- Objetivo: Completar la localización del selector de idioma con todos los idiomas habilitados en la configuración del sistema.
+- Incluye:
+  - Cobertura de pruebas para validar claves de idioma faltantes (`Catalan` y `Turkish`) y literales de soporte en la barra de navegación.
+  - Traducciones en español para los nombres de idiomas mostrados en el selector.
+  - Declaraciones adicionales en `NavBar.cshtml` para que ResourceGen contemple todos los idiomas soportados.
+- No incluye:
+  - Refactor de arquitectura del sistema de localización.
+  - Cambios funcionales en autenticación o en el flujo de pedidos.
