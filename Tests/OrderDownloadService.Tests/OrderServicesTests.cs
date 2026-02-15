@@ -144,6 +144,66 @@ namespace OrderDownloadService.Tests
                     x.StepId == "download-order" &&
                     x.Status == "completed" &&
                     x.Message.Contains("downloaded", StringComparison.OrdinalIgnoreCase))), Times.AtLeastOnce);
+                events.Verify(e => e.Send(It.Is<OrderGetProgressEvent>(x =>
+                    x.OrderNumber == "30049" &&
+                    x.StepId == "send-file-print-central" &&
+                    x.Status == "completed")), Times.AtLeastOnce);
+                events.Verify(e => e.Send(It.IsAny<FileReceivedEvent>()), Times.Once);
+            }
+            finally
+            {
+                if (File.Exists(credentialsPath))
+                    File.Delete(credentialsPath);
+                if (Directory.Exists(workdir))
+                    Directory.Delete(workdir, true);
+                if (Directory.Exists(historydir))
+                    Directory.Delete(historydir, true);
+            }
+        }
+
+        [Fact]
+        public async Task GetOrder_WhenImagesRequireApproval_PublishesPendingValidationAndDoesNotSendFileEvent()
+        {
+            var appConfig = new Mock<IAppConfig>();
+            var workdir = Path.Combine(Path.GetTempPath(), "workdir_" + Guid.NewGuid().ToString("N"));
+            var historydir = Path.Combine(Path.GetTempPath(), "history_" + Guid.NewGuid().ToString("N"));
+
+            appConfig.Setup(cfg => cfg.GetValue("DownloadServices.ApiUrl", It.IsAny<string>()))
+                .Returns("https://api.example.com/");
+            appConfig.Setup(cfg => cfg.GetValue("DownloadServices.WorkDirectory", It.IsAny<string>()))
+                .Returns(workdir);
+            appConfig.Setup(cfg => cfg.GetValue<string>("DownloadServices.HistoryDirectory"))
+                .Returns(historydir);
+
+            var log = new Mock<IAppLog>();
+            var apiCaller = new Mock<IApiCallerService>();
+            var events = new Mock<IEventQueue>();
+            var imageManagementService = new Mock<IImageManagementService>();
+            imageManagementService
+                .Setup(x => x.ProcessOrderImagesAsync(It.IsAny<StructureInditexOrderFile.InditexOrderData>()))
+                .ReturnsAsync(new ImageProcessingResult { RequiresApproval = true });
+
+            var credentialsPath = Path.Combine(GetOrderServiceAssemblyDir(), "InditexCredentials.json");
+            WriteCredentialsFile(credentialsPath, "Indetgroup_Tempe_V6");
+
+            try
+            {
+                var order = BuildValidOrder("30049");
+                var service = new TestOrderServicesWithFetchedOrder(appConfig.Object, log.Object, apiCaller.Object, events.Object, imageManagementService.Object, order);
+
+                var result = await service.GetOrder("30049", "I25", "12345");
+
+                Assert.Contains("found successfully", result);
+                events.Verify(e => e.Send(It.Is<OrderGetProgressEvent>(x =>
+                    x.OrderNumber == "30049" &&
+                    x.StepId == "send-file-print-central" &&
+                    x.Status == "pending-validation" &&
+                    x.Message.Contains("Indetgroup_Tempe_V6", StringComparison.Ordinal))), Times.Once);
+                events.Verify(e => e.Send(It.Is<OrderGetProgressEvent>(x =>
+                    x.OrderNumber == "30049" &&
+                    x.StepId == "send-file-print-central" &&
+                    x.Status == "completed")), Times.Never);
+                events.Verify(e => e.Send(It.IsAny<FileReceivedEvent>()), Times.Never);
             }
             finally
             {
@@ -184,18 +244,18 @@ namespace OrderDownloadService.Tests
             };
         }
 
-        private static void WriteCredentialsFile(string path)
+        private static void WriteCredentialsFile(string path, string credentialName = "Test")
         {
-            var json = @"{
+            var json = $@"{{
   ""Credentials"": [
-    {
-      ""Name"": ""Test"",
+    {{
+      ""Name"": ""{credentialName}"",
       ""User"": ""User"",
       ""Password"": ""Pass"",
       ""VendorId"": ""Vendor""
-    }
+    }}
   ]
-}";
+}}";
             File.WriteAllText(path, json);
         }
 
