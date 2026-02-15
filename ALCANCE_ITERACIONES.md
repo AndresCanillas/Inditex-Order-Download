@@ -177,3 +177,16 @@ Eliminar falso error de comunicación en `GetOrdersDialog` cuando la llamada `Ap
 ### Pendientes potenciales para siguiente iteración
 - Extraer lógica de render del resultado (`htmlResult`) a un helper testeable para reducir complejidad ciclomática del handler `GetOrder`.
 - Incorporar prueba de integración UI (JSDOM) que simule click y valide que no aparece `Server communication error` cuando backend retorna `{ Success: true }`.
+
+## Iteración 13 (actual)
+### Objetivo
+Asegurar que la vista de **Image Management** renderice todos los textos visibles mediante `ILocalizationService`, incluyendo los estados mostrados dinámicamente.
+
+### Alcance incluido
+- Se agrega mapeo de estados en `ImageManagementView.js.cshtml` para convertir valores internos (`New`, `Updated`, etc.) a textos localizados con `@g[...]`.
+- `RenderStatusBadge` deja de pintar el valor crudo del estado y usa el texto localizado.
+- Se agregan pruebas unitarias de regresión para validar uso de localización en la vista y en el script de Image Management.
+
+### Pendientes potenciales para siguiente iteración
+- Incorporar prueba de integración UI (JSDOM o Playwright) que valide en runtime el idioma renderizado según cultura activa.
+- Revisar otras vistas legacy para detectar textos hardcodeados fuera de `@g[...]` y consolidar checklist de localización.

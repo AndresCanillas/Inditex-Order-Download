@@ -174,6 +174,23 @@
             this.elements.downloadImage.prop("disabled", true);
         },
 
+        GetLocalizedStatus: function (status) {
+            switch (status) {
+                case "New":
+                    return "@g["New"]";
+                case "Updated":
+                    return "@g["Updated"]";
+                case "Rejected":
+                    return "@g["Rejected"]";
+                case "Obsolete":
+                    return "@g["Obsolete"]";
+                case "InFont":
+                    return "@g["In Font"]";
+                default:
+                    return status || "-";
+            }
+        },
+
         RenderStatusBadge: function (status) {
             var badgeMap = {
                 "New": "badge-warning",
@@ -183,7 +200,7 @@
                 "InFont": "badge-success"
             };
             var css = badgeMap[status] || "badge-light";
-            return `<span class="badge ${css}">${status}</span>`;
+            return `<span class="badge ${css}">${this.GetLocalizedStatus(status)}</span>`;
         },
 
         FormatDate: function (value) {
