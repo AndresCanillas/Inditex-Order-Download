@@ -75,29 +75,28 @@ namespace OrderDonwLoadService.Synchronization
 
                 log.LogMessage($"Order {order.ProductionOrder.PONumber} in process.");
 
-                var canSendToPrintCentral = true;
+                ImageProcessingResult imageResult = null;
                 try
                 {
                     PublishProgressEvent(orderNumber, "download-images", "in-progress", $"Processing images for order {order.ProductionOrder.PONumber}.");
-                    var imageResult = await imageManagementService.ProcessOrderImagesAsync(order);
+                    PublishProgressEvent(orderNumber, "send-qr-print-central", "in-progress", $"Sending QRs to Print Central for order {order.ProductionOrder.PONumber}.");
+                    imageResult = await imageManagementService.ProcessOrderImagesAsync(order);
                     if (imageResult.RequiresApproval)
                     {
-                        canSendToPrintCentral = false;
-                        PublishProgressEvent(orderNumber, "download-images", "completed", $"Images downloaded for order {order.ProductionOrder.PONumber}.");
-                        var pendingImageMessage = $"Order {order.ProductionOrder.PONumber} is waiting image validation for source Indetgroup_Tempe_V6 before sending file to Print Central.";
-                        PublishProgressEvent(orderNumber, "send-file-print-central", "pending-validation", pendingImageMessage);
-                        log.LogMessage(pendingImageMessage);
+                        PublishProgressEvent(orderNumber, "download-images", "completed", $"Images downloaded for order {order.ProductionOrder.PONumber}, but the order is awaiting image validation for the font named Indetgroup_Tempe.");
                     }
                     else
                     {
                         PublishProgressEvent(orderNumber, "download-images", "completed", $"Images downloaded for order {order.ProductionOrder.PONumber}.");
                     }
+                    PublishProgressEvent(orderNumber, "send-qr-print-central", "completed", $"QRs sent to Print Central for order {order.ProductionOrder.PONumber}.");
                 }
                 catch (Exception ex)
                 {
-                    canSendToPrintCentral = false;
                     PublishProgressEvent(orderNumber, "download-images", "failed", ex.Message);
+                    PublishProgressEvent(orderNumber, "send-qr-print-central", "failed", ex.Message);
                     log.LogException(ex);
+                    throw;
                 }
 
                 var filePath = "";
@@ -131,15 +130,13 @@ namespace OrderDonwLoadService.Synchronization
                     throw new Exception("ModelRfid property can`t be zero.");
 
 
-                if (canSendToPrintCentral)
-                {
-                    foreach (var label in order.labels)
+                 foreach (var label in order.labels)
                     {
                         if (string.IsNullOrEmpty(label.Reference))
                             throw new Exception("Label reference property is null or empty.");
                         
                         var pluginType = label.Reference.Substring(0,3);
-                        PublishProgressEvent(orderNumber, "send-qr-print-central", "in-progress", $"Sending QRs to Print Central for order {order.ProductionOrder.PONumber}.");
+                        
                         events.Send(new FileReceivedEvent
                         {
                             FilePath = filePath,
@@ -147,10 +144,17 @@ namespace OrderDonwLoadService.Synchronization
                             ProyectCode = order.ProductionOrder.Campaign,
                             PluginType = pluginType
                         });
-
-                        PublishProgressEvent(orderNumber, "send-qr-print-central", "completed", $"QRs sent to Print Central for order {order.ProductionOrder.PONumber}.");
+                    if (!imageResult.RequiresApproval)
+                    {
+                        
                         PublishProgressEvent(orderNumber, "send-file-print-central", "completed", $"File sent to Print Central for order {order.ProductionOrder.PONumber}.");
                         log.LogMessage($"File received event sent for order {order.ProductionOrder.PONumber}, with label reference{pluginType} ");
+                    }
+                    else
+                    {
+                        var pendingImageMessage = $"Order {order.ProductionOrder.PONumber} is waiting image validation  for the font named Indetgroup_Tempe before sending file to Print Central.";
+                        PublishProgressEvent(orderNumber, "send-file-print-central", "pending-validation", pendingImageMessage);
+                        log.LogMessage(pendingImageMessage);
                     }
                 }
 

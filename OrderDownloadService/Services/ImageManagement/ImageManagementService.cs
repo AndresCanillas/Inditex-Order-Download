@@ -82,6 +82,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
                 await repository.InsertAsync(BuildRecord(asset, downloaded, hash, ImageAssetStatus.Updated, true));
                 MarkPending(result, asset.Value);
             }
+            result.RequiresApproval=!AreOrderImagesReady(order);
 
             if (result.RequiresApproval)
                 NotifyDesignTeam(result);
@@ -102,6 +103,11 @@ namespace OrderDonwLoadService.Services.ImageManagement
                 throw new FileNotFoundException("Order file not found.", orderFilePath);
 
             var order = JsonConvert.DeserializeObject<InditexOrderData>(File.ReadAllText(orderFilePath));
+            return AreOrderImagesReady(order);
+        }
+        public bool AreOrderImagesReady(InditexOrderData order)
+        {
+
             var assets = ExtractUrlAssets(order).ToList();
             if (assets.Count == 0)
                 return true;
@@ -115,7 +121,7 @@ namespace OrderDonwLoadService.Services.ImageManagement
 
             return true;
         }
-       
+
         private IEnumerable<Asset> ExtractUrlAssets(InditexOrderData order)
         {
             if (order == null)

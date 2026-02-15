@@ -8,5 +8,6 @@ namespace OrderDonwLoadService.Services.ImageManagement
         Task<ImageProcessingResult> ProcessOrderImagesAsync(InditexOrderData order);
         Task<bool> AreOrderImagesReadyAsync(string orderFilePath);
         bool AreOrderImagesReady(string orderFilePath);
+        bool AreOrderImagesReady(InditexOrderData order);
     }
 }
