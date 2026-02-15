@@ -117,37 +117,37 @@
     },
     {
       "Key": "Please introduce the order number",
-      "Value": "Please introduce the order number",
+      "Value": "Por favor, introduce el número de pedido",
       "T": false
     },
     {
       "Key": "Order",
-      "Value": "Order",
+      "Value": "Pedido",
       "T": false
     },
     {
       "Key": "Result",
-      "Value": "Result",
+      "Value": "Resultado",
       "T": false
     },
     {
       "Key": "Please introduce the campaign code",
-      "Value": "Please introduce the campaign code",
+      "Value": "Por favor, introduce el código de campaña",
       "T": false
     },
     {
       "Key": "Please introduce the vendor id",
-      "Value": "Please introduce the vendor id",
+      "Value": "Por favor, introduce el identificador del proveedor",
       "T": false
     },
     {
       "Key": "Get Order",
-      "Value": "Get Order",
+      "Value": "Obtener pedido",
       "T": false
     },
     {
       "Key": "Get Orders by Inditex API",
-      "Value": "Get Orders by Inditex API",
+      "Value": "Obtener pedidos por API de Inditex",
       "T": false
     },
     {
@@ -157,87 +157,87 @@
     },
     {
       "Key": "Image Management",
-      "Value": "Image Management",
+      "Value": "Gestión de imágenes",
       "T": false
     },
     {
       "Key": "Review new or updated images and mark them as included in the font.",
-      "Value": "Review new or updated images and mark them as included in the font.",
+      "Value": "Revisa imágenes nuevas o actualizadas y márcalas como incluidas en la fuente.",
       "T": false
     },
     {
       "Key": "Refresh",
-      "Value": "Refresh",
+      "Value": "Actualizar",
       "T": false
     },
     {
       "Key": "Status filter",
-      "Value": "Status filter",
+      "Value": "Filtro de estado",
       "T": false
     },
     {
       "Key": "Pending validation",
-      "Value": "Pending validation",
+      "Value": "Validación pendiente",
       "T": false
     },
     {
       "Key": "All statuses",
-      "Value": "All statuses",
+      "Value": "Todos los estados",
       "T": false
     },
     {
       "Key": "New",
-      "Value": "New",
+      "Value": "Nuevo",
       "T": false
     },
     {
       "Key": "Updated",
-      "Value": "Updated",
+      "Value": "Actualizado",
       "T": false
     },
     {
       "Key": "Rejected",
-      "Value": "Rejected",
+      "Value": "Rechazado",
       "T": false
     },
     {
       "Key": "Obsolete",
-      "Value": "Obsolete",
+      "Value": "Obsoleto",
       "T": false
     },
     {
       "Key": "In Font",
-      "Value": "In Font",
+      "Value": "En fuente",
       "T": false
     },
     {
       "Key": "Search by name or URL",
-      "Value": "Search by name or URL",
+      "Value": "Buscar por nombre o URL",
       "T": false
     },
     {
       "Key": "Type to search...",
-      "Value": "Type to search...",
+      "Value": "Escribe para buscar...",
       "T": false
     },
     {
       "Key": "Apply filters",
-      "Value": "Apply filters",
+      "Value": "Aplicar filtros",
       "T": false
     },
     {
       "Key": "Images",
-      "Value": "Images",
+      "Value": "Imágenes",
       "T": false
     },
     {
       "Key": "Name",
-      "Value": "Name",
+      "Value": "Nombre",
       "T": false
     },
     {
       "Key": "Status",
-      "Value": "Status",
+      "Value": "Estado",
       "T": false
     },
     {
@@ -247,7 +247,7 @@
     },
     {
       "Key": "Preview",
-      "Value": "Preview",
+      "Value": "Vista previa",
       "T": false
     },
     {
@@ -272,12 +272,12 @@
     },
     {
       "Key": "Change status",
-      "Value": "Change status",
+      "Value": "Cambiar estado",
       "T": false
     },
     {
       "Key": "Save status",
-      "Value": "Save status",
+      "Value": "Guardar estado",
       "T": false
     },
     {
@@ -337,7 +337,7 @@
     },
     {
       "Key": "Download image",
-      "Value": "Download image",
+      "Value": "Descargar imagen",
       "T": false
     },
     {
@@ -377,7 +377,7 @@
     },
     {
       "Key": "See process phases",
-      "Value": "See process phases",
+      "Value": "Ver fases del proceso",
       "T": false
     },
     {
@@ -418,6 +418,16 @@
     {
       "Key": "Operation completed",
       "Value": "Operation completed",
+      "T": false
+    },
+    {
+      "Key": "Follow the flow to capture and validate each stage of the process.",
+      "Value": "Sigue el flujo para capturar y validar cada etapa del proceso.",
+      "T": false
+    },
+    {
+      "Key": "Visibility of system status and clear feedback at every step.",
+      "Value": "Visibilidad del estado del sistema y retroalimentación clara en cada paso.",
       "T": false
     }
   ]

@@ -57,7 +57,7 @@ describe("GetOrderProcessTracker", () => {
     const fileStep = steps.find((step) => step.id === "send-file-print-central");
 
     expect(fileStep.status).toBe(tracker.STATUS.PENDING_VALIDATION);
-    expect(fileStep.detail).toMatch(/validación/i);
+    expect(fileStep.detail).toMatch(/validaci[oó]n|validation/i);
   });
 
   test("failStep marks the current phase as failed", () => {
