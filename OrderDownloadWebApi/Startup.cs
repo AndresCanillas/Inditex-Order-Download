@@ -108,6 +108,7 @@ namespace OrderDownloadWebApi
 
             factory.RegisterSingleton<EventForwardingOptions>(new EventForwardingOptions()
             //.Allow<AccessGeneratedEvent>()
+            .Allow<OrderGetProgressEvent>()
             );
         }
 

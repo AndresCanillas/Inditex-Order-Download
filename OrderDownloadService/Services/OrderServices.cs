@@ -48,6 +48,7 @@ namespace OrderDonwLoadService.Synchronization
         {
             string message = $"Order number ({orderNumber}) not found in any queue.";
 
+            PublishProgressEvent(orderNumber, "search-order", "in-progress", $"Searching order number ({orderNumber}) in queues.");
 
             var credentials = OrderDownloadHelper.LoadInditexCredentials(log);
             if (credentials == null || credentials.Count == 0)
@@ -69,27 +70,42 @@ namespace OrderDonwLoadService.Synchronization
                 }
 
                 message = $"Order number ({orderNumber}) found successfully in {credential.Name} queue.";
+                PublishProgressEvent(orderNumber, "search-order", "completed", message);
+                PublishProgressEvent(orderNumber, "download-order", "completed", $"Order {order.ProductionOrder.PONumber} downloaded from source queue.");
 
                 log.LogMessage($"Order {order.ProductionOrder.PONumber} in process.");
 
                 try
                 {
+                    PublishProgressEvent(orderNumber, "download-images", "in-progress", $"Processing images for order {order.ProductionOrder.PONumber}.");
                     var imageResult = await imageManagementService.ProcessOrderImagesAsync(order);
                     if (imageResult.RequiresApproval)
-                        log.LogMessage($"Order {order.ProductionOrder.PONumber} has pending images to validate.");
+                    {
+                        var pendingImageMessage = $"Order {order.ProductionOrder.PONumber} has pending images to validate.";
+                        PublishProgressEvent(orderNumber, "send-file-print-central", "pending-validation", pendingImageMessage);
+                        log.LogMessage(pendingImageMessage);
+                    }
+                    else
+                    {
+                        PublishProgressEvent(orderNumber, "download-images", "completed", $"Images downloaded for order {order.ProductionOrder.PONumber}.");
+                    }
                 }
                 catch (Exception ex)
                 {
+                    PublishProgressEvent(orderNumber, "download-images", "failed", ex.Message);
                     log.LogException(ex);
                 }
 
                 var filePath = "";
                 try
                 {
+                    PublishProgressEvent(orderNumber, "download-order", "in-progress", $"Saving order {order.ProductionOrder.PONumber} into work directory.");
                     filePath = OrderDownloadHelper.SaveFileIntoWorkDirectory(order, workDirectory);
+                    PublishProgressEvent(orderNumber, "download-order", "completed", $"Order {order.ProductionOrder.PONumber} was saved into work directory.");
                 }
                 catch (Exception ex)
                 {
+                    PublishProgressEvent(orderNumber, "download-order", "failed", ex.Message);
                     log.LogMessage($"Error: {ex.Message}.");
                     SaveOrderWithError(ex.Message, order);
                     continue;
@@ -117,6 +133,7 @@ namespace OrderDonwLoadService.Synchronization
                         throw new Exception("Label reference property is null or empty.");
                     
                     var pluginType = label.Reference.Substring(0,3);
+                    PublishProgressEvent(orderNumber, "send-qr-print-central", "in-progress", $"Sending QRs to Print Central for order {order.ProductionOrder.PONumber}.");
                     events.Send(new FileReceivedEvent
                     {
                         FilePath = filePath,
@@ -125,13 +142,31 @@ namespace OrderDonwLoadService.Synchronization
                         PluginType = pluginType
                     });
 
+                    PublishProgressEvent(orderNumber, "send-qr-print-central", "completed", $"QRs sent to Print Central for order {order.ProductionOrder.PONumber}.");
+                    PublishProgressEvent(orderNumber, "send-file-print-central", "completed", $"File sent to Print Central for order {order.ProductionOrder.PONumber}.");
                     log.LogMessage($"File received event sent for order {order.ProductionOrder.PONumber}, with label reference{pluginType} ");
                 }
 
                 break;
             }
+            if (message.IndexOf("not found in any queue", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                PublishProgressEvent(orderNumber, "search-order", "failed", message);
+            }
+
             log.LogMessage(message);
             return message;
+        }
+
+        private void PublishProgressEvent(string orderNumber, string stepId, string status, string message)
+        {
+            events.Send(new OrderGetProgressEvent
+            {
+                OrderNumber = orderNumber,
+                StepId = stepId,
+                Status = status,
+                Message = message
+            });
         }
 
         protected virtual async Task<InditexOrderData> FetchOrderAsync(

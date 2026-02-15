@@ -26,6 +26,8 @@
 
         this.processSteps = [];
         this.requestState = null;
+        this.currentOrderContext = null;
+        this.handleRealtimeEventBound = null;
     };
 
     GetOrdersDialog.prototype = {
@@ -49,10 +51,20 @@
             this.elements.processTrackerToggle.on("click", function () {
                 self.toggleTracker();
             });
+
+            if (typeof AppContext !== "undefined" && AppContext.AppEventListener && typeof AppContext.AppEventListener.Subscribe === "function") {
+                this.handleRealtimeEventBound = function (eventData) {
+                    self.handleRealtimeEvent(eventData);
+                };
+                AppContext.AppEventListener.Subscribe(this, this.handleRealtimeEventBound);
+            }
         },
 
         OnUnload: function () {
-            // Limpiar listeners si es necesario
+            if (this.handleRealtimeEventBound && typeof AppContext !== "undefined" && AppContext.AppEventListener && typeof AppContext.AppEventListener.Unsubscribe === "function") {
+                AppContext.AppEventListener.Unsubscribe(this, this.handleRealtimeEventBound);
+                this.handleRealtimeEventBound = null;
+            }
         },
 
         initializeTracker: function () {
@@ -167,6 +179,30 @@
             this.renderTracker();
         },
 
+
+        handleRealtimeEvent: function (eventData) {
+            if (typeof GetOrderProcessTracker === "undefined") {
+                return;
+            }
+
+            if (!eventData || eventData.EventName !== "OrderGetProgressEvent") {
+                return;
+            }
+
+            if (!this.currentOrderContext || !this.requestState || !this.requestState.isInProgress()) {
+                return;
+            }
+
+            var data = eventData.Data || eventData.data || eventData;
+            if (!data || !data.OrderNumber || data.OrderNumber !== this.currentOrderContext.orderNumber) {
+                return;
+            }
+
+            if (GetOrderProcessTracker.applyProgressEvent(this.processSteps, data)) {
+                this.renderTracker();
+            }
+        },
+
         updateTrackerForServerError: function (errorMessage) {
             if (typeof GetOrderProcessTracker === "undefined") {
                 return;
@@ -197,6 +233,8 @@
             var orderNumber = orderNumberInput.val().trim();
             var campaignCode = campaignCodeInput.val().trim();
             var vendorId = vendorIdInput.val().trim();
+
+            self.currentOrderContext = null;
 
             if (typeof GetOrdersValidation === "undefined") {
                 output.removeClass("alert-success alert-secondary d-none").addClass("alert-danger").text("@g["Validation resources are not available. Please reload the page."]");
@@ -243,6 +281,11 @@
                 self.elements.buttonGetOrder.prop("disabled", true);
             }
             output.removeClass("alert-success alert-danger d-none").addClass("alert-secondary").html(`@g["Processing..."]`);
+            self.currentOrderContext = {
+                orderNumber: orderNumber,
+                campaignCode: campaignCode,
+                vendorId: vendorId
+            };
             self.startWorkflowTracker();
            
             try {
@@ -292,6 +335,8 @@
                 self.updateTrackerForServerError("@g["Server communication error"]");
                 output.removeClass("alert-success alert-secondary d-none").addClass("alert-danger").text("@g["Server communication error"]");
             } finally {
+                self.currentOrderContext = null;
+
                 if (self.requestState) {
                     self.requestState.end();
                 } else {
