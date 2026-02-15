@@ -317,6 +317,51 @@ div[name='catalogFieldsGrid'].k-grid tbody td {
 }
 /***************** End Select Brand Project view************************/
 /***************** Get Order dialog layout ************************/
+.get-orders-flow {
+    background: linear-gradient(135deg, rgba(17, 30, 54, 0.95), rgba(29, 50, 86, 0.9));
+    border: 1px solid rgba(156, 198, 255, 0.2);
+    border-radius: 14px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+    padding: 18px;
+}
+
+.get-orders-flow__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 14px;
+}
+
+.get-orders-flow__brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.get-orders-flow__logo {
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: #fff;
+    object-fit: contain;
+}
+
+.get-orders-flow__title,
+.get-orders-flow__subtitle,
+.get-orders-flow__nielsen,
+.get-orders-flow__label {
+    color: #f5f8ff;
+}
+
+.get-orders-flow__nielsen {
+    font-size: 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(126, 206, 156, 0.45);
+    background: rgba(35, 110, 66, 0.34);
+    padding: 8px 10px;
+    max-width: 320px;
+}
+
 .get-orders-layout {
     display: flex;
     gap: 24px;
@@ -324,8 +369,29 @@ div[name='catalogFieldsGrid'].k-grid tbody td {
 }
 
 .get-orders-layout__form-column {
-    flex: 0 1 420px;
+    flex: 0 1 430px;
     min-width: 320px;
+}
+
+.get-orders-flow__card {
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 16px;
+    background: rgba(9, 18, 33, 0.35);
+}
+
+.get-orders-flow__label {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.get-orders-flow__card .form-control {
+    background: rgba(255, 255, 255, 0.96);
+}
+
+.get-orders-flow__cta {
+    width: 100%;
+    font-weight: 700;
 }
 
 .get-orders-layout__tracker-column {
@@ -334,11 +400,15 @@ div[name='catalogFieldsGrid'].k-grid tbody td {
 }
 
 .get-orders-layout__tracker-panel {
-    min-height: 420px;
-    border: 1px dashed rgba(255, 255, 255, 0.12);
-    border-radius: 8px;
-    padding: 10px;
-    background: rgba(0, 0, 0, 0.08);
+    min-height: 460px;
+    border: 1px solid rgba(156, 198, 255, 0.2);
+    border-radius: 12px;
+    padding: 12px;
+    background: rgba(7, 14, 24, 0.45);
+}
+
+.get-orders-flow__feedback {
+    color: #e8eefc;
 }
 
 .get-orders-layout__tracker-column .order-process-tracker {
@@ -347,6 +417,14 @@ div[name='catalogFieldsGrid'].k-grid tbody td {
 }
 
 @media (max-width: 991.98px) {
+    .get-orders-flow__header {
+        flex-direction: column;
+    }
+
+    .get-orders-flow__nielsen {
+        max-width: none;
+    }
+
     .get-orders-layout {
         flex-direction: column;
     }
@@ -365,10 +443,10 @@ div[name='catalogFieldsGrid'].k-grid tbody td {
 /***************** End Get Order dialog layout ************************/
 /***************** Get Order process tracker ************************/
 .order-process-tracker {
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
     padding: 10px;
-    background: rgba(0, 0, 0, 0.12);
+    background: rgba(0, 0, 0, 0.2);
 }
 
 .order-process-tracker__toggle {
@@ -396,33 +474,32 @@ div[name='catalogFieldsGrid'].k-grid tbody td {
     border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 }
 
-
 .order-process-tracker__item--pending {
     border-left: 3px solid #4f5b66;
     padding-left: 8px;
 }
 
 .order-process-tracker__item--in-progress {
-    border-left: 3px solid #1d6fd6;
-    background: rgba(29, 111, 214, 0.12);
+    border-left: 3px solid #27a8ff;
+    background: rgba(39, 168, 255, 0.15);
     padding-left: 8px;
 }
 
 .order-process-tracker__item--completed {
-    border-left: 3px solid #1f8f55;
-    background: rgba(31, 143, 85, 0.15);
+    border-left: 3px solid #3bcf8e;
+    background: rgba(59, 207, 142, 0.14);
     padding-left: 8px;
 }
 
 .order-process-tracker__item--pending-validation {
-    border-left: 3px solid #9a6a12;
-    background: rgba(154, 106, 18, 0.13);
+    border-left: 3px solid #ffbf4f;
+    background: rgba(255, 191, 79, 0.13);
     padding-left: 8px;
 }
 
 .order-process-tracker__item--failed {
-    border-left: 3px solid #b63c3c;
-    background: rgba(182, 60, 60, 0.14);
+    border-left: 3px solid #ff5f6d;
+    background: rgba(255, 95, 109, 0.14);
     padding-left: 8px;
 }
 
@@ -447,22 +524,22 @@ div[name='catalogFieldsGrid'].k-grid tbody td {
 }
 
 .order-process-tracker__badge--in-progress {
-    background: #1d6fd6;
+    background: #27a8ff;
     color: white;
 }
 
 .order-process-tracker__badge--completed {
-    background: #1f8f55;
-    color: white;
+    background: #3bcf8e;
+    color: #062016;
 }
 
 .order-process-tracker__badge--pending-validation {
-    background: #9a6a12;
-    color: white;
+    background: #ffbf4f;
+    color: #3f2a05;
 }
 
 .order-process-tracker__badge--failed {
-    background: #b63c3c;
+    background: #ff5f6d;
     color: white;
 }
 
@@ -471,3 +548,56 @@ div[name='catalogFieldsGrid'].k-grid tbody td {
 }
 
 /***************** End Get Order process tracker ************************/
+
+/***************** Image Management branded layout ************************/
+.image-management-shell {
+    background: linear-gradient(135deg, #111e36 0%, #203b63 100%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    padding: 16px;
+    color: #f3f6ff;
+}
+
+.image-management-shell__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.image-management-shell__brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.image-management-shell__logo {
+    width: 108px;
+    height: 64px;
+    object-fit: contain;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.image-management-shell .card {
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.image-management-shell__filters {
+    background: rgba(255, 255, 255, 0.98);
+}
+
+.image-management-shell__table,
+.image-management-shell__preview {
+    box-shadow: 0 8px 24px rgba(8, 18, 34, 0.18);
+}
+
+@media (max-width: 991.98px) {
+    .image-management-shell__header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+/***************** End Image Management branded layout ************************/

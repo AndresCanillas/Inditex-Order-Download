@@ -203,3 +203,24 @@ Reubicar visualmente el bloque de fases del proceso en `Get Orders` para mostrar
 ### Pendientes potenciales para siguiente iteración
 - Evaluar mover el output de resultado (`information2`) al mismo panel derecho para consolidar feedback del flujo en una sola zona.
 - Añadir prueba de integración visual (DOM) para verificar que el tracker no desplace el formulario cuando cambia entre `d-none` y visible.
+
+## Iteración 15 (actual)
+### Objetivo
+Rediseñar visualmente las vistas `Get Orders` e `Image Management` para mejorar uso del espacio, reforzar visualización de flujo por etapas y aplicar principios de usabilidad de Nielsen con identidad visual de Zara.
+
+### Alcance incluido
+- TDD frontend:
+  - Se amplían pruebas de `getOrdersLayout.test.js` para validar nuevo contenedor de flujo, bloque de recomendación de usabilidad y ajustes visuales del panel de etapas.
+  - Se agrega `imageManagementLayout.test.js` para validar estructura de layout visual de Image Management y presencia de reglas CSS de branding.
+- Implementación en `Get Orders`:
+  - Se crea un contenedor formal `get-orders-flow` con cabecera de contexto, subtítulo de flujo, branding de Zara y recordatorio de heurística de Nielsen (`Visibility of system status`).
+  - Se elimina estilo inline repetido en labels y se centraliza en clases CSS para mantener consistencia visual.
+  - Se refuerza el panel derecho del tracker con altura útil mayor y paleta de estado más visible (progreso/completado/error/pendiente validación).
+- Implementación en `Image Management`:
+  - Se encapsula la vista en `image-management-shell` con tema visual y header de marca.
+  - Se añade bloque de marca con logo de Zara y jerarquía visual más clara entre filtros, tabla y preview.
+  - Se mantienen `name` y `action` usados por JS para no romper comportamiento existente.
+
+### Pendientes potenciales para siguiente iteración
+- Validar contraste AA/AAA de toda la paleta nueva en revisión UX formal.
+- Incorporar métricas de usabilidad (tiempo para completar tarea, tasa de error) para confirmar mejora real post-rediseño.

@@ -4,109 +4,114 @@
     Layout = null;
 }
 <div id="ImageManagementView" class="p-3">
-    <div class="d-flex align-items-center justify-content-between mb-3">
-        <div>
-            <h4 class="mb-1">@g["Image Management"]</h4>
-            <small class="text-muted">@g["Review new or updated images and mark them as included in the font."]</small>
-        </div>
-        <button type="button" class="btn btn-outline-primary" action="Refresh">
-            <span class="fa fa-refresh"></span> @g["Refresh"]
-        </button>
-    </div>
-
-    <div class="card mb-3">
-        <div class="card-body">
-            <div class="form-row">
-                <div class="form-group col-md-4">
-                    <label for="statusFilter">@g["Status filter"]</label>
-                    <select id="statusFilter" name="statusFilter" class="form-control" aria-label="@g["Status filter"]">
-                        <option value="pending">@g["Pending validation"]</option>
-                        <option value="all">@g["All statuses"]</option>
-                        <option value="New">@g["New"]</option>
-                        <option value="Updated">@g["Updated"]</option>
-                        <option value="Rejected">@g["Rejected"]</option>
-                        <option value="Obsolete">@g["Obsolete"]</option>
-                        <option value="InFont">@g["In Font"]</option>
-                    </select>
-                </div>
-                <div class="form-group col-md-5">
-                    <label for="searchText">@g["Search by name or URL"]</label>
-                    <input id="searchText" name="searchText" type="text" class="form-control" placeholder="@g["Type to search..."]" />
-                </div>
-                <div class="form-group col-md-3 d-flex align-items-end">
-                    <button type="button" class="btn btn-primary w-100" action="ApplyFilters">
-                        <span class="fa fa-filter"></span> @g["Apply filters"]
-                    </button>
+    <section class="image-management-shell">
+        <header class="image-management-shell__header mb-3">
+            <div class="image-management-shell__brand">
+                <img src="~/images/zara-logo.jpg" alt="Zara" class="image-management-shell__logo" />
+                <div>
+                    <h4 class="mb-1">@g["Image Management"]</h4>
+                    <small>@g["Review new or updated images and mark them as included in the font."]</small>
                 </div>
             </div>
-        </div>
-    </div>
+            <button type="button" class="btn btn-outline-light" action="Refresh">
+                <span class="fa fa-refresh"></span> @g["Refresh"]
+            </button>
+        </header>
 
-    <div class="row">
-        <div class="col-lg-7 mb-3">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>@g["Images"]</span>
-                    <span name="resultCount" class="badge badge-secondary">0</span>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead class="thead-light">
-                            <tr>
-                                <th>@g["Name"]</th>
-                                <th>@g["Status"]</th>
-                                <th>@g["Updated"]</th>
-                            </tr>
-                        </thead>
-                        <tbody name="imageRows"></tbody>
-                    </table>
-                </div>
-                <div name="emptyState" class="p-3 text-muted d-none">
-                    @g["No images match the selected filters."]
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-5 mb-3">
-            <div class="card">
-                <div class="card-header">@g["Preview"]</div>
-                <div class="card-body">
-                    <div name="previewEmpty" class="text-muted">
-                        @g["Select an image to preview details."]
+        <div class="card image-management-shell__filters mb-3">
+            <div class="card-body">
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label for="statusFilter">@g["Status filter"]</label>
+                        <select id="statusFilter" name="statusFilter" class="form-control" aria-label="@g["Status filter"]">
+                            <option value="pending">@g["Pending validation"]</option>
+                            <option value="all">@g["All statuses"]</option>
+                            <option value="New">@g["New"]</option>
+                            <option value="Updated">@g["Updated"]</option>
+                            <option value="Rejected">@g["Rejected"]</option>
+                            <option value="Obsolete">@g["Obsolete"]</option>
+                            <option value="InFont">@g["In Font"]</option>
+                        </select>
                     </div>
-                    <div name="previewContent" class="d-none">
-                        <div class="mb-3 d-flex justify-content-center align-items-start">
-                            <img name="previewImage" src="" alt="@g["Image preview"]" class="img-fluid border rounded" />
-                            <div class="ml-3">
-                                <button type="button" class="btn btn-outline-primary" name="downloadImage" action="DownloadImage" disabled>
-                                    <span class="fa fa-download"></span> @g["Download image"]
-                                </button>
-                            </div>
-                        </div>
-                        <dl class="row">
-                            <dt class="col-sm-4">@g["Name"]</dt>
-                            <dd class="col-sm-8" name="previewName"></dd>
-                            <dt class="col-sm-4">@g["Status"]</dt>
-                            <dd class="col-sm-8" name="previewStatus"></dd>
-                            <dt class="col-sm-4">@g["URL"]</dt>
-                            <dd class="col-sm-8" name="previewUrl"></dd>
-                            <dt class="col-sm-4">@g["Hash"]</dt>
-                            <dd class="col-sm-8" name="previewHash"></dd>
-                        </dl>
-                        <div class="form-group">
-                            <label for="statusSelect">@g["Change status"]</label>
-                            <select id="statusSelect" name="statusSelect" class="form-control">
-                                <option value="InFont">@g["In Font"]</option>
-                                <option value="Rejected">@g["Rejected"]</option>
-                                <option value="Obsolete">@g["Obsolete"]</option>
-                            </select>
-                        </div>
-                        <button type="button" class="btn btn-success" action="UpdateStatus">
-                            <span class="fa fa-check"></span> @g["Save status"]
+                    <div class="form-group col-md-5">
+                        <label for="searchText">@g["Search by name or URL"]</label>
+                        <input id="searchText" name="searchText" type="text" class="form-control" placeholder="@g["Type to search..."]" />
+                    </div>
+                    <div class="form-group col-md-3 d-flex align-items-end">
+                        <button type="button" class="btn btn-primary w-100" action="ApplyFilters">
+                            <span class="fa fa-filter"></span> @g["Apply filters"]
                         </button>
-                        <div name="statusFeedback" class="mt-3 small text-muted"></div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+
+        <div class="row">
+            <div class="col-lg-7 mb-3">
+                <div class="card image-management-shell__table">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>@g["Images"]</span>
+                        <span name="resultCount" class="badge badge-secondary">0</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>@g["Name"]</th>
+                                    <th>@g["Status"]</th>
+                                    <th>@g["Updated"]</th>
+                                </tr>
+                            </thead>
+                            <tbody name="imageRows"></tbody>
+                        </table>
+                    </div>
+                    <div name="emptyState" class="p-3 text-muted d-none">
+                        @g["No images match the selected filters."]
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5 mb-3">
+                <div class="card image-management-shell__preview">
+                    <div class="card-header">@g["Preview"]</div>
+                    <div class="card-body">
+                        <div name="previewEmpty" class="text-muted">
+                            @g["Select an image to preview details."]
+                        </div>
+                        <div name="previewContent" class="d-none">
+                            <div class="mb-3 d-flex justify-content-center align-items-start">
+                                <img name="previewImage" src="" alt="@g["Image preview"]" class="img-fluid border rounded" />
+                                <div class="ml-3">
+                                    <button type="button" class="btn btn-outline-primary" name="downloadImage" action="DownloadImage" disabled>
+                                        <span class="fa fa-download"></span> @g["Download image"]
+                                    </button>
+                                </div>
+                            </div>
+                            <dl class="row">
+                                <dt class="col-sm-4">@g["Name"]</dt>
+                                <dd class="col-sm-8" name="previewName"></dd>
+                                <dt class="col-sm-4">@g["Status"]</dt>
+                                <dd class="col-sm-8" name="previewStatus"></dd>
+                                <dt class="col-sm-4">@g["URL"]</dt>
+                                <dd class="col-sm-8" name="previewUrl"></dd>
+                                <dt class="col-sm-4">@g["Hash"]</dt>
+                                <dd class="col-sm-8" name="previewHash"></dd>
+                            </dl>
+                            <div class="form-group">
+                                <label for="statusSelect">@g["Change status"]</label>
+                                <select id="statusSelect" name="statusSelect" class="form-control">
+                                    <option value="InFont">@g["In Font"]</option>
+                                    <option value="Rejected">@g["Rejected"]</option>
+                                    <option value="Obsolete">@g["Obsolete"]</option>
+                                </select>
+                            </div>
+                            <button type="button" class="btn btn-success" action="UpdateStatus">
+                                <span class="fa fa-check"></span> @g["Save status"]
+                            </button>
+                            <div name="statusFeedback" class="mt-3 small text-muted"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 </div>
