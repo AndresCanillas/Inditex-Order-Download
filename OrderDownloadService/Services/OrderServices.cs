@@ -75,13 +75,16 @@ namespace OrderDonwLoadService.Synchronization
 
                 log.LogMessage($"Order {order.ProductionOrder.PONumber} in process.");
 
+                var canSendToPrintCentral = true;
                 try
                 {
                     PublishProgressEvent(orderNumber, "download-images", "in-progress", $"Processing images for order {order.ProductionOrder.PONumber}.");
                     var imageResult = await imageManagementService.ProcessOrderImagesAsync(order);
                     if (imageResult.RequiresApproval)
                     {
-                        var pendingImageMessage = $"Order {order.ProductionOrder.PONumber} has pending images to validate.";
+                        canSendToPrintCentral = false;
+                        PublishProgressEvent(orderNumber, "download-images", "completed", $"Images downloaded for order {order.ProductionOrder.PONumber}.");
+                        var pendingImageMessage = $"Order {order.ProductionOrder.PONumber} is waiting image validation for source Indetgroup_Tempe_V6 before sending file to Print Central.";
                         PublishProgressEvent(orderNumber, "send-file-print-central", "pending-validation", pendingImageMessage);
                         log.LogMessage(pendingImageMessage);
                     }
@@ -92,6 +95,7 @@ namespace OrderDonwLoadService.Synchronization
                 }
                 catch (Exception ex)
                 {
+                    canSendToPrintCentral = false;
                     PublishProgressEvent(orderNumber, "download-images", "failed", ex.Message);
                     log.LogException(ex);
                 }
@@ -127,24 +131,27 @@ namespace OrderDonwLoadService.Synchronization
                     throw new Exception("ModelRfid property can`t be zero.");
 
 
-                foreach (var label in order.labels)
+                if (canSendToPrintCentral)
                 {
-                    if (string.IsNullOrEmpty(label.Reference))
-                        throw new Exception("Label reference property is null or empty.");
-                    
-                    var pluginType = label.Reference.Substring(0,3);
-                    PublishProgressEvent(orderNumber, "send-qr-print-central", "in-progress", $"Sending QRs to Print Central for order {order.ProductionOrder.PONumber}.");
-                    events.Send(new FileReceivedEvent
+                    foreach (var label in order.labels)
                     {
-                        FilePath = filePath,
-                        OrderNumber = order.ProductionOrder.PONumber.ToString(),
-                        ProyectCode = order.ProductionOrder.Campaign,
-                        PluginType = pluginType
-                    });
+                        if (string.IsNullOrEmpty(label.Reference))
+                            throw new Exception("Label reference property is null or empty.");
+                        
+                        var pluginType = label.Reference.Substring(0,3);
+                        PublishProgressEvent(orderNumber, "send-qr-print-central", "in-progress", $"Sending QRs to Print Central for order {order.ProductionOrder.PONumber}.");
+                        events.Send(new FileReceivedEvent
+                        {
+                            FilePath = filePath,
+                            OrderNumber = order.ProductionOrder.PONumber.ToString(),
+                            ProyectCode = order.ProductionOrder.Campaign,
+                            PluginType = pluginType
+                        });
 
-                    PublishProgressEvent(orderNumber, "send-qr-print-central", "completed", $"QRs sent to Print Central for order {order.ProductionOrder.PONumber}.");
-                    PublishProgressEvent(orderNumber, "send-file-print-central", "completed", $"File sent to Print Central for order {order.ProductionOrder.PONumber}.");
-                    log.LogMessage($"File received event sent for order {order.ProductionOrder.PONumber}, with label reference{pluginType} ");
+                        PublishProgressEvent(orderNumber, "send-qr-print-central", "completed", $"QRs sent to Print Central for order {order.ProductionOrder.PONumber}.");
+                        PublishProgressEvent(orderNumber, "send-file-print-central", "completed", $"File sent to Print Central for order {order.ProductionOrder.PONumber}.");
+                        log.LogMessage($"File received event sent for order {order.ProductionOrder.PONumber}, with label reference{pluginType} ");
+                    }
                 }
 
                 break;

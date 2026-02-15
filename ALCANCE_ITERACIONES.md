@@ -267,3 +267,19 @@ Corregir que los cambios de maquetación no se reflejen en runtime garantizando 
 
 ### Pendientes potenciales para siguiente iteración
 - Evaluar mover estilos críticos de `Get Orders` a un CSS modular de feature para reducir dependencia de un archivo global monolítico.
+
+## Iteración 19 (actual)
+### Objetivo
+Evitar mensaje falso de envío a Print Central cuando el pedido aún tiene imágenes pendientes de validación en fuente `Indetgroup_Tempe_V6`.
+
+### Alcance incluido
+- TDD:
+  - Se amplía `OrderServicesTests` con escenario que exige estado `pending-validation` en `send-file-print-central` y verifica que **no** se emita `FileReceivedEvent` mientras haya validación pendiente.
+  - Se refuerza el escenario exitoso para verificar explícitamente que, sin pendientes, sí se publica `send-file-print-central` en `completed` y se emite `FileReceivedEvent`.
+- Implementación:
+  - `OrderServices.GetOrder` ahora bloquea el envío a Print Central cuando `ProcessOrderImagesAsync` devuelve `RequiresApproval = true`.
+  - Se publica mensaje de espera de validación para la fuente `Indetgroup_Tempe_V6` en el mismo paso final del tracker (`send-file-print-central`).
+  - El flujo solo publica “File sent to Print Central …” si realmente puede enviar el evento.
+
+### Pendientes potenciales para siguiente iteración
+- Revisar si la fuente debe ser configurable por proyecto/cola en lugar de estar hardcodeada para reducir acoplamiento.
